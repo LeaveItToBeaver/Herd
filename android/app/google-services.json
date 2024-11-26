@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "756626341076",
+    "firebase_url": "https://herdapp-54e26-default-rtdb.firebaseio.com",
+    "project_id": "herdapp-54e26",
+    "storage_bucket": "herdapp-54e26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:756626341076:android:c99d77cd05e082a1008f41",
+        "android_client_info": {
+          "package_name": "com.herdco.herdapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "756626341076-kc0t97l6spt0icpbag2s5nj3375spa97.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.herdco.herdapp",
+            "certificate_hash": "f03c249f78f5d9a018c92d0fa69a6c0f3ecddcd3"
+          }
+        },
+        {
+          "client_id": "756626341076-fj66vrtmbg07lenhra551io33ecj2l77.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-vc2zH3zcpVQ1zKfUyjLcqqUSLW89Uqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "756626341076-fj66vrtmbg07lenhra551io33ecj2l77.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "756626341076-62b4fai9c7950ju4vj35dtngs8qs7pti.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.herdco.herdapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
