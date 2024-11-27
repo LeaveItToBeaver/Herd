@@ -139,6 +139,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+          GoRoute(
+            path: '/post/:id',
+            builder: (context, state) {
+              final postId = state.pathParameters['id']!;
+              return PostScreen(postId: postId);
+            },
+          ),
 
         ],
       ),

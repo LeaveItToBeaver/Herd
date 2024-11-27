@@ -13,7 +13,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   CreatePostController(this._userRepository, this._postRepository)
       : super(AsyncValue.data(CreatePostState.initial()));
 
-  Future<void> createPost({
+  Future<String> createPost({
     required String userId,
     required String title,
     required String content,
@@ -22,16 +22,13 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     try {
       state = const AsyncValue.loading();
 
-      // Fetch user data
       final user = await _userRepository.getUserById(userId);
-      if (user == null) {
-        throw Exception("User not found");
-      }
+      if (user == null) throw Exception("User not found");
 
-      // Upload image if provided
       String? imageUrl;
+      final postId = _postRepository.generatePostId(); // Generate the post ID upfront
+
       if (imageFile != null) {
-        final postId = _postRepository.generatePostId();
         imageUrl = await _postRepository.uploadImage(
           imageFile,
           userId: userId,
@@ -39,9 +36,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         );
       }
 
-      // Create the post model
       final post = PostModel(
-        id: _postRepository.generatePostId(),
+        id: postId,
         authorId: user.id,
         username: user.username,
         content: content,
@@ -50,22 +46,18 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         createdAt: DateTime.now(),
       );
 
-      // Save the post
       await _postRepository.createPost(post);
 
-      // Update the state
-      state = AsyncValue.data(
-        CreatePostState(
-          user: user,
-          post: post,
-          herdId: null, // Add herdId if applicable
-          isImage: imageFile != null,
-          isLoading: false,
-          errorMessage: null,
-        ),
-      );
+      state = AsyncValue.data(CreatePostState(
+        user: user,
+        post: post,
+        isLoading: false,
+      ));
+
+      return postId; // Return the created post's ID
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
+      rethrow; // Propagate the error for handling in the UI
     }
   }
 }

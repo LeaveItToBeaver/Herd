@@ -1,33 +1,15 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../data/models/post_model.dart';
 
-class PostState {
-  final List<PostModel> posts;
-  final bool isLoading;
-  final String? error;
-  final Map<String, bool> likedPosts;
-  final Map<String, bool> dislikedPosts;
+part 'post_state.freezed.dart';
 
-  const PostState({
-    this.posts = const [],
-    this.isLoading = false,
-    this.error,
-    this.likedPosts = const {},
-    this.dislikedPosts = const {},
-  });
-
-  PostState copyWith({
-    List<PostModel>? posts,
-    bool? isLoading,
-    String? error,
-    Map<String, bool>? likedPosts,
-    Map<String, bool>? dislikedPosts,
-  }) {
-    return PostState(
-      posts: posts ?? this.posts,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
-      likedPosts: likedPosts ?? this.likedPosts,
-      dislikedPosts: dislikedPosts ?? this.dislikedPosts,
-    );
-  }
+@freezed
+class PostState with _$PostState {
+  const factory PostState({
+    @Default([]) List<PostModel> posts, // Default to empty list
+    @Default(false) bool isLoading, // Default to not loading
+    String? error, // Nullable error message
+    @Default({}) Map<String, bool> likedPosts, // Default to empty map
+    @Default({}) Map<String, bool> dislikedPosts, // Default to empty map
+  }) = _PostState;
 }

@@ -22,3 +22,8 @@ final postControllerProvider = StateNotifierProvider<CreatePostController, Async
   final postRepository = ref.watch(postRepositoryProvider);
   return CreatePostController(userRepository, postRepository);
 });
+
+final postProvider = FutureProvider.family<PostModel?, String>((ref, postId) async {
+  final repository = ref.watch(postRepositoryProvider);
+  return repository.getPostById(postId);
+});
