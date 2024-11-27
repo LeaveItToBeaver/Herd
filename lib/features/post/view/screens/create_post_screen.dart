@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
@@ -126,22 +127,29 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  void _submitForm(BuildContext context, UserModel currentUser) {
+  void _submitForm(BuildContext context, UserModel currentUser) async {
     if (_formKey.currentState!.validate()) {
-      ref.read(postControllerProvider.notifier).createPost(
-        title: _title,
-        content: _content,
-        imageFile: _postImage,
-        userId: currentUser.id,
-      );
+      try {
+        final postId = await ref.read(postControllerProvider.notifier).createPost(
+          title: _title,
+          content: _content,
+          imageFile: _postImage,
+          userId: currentUser.id,
+        );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Your post is being created..."),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.of(context).pop();
+        if (mounted) {
+          context.go('/post/$postId'); // Navigate to PostScreen with postId
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to create post: $e"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
