@@ -19,7 +19,7 @@ class PostModel {
     required this.id,
     required this.authorId,
     required this.username,
-    this.herdId, // New field
+    this.herdId,
     this.firstName,
     this.lastName,
     this.profileImageURL,

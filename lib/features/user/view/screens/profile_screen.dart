@@ -91,11 +91,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       .of(context)
                       .colorScheme
                       .surface,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: UserCoverImage(
-                      coverImageUrl: profile.user?.coverImageURL,
-                      isSelected: false,
-                    ),
+                  flexibleSpace: Stack(
+                    children: <Widget>[
+                      Positioned.fill(child: UserCoverImage(
+                        isSelected: false,
+                        coverImageUrl: profile.user?.coverImageURL,
+                      ))
+                    ],
                   ),
                   actions: [
                     if (profile.isCurrentUser) ...[

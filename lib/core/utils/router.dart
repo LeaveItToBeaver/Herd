@@ -145,6 +145,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               final postId = state.pathParameters['id']!;
               return PostScreen(postId: postId);
             },
+            pageBuilder: (context, state) {
+              final postId = state.pathParameters['id']!;
+              return MaterialPage(
+                key: state.pageKey,
+                child: PostScreen(postId: postId),
+              );
+            },
           ),
 
         ],

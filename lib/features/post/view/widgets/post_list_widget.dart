@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 
 import '../providers/post_provider.dart';
@@ -22,10 +23,7 @@ class PostListWidget extends ConsumerWidget {
           itemCount: posts.length,
           itemBuilder: (context, index) {
             final post = posts[index];
-            return ListTile(
-              title: Text(post.content),
-              subtitle: Text('Likes: ${post.likeCount}'),
-            );
+            return PostWidget(post: post);
           },
         );
       },
