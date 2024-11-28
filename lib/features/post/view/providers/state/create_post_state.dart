@@ -10,6 +10,7 @@ class CreatePostState with _$CreatePostState {
     required UserModel? user,
     required PostModel? post,
     String? herdId,
+    String? herdName,
     @Default(false) bool isImage,
     @Default(false) bool isLoading,
     String? errorMessage,

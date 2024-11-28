@@ -19,6 +19,7 @@ mixin _$CreatePostState {
   UserModel? get user => throw _privateConstructorUsedError;
   PostModel? get post => throw _privateConstructorUsedError;
   String? get herdId => throw _privateConstructorUsedError;
+  String? get herdName => throw _privateConstructorUsedError;
   bool get isImage => throw _privateConstructorUsedError;
   bool get isLoading => throw _privateConstructorUsedError;
   String? get errorMessage => throw _privateConstructorUsedError;
@@ -40,6 +41,7 @@ abstract class $CreatePostStateCopyWith<$Res> {
       {UserModel? user,
       PostModel? post,
       String? herdId,
+      String? herdName,
       bool isImage,
       bool isLoading,
       String? errorMessage});
@@ -63,6 +65,7 @@ class _$CreatePostStateCopyWithImpl<$Res, $Val extends CreatePostState>
     Object? user = freezed,
     Object? post = freezed,
     Object? herdId = freezed,
+    Object? herdName = freezed,
     Object? isImage = null,
     Object? isLoading = null,
     Object? errorMessage = freezed,
@@ -79,6 +82,10 @@ class _$CreatePostStateCopyWithImpl<$Res, $Val extends CreatePostState>
       herdId: freezed == herdId
           ? _value.herdId
           : herdId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      herdName: freezed == herdName
+          ? _value.herdName
+          : herdName // ignore: cast_nullable_to_non_nullable
               as String?,
       isImage: null == isImage
           ? _value.isImage
@@ -108,6 +115,7 @@ abstract class _$$CreatePostStateImplCopyWith<$Res>
       {UserModel? user,
       PostModel? post,
       String? herdId,
+      String? herdName,
       bool isImage,
       bool isLoading,
       String? errorMessage});
@@ -129,6 +137,7 @@ class __$$CreatePostStateImplCopyWithImpl<$Res>
     Object? user = freezed,
     Object? post = freezed,
     Object? herdId = freezed,
+    Object? herdName = freezed,
     Object? isImage = null,
     Object? isLoading = null,
     Object? errorMessage = freezed,
@@ -145,6 +154,10 @@ class __$$CreatePostStateImplCopyWithImpl<$Res>
       herdId: freezed == herdId
           ? _value.herdId
           : herdId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      herdName: freezed == herdName
+          ? _value.herdName
+          : herdName // ignore: cast_nullable_to_non_nullable
               as String?,
       isImage: null == isImage
           ? _value.isImage
@@ -169,6 +182,7 @@ class _$CreatePostStateImpl implements _CreatePostState {
       {required this.user,
       required this.post,
       this.herdId,
+      this.herdName,
       this.isImage = false,
       this.isLoading = false,
       this.errorMessage});
@@ -180,6 +194,8 @@ class _$CreatePostStateImpl implements _CreatePostState {
   @override
   final String? herdId;
   @override
+  final String? herdName;
+  @override
   @JsonKey()
   final bool isImage;
   @override
@@ -190,7 +206,7 @@ class _$CreatePostStateImpl implements _CreatePostState {
 
   @override
   String toString() {
-    return 'CreatePostState(user: $user, post: $post, herdId: $herdId, isImage: $isImage, isLoading: $isLoading, errorMessage: $errorMessage)';
+    return 'CreatePostState(user: $user, post: $post, herdId: $herdId, herdName: $herdName, isImage: $isImage, isLoading: $isLoading, errorMessage: $errorMessage)';
   }
 
   @override
@@ -201,6 +217,8 @@ class _$CreatePostStateImpl implements _CreatePostState {
             (identical(other.user, user) || other.user == user) &&
             (identical(other.post, post) || other.post == post) &&
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
+            (identical(other.herdName, herdName) ||
+                other.herdName == herdName) &&
             (identical(other.isImage, isImage) || other.isImage == isImage) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
@@ -209,8 +227,8 @@ class _$CreatePostStateImpl implements _CreatePostState {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType, user, post, herdId, isImage, isLoading, errorMessage);
+  int get hashCode => Object.hash(runtimeType, user, post, herdId, herdName,
+      isImage, isLoading, errorMessage);
 
   /// Create a copy of CreatePostState
   /// with the given fields replaced by the non-null parameter values.
@@ -227,6 +245,7 @@ abstract class _CreatePostState implements CreatePostState {
       {required final UserModel? user,
       required final PostModel? post,
       final String? herdId,
+      final String? herdName,
       final bool isImage,
       final bool isLoading,
       final String? errorMessage}) = _$CreatePostStateImpl;
@@ -237,6 +256,8 @@ abstract class _CreatePostState implements CreatePostState {
   PostModel? get post;
   @override
   String? get herdId;
+  @override
+  String? get herdName;
   @override
   bool get isImage;
   @override
