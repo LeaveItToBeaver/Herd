@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../../user/data/repositories/user_repository.dart';
 import '../models/post_model.dart';
 
 class PostRepository {
@@ -176,5 +177,100 @@ class PostRepository {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+  }
+
+  /// Liking and Disliking Posts ///
+
+  Future<void> likePost({required String postId, required String userId}) async {
+    final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
+    final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
+    final postRef = _posts.doc(postId);
+
+    await _firestore.runTransaction((transaction) async {
+      // *** PRE-FETCH ALL DATA AT THE BEGINNING ***
+      final postSnapshot = await transaction.get(postRef);
+      final postLikeSnapshot = await transaction.get(postLikeRef);
+      final postDislikeSnapshot = await transaction.get(postDislikeRef);
+
+      if (!postSnapshot.exists) {
+        throw Exception("Post not found");
+      }
+
+      final hasDisliked = postDislikeSnapshot.exists;
+      final hasLiked = postLikeSnapshot.exists;
+
+      // *** NOW PERFORM LOGIC AND WRITES BASED ON PRE-FETCHED DATA ***
+
+      if (hasDisliked) {
+        transaction.delete(postDislikeRef);
+        transaction.update(postRef, {'dislikeCount': FieldValue.increment(-1)});
+      }
+
+      if (hasLiked) {
+        // Unlike the post
+        transaction.delete(postLikeRef);
+        transaction.update(postRef, {'likeCount': FieldValue.increment(-1)});
+      } else {
+        // Like the post
+        transaction.set(postLikeRef, {'createdAt': FieldValue.serverTimestamp()});
+        transaction.update(postRef, {'likeCount': FieldValue.increment(1)});
+
+        final postAuthorId = postSnapshot.data()!['authorId'];
+        await UserRepository(_firestore).incrementUserPoints(postAuthorId, 1);
+      }
+    });
+  }
+
+  // Dislike Post
+  Future<void> dislikePost({required String postId, required String userId}) async {
+    final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
+    final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
+    final postRef = _posts.doc(postId);
+
+    await _firestore.runTransaction((transaction) async {
+      // *** PRE-FETCH ALL DATA AT THE BEGINNING ***
+      final postSnapshot = await transaction.get(postRef);
+      final postLikeSnapshot = await transaction.get(postLikeRef);
+      final postDislikeSnapshot = await transaction.get(postDislikeRef);
+
+      if (!postSnapshot.exists) {
+        throw Exception("Post not found");
+      }
+
+      final hasLiked = postLikeSnapshot.exists;
+      final hasDisliked = postDislikeSnapshot.exists;
+
+
+      // *** NOW PERFORM LOGIC AND WRITES BASED ON PRE-FETCHED DATA ***
+
+      if (hasLiked) {
+        transaction.delete(postLikeRef);
+        transaction.update(postRef, {'likeCount': FieldValue.increment(-1)});
+      }
+
+      if (hasDisliked) {
+        // Undislike the post
+        transaction.delete(postDislikeRef);
+        transaction.update(postRef, {'dislikeCount': FieldValue.increment(-1)});
+      } else {
+        // Dislike the post
+        transaction.set(postDislikeRef, {'createdAt': FieldValue.serverTimestamp()});
+        transaction.update(postRef, {'dislikeCount': FieldValue.increment(1)});
+      }
+    });
+  }
+
+  // Check if post is liked by user
+  Future<bool> isPostLikedByUser({required String postId, required String userId}) async {
+    final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
+    final snapshot = await postLikeRef.get();
+    return snapshot.exists;
+  }
+
+  // Check if post is disliked by user
+  Future<bool> isPostDislikedByUser({required String postId, required String userId}) async {
+    final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
+    final snapshot = await postDislikeRef.get();
+    return snapshot.exists;
   }
 }

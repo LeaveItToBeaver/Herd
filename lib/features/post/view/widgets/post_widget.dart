@@ -4,21 +4,28 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/view/providers/user_provider.dart';
 import 'package:go_router/go_router.dart';
 
-class PostWidget extends ConsumerWidget {
+import '../../../user/data/models/user_model.dart';
+import '../../../user/view/providers/current_user_provider.dart';
+import '../providers/post_provider.dart';
+
+class PostWidget extends ConsumerStatefulWidget {
   final PostModel post;
 
   const PostWidget({super.key, required this.post});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Fetch user data for the post's author
-    final userAsyncValue = ref.watch(userProvider(post.authorId));
+  ConsumerState<PostWidget> createState() => _PostWidgetState();
+}
+
+class _PostWidgetState extends ConsumerState<PostWidget> {
+  @override
+  Widget build(BuildContext context) {
+    final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
+    final isLikedAsyncValue = ref.watch(isPostLikedByUserProvider(widget.post.id));
+    final isDislikedAsyncValue = ref.watch(isPostDislikedByUserProvider(widget.post.id));
 
     return GestureDetector(
-      onTap: () {
-        // Navigate to the PostScreen with animation
-        context.go('/post/${post.id}');
-      },
+      onTap: () => context.go('/post/${widget.post.id}'),
       child: Card(
         elevation: 5,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -28,75 +35,34 @@ class PostWidget extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User and Post Information
               userAsyncValue.when(
-                loading: () => const Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundImage: AssetImage('assets/images/default_avatar.png'),
-                    ),
-                    SizedBox(width: 10),
-                    Text('Loading...', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
+                loading: () => _buildLoadingHeader(),
                 error: (error, stack) => Text('Error: $error'),
-                data: (user) => Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        // Prevent navigation when profile picture is tapped
-                        context.go('/profile/${post.authorId}');
-                      },
-                      child: CircleAvatar(
-                        radius: 25,
-                        backgroundImage: user.profileImageURL != null
-                            ? NetworkImage(user.profileImageURL!)
-                            : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        // Prevent navigation when username is tapped
-                        context.go('/profile/${post.authorId}');
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.username,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            post.createdAt.toLocal().toString(),
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                data: (user) => _buildUserHeader(context, user, widget.post.authorId),
               ),
 
               const SizedBox(height: 12),
 
-              // Post Content
-              Text(
-                post.title ?? 'There was an issue fetching this post.',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              if (widget.post.title != null)
+                Text(
+                  widget.post.title!,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
 
               const SizedBox(height: 6),
 
-              if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
+              if (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(post.imageUrl!),
+                  child: Image.network(
+                    widget.post.imageUrl!,
+                    errorBuilder: (context, error, stackTrace) =>
+                    const Center(child: Text('Failed to load image')),
+                  ),
                 )
               else
                 Text(
-                  post.content,
+                  widget.post.content,
                   style: const TextStyle(fontSize: 16),
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
@@ -104,30 +70,7 @@ class PostWidget extends ConsumerWidget {
 
               const SizedBox(height: 12),
 
-              // Reaction Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildInfoColumn(post.likeCount, "Likes"),
-                  _buildInfoColumn(post.commentCount, "Comments"),
-                  _buildIconButton(Icons.share_rounded, onPressed: () {}),
-                  _buildIconButton(Icons.comment_rounded, onPressed: () {}),
-                  _buildIconButton(
-                    Icons.thumb_up,
-                    color: Colors.green, // Adjust based on "liked" status
-                    onPressed: () {
-                      // Implement like functionality
-                    },
-                  ),
-                  _buildIconButton(
-                    Icons.thumb_down,
-                    color: Colors.red, // Adjust based on "disliked" status
-                    onPressed: () {
-                      // Implement dislike functionality
-                    },
-                  ),
-                ],
-              ),
+              _buildActionButtons(ref, widget.post), // Pass AsyncValues and ref
             ],
           ),
         ),
@@ -135,6 +78,84 @@ class PostWidget extends ConsumerWidget {
     );
   }
 
+  Widget _buildLoadingHeader() {
+    return const Row(
+      children: [
+        CircleAvatar(
+          radius: 25,
+          backgroundImage: AssetImage('assets/images/default_avatar.png'),
+        ),
+        SizedBox(width: 10),
+        Text('Loading...', style: TextStyle(fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildUserHeader(BuildContext context, UserModel? user, String authorId) {
+    if (user == null) {
+      return const Text('User not found');
+    }
+
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => context.go('/profile/$authorId'),
+          child: CircleAvatar(
+            radius: 25,
+            backgroundImage: user.profileImageURL != null
+                ? NetworkImage(user.profileImageURL!)
+                : const AssetImage('assets/images/default_avatar.png')
+            as ImageProvider,
+          ),
+        ),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () => context.go('/profile/$authorId'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.username ?? 'Anonymous',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                widget.post.createdAt.toLocal().toString(),
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons(WidgetRef ref, PostModel post) {
+    final interactionState = ref.watch(postInteractionsProvider(widget.post.id));
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildInfoColumn(widget.post.likeCount - widget.post.dislikeCount, "Likes"),
+        _buildInfoColumn(widget.post.commentCount, "Comments"),
+        _buildIconButton(Icons.share_rounded, onPressed: () {}),
+        _buildIconButton(Icons.comment_rounded, onPressed: () {}),
+        Row(
+          children: [
+            _buildIconButton(
+              interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+              color: interactionState.isLiked ? Colors.green : null,
+              onPressed: () => _handleLikePost(ref, widget.post.id),
+            ),
+            _buildIconButton(
+              interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+              color: interactionState.isDisliked ? Colors.red : null,
+              onPressed: () => _handleDislikePost(ref, widget.post.id),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
   Widget _buildInfoColumn(int count, String label) => Column(
     children: [
       Text(
@@ -145,10 +166,32 @@ class PostWidget extends ConsumerWidget {
     ],
   );
 
-  Widget _buildIconButton(IconData icon, {Color? color, required VoidCallback onPressed}) =>
+  Widget _buildIconButton(
+      IconData icon, {
+        Color? color,
+        required VoidCallback onPressed,
+      }) =>
       IconButton(
         icon: Icon(icon, color: color ?? Colors.black),
         onPressed: onPressed,
         enableFeedback: true,
       );
+
+  void _handleLikePost(WidgetRef ref, String postId) {
+    final user = ref.read(currentUserProvider);
+    final userId = user?.id;
+
+    if (userId != null) {
+      ref.read(postInteractionsProvider(postId).notifier).likePost(userId);
+    }
+  }
+
+  void _handleDislikePost(WidgetRef ref, String postId) {
+    final user = ref.read(currentUserProvider);
+    final userId = user?.id;
+
+    if (userId != null) {
+      ref.read(postInteractionsProvider(postId).notifier).dislikePost(userId);
+    }
+  }
 }

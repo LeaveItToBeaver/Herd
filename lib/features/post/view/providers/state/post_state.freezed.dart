@@ -22,9 +22,11 @@ mixin _$PostState {
       throw _privateConstructorUsedError; // Default to not loading
   String? get error =>
       throw _privateConstructorUsedError; // Nullable error message
-  Map<String, bool> get likedPosts =>
+  Map<String, bool> get likedPosts => throw _privateConstructorUsedError;
+  bool get isLiked =>
       throw _privateConstructorUsedError; // Default to empty map
   Map<String, bool> get dislikedPosts => throw _privateConstructorUsedError;
+  bool get isDisliked => throw _privateConstructorUsedError;
 
   /// Create a copy of PostState
   /// with the given fields replaced by the non-null parameter values.
@@ -43,7 +45,9 @@ abstract class $PostStateCopyWith<$Res> {
       bool isLoading,
       String? error,
       Map<String, bool> likedPosts,
-      Map<String, bool> dislikedPosts});
+      bool isLiked,
+      Map<String, bool> dislikedPosts,
+      bool isDisliked});
 }
 
 /// @nodoc
@@ -65,7 +69,9 @@ class _$PostStateCopyWithImpl<$Res, $Val extends PostState>
     Object? isLoading = null,
     Object? error = freezed,
     Object? likedPosts = null,
+    Object? isLiked = null,
     Object? dislikedPosts = null,
+    Object? isDisliked = null,
   }) {
     return _then(_value.copyWith(
       posts: null == posts
@@ -84,10 +90,18 @@ class _$PostStateCopyWithImpl<$Res, $Val extends PostState>
           ? _value.likedPosts
           : likedPosts // ignore: cast_nullable_to_non_nullable
               as Map<String, bool>,
+      isLiked: null == isLiked
+          ? _value.isLiked
+          : isLiked // ignore: cast_nullable_to_non_nullable
+              as bool,
       dislikedPosts: null == dislikedPosts
           ? _value.dislikedPosts
           : dislikedPosts // ignore: cast_nullable_to_non_nullable
               as Map<String, bool>,
+      isDisliked: null == isDisliked
+          ? _value.isDisliked
+          : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -105,7 +119,9 @@ abstract class _$$PostStateImplCopyWith<$Res>
       bool isLoading,
       String? error,
       Map<String, bool> likedPosts,
-      Map<String, bool> dislikedPosts});
+      bool isLiked,
+      Map<String, bool> dislikedPosts,
+      bool isDisliked});
 }
 
 /// @nodoc
@@ -125,7 +141,9 @@ class __$$PostStateImplCopyWithImpl<$Res>
     Object? isLoading = null,
     Object? error = freezed,
     Object? likedPosts = null,
+    Object? isLiked = null,
     Object? dislikedPosts = null,
+    Object? isDisliked = null,
   }) {
     return _then(_$PostStateImpl(
       posts: null == posts
@@ -144,10 +162,18 @@ class __$$PostStateImplCopyWithImpl<$Res>
           ? _value._likedPosts
           : likedPosts // ignore: cast_nullable_to_non_nullable
               as Map<String, bool>,
+      isLiked: null == isLiked
+          ? _value.isLiked
+          : isLiked // ignore: cast_nullable_to_non_nullable
+              as bool,
       dislikedPosts: null == dislikedPosts
           ? _value._dislikedPosts
           : dislikedPosts // ignore: cast_nullable_to_non_nullable
               as Map<String, bool>,
+      isDisliked: null == isDisliked
+          ? _value.isDisliked
+          : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -160,7 +186,9 @@ class _$PostStateImpl implements _PostState {
       this.isLoading = false,
       this.error,
       final Map<String, bool> likedPosts = const {},
-      final Map<String, bool> dislikedPosts = const {}})
+      this.isLiked = false,
+      final Map<String, bool> dislikedPosts = const {},
+      this.isDisliked = false})
       : _posts = posts,
         _likedPosts = likedPosts,
         _dislikedPosts = dislikedPosts;
@@ -192,6 +220,9 @@ class _$PostStateImpl implements _PostState {
     return EqualUnmodifiableMapView(_likedPosts);
   }
 
+  @override
+  @JsonKey()
+  final bool isLiked;
 // Default to empty map
   final Map<String, bool> _dislikedPosts;
 // Default to empty map
@@ -204,8 +235,12 @@ class _$PostStateImpl implements _PostState {
   }
 
   @override
+  @JsonKey()
+  final bool isDisliked;
+
+  @override
   String toString() {
-    return 'PostState(posts: $posts, isLoading: $isLoading, error: $error, likedPosts: $likedPosts, dislikedPosts: $dislikedPosts)';
+    return 'PostState(posts: $posts, isLoading: $isLoading, error: $error, likedPosts: $likedPosts, isLiked: $isLiked, dislikedPosts: $dislikedPosts, isDisliked: $isDisliked)';
   }
 
   @override
@@ -219,8 +254,11 @@ class _$PostStateImpl implements _PostState {
             (identical(other.error, error) || other.error == error) &&
             const DeepCollectionEquality()
                 .equals(other._likedPosts, _likedPosts) &&
+            (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
             const DeepCollectionEquality()
-                .equals(other._dislikedPosts, _dislikedPosts));
+                .equals(other._dislikedPosts, _dislikedPosts) &&
+            (identical(other.isDisliked, isDisliked) ||
+                other.isDisliked == isDisliked));
   }
 
   @override
@@ -230,7 +268,9 @@ class _$PostStateImpl implements _PostState {
       isLoading,
       error,
       const DeepCollectionEquality().hash(_likedPosts),
-      const DeepCollectionEquality().hash(_dislikedPosts));
+      isLiked,
+      const DeepCollectionEquality().hash(_dislikedPosts),
+      isDisliked);
 
   /// Create a copy of PostState
   /// with the given fields replaced by the non-null parameter values.
@@ -247,7 +287,9 @@ abstract class _PostState implements PostState {
       final bool isLoading,
       final String? error,
       final Map<String, bool> likedPosts,
-      final Map<String, bool> dislikedPosts}) = _$PostStateImpl;
+      final bool isLiked,
+      final Map<String, bool> dislikedPosts,
+      final bool isDisliked}) = _$PostStateImpl;
 
   @override
   List<PostModel> get posts; // Default to empty list
@@ -256,9 +298,13 @@ abstract class _PostState implements PostState {
   @override
   String? get error; // Nullable error message
   @override
-  Map<String, bool> get likedPosts; // Default to empty map
+  Map<String, bool> get likedPosts;
+  @override
+  bool get isLiked; // Default to empty map
   @override
   Map<String, bool> get dislikedPosts;
+  @override
+  bool get isDisliked;
 
   /// Create a copy of PostState
   /// with the given fields replaced by the non-null parameter values.
