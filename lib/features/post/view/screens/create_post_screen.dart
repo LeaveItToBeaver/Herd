@@ -6,7 +6,6 @@ import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
-
 import '../../../user/view/providers/current_user_provider.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
@@ -21,6 +20,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   String _title = '';
   String _content = '';
   File? _postImage;
+  bool _isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,37 +33,51 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         appBar: AppBar(
           backgroundColor: Colors.black,
           title: const Text("Create a Post"),
+          actions: [
+            // Add submit button in app bar
+            if (!_isSubmitting)
+              IconButton(
+                icon: const Icon(Icons.send),
+                onPressed: () {
+                  if (currentUser != null) {
+                    _submitForm(context, currentUser);
+                  }
+                },
+              ),
+            if (_isSubmitting)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
         ),
         body: currentUser == null
-          ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : postState.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stackTrace) => Center(child: Text('Error: $error')),
-          data: (_) => SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _imagePicker(context),
-                const SizedBox(height: 16),
-                _buildPostForm(context),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                    onPressed: () => _submitForm(context, currentUser),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25)
-                      )
-                    ),
-                    child: const Text(
-                        "Post", 
-                        style: TextStyle(color: Colors.white)
-                    ),
-                )
-              ],
-            ),
-          ),
+          error: (error, stackTrace) => _buildForm(context, currentUser),
+          data: (_) => _buildForm(context, currentUser),
         ),
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context, UserModel currentUser) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          _imagePicker(context),
+          const SizedBox(height: 16),
+          _buildPostForm(context),
+        ],
       ),
     );
   }
@@ -71,6 +85,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   Widget _imagePicker(BuildContext context) {
     return GestureDetector(
       onTap: () async {
+        if (_isSubmitting) return; // Prevent changing image while submitting
+
         try {
           final pickedFile = await ImageHelper.pickImageFromGallery(
             context: context,
@@ -82,17 +98,23 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           });
         } catch (e) {
           if (context.mounted) {
-            _showErrorDialog(context, 'Failed to pick and crop the image: $e');
+            _showErrorSnackBar(context, 'Failed to pick image. Please try again.');
           }
         }
       },
       child: Container(
         height: MediaQuery.of(context).size.height / 3,
         width: double.infinity,
-        color: Colors.grey[200],
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: _postImage != null
-            ? Image.file(_postImage!, fit: BoxFit.cover)
-            : const Icon(Icons.image, size: 100, color: Colors.black),
+            ? ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(_postImage!, fit: BoxFit.cover),
+        )
+            : const Icon(Icons.image, size: 100, color: Colors.black54),
       ),
     );
   }
@@ -103,6 +125,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       child: Column(
         children: [
           TextFormField(
+            enabled: !_isSubmitting,
             decoration: const InputDecoration(
               labelText: 'Title',
               border: OutlineInputBorder(),
@@ -114,6 +137,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
           const SizedBox(height: 16),
           TextFormField(
+            enabled: !_isSubmitting,
             maxLines: null,
             decoration: const InputDecoration(
               labelText: 'Content',
@@ -127,44 +151,62 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  void _submitForm(BuildContext context, UserModel currentUser) async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        final postId = await ref.read(postControllerProvider.notifier).createPost(
-          title: _title,
-          content: _content,
-          imageFile: _postImage,
-          userId: currentUser.id,
+  Future<void> _submitForm(BuildContext context, UserModel currentUser) async {
+    if (_isSubmitting) return;
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final postId = await ref.read(postControllerProvider.notifier).createPost(
+        title: _title,
+        content: _content,
+        imageFile: _postImage,
+        userId: currentUser.id,
+      );
+
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post created successfully!'),
+            backgroundColor: Colors.green,
+          ),
         );
 
-        if (mounted) {
-          context.go('/post/$postId'); // Navigate to PostScreen with postId
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Failed to create post: $e"),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        // Navigate to the post
+        context.go('/post/$postId');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(
+          context,
+          'There was an issue creating the post. Try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
 
-  void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text(message),
-        actions: [
-          TextButton(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
       ),
     );
   }

@@ -250,4 +250,8 @@ class UserRepository {
 
     return snapshot.count;
   }
+
+  Future<void> incrementUserPoints(String userId, int points) async {
+    await _users.doc(userId).update({'userPoints': FieldValue.increment(points)});
+  }
 }
