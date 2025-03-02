@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
-import 'package:herdapp/features/post/view/providers/state/post_state.dart';
 
 import '../../../data/repositories/post_repository.dart';
 
