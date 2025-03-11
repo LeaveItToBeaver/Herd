@@ -36,15 +36,41 @@ class UserRepository {
   }
 
   // Search users
+// Search users
   Future<List<UserModel>> searchUsers(String query) async {
-    final userSnap = await _users
-        .where('username', isGreaterThanOrEqualTo: query.toLowerCase())
-        .where('username',
-        isLessThan: '${query.toLowerCase()}\uf8ff')
-        .limit(20)
+    // Try both lowercase and original casing
+    final lowerQuery = query.toLowerCase();
+    final capitalQuery = query.length > 0 ?
+    query[0].toUpperCase() + query.substring(1).toLowerCase() : "";
+
+    // Try searching with lowercase
+    final userSnapLower = await _users
+        .where('username', isGreaterThanOrEqualTo: lowerQuery)
+        .where('username', isLessThan: '$lowerQuery\uf8ff')
+        .limit(10)
         .get();
 
-    return userSnap.docs
+    // Try searching with capitalized first letter
+    final userSnapCapital = await _users
+        .where('username', isGreaterThanOrEqualTo: capitalQuery)
+        .where('username', isLessThan: '$capitalQuery\uf8ff')
+        .limit(10)
+        .get();
+
+    // Combine results
+    final allDocs = [...userSnapLower.docs, ...userSnapCapital.docs];
+    final uniqueDocsMap = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+
+    // Properly type the documents to ensure we're working with Map<String, dynamic>
+    for (var doc in allDocs) {
+      if (!uniqueDocsMap.containsKey(doc.id)) {
+        uniqueDocsMap[doc.id] = doc;
+      }
+    }
+
+    final uniqueDocs = uniqueDocsMap.values.toList();
+
+    return uniqueDocs
         .map((doc) => UserModel.fromMap(doc.id, doc.data()))
         .toList();
   }
