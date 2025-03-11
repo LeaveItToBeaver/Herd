@@ -33,6 +33,9 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       routerConfig: goRouter,
+      // builder: (BuildContext context, Widget? child) {
+      //   return AppScaffold(child: child!);
+      // },
       title: 'App with Tab Navigator',
       theme: ThemeData(
         primarySwatch: Colors.blue,

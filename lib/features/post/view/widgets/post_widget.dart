@@ -25,7 +25,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     final isDislikedAsyncValue = ref.watch(isPostDislikedByUserProvider(widget.post.id));
 
     return GestureDetector(
-      onTap: () => context.go('/post/${widget.post.id}'),
+      onTap: () => context.pushNamed('/post/${widget.post.id}'),
       child: Card(
         elevation: 5,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -99,7 +99,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     return Row(
       children: [
         GestureDetector(
-          onTap: () => context.go('/profile/$authorId'),
+          onTap: () => context.pushNamed('/profile/$authorId'),
           child: CircleAvatar(
             radius: 25,
             backgroundImage: user.profileImageURL != null
@@ -110,7 +110,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
         ),
         const SizedBox(width: 10),
         GestureDetector(
-          onTap: () => context.go('/profile/$authorId'),
+          onTap: () => context.pushNamed('/profile/$authorId'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

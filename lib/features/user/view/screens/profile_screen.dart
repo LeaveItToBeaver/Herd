@@ -45,29 +45,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: profileState.when(
+    return profileState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Error loading profile: ${error.toString()}',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  ref.read(profileControllerProvider.notifier)
-                      .loadProfile(widget.userId);
-                },
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+        error: (error, stack) => errorWidget(error, stack),
         data: (profile) {
           if (profile.user == null) {
             return const Center(child: Text('User not found'));
@@ -199,7 +179,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           );
         }
-      ),
     );
   }
 

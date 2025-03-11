@@ -18,27 +18,63 @@ class BottomTabNavigator extends ConsumerWidget {
       final selectedItem = BottomNavItem.values[index];
       ref.read(bottomNavProvider.notifier).state = selectedItem;
 
-      // Special handling for profile route
-      if (selectedItem == BottomNavItem.profile) {
-        final currentUserId = ref.read(authProvider)?.uid;
-        if (currentUserId != null) {
-          // Use goNamed for named routes with parameters
-          context.goNamed(
-            bottomNavRoutes[selectedItem]!,
-            pathParameters: {'id': currentUserId},
-          );
-        }
-      } else {
-        // Regular navigation for other routes
-        final routeName = bottomNavRoutes[selectedItem];
-        if (routeName != null) {
-          context.goNamed(routeName);
-        }
+      // Regular navigation for routes
+      final routeName = bottomNavRoutes[selectedItem];
+      if (routeName != null) {
+        context.goNamed(routeName);
       }
     }
 
     return Scaffold(
-      body: child,
+      body: Stack(
+        children: [
+          child,
+          Positioned(
+            bottom: 8, // Position above the bottom nav bar
+            right: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Profile button
+                FloatingActionButton(
+                  heroTag: "profileBtn",
+                  mini: true,
+                  backgroundColor: Colors.black,
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    final currentUserId = ref.read(authProvider)?.uid;
+                    if (currentUserId != null) {
+                      context.pushNamed(
+                        'profile',
+                        pathParameters: {'id': currentUserId},
+                      );
+                    } else {
+                      context.go('/login');
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                // Search button
+                FloatingActionButton(
+                  heroTag: "searchBtn",
+                  mini: true,
+                  backgroundColor: Colors.black,
+                  child: const Icon(
+                    Icons.search,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    context.goNamed('search');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: Card(
         color: Colors.black,
         shape: RoundedRectangleBorder(
