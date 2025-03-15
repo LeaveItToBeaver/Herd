@@ -1,20 +1,28 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/edit_user/view/providers/state/edit_profile_state.dart';
+import 'package:herdapp/features/edit_user/public_profile/view/providers/state/edit_public_profile_state.dart';
 
-import '../../../user/data/models/user_model.dart';
-import '../../../user/data/repositories/user_repository.dart';
+import '../../../../user/data/models/user_model.dart';
+import '../../../../user/data/repositories/user_repository.dart';
 
-class EditProfileNotifier extends StateNotifier<EditProfileState> {
+class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
   final UserRepository userRepository;
   final UserModel user;
 
-  EditProfileNotifier({required this.userRepository, required this.user}) :
-    super(EditProfileState(username: user.username, bio: user.bio ?? ''));
+  EditPublicProfileNotifier({required this.userRepository, required this.user})
+      : super(EditPublicProfileState(
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
+    bio: user.bio ?? '',
+  ));
 
-  void usernameChanged(String value) {
-    state = state.copyWith(username: value);
+  void firstNameChanged(String value) {
+    state = state.copyWith(firstName: value);
+  }
+
+  void lastNameChanged(String value) {
+    state = state.copyWith(lastName: value);
   }
 
   void bioChanged(String value) {
@@ -33,11 +41,13 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
     if (state.isSubmitting) return;
 
     state = state.copyWith(isSubmitting: true, errorMessage: null);
-    try{
+    try {
       final Map<String, dynamic> updatedData = {
-        'username': state.username,
+        'firstName': state.firstName,
+        'lastName': state.lastName,
         'bio': state.bio,
       };
+
       if (state.coverImage != null) {
         final coverImageUrl = await userRepository.uploadImage(
           userId: user.id,
@@ -57,17 +67,17 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
       }
 
       await userRepository.updateUser(user.id, updatedData);
-      state = state.copyWith(isSubmitting: false);
+      state = state.copyWith(isSubmitting: false, isSuccess: true);
     } catch (error) {
       state = state.copyWith(isSubmitting: false, errorMessage: error.toString());
     }
   }
 }
 
-final editProfileProvider =
-StateNotifierProvider.family<EditProfileNotifier, EditProfileState, UserModel>(
+final editPublicProfileProvider =
+StateNotifierProvider.family<EditPublicProfileNotifier, EditPublicProfileState, UserModel>(
       (ref, user) {
     final userRepository = ref.watch(userRepositoryProvider);
-    return EditProfileNotifier(userRepository: userRepository, user: user);
+    return EditPublicProfileNotifier(userRepository: userRepository, user: user);
   },
 );

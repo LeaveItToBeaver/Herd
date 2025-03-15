@@ -280,4 +280,83 @@ class UserRepository {
   Future<void> incrementUserPoints(String userId, int points) async {
     await _users.doc(userId).update({'userPoints': FieldValue.increment(points)});
   }
+
+  // Private user methods:
+  Future<String> uploadPrivateImage({
+    required String userId,
+    required File file,
+    required String type,
+  }) async {
+    final ref = _storage.ref().child('users/$userId/private/$type.jpg');
+    final uploadTask = ref.putFile(file);
+
+    final snapshot = await uploadTask;
+    final downloadUrl = await snapshot.ref.getDownloadURL();
+    return downloadUrl;
+  }
+
+// Check if private profile exists
+  Future<bool> hasPrivateProfile(String userId) async {
+    final doc = await _users.doc(userId).get();
+    if (!doc.exists) return false;
+
+    final data = doc.data()!;
+    return data['privateBio'] != null ||
+        data['privateProfileImageURL'] != null ||
+        data['privateCoverImageURL'] != null;
+  }
+
+// Create or update private profile
+  Future<void> updatePrivateProfile(String userId, Map<String, dynamic> data) async {
+    await _users.doc(userId).update({
+      ...data,
+      'privateUpdatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+// Add private connection
+  Future<void> addPrivateConnection(String userId, String connectionId) async {
+    // Add to private connections collection
+    await _firestore
+        .collection('privateConnections')
+        .doc(userId)
+        .collection('userConnections')
+        .doc(connectionId)
+        .set({
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Update counts
+    await _users.doc(userId).update({
+      'privateFriends': FieldValue.increment(1)
+    });
+  }
+
+// Remove private connection
+  Future<void> removePrivateConnection(String userId, String connectionId) async {
+    await _firestore
+        .collection('privateConnections')
+        .doc(userId)
+        .collection('userConnections')
+        .doc(connectionId)
+        .delete();
+
+    // Update counts
+    await _users.doc(userId).update({
+      'privateFriends': FieldValue.increment(-1)
+    });
+  }
+
+// Check if users are privately connected
+  Future<bool> isPrivatelyConnected(String userId, String otherUserId) async {
+    final doc = await _firestore
+        .collection('privateConnections')
+        .doc(userId)
+        .collection('userConnections')
+        .doc(otherUserId)
+        .get();
+
+    return doc.exists;
+  }
+
 }

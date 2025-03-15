@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 
+import '../../../../user/view/providers/current_user_provider.dart';
 import '../../../data/repositories/post_repository.dart';
 
 class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
@@ -16,7 +17,14 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
   })  : _postRepository = repository,
         _ref = ref,
         _postId = postId,
-        super(const PostInteractionState());
+        super(const PostInteractionState()) {
+    // Auto-initialize when created
+    final userId = _ref.read(currentUserProvider)?.id;
+    if (userId != null) {
+      initializeState(userId);
+    }
+  }
+
 
   Future<void> initializeState(String userId) async {
     try {

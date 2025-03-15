@@ -7,18 +7,21 @@ class UserCoverImage extends ConsumerWidget {
   final String? coverImageUrl;
   final File? coverFile;
   final bool isSelected;
+  final double height;  // Add height parameter
 
   const UserCoverImage({
     super.key,
     this.coverImageUrl,
     this.coverFile,
     this.isSelected = false,
+    this.height = 150.0,  // Default height
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     return Container(
+      height: height,  // Set explicit height
+      width: double.infinity,  // Ensure width is set
       decoration: BoxDecoration(
         color: Colors.grey[300], // Fallback background
         image: coverFile != null
@@ -35,6 +38,7 @@ class UserCoverImage extends ConsumerWidget {
       ),
       child: isSelected
           ? Stack(
+        fit: StackFit.expand,  // Make stack fill container
         children: [
           if (coverFile == null && (coverImageUrl?.isEmpty ?? true))
             Center(
@@ -48,7 +52,7 @@ class UserCoverImage extends ConsumerWidget {
             child: Container(
               color: Colors.black.withOpacity(0.5),
               child: const Center(
-                child: CircularProgressIndicator(), // Example loading state
+                child: Icon(Icons.camera_alt, color: Colors.white, size: 40),
               ),
             ),
           ),

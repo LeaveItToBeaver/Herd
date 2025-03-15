@@ -3,7 +3,10 @@ import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
 import 'package:herdapp/features/user/view/providers/state/profile_state.dart';
 
+
 import '../auth/view/providers/auth_provider.dart';
+import '../feed/providers/feed_type_provider.dart';
+import '../post/data/models/post_model.dart';
 import '../post/view/providers/post_provider.dart';
 
 class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
@@ -17,7 +20,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     return ProfileState.initial();
   }
 
-  Future<void> loadProfile(String userId) async {
+  Future<void> loadProfile(String userId, {bool? isPrivateView}) async {
     // Validate userId
     if (userId.isEmpty) {
       state = AsyncValue.error('User ID is empty', StackTrace.current);
@@ -30,14 +33,28 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Get current user for comparison
       final currentUser = ref.read(authProvider);
 
+      // Determine if we're viewing the private or public profile
+      final currentFeed = ref.read(currentFeedProvider);
+      final usePrivateView = isPrivateView ?? (currentFeed == FeedType.private);
+
       // Fetch user data
       final user = await _userRepository.getUserById(userId);
       if (user == null) {
         throw Exception('User not found');
       }
 
-      // Fetch posts
-      final posts = await _postRepository.getUserPosts(userId).first;
+      // Check if private profile exists by checking for privateBio, privateProfileImageURL, or privateCoverImageURL
+      final hasPrivateProfile = user.privateBio != null ||
+          user.privateProfileImageURL != null ||
+          user.privateCoverImageURL != null;
+
+      // Fetch posts based on view type
+      List<PostModel> posts;
+      if (usePrivateView) {
+        posts = await _postRepository.getUserPrivatePosts(userId).first;
+      } else {
+        posts = await _postRepository.getUserPublicPosts(userId).first;
+      }
 
       // Check following status if not viewing own profile
       final isFollowing = currentUser != null && currentUser.uid != userId
@@ -49,6 +66,8 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         posts: posts,
         isCurrentUser: currentUser?.uid == userId,
         isFollowing: isFollowing,
+        isPrivateView: usePrivateView,
+        hasPrivateProfile: hasPrivateProfile,
       ));
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -69,21 +88,41 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         await _userRepository.followUser(currentUser.uid, currentState.user!.id);
       }
 
-      await loadProfile(currentState.user!.id);
+      // Reload profile with same view type
+      await loadProfile(
+          currentState.user!.id,
+          isPrivateView: currentState.isPrivateView
+      );
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 
-  Future<void> updateProfile(Map<String, dynamic> data) async {
+  Future<void> createPrivateProfile(Map<String, dynamic> data) async {
     final currentUser = ref.read(authProvider);
     if (currentUser == null) return;
 
     try {
       await _userRepository.updateUser(currentUser.uid, data);
-      await loadProfile(currentUser.uid);
+      await loadProfile(currentUser.uid, isPrivateView: true);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> updateProfile(Map<String, dynamic> data, bool isPublicProfile) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    try {
+      await _userRepository.updateUser(currentUser.uid, data);
+      await loadProfile(currentUser.uid, isPrivateView: !isPublicProfile);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 }
+
+final profileControllerProvider = AutoDisposeAsyncNotifierProvider<ProfileController, ProfileState>(
+      () => ProfileController(),
+);

@@ -1,75 +1,114 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class PostModel {
   final String id;
   final String authorId;
-  final String username;
-  final String? herdId;
-  final String? firstName;
-  final String? lastName;
+  final String? username;
   final String? profileImageURL;
-  final String? title;
+  final String? herdId;  // If post belongs to a herd
+  final String title;
   final String content;
   final String? imageUrl;
   final int likeCount;
   final int dislikeCount;
   final int commentCount;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
+  final bool isPrivate; // Added to distinguish private and public posts
 
   PostModel({
     required this.id,
     required this.authorId,
-    required this.username,
-    this.herdId,
-    this.firstName,
-    this.lastName,
+    this.username,
     this.profileImageURL,
-    this.title,
+    this.herdId,
+    required this.title,
     required this.content,
     this.imageUrl,
     this.likeCount = 0,
     this.dislikeCount = 0,
     this.commentCount = 0,
-    required this.createdAt,
+    this.createdAt,
     this.updatedAt,
+    this.isPrivate = false, // Default to public
   });
+
+  factory PostModel.fromMap(String id, Map<String, dynamic> map) {
+    return PostModel(
+      id: id,
+      authorId: map['authorId'] ?? '',
+      username: map['username'],
+      profileImageURL: map['profileImageURL'],
+      herdId: map['herdId'],
+      title: map['title'] ?? '',
+      content: map['content'] ?? '',
+      imageUrl: map['imageUrl'],
+      likeCount: map['likeCount'] ?? 0,
+      dislikeCount: map['dislikeCount'] ?? 0,
+      commentCount: map['commentCount'] ?? 0,
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
+      updatedAt: map['updatedAt'] != null
+          ? (map['updatedAt'] as Timestamp).toDate()
+          : null,
+      isPrivate: map['isPrivate'] ?? false,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'authorId': authorId,
       'username': username,
-      'herdId': herdId,
-      'firstName': firstName,
-      'lastName': lastName,
       'profileImageURL': profileImageURL,
+      'herdId': herdId,
       'title': title,
       'content': content,
       'imageUrl': imageUrl,
       'likeCount': likeCount,
       'dislikeCount': dislikeCount,
       'commentCount': commentCount,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'updatedAt': updatedAt != null
+          ? Timestamp.fromDate(updatedAt!)
+          : FieldValue.serverTimestamp(),
+      'isPrivate': isPrivate,
     };
   }
 
-  factory PostModel.fromMap(String id, Map<String, dynamic> map) {
+  PostModel copyWith({
+    String? id,
+    String? authorId,
+    String? username,
+    String? profileImageURL,
+    String? herdId,
+    String? title,
+    String? content,
+    String? imageUrl,
+    int? likeCount,
+    int? dislikeCount,
+    int? commentCount,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isPrivate,
+  }) {
     return PostModel(
-      id: id,
-      authorId: map['authorId'] ?? '',
-      username: map['username'] ?? '',
-      herdId: map['herdId'], // Parse herd ID
-      firstName: map['firstName'],
-      lastName: map['lastName'],
-      profileImageURL: map['profileImageURL'],
-      title: map['title'],
-      content: map['content'] ?? '',
-      imageUrl: map['imageUrl'],
-      likeCount: map['likeCount']?.toInt() ?? 0,
-      dislikeCount: map['dislikeCount']?.toInt() ?? 0,
-      commentCount: map['commentCount']?.toInt() ?? 0,
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
+      username: username ?? this.username,
+      profileImageURL: profileImageURL ?? this.profileImageURL,
+      herdId: herdId ?? this.herdId,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      imageUrl: imageUrl ?? this.imageUrl,
+      likeCount: likeCount ?? this.likeCount,
+      dislikeCount: dislikeCount ?? this.dislikeCount,
+      commentCount: commentCount ?? this.commentCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isPrivate: isPrivate ?? this.isPrivate,
     );
   }
 }
