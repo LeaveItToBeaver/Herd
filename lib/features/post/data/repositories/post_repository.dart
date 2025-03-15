@@ -14,7 +14,7 @@ class PostRepository {
   CollectionReference<Map<String, dynamic>> get _likes => _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes => _firestore.collection('dislikes');
   CollectionReference<Map<String, dynamic>> get _feeds => _firestore.collection('feeds');
-
+  CollectionReference<Map<String, dynamic>> get _privateFeeds => _firestore.collection('privateFeeds');
 
   /// Creating a post ///
   // Create post
@@ -22,17 +22,49 @@ class PostRepository {
     final docRef = await _posts.add(post.toMap());
     await docRef.update({'id': docRef.id});
 
-    // Add post to followers' feeds if it's a user post
-    if (post.herdId == null) {
-      final followersSnapshot = await _firestore
-          .collection('followers')
+    // Handle feed distribution based on post privacy
+    if (post.isPrivate == true) {
+      // Private post: Add to private connections' feeds
+      final connectionsSnapshot = await _firestore
+          .collection('privateConnections')
           .doc(post.authorId)
-          .collection('userFollowers')
+          .collection('userConnections')
           .get();
 
-      for (final follower in followersSnapshot.docs) {
+      for (final connection in connectionsSnapshot.docs) {
+        await _privateFeeds
+            .doc(connection.id)
+            .collection('privateFeed')
+            .doc(docRef.id)
+            .set(post.toMap());
+      }
+
+      // Also add to user's own private feed
+      await _privateFeeds
+          .doc(post.authorId)
+          .collection('privateFeed')
+          .doc(docRef.id)
+          .set(post.toMap());
+    } else {
+      // Public post: Add to followers' feeds if it's a user post
+      if (post.herdId == null) {
+        final followersSnapshot = await _firestore
+            .collection('followers')
+            .doc(post.authorId)
+            .collection('userFollowers')
+            .get();
+
+        for (final follower in followersSnapshot.docs) {
+          await _feeds
+              .doc(follower.id)
+              .collection('userFeed')
+              .doc(docRef.id)
+              .set(post.toMap());
+        }
+
+        // Also add to user's own public feed
         await _feeds
-            .doc(follower.id)
+            .doc(post.authorId)
             .collection('userFeed')
             .doc(docRef.id)
             .set(post.toMap());
@@ -45,13 +77,18 @@ class PostRepository {
     required String userId,
     File? file, // Optional
     String? type, // Optional
+    bool isPrivate = false, // New parameter for differentiating private/public content
   }) async {
     if (file == null || type == null) {
       return null; // No file to upload
     }
 
     try {
-      final ref = _storage.ref().child('users/$userId/posts/$postId/$type.jpg');
+      final String path = isPrivate
+          ? 'users/$userId/private/posts/$postId/$type.jpg'
+          : 'users/$userId/posts/$postId/$type.jpg';
+
+      final ref = _storage.ref().child(path);
       final uploadTask = ref.putFile(file);
 
       final snapshot = await uploadTask;
@@ -62,12 +99,10 @@ class PostRepository {
     }
   }
 
-
   String generatePostId() => _firestore.collection('posts').doc().id;
 
-
   /// Get Posts for Feeds ///
-  // Get user feed with pagination
+  // Get public user feed with pagination
   Future<List<PostModel>> getUserFeed({
     required String userId,
     String? lastPostId,
@@ -80,7 +115,7 @@ class PostRepository {
         .limit(limit);
 
     if (lastPostId != null) {
-      final lastPostDoc = await query.firestore.doc(lastPostId).get();
+      final lastPostDoc = await _posts.doc(lastPostId).get();
       if (lastPostDoc.exists) {
         query = query.startAfterDocument(lastPostDoc);
       }
@@ -90,8 +125,39 @@ class PostRepository {
     return postsSnap.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList();
   }
 
-  Future<List<PostModel>> getPostsWithAuthorDetails() async {
-    final postsSnap = await _posts.orderBy('createdAt', descending: true).get();
+  // Get private user feed with pagination
+  Future<List<PostModel>> getPrivateUserFeed({
+    required String userId,
+    String? lastPostId,
+    int limit = 10,
+  }) async {
+    var query = _privateFeeds
+        .doc(userId)
+        .collection('privateFeed')
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
+
+    if (lastPostId != null) {
+      final lastPostDoc = await _posts.doc(lastPostId).get();
+      if (lastPostDoc.exists) {
+        query = query.startAfterDocument(lastPostDoc);
+      }
+    }
+
+    final postsSnap = await query.get();
+    return postsSnap.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList();
+  }
+
+  Future<List<PostModel>> getPostsWithAuthorDetails({bool privateOnly = false}) async {
+    var query = _posts.orderBy('createdAt', descending: true);
+
+    if (privateOnly) {
+      query = query.where('isPrivate', isEqualTo: true);
+    } else {
+      query = query.where('isPrivate', isEqualTo: false);
+    }
+
+    final postsSnap = await query.get();
     final posts = <PostModel>[];
 
     for (final doc in postsSnap.docs) {
@@ -106,10 +172,13 @@ class PostRepository {
           id: post.id,
           authorId: post.authorId,
           username: authorData['username'] ?? 'Unknown',
-          profileImageURL: authorData['profileImageURL'],
+          profileImageURL: post.isPrivate
+              ? authorData['privateProfileImageURL'] ?? authorData['profileImageURL']
+              : authorData['profileImageURL'],
           title: post.title,
           content: post.content,
           imageUrl: post.imageUrl,
+          isPrivate: post.isPrivate,
           likeCount: post.likeCount,
           dislikeCount: post.dislikeCount,
           commentCount: post.commentCount,
@@ -144,9 +213,16 @@ class PostRepository {
     });
   }
 
-
   /// Post Deletion ///
   Future<void> deletePost(String postId) async {
+    // Fetch post to check if it's private or public
+    final postDoc = await _posts.doc(postId).get();
+    if (!postDoc.exists) {
+      throw Exception("Post not found");
+    }
+
+    final isPrivate = postDoc.data()?['isPrivate'] ?? false;
+
     await _posts.doc(postId).delete();
 
     // Delete associated documents (comments, likes, dislikes, feeds)
@@ -154,10 +230,17 @@ class PostRepository {
     await _deleteSubCollection(_likes.doc(postId).collection('postLikes'));
     await _deleteSubCollection(_dislikes.doc(postId).collection('postDislikes'));
 
-    // Remove post from all feeds
-    final feedsSnapshot = await _feeds.get();
-    for (final feed in feedsSnapshot.docs) {
-      await feed.reference.collection('userFeed').doc(postId).delete();
+    // Remove post from appropriate feeds
+    if (isPrivate) {
+      final privateFeeds = await _privateFeeds.get();
+      for (final feed in privateFeeds.docs) {
+        await feed.reference.collection('privateFeed').doc(postId).delete();
+      }
+    } else {
+      final feeds = await _feeds.get();
+      for (final feed in feeds.docs) {
+        await feed.reference.collection('userFeed').doc(postId).delete();
+      }
     }
   }
 
@@ -169,11 +252,33 @@ class PostRepository {
     }
   }
 
-  // Get user posts
+  // Get all user posts
   Stream<List<PostModel>> getUserPosts(String userId) {
     return _posts
         .where('authorId', isEqualTo: userId)
         .where('herdId', isNull: true) // Exclude herd posts
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+  }
+
+  // Get only user's public posts
+  Stream<List<PostModel>> getUserPublicPosts(String userId) {
+    return _posts
+        .where('authorId', isEqualTo: userId)
+        .where('herdId', isNull: true) // Exclude herd posts
+        .where('isPrivate', isEqualTo: false)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+  }
+
+  // Get only user's private posts
+  Stream<List<PostModel>> getUserPrivatePosts(String userId) {
+    return _posts
+        .where('authorId', isEqualTo: userId)
+        .where('herdId', isNull: true) // Exclude herd posts
+        .where('isPrivate', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());

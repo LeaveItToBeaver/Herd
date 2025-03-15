@@ -1,17 +1,20 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/edit_user/view/providers/state/edit_profile_state.dart';
+import 'package:herdapp/features/edit_user/private_profile/view/providers/state/edit_private_profile_state.dart';
 
-import '../../../user/data/models/user_model.dart';
-import '../../../user/data/repositories/user_repository.dart';
+import '../../../../user/data/models/user_model.dart';
+import '../../../../user/data/repositories/user_repository.dart';
 
-class EditProfileNotifier extends StateNotifier<EditProfileState> {
+class EditPrivateProfileNotifier extends StateNotifier<EditPrivateProfileState> {
   final UserRepository userRepository;
   final UserModel user;
 
-  EditProfileNotifier({required this.userRepository, required this.user}) :
-    super(EditProfileState(username: user.username, bio: user.bio ?? ''));
+  EditPrivateProfileNotifier({required this.userRepository, required this.user})
+      : super(EditPrivateProfileState(
+    username: user.username,
+    bio: user.privateBio ?? '',
+  ));
 
   void usernameChanged(String value) {
     state = state.copyWith(username: value);
@@ -64,10 +67,10 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
   }
 }
 
-final editProfileProvider =
-StateNotifierProvider.family<EditProfileNotifier, EditProfileState, UserModel>(
+final editPrivateProfileProvider =
+StateNotifierProvider.family<EditPrivateProfileNotifier, EditPrivateProfileState, UserModel>(
       (ref, user) {
     final userRepository = ref.watch(userRepositoryProvider);
-    return EditProfileNotifier(userRepository: userRepository, user: user);
+    return EditPrivateProfileNotifier(userRepository: userRepository, user: user);
   },
 );

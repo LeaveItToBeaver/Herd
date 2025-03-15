@@ -17,8 +17,7 @@ export 'package:herdapp/features/post/view/screens/create_post_screen.dart';
 //Notifications
 export 'package:herdapp/features/notifications/view/screens/notification_screen.dart';
 
-//Navigation
-export 'package:herdapp/features/navigation/view/screens/nav_screen.dart';
+
 
 //Search
 export 'package:herdapp/features/search/view/screens/search_screen.dart';

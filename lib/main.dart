@@ -36,7 +36,7 @@ class MyApp extends ConsumerWidget {
       // builder: (BuildContext context, Widget? child) {
       //   return AppScaffold(child: child!);
       // },
-      title: 'App with Tab Navigator',
+      title: 'HERD app',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

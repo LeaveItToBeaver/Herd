@@ -12,6 +12,6 @@ class PostState with _$PostState {
     @Default({}) Map<String, bool> likedPosts,
     @Default(false) bool isLiked, // Default to empty map
     @Default({}) Map<String, bool> dislikedPosts,
-    @Default(false) bool isDisliked// Default to empty map
+    @Default(false) bool isDisliked // Default to empty map
   }) = _PostState;
 }

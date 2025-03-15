@@ -11,6 +11,8 @@ class ProfileState with _$ProfileState {
     required List<PostModel> posts,
     required bool isCurrentUser,
     required bool isFollowing,
+    required bool isPrivateView,
+    required bool hasPrivateProfile,
   }) = _ProfileState;
 
   factory ProfileState.initial() => const ProfileState(
@@ -18,5 +20,7 @@ class ProfileState with _$ProfileState {
     posts: [],
     isCurrentUser: false,
     isFollowing: false,
+    isPrivateView: false,
+    hasPrivateProfile: false,
   );
 }
