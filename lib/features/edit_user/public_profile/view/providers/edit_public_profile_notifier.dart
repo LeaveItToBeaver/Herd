@@ -45,14 +45,15 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
       final Map<String, dynamic> updatedData = {
         'firstName': state.firstName,
         'lastName': state.lastName,
-        'bio': state.bio,
+        'bio': state.bio,  // Correct - updates the public bio
+        // Other public profile fields...
       };
 
       if (state.coverImage != null) {
         final coverImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.coverImage!,
-          type: 'cover',
+          type: 'cover',  // Public profile cover image
         );
         updatedData['coverImageURL'] = coverImageUrl;
       }
@@ -61,7 +62,7 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
         final profileImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.profileImage!,
-          type: 'profile',
+          type: 'profile',  // Public profile image
         );
         updatedData['profileImageURL'] = profileImageUrl;
       }

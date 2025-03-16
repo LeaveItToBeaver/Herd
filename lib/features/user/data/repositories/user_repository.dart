@@ -98,7 +98,9 @@ class UserRepository {
   }
 
   // Update user
+
   Future<void> updateUser(String userId, Map<String, dynamic> data) async {
+    // Existing code - this should be fine as it just updates the fields provided in the data map
     await _users.doc(userId).update({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -281,6 +283,8 @@ class UserRepository {
     await _users.doc(userId).update({'userPoints': FieldValue.increment(points)});
   }
 
+
+
   // Private user methods:
   Future<String> uploadPrivateImage({
     required String userId,
@@ -307,9 +311,25 @@ class UserRepository {
   }
 
 // Create or update private profile
-  Future<void> updatePrivateProfile(String userId, Map<String, dynamic> data) async {
+  Future<void> updatePrivateProfile(String userId, Map<String, dynamic> privateData) async {
+    final Map<String, dynamic> sanitizedData = {};
+
+    // Explicitly handle known private fields
+    if (privateData.containsKey('privateBio')) {
+      sanitizedData['privateBio'] = privateData['privateBio'];
+    }
+
+    if (privateData.containsKey('privateProfileImageURL')) {
+      sanitizedData['privateProfileImageURL'] = privateData['privateProfileImageURL'];
+    }
+
+    if (privateData.containsKey('privateCoverImageURL')) {
+      sanitizedData['privateCoverImageURL'] = privateData['privateCoverImageURL'];
+    }
+
+
     await _users.doc(userId).update({
-      ...data,
+      ...privateData,
       'privateUpdatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -358,5 +378,4 @@ class UserRepository {
 
     return doc.exists;
   }
-
 }
