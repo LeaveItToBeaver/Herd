@@ -121,7 +121,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'This is where you can create a separate identity for connecting with closer friends. Your private profile has its own bio, profile picture, and content that won\'t be visible on your public profile.',
+                      'This is where you can create a separate identity for interacting with the world. Your private profile has its own bio, profile picture, and content that won\'t be visible on your public profile.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -297,7 +297,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'After setting up your private profile, you can create private posts, connect with friends, and join private groups. Switch between your public and private profiles using the feed selector at the bottom of the screen.',
+                      'After setting up your private profile, you can create private posts, connect with friends, and join herds. Switch between your public and private profiles using the navbar at the bottom of the screen.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
