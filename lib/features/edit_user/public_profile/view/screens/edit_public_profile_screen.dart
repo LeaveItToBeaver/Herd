@@ -37,6 +37,21 @@ class _PublicProfileEditScreenState extends ConsumerState<PublicProfileEditScree
     _bioController.text = widget.user.bio ?? '';
   }
 
+  void _saveChanges() async {
+    ref.read(editPublicProfileProvider(widget.user).notifier).bioChanged(_bioController.text);
+    ref.read(editPublicProfileProvider(widget.user).notifier).firstNameChanged(_firstNameController.text);
+    ref.read(editPublicProfileProvider(widget.user).notifier).lastNameChanged(_lastNameController.text);
+    await ref.read(editPublicProfileProvider(widget.user).notifier).submit();
+
+    if (ref.read(editPublicProfileProvider(widget.user)).errorMessage == null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Private profile updated sucessfully.")),
+      );
+
+      context.pop();
+    }
+  }
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -75,30 +90,9 @@ class _PublicProfileEditScreenState extends ConsumerState<PublicProfileEditScree
         title: const Text('Edit Public Profile'),
         actions: [
           TextButton(
-            onPressed: state.isSubmitting
-                ? null
-                : () async {
-              if (_formKey.currentState?.validate() ?? false) {
-                // Update form data
-                ref.read(editPublicProfileProvider(widget.user).notifier)
-                  ..firstNameChanged(_firstNameController.text)
-                  ..lastNameChanged(_lastNameController.text)
-                  ..bioChanged(_bioController.text);
-
-                await ref.read(editPublicProfileProvider(widget.user).notifier).submit();
-
-                if (context.mounted) {
-                  // Pop back to profile screen after saving
-                  context.pop();
-                }
-              }
-            },
+            onPressed: state.isSubmitting ? null : _saveChanges,
             child: state.isSubmitting
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+                ? const CircularProgressIndicator()
                 : const Text('Save'),
           ),
         ],

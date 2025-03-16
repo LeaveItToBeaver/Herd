@@ -33,6 +33,23 @@ class PostModel {
     this.isPrivate = false, // Default to public
   });
 
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) {
+      try {
+        return value.toDate();
+      } catch (e) {
+        print('Error parsing Timestamp: $e');
+        return null;
+      }
+    } else if (value is String) {
+      return DateTime.tryParse(value);
+    }
+
+    print('Unknown date format: $value (${value.runtimeType})');
+    return null;
+  }
+
   factory PostModel.fromMap(String id, Map<String, dynamic> map) {
     return PostModel(
       id: id,
@@ -46,12 +63,8 @@ class PostModel {
       likeCount: map['likeCount'] ?? 0,
       dislikeCount: map['dislikeCount'] ?? 0,
       commentCount: map['commentCount'] ?? 0,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      createdAt: _parseDateTime(map['createdAt']),
+      updatedAt: _parseDateTime(map['updatedAt']),
       isPrivate: map['isPrivate'] ?? false,
     );
   }
