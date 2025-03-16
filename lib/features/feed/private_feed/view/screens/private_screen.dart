@@ -1,14 +1,319 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/post/data/models/post_model.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
-class PrivateFeedScreen extends StatelessWidget {
+import '../../../../navigation/view/widgets/BottomNavPadding.dart';
+import '../../../providers/feed_provider.dart';
+
+class PrivateFeedScreen extends ConsumerStatefulWidget {
   const PrivateFeedScreen({super.key});
 
+  @override
+  ConsumerState<PrivateFeedScreen> createState() => _PrivateFeedScreenState();
+}
+
+class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize feed on first load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(privateFeedControllerProvider.notifier).loadInitialPosts();
+    });
+
+    // Add scroll listener for pagination
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Listener for scroll events to trigger pagination
+  void _scrollListener() {
+    // Get the current state
+    final state = ref.read(privateFeedControllerProvider);
+
+    // If already loading or no more posts, do nothing
+    if (state.isLoading || !state.hasMorePosts) return;
+
+    // Check if we've scrolled near the bottom (reaching 2nd to last post)
+    final triggerFetchMoreSize = 0.8;
+    final reachedTriggerPosition = _scrollController.position.pixels >=
+        (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
+
+    if (reachedTriggerPosition) {
+      // Load more posts
+      ref.read(privateFeedControllerProvider.notifier).loadMorePosts();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final privateFeedState = ref.watch(privateFeedControllerProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Private Feed')),
-      body: const Center(child: Text('Private Feed Screen')),
+      appBar: AppBar(
+        title: const Text('Private Feed'),
+        actions: [
+          // Refresh button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.read(privateFeedControllerProvider.notifier).refreshFeed();
+            },
+          ),
+          // Optional highlighted posts button
+          IconButton(
+            icon: const Icon(Icons.star),
+            onPressed: () => _showHighlightedPosts(context),
+          ),
+        ],
+      ),
+      body: _buildBody(privateFeedState),
+    );
+  }
+
+  /// Build the main body of the feed based on state
+  Widget _buildBody(PrivateFeedState state) {
+    // Show error if any
+    if (state.error != null) {
+      return _buildErrorWidget(state.error!, () {
+        ref.read(privateFeedControllerProvider.notifier).refreshFeed();
+      });
+    }
+
+    // Show loading indicator if loading initially with no posts
+    if (state.isLoading && state.posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Show empty state if no posts and not loading
+    if (state.posts.isEmpty && !state.isLoading) {
+      return _buildEmptyFeed();
+    }
+
+    // Show posts with pull-to-refresh
+    return RefreshIndicator(
+      onRefresh: () => ref.read(privateFeedControllerProvider.notifier).refreshFeed(),
+      child: ListView.builder(
+        controller: _scrollController,
+        itemCount: state.posts.length + (state.isLoading ? 2 : 1),
+        itemBuilder: (context, index) {
+          // Bottom loading indicator (before the padding)
+          if (index == state.posts.length && state.isLoading) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Bottom padding at the very end
+          if (index == state.posts.length ||
+              (index == state.posts.length + 1 && state.isLoading)) {
+            return const BottomNavPadding();
+          }
+
+          // Regular post
+          return PostWidget(post: state.posts[index]);
+        },
+      ),
+    );
+  }
+
+  /// Empty feed state widget
+  Widget _buildEmptyFeed() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.lock,
+            size: 64,
+            color: Colors.blue.withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No private posts yet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Be the first to create a private post!',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.edit),
+            label: const Text('Create a private post'),
+            onPressed: () {
+              // Navigate to create post screen with isPrivate=true
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          const BottomNavPadding(),
+        ],
+      ),
+    );
+  }
+
+  /// Error widget with retry button
+  Widget _buildErrorWidget(Object error, VoidCallback onRetry) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+              size: 60,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load private feed',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onRetry,
+              child: const Text('Try Again'),
+            ),
+            const BottomNavPadding(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show highlighted posts modal
+  void _showHighlightedPosts(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Highlighted Posts",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(),
+                Expanded(
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final highlightedPosts = ref.watch(highlightedPrivatePostsProvider);
+
+                      return highlightedPosts.when(
+                        data: (posts) {
+                          if (posts.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.star_border,
+                                      size: 64,
+                                      color: Colors.blue.withOpacity(0.5),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      "No highlighted posts",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      "Popular private posts will appear here",
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            controller: scrollController,
+                            itemCount: posts.length + 1, // +1 for padding
+                            itemBuilder: (context, index) {
+                              if (index == posts.length) {
+                                return const BottomNavPadding(height: 100);
+                              }
+                              return PostWidget(post: posts[index]);
+                            },
+                          );
+                        },
+                        loading: () => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        error: (error, stack) => Center(
+                          child: Text("Error loading highlighted posts: $error"),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
