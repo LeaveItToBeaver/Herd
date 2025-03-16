@@ -36,30 +36,33 @@ class EditPrivateProfileNotifier extends StateNotifier<EditPrivateProfileState> 
     if (state.isSubmitting) return;
 
     state = state.copyWith(isSubmitting: true, errorMessage: null);
-    try{
+    try {
       final Map<String, dynamic> updatedData = {
+        // Username is shared between profiles, so this stays the same
         'username': state.username,
-        'bio': state.bio,
+        // Use privateBio instead of bio for the private profile
+        'privateBio': state.bio,
       };
+
       if (state.coverImage != null) {
         final coverImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.coverImage!,
-          type: 'cover',
+          type: 'private_cover',
         );
-        updatedData['coverImageURL'] = coverImageUrl;
+        updatedData['privateCoverImageURL'] = coverImageUrl;
       }
 
       if (state.profileImage != null) {
         final profileImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.profileImage!,
-          type: 'profile',
+          type: 'private_profile',
         );
-        updatedData['profileImageURL'] = profileImageUrl;
+        updatedData['privateProfileImageURL'] = profileImageUrl;
       }
 
-      await userRepository.updateUser(user.id, updatedData);
+      await userRepository.updatePrivateProfile(user.id, updatedData);
       state = state.copyWith(isSubmitting: false);
     } catch (error) {
       state = state.copyWith(isSubmitting: false, errorMessage: error.toString());

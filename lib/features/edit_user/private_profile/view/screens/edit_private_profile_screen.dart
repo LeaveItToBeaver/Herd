@@ -36,6 +36,24 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
     _usernameController.text = widget.user.username;
   }
 
+  void _saveChanges() async {
+    ref.read(editPrivateProfileProvider(widget.user).notifier).bioChanged(_bioController.text);
+    ref.read(editPrivateProfileProvider(widget.user).notifier).usernameChanged(_usernameController.text);
+    await ref.read(editPrivateProfileProvider(widget.user).notifier).submit();
+
+    if (ref.read(editPrivateProfileProvider(widget.user)).errorMessage == null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Private profile updated sucessfully.")),
+      );
+
+      context.pop();
+
+      if (widget.isInitialSetup) {
+        context.go('/privateFeed');
+      }
+    }
+  }
+
   @override
   void dispose() {
     _bioController.dispose();
@@ -72,25 +90,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
         title: Text(widget.isInitialSetup ? 'Set Up Private Profile' : 'Edit Private Profile'),
         actions: [
           TextButton(
-            onPressed: state.isSubmitting
-                ? null
-                : () async {
-              // Update bio and profile changes
-              ref.read(editPrivateProfileProvider(widget.user).notifier).bioChanged(_bioController.text);
-              ref.read(editPrivateProfileProvider(widget.user).notifier).usernameChanged(_usernameController.text);
-
-              await ref.read(editPrivateProfileProvider(widget.user).notifier).submit();
-
-              if (context.mounted) {
-                // Pop back to profile screen after saving
-                context.pop();
-
-                // If this was initial setup, go to private feed
-                if (widget.isInitialSetup) {
-                  context.go('/privateFeed');
-                }
-              }
-            },
+            onPressed: state.isSubmitting ? null : _saveChanges,
             child: state.isSubmitting
                 ? const CircularProgressIndicator()
                 : const Text('Save'),
@@ -230,7 +230,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                hintText: 'Write something about yourself for your private connections...',
+                hintText: state.bio.isEmpty ? 'Tell us about yourself in your private profile...' : null,
               ),
             ),
             const SizedBox(height: 24),
@@ -253,7 +253,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                       'Show Activity Status',
                       false, // Default value
                           (value) {
-                        // Update setting
+                        //TODO: Update setting
                       },
                     ),
                     const SizedBox(height: 12),
@@ -261,7 +261,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                       'Allow Connection Requests',
                       true, // Default value
                           (value) {
-                        // Update setting
+                        //TODO: Update setting
                       },
                     ),
                     const SizedBox(height: 12),
@@ -269,7 +269,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                       'Show Public Profile in Private Feed',
                       true, // Default value
                           (value) {
-                        // Update setting
+                        //TODO: Update setting
                       },
                     ),
                   ],
