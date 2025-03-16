@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
