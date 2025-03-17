@@ -25,9 +25,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
   String _content = '';
-  File? _postImage;
+  File? _postMedia;
   bool _isSubmitting = false;
   late bool _isPrivate;
+  bool _isVideo = false;
 
   @override
   void initState() {
@@ -157,7 +158,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
           const SizedBox(height: 16),
 
-          _imagePicker(context),
+          _mediaPicker(context),
 
           const SizedBox(height: 16),
 
@@ -198,23 +199,31 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _imagePicker(BuildContext context) {
+  Widget _mediaPicker(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        if (_isSubmitting) return; // Prevent changing image while submitting
+        if (_isSubmitting) return; // Prevent changing media while submitting
 
         try {
-          final pickedFile = await ImageHelper.pickImageFromGallery(
+          // Use the new media picker method
+          final pickedFile = await ImageHelper.pickMediaFile(
             context: context,
-            cropStyle: CropStyle.rectangle,
-            title: 'Select Post Image',
           );
-          setState(() {
-            _postImage = pickedFile;
-          });
+
+          if (pickedFile != null) {
+            final extension = pickedFile.path.toLowerCase().substring(
+              pickedFile.path.lastIndexOf('.'),
+            );
+
+            setState(() {
+              _postMedia = pickedFile;
+              // Check if file is video based on extension
+              _isVideo = ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
+            });
+          }
         } catch (e) {
           if (context.mounted) {
-            _showErrorSnackBar(context, 'Failed to pick image. Please try again.');
+            _showErrorSnackBar(context, 'Failed to pick media. Please try again.');
           }
         }
       },
@@ -228,11 +237,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             color: _isPrivate ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300,
           ),
         ),
-        child: _postImage != null
-            ? ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(_postImage!, fit: BoxFit.cover),
-        )
+        child: _postMedia != null
+            ? _buildMediaPreview()
             : Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -243,7 +249,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap to add an image',
+              'Tap to add media (images, GIFs, videos)',
               style: TextStyle(
                 color: _isPrivate ? Colors.blue.withOpacity(0.7) : Colors.black54,
               ),
@@ -330,7 +336,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       final postId = await ref.read(postControllerProvider.notifier).createPost(
         title: _title,
         content: _content,
-        imageFile: _postImage,
+        imageFile: _postMedia,
         userId: currentUser.id,
         isPrivate: _isPrivate, // Pass privacy setting to controller
       );
@@ -378,6 +384,95 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildMediaPreview() {
+    if (_postMedia == null) return const SizedBox.shrink();
+
+    final extension = _postMedia!.path.toLowerCase().substring(
+      _postMedia!.path.lastIndexOf('.'),
+    );
+
+    if (_isVideo) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              color: Colors.black87,
+              width: double.infinity,
+                height: double.infinity,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.videocam,
+                      size: 48,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Video',
+                      style: TextStyle(
+                          color: Colors.white,
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      extension.toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            )
+          ),
+          Icon(
+            Icons.play_circle_fill,
+            size: 64,
+            color: Colors.white.withOpacity(0.8),
+          ),
+
+        ],
+      );
+    }
+
+    if (extension == '.gif') {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(_postMedia!, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+          ),
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'GIF',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ]
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.file(_postMedia!, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
     );
   }
 }
