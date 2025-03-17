@@ -5,9 +5,6 @@ import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import '../../search_controller.dart';
 import '../providers/state/search_state.dart';
 
-
-// TODO: I need to find out why the search function is broken on the profile page.
-// Go to either public or private profile, press search button, get hit with failed contains key error.
 class SearchScreen extends ConsumerStatefulWidget {
   static const String routeName = '/search';
 
