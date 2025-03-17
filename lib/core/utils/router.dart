@@ -9,6 +9,7 @@ import '../../features/edit_user/public_profile/view/screens/edit_public_profile
 import '../../features/feed/providers/feed_type_provider.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
 import '../../features/user/data/models/user_model.dart';
+import '../../features/user/view/screens/connection_request_screen.dart';
 import '../../features/user/view/screens/private_profile_screen.dart';
 import '../../features/user/view/screens/public_profile_screen.dart';
 
@@ -61,6 +62,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         redirect: (_, __) => '/splash',
       ),
+
+      // Authentication routes //
       GoRoute(
         path: '/splash',
         pageBuilder: (context, state) =>
@@ -77,23 +80,48 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         const NoTransitionPage(child: SignUpScreen()),
       ),
 
+      GoRoute(
+        path: '/search',
+        name: 'search',
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: Scaffold(
+            body: GlobalOverlayManager(
+              showBottomNav: true,
+              showSideBubbles: false,
+              showProfileBtn: true,
+              showSearchBtn: false,
+              child: SearchScreen(),
+            ),
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: '/connection-requests',
+        name: 'connectionRequests',
+        parentNavigatorKey: rootNavigatorKey, // Use root navigator
+        pageBuilder: (context, state) {
+          return NoTransitionPage(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: const ConnectionRequestsScreen(),
+            ),
+          );
+        },
+      ),
+
       // Main Shell Route with Bottom Navigation Bar
       ShellRoute(
         navigatorKey: shellNavigatorKey,
         builder: (context, state, child) {
           return _TabScaffold(child: child);
         },
+
         routes: [
-          GoRoute(
-            path: '/search',
-            name: 'search',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SearchScreen(),
-            ),
-          ),
           GoRoute(
             path: '/privateFeed',
             name: 'privateFeed',
+            parentNavigatorKey: shellNavigatorKey,
             pageBuilder: (context, state) {
               // Set current feed to private when viewing private feed
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -104,9 +132,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+
           GoRoute(
             path: '/create',
             name: 'create',
+            parentNavigatorKey: shellNavigatorKey,
             pageBuilder: (context, state) {
               // Pass the current feed type to determine post privacy default
               final feedType = ref.read(currentFeedProvider);
@@ -127,9 +157,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+
           GoRoute(
             path: '/publicFeed',
             name: 'publicFeed',
+            parentNavigatorKey: shellNavigatorKey,
             pageBuilder: (context, state) {
               // Set current feed to public when viewing public feed
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -140,10 +172,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+
           // Context-aware profile navigation that redirects based on current feed type
           GoRoute(
             path: '/profile',
             name: 'profile',
+            parentNavigatorKey: shellNavigatorKey,
             redirect: (context, state) {
               final userId = ref.read(authProvider)?.uid;
               if (userId == null) return '/login';

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import '../../search_controller.dart';
 import '../providers/state/search_state.dart';
 
+
+// TODO: I need to find out why the search function is broken on the profile page.
+// Go to either public or private profile, press search button, get hit with failed contains key error.
 class SearchScreen extends ConsumerStatefulWidget {
   static const String routeName = '/search';
 
@@ -92,10 +96,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   style: const TextStyle(fontSize: 16.0),
                 ),
                 onTap: () {
-                  context.pushNamed(
-                    'profile',
-                    pathParameters: {'id': user.id},
-                  );
+                  final feedType = ref.read(currentFeedProvider);
+                  if (feedType == FeedType.private) {
+                    context.pushNamed(
+                      'privateProfile',
+                      pathParameters: {'id': user.id},
+                    );
+                  } else {
+                    context.pushNamed(
+                      'publicProfile',
+                      pathParameters: {'id': user.id},
+                    );
+                  }
                 },
               );
             })

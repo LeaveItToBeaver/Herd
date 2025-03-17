@@ -169,11 +169,20 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
             pathParameters: {'id': authorId},
           ),
           child: CircleAvatar(
-            radius: 25,
-            backgroundImage: profileImageUrl != null
-                ? NetworkImage(profileImageUrl)
-                : const AssetImage('assets/images/default_avatar.png')
-            as ImageProvider,
+            radius: 22.0,
+            backgroundColor: Colors.grey[200],
+            // Only use NetworkImage if the URL exists and isn't empty
+            backgroundImage: user.profileImageURL != null && user.profileImageURL!.isNotEmpty
+                ? NetworkImage(user.profileImageURL!)
+                : null,
+            // Show placeholder icon if no image URL
+            child: user.profileImageURL == null || user.profileImageURL!.isEmpty
+                ? Icon(
+              Icons.account_circle,
+              color: Colors.grey[400],
+              size: 22.0 * 2,
+            )
+                : null,
           ),
         ),
         const SizedBox(width: 10),

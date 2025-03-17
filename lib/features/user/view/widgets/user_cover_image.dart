@@ -29,7 +29,7 @@ class UserCoverImage extends ConsumerWidget {
           image: FileImage(coverFile!),
           fit: BoxFit.cover,
         )
-            : (coverImageUrl?.isNotEmpty ?? false)
+            : (coverImageUrl != null && coverImageUrl!.isNotEmpty)
             ? DecorationImage(
           image: CachedNetworkImageProvider(coverImageUrl!),
           fit: BoxFit.cover,

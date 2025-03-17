@@ -6,6 +6,7 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 import '../../../auth/view/providers/auth_provider.dart';
 import '../providers/state/profile_state.dart';
+import '../widgets/private_connection_request_button.dart';
 
 class PrivateProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -90,6 +91,13 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                   ),
                   actions: [
                     if (profile.isCurrentUser) ...[
+                      TextButton.icon(
+                        icon: const Icon(Icons.notifications),
+                        label: const Text('Notifications'),
+                        onPressed: () {
+                          context.pushNamed('connectionRequests');
+                        },
+                      ),
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () {
@@ -108,6 +116,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                         icon: const Icon(Icons.exit_to_app),
                         onPressed: () => ref.read(authProvider.notifier).signOut(),
                       ),
+
                     ],
                   ],
                 ),
@@ -167,17 +176,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                             if (!profile.isCurrentUser)
                               SizedBox(
                                 width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    // Implement connect functionality
-                                    // This could be different from the public follow feature
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                                  ),
-                                  child: const Text('Connect'),
-                                ),
+                                child: PrivateConnectionButton(targetUserId: profile.user!.id),
                               ),
                           ],
                         ),
