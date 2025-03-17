@@ -5,6 +5,7 @@ import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import '../../search_controller.dart';
 import '../providers/state/search_state.dart';
 
+
 class SearchScreen extends ConsumerStatefulWidget {
   static const String routeName = '/search';
 
