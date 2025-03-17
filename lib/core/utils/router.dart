@@ -118,10 +118,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   showSideBubbles: false,
                   showProfileBtn: true,
                   showSearchBtn: false,
-                  child: Scaffold(
-                    body: SafeArea(
-                      child: CreatePostScreen(isPrivate: isPrivate),
-                    ),
+                  child: Stack(
+                      children: [
+                        CreatePostScreen(isPrivate: isPrivate),
+                      ],
                   ),
                 ),
               );

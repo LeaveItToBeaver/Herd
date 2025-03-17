@@ -49,7 +49,10 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 child: Icon(Icons.lock, size: 20),
               ),
             postAsyncValue.when(
-              data: (post) => Text(post?.title ?? 'Post'),
+              data: (post) => Text(
+                post?.title ?? 'Post',
+                overflow: TextOverflow.ellipsis,
+              ),
               loading: () => const Text('Loading...'),
               error: (error, stack) => const Text('Error'),
             ),

@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:path/path.dart' as path;
 import '../../../user/data/repositories/user_repository.dart';
 import '../models/post_model.dart';
 
@@ -18,57 +20,77 @@ class PostRepository {
 
   /// Creating a post ///
   // Create post
+// Create post
   Future<void> createPost(PostModel post) async {
-    final docRef = await _posts.add(post.toMap());
-    await docRef.update({'id': docRef.id});
+    try {
+      // First create the post document
+      final docRef = await _posts.add(post.toMap());
+      await docRef.update({'id': docRef.id});
 
-    // Handle feed distribution based on post privacy
-    if (post.isPrivate == true) {
-      // Private post: Add to private connections' feeds
-      final connectionsSnapshot = await _firestore
-          .collection('privateConnections')
-          .doc(post.authorId)
-          .collection('userConnections')
-          .get();
-
-      for (final connection in connectionsSnapshot.docs) {
+      // Handle feed distribution based on post privacy
+      if (post.isPrivate == true) {
+        // First add to user's own private feed (this should always work)
         await _privateFeeds
-            .doc(connection.id)
+            .doc(post.authorId)
             .collection('privateFeed')
             .doc(docRef.id)
             .set(post.toMap());
-      }
 
-      // Also add to user's own private feed
-      await _privateFeeds
-          .doc(post.authorId)
-          .collection('privateFeed')
-          .doc(docRef.id)
-          .set(post.toMap());
-    } else {
-      // Public post: Add to followers' feeds if it's a user post
-      if (post.herdId == null) {
-        final followersSnapshot = await _firestore
-            .collection('followers')
-            .doc(post.authorId)
-            .collection('userFollowers')
-            .get();
+        try {
+          // Try to get private connections, but don't fail if we can't access them
+          final connectionsSnapshot = await _firestore
+              .collection('privateConnections')
+              .doc(post.authorId)
+              .collection('userConnections')
+              .get();
 
-        for (final follower in followersSnapshot.docs) {
-          await _feeds
-              .doc(follower.id)
-              .collection('userFeed')
-              .doc(docRef.id)
-              .set(post.toMap());
+          // Add post to each connection's feed
+          for (final connection in connectionsSnapshot.docs) {
+            await _privateFeeds
+                .doc(connection.id)
+                .collection('privateFeed')
+                .doc(docRef.id)
+                .set(post.toMap());
+          }
+        } catch (e) {
+          // Log error but continue - the post is already created
+          debugPrint('Warning: Could not distribute post to private connections: $e');
+          // We won't rethrow here since the post itself was created successfully
         }
-
-        // Also add to user's own public feed
+      } else {
+        // Public post: Add to user's own feed first
         await _feeds
             .doc(post.authorId)
             .collection('userFeed')
             .doc(docRef.id)
             .set(post.toMap());
+
+        // If it's not a herd post, add to followers' feeds
+        if (post.herdId == null) {
+          try {
+            final followersSnapshot = await _firestore
+                .collection('followers')
+                .doc(post.authorId)
+                .collection('userFollowers')
+                .get();
+
+            for (final follower in followersSnapshot.docs) {
+              await _feeds
+                  .doc(follower.id)
+                  .collection('userFeed')
+                  .doc(docRef.id)
+                  .set(post.toMap());
+            }
+          } catch (e) {
+            // Log error but continue - the post is already created
+            debugPrint('Warning: Could not distribute post to followers: $e');
+            // We won't rethrow here since the post itself was created successfully
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('Error creating post: $e');
+      throw e; // Rethrow to allow proper error handling upstream
     }
   }
 
@@ -84,18 +106,59 @@ class PostRepository {
     }
 
     try {
-      final String path = isPrivate
-          ? 'users/$userId/private/posts/$postId/$type.jpg'
-          : 'users/$userId/posts/$postId/$type.jpg';
+      // Get the file extension to preserve it
+      final extension = path.extension(file.path).toLowerCase();
 
-      final ref = _storage.ref().child(path);
-      final uploadTask = ref.putFile(file);
+      // Create the storage path with the correct extension
+      final String storagePath = isPrivate
+          ? 'users/$userId/private/posts/$postId/$type$extension'
+          : 'users/$userId/posts/$postId/$type$extension';
+
+      final ref = _storage.ref().child(storagePath);
+
+      // Set appropriate content type based on extension
+      final SettableMetadata metadata = SettableMetadata(
+        contentType: _getContentType(extension),
+        customMetadata: {'isPrivate': isPrivate.toString()},
+      );
+
+      // Upload with metadata
+      final uploadTask = ref.putFile(file, metadata);
 
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
-      throw Exception("Failed to upload image: $e");
+      throw Exception("Failed to upload media: $e");
+    }
+  }
+
+  // Helper method to determine content type based on file extension
+  String _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.gif':
+        return 'image/gif';
+      case '.bmp':
+        return 'image/bmp';
+      case '.webp':
+        return 'image/webp';
+      case '.mp4':
+        return 'video/mp4';
+      case '.mov':
+        return 'video/quicktime';
+      case '.avi':
+        return 'video/x-msvideo';
+      case '.mkv':
+        return 'video/x-matroska';
+      case '.webm':
+        return 'video/webm';
+      default:
+        return 'application/octet-stream'; // Default binary content type
     }
   }
 

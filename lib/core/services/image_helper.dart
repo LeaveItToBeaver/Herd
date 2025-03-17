@@ -2,13 +2,21 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 
 class ImageHelper {
-  // Maximum file size in bytes (10MB)
-  static const int maxFileSize = 10 * 1024 * 1024;
+  // Maximum file size in bytes (20MB - increased from 10MB)
+  static const int maxFileSize = 20 * 1024 * 1024;
 
-  // Allowed image extensions
-  static final List<String> allowedExtensions = ['.jpg', '.jpeg', '.png'];
+  // Expanded list of allowed extensions
+  static final List<String> allowedExtensions = [
+    // Images
+    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
+    // Videos
+    '.mp4', '.mov', '.avi', '.mkv', '.webm',
+    // Animated images
+    '.gif', '.webp'
+  ];
 
   static Future<File?> pickImageFromGallery({
     required BuildContext context,
@@ -30,7 +38,7 @@ class ImageHelper {
         final size = await file.length();
         if (size > maxFileSize) {
           if (context.mounted) {
-            _showErrorDialog(context, 'Image size must be less than 10MB');
+            _showErrorDialog(context, 'File size must be less than 20MB');
           }
           return null;
         }
@@ -47,6 +55,11 @@ class ImageHelper {
             );
           }
           return null;
+        }
+
+        // Skip cropping for gif files since cropping can break animation
+        if (extension == '.gif') {
+          return file;
         }
 
         try {
@@ -89,7 +102,7 @@ class ImageHelper {
               if (context.mounted) {
                 _showErrorDialog(
                   context,
-                  'Cropped image size must be less than 10MB',
+                  'Cropped file size must be less than 20MB',
                 );
               }
               return null;
@@ -108,6 +121,54 @@ class ImageHelper {
       debugPrint('Error picking image: $e');
       if (context.mounted) {
         _showErrorDialog(context, 'Failed to pick image: $e');
+      }
+    }
+    return null;
+  }
+
+  // New method for picking any media file (image, video, etc)
+  static Future<File?> pickMediaFile({
+    required BuildContext context,
+  }) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: allowedExtensions.map((e) => e.substring(1)).toList(), // Remove the dot
+        allowCompression: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+
+        // Validate file size
+        final size = await file.length();
+        if (size > maxFileSize) {
+          if (context.mounted) {
+            _showErrorDialog(context, 'File size must be less than 20MB');
+          }
+          return null;
+        }
+
+        // Validate file extension
+        final extension = result.files.single.path!.toLowerCase().substring(
+          result.files.single.path!.lastIndexOf('.'),
+        );
+        if (!allowedExtensions.contains(extension)) {
+          if (context.mounted) {
+            _showErrorDialog(
+              context,
+              'Only ${allowedExtensions.join(", ")} files are allowed',
+            );
+          }
+          return null;
+        }
+
+        return file;
+      }
+    } catch (e) {
+      debugPrint('Error picking media: $e');
+      if (context.mounted) {
+        _showErrorDialog(context, 'Failed to pick media file: $e');
       }
     }
     return null;
