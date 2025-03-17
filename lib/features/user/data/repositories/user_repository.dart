@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/private_connection_request_model.dart';
 import '../models/user_model.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -298,6 +299,140 @@ class UserRepository {
     final downloadUrl = await snapshot.ref.getDownloadURL();
     return downloadUrl;
   }
+
+  Future<void> requestPrivateConnection(String userId, String targetUserId) async {
+    try {
+      // Get requester information to include in the request
+      final requester = await getUserById(userId);
+      if (requester == null) {
+        throw Exception('Requester not found');
+      }
+
+      // Create a connection request document
+      await _firestore.collection('privateConnectionRequests')
+          .doc(targetUserId)
+          .collection('requests')
+          .doc(userId)
+          .set({
+        'requesterId': userId,
+        'requesterName': '${requester.firstName} ${requester.lastName}'.trim(),
+        'requesterUsername': requester.username,
+        'requesterProfileImageURL': requester.privateProfileImageURL ?? requester.profileImageURL,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'pending'
+      });
+    } catch (e) {
+      print('Error requesting private connection: $e');
+      rethrow;
+    }
+  }
+
+  // Accept a private connection request
+  Future<void> acceptPrivateConnection(String userId, String requesterId) async {
+    try {
+      // Add to private connections (bidirectional)
+      await _firestore.collection('privateConnections')
+          .doc(userId)
+          .collection('userConnections')
+          .doc(requesterId)
+          .set({
+        'timestamp': FieldValue.serverTimestamp()
+      });
+
+      await _firestore.collection('privateConnections')
+          .doc(requesterId)
+          .collection('userConnections')
+          .doc(userId)
+          .set({
+        'timestamp': FieldValue.serverTimestamp()
+      });
+
+      // Update the request status
+      await _firestore.collection('privateConnectionRequests')
+          .doc(userId)
+          .collection('requests')
+          .doc(requesterId)
+          .update({'status': 'accepted'});
+
+      // Update connection counts for both users
+      await _firestore.collection('users').doc(userId)
+          .update({'privateFriends': FieldValue.increment(1)});
+
+      await _firestore.collection('users').doc(requesterId)
+          .update({'privateFriends': FieldValue.increment(1)});
+    } catch (e) {
+      print('Error accepting private connection: $e');
+      rethrow;
+    }
+  }
+
+  // Reject a private connection request
+  Future<void> rejectPrivateConnection(String userId, String requesterId) async {
+    try {
+      await _firestore.collection('privateConnectionRequests')
+          .doc(userId)
+          .collection('requests')
+          .doc(requesterId)
+          .update({'status': 'rejected'});
+    } catch (e) {
+      print('Error rejecting private connection: $e');
+      rethrow;
+    }
+  }
+
+  // Get all pending private connection requests for a user
+  Stream<List<PrivateConnectionRequest>> getPendingConnectionRequests(String userId) {
+    return _firestore.collection('privateConnectionRequests')
+        .doc(userId)
+        .collection('requests')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+      return PrivateConnectionRequest.fromMap(doc.data());
+    }).toList());
+  }
+
+  // Check if a private connection request already exists
+  Future<bool> hasPrivateConnectionRequest(String requesterId, String targetUserId) async {
+    try {
+      final doc = await _firestore.collection('privateConnectionRequests')
+          .doc(targetUserId)
+          .collection('requests')
+          .doc(requesterId)
+          .get();
+
+      return doc.exists;
+    } catch (e) {
+      print('Error checking private connection request: $e');
+      return false;
+    }
+  }
+
+  // Check if users are already privately connected
+  Future<bool> arePrivatelyConnected(String userId1, String userId2) async {
+    try {
+      final doc = await _firestore.collection('privateConnections')
+          .doc(userId1)
+          .collection('userConnections')
+          .doc(userId2)
+          .get();
+
+      return doc.exists;
+    } catch (e) {
+      print('Error checking private connection: $e');
+      return false;
+    }
+  }
+
+  // Get all private connections for a user
+  Stream<List<String>> getPrivateConnectionIds(String userId) {
+    return _firestore.collection('privateConnections')
+        .doc(userId)
+        .collection('userConnections')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
+  }
+
 
 // Check if private profile exists
   Future<bool> hasPrivateProfile(String userId) async {

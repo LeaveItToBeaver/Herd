@@ -133,13 +133,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                         style: Theme.of(context).textTheme.titleLarge,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '@${profile.user?.username}',
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: Theme.of(context).colorScheme.secondary,
-                                        ),
-                                      ),
+
                                     ],
                                   ),
                                 ),
