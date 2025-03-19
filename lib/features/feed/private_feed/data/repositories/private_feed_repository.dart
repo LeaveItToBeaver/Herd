@@ -12,16 +12,17 @@ class PrivateFeedRepository extends FeedRepository {
   /// [limit] Maximum number of posts to fetch (default: 15)
   /// [lastPost] Optional last post for pagination
   /// [decayFactor] Optional factor to adjust algorithm decay rate (default: 1.0)
+// In PrivateFeedRepository
   Future<List<PostModel>> getPrivateFeed({
-    required String userId,
+    required String userId,  // This parameter isn't needed if showing all posts globally
     int limit = 15,
     PostModel? lastPost,
     double decayFactor = 1.0,
   }) async {
     try {
-      // Create query to get all private posts
-      var postsQuery = posts
-          .where('isPrivate', isEqualTo: true)
+      // Query directly from posts collection
+      var postsQuery = firestore.collection('globalPrivatePosts')
+          //.where('isPrivate', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit);
 
@@ -47,17 +48,15 @@ class PrivateFeedRepository extends FeedRepository {
     }
   }
 
-  /// Stream all private posts for the global private feed
-  ///
-  /// [limit] Maximum number of posts to fetch initially (default: 15)
+// Similarly for streamPrivateFeed
   Stream<List<PostModel>> streamPrivateFeed({
     int limit = 15,
     double decayFactor = 1.0,
   }) {
     try {
-      // Stream all private posts
-      return posts
-          .where('isPrivate', isEqualTo: true)
+      // Stream all private posts from the main posts collection
+      return firestore.collection('globalPrivatePosts')
+          //.where('isPrivate', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)
           .snapshots()
@@ -92,8 +91,8 @@ class PrivateFeedRepository extends FeedRepository {
       }
 
       // Query for more posts after the last one
-      var postsSnapshot = await posts
-          .where('isPrivate', isEqualTo: true)
+      var postsSnapshot = await firestore.collection('globalPrivatePosts')
+          //.where('isPrivate', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .startAfter([lastPost.createdAt])
           .limit(limit)
@@ -124,8 +123,8 @@ class PrivateFeedRepository extends FeedRepository {
       final DateTime threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
       final threeDaysAgoTimestamp = Timestamp.fromDate(threeDaysAgo);
 
-      var postsSnapshot = await posts
-          .where('isPrivate', isEqualTo: true)
+      var postsSnapshot = await firestore.collection('globalPrivatePosts')
+          //.where('isPrivate', isEqualTo: true)
           .where('createdAt', isGreaterThan: threeDaysAgoTimestamp)
           .orderBy('createdAt', descending: true)
           .limit(limit * 3) // Get more to allow for sorting by engagement
