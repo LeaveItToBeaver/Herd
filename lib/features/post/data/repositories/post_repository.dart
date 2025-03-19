@@ -29,10 +29,16 @@ class PostRepository {
 
       // Handle feed distribution based on post privacy
       if (post.isPrivate == true) {
+
         // First add to user's own private feed (this should always work)
         await _privateFeeds
             .doc(post.authorId)
             .collection('privateFeed')
+            .doc(docRef.id)
+            .set(post.toMap());
+
+        await _firestore
+            .collection('globalPrivatePosts')
             .doc(docRef.id)
             .set(post.toMap());
 
