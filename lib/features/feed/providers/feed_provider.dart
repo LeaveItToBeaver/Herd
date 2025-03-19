@@ -5,6 +5,9 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/feed/public_feed/data/repositories/public_feed_repository.dart';
 import 'package:herdapp/features/feed/private_feed/data/repositories/private_feed_repository.dart';
 
+import '../private_feed/view/providers/state/private_feed_state.dart';
+import '../public_feed/view/providers/state/public_feed_state.dart';
+
 // Repository providers
 final publicFeedRepositoryProvider = Provider<PublicFeedRepository>((ref) {
   return PublicFeedRepository(FirebaseFirestore.instance);
@@ -19,7 +22,7 @@ final feedAlgorithmDecayFactorProvider = StateProvider<double>((ref) {
   return 1.0; // Default decay factor
 });
 
-// Public feed providers
+// ===== PUBLIC FEED PROVIDERS =====
 
 /// Stream provider for public feed posts
 final publicFeedProvider = StreamProvider<List<PostModel>>((ref) {
@@ -39,44 +42,14 @@ final trendingPostsProvider = FutureProvider<List<PostModel>>((ref) {
   return feedRepository.getTrendingPosts();
 });
 
-// Private feed providers
-
-/// State for storing the private feed posts with pagination support
-class PrivateFeedState {
-  final List<PostModel> posts;
-  final bool isLoading;
-  final bool hasMorePosts;
-  final Object? error;
-
-  PrivateFeedState({
-    required this.posts,
-    this.isLoading = false,
-    this.hasMorePosts = true,
-    this.error,
-  });
-
-  PrivateFeedState copyWith({
-    List<PostModel>? posts,
-    bool? isLoading,
-    bool? hasMorePosts,
-    Object? error,
-  }) {
-    return PrivateFeedState(
-      posts: posts ?? this.posts,
-      isLoading: isLoading ?? this.isLoading,
-      hasMorePosts: hasMorePosts ?? this.hasMorePosts,
-      error: error,
-    );
-  }
-}
-
-/// Controller for private feed with pagination
-class PrivateFeedController extends StateNotifier<PrivateFeedState> {
-  final PrivateFeedRepository repository;
+/// Controller for public feed with pagination using Freezed state
+class PublicFeedController extends StateNotifier<PublicFeedState> {
+  final PublicFeedRepository repository;
+  final String userId;
   final int pageSize;
 
-  PrivateFeedController(this.repository, {this.pageSize = 15})
-      : super(PrivateFeedState(posts: []));
+  PublicFeedController(this.repository, this.userId, {this.pageSize = 20})
+      : super(PublicFeedState.initial());
 
   /// Initialize the feed with first batch of posts
   Future<void> loadInitialPosts() async {
@@ -86,15 +59,19 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
 
       state = state.copyWith(isLoading: true, error: null);
 
-      final posts = await repository.getPrivateFeed(
-        userId: '',  // No need for userId in global feed
+      final posts = await repository.getPublicFeed(
+        userId: userId,
         limit: pageSize,
       );
 
-      state = PrivateFeedState(
+      print("DEBUG: getPublicFeed returned ${posts.length} posts");
+
+
+      state = state.copyWith(
         posts: posts,
         isLoading: false,
         hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
       );
     } catch (e) {
       state = state.copyWith(
@@ -115,7 +92,130 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
       state = state.copyWith(isLoading: true, error: null);
 
       // Get the last post for pagination
-      final lastPost = state.posts.last;
+      final lastPostId = state.posts.last.id;
+
+      final morePosts = await repository.getPublicFeed(
+        userId: userId,
+        lastPostId: lastPostId,
+        limit: pageSize,
+      );
+
+      if (morePosts.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          hasMorePosts: false,
+        );
+        return;
+      }
+
+      // Merge the new posts with existing ones
+      final allPosts = [...state.posts, ...morePosts];
+
+      state = state.copyWith(
+        posts: allPosts,
+        isLoading: false,
+        hasMorePosts: morePosts.length >= pageSize,
+        lastPost: morePosts.isNotEmpty ? morePosts.last : state.lastPost,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e,
+      );
+    }
+  }
+
+  /// Refresh the feed (pull-to-refresh)
+  Future<void> refreshFeed() async {
+    try {
+      state = state.copyWith(isRefreshing: true, error: null);
+
+      final posts = await repository.getPublicFeed(
+        userId: userId,
+        limit: pageSize,
+      );
+
+      state = state.copyWith(
+        posts: posts,
+        isRefreshing: false,
+        isLoading: false,
+        hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isRefreshing: false,
+        isLoading: false,
+        error: e,
+      );
+    }
+  }
+}
+
+/// Provider for the public feed controller
+final publicFeedControllerProvider = StateNotifierProvider<PublicFeedController, PublicFeedState>((ref) {
+  final repository = ref.watch(publicFeedRepositoryProvider);
+  final user = ref.watch(authProvider);
+
+  if (user == null) {
+    // Return a dummy controller if user is not logged in
+    return PublicFeedController(repository, '');
+  }
+
+  return PublicFeedController(repository, user.uid);
+});
+
+// ===== PRIVATE FEED PROVIDERS =====
+
+/// Controller for private feed with pagination using Freezed state
+class PrivateFeedController extends StateNotifier<PrivateFeedState> {
+  final PrivateFeedRepository repository;
+  final int pageSize;
+
+  PrivateFeedController(this.repository, {this.pageSize = 15})
+      : super(PrivateFeedState.initial());
+
+  /// Initialize the feed with first batch of posts
+  Future<void> loadInitialPosts() async {
+    try {
+      // Don't reload if already loading
+      if (state.isLoading) return;
+
+      state = state.copyWith(isLoading: true, error: null);
+
+      print("DEBUG: loadInitialPosts called");
+      final posts = await repository.getPrivateFeed(
+        userId: '',
+        limit: pageSize,
+      );
+      print("DEBUG: getPrivateFeed returned ${posts.length} posts");
+
+      state = state.copyWith(
+        posts: posts,
+        isLoading: false,
+        hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e,
+      );
+    }
+  }
+
+  /// Load more posts for pagination
+  Future<void> loadMorePosts() async {
+    try {
+      // Don't load more if already loading or no more posts
+      if (state.isLoading || !state.hasMorePosts || state.posts.isEmpty) {
+        return;
+      }
+
+      state = state.copyWith(isLoading: true, error: null);
+
+      // Get the last post for pagination
+      final lastPost = state.lastPost ?? state.posts.last;
 
       final morePosts = await repository.getMorePrivatePosts(
         lastPost: lastPost,
@@ -137,6 +237,7 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
         posts: allPosts,
         isLoading: false,
         hasMorePosts: morePosts.length >= pageSize,
+        lastPost: morePosts.isNotEmpty ? morePosts.last : state.lastPost,
       );
     } catch (e) {
       state = state.copyWith(
@@ -149,20 +250,23 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
   /// Refresh the feed (pull-to-refresh)
   Future<void> refreshFeed() async {
     try {
-      state = state.copyWith(isLoading: true, error: null);
+      state = state.copyWith(isRefreshing: true, error: null);
 
       final posts = await repository.getPrivateFeed(
         userId: '',  // No need for userId in global feed
         limit: pageSize,
       );
 
-      state = PrivateFeedState(
+      state = state.copyWith(
         posts: posts,
+        isRefreshing: false,
         isLoading: false,
         hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
       );
     } catch (e) {
       state = state.copyWith(
+        isRefreshing: false,
         isLoading: false,
         error: e,
       );

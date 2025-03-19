@@ -4,7 +4,10 @@ import 'package:herdapp/features/feed/data/repositories/feed_repository.dart';
 
 /// Repository for handling private feed operations
 class PrivateFeedRepository extends FeedRepository {
-  PrivateFeedRepository(FirebaseFirestore firestore) : super(firestore);
+  PrivateFeedRepository(super.firestore);
+
+  CollectionReference<Map<String, dynamic>> get globalPrivatePostsCollection =>
+      firestore.collection('globalPrivatePosts');
 
   /// Get posts for the private feed - shows ALL private posts globally
   ///
@@ -20,11 +23,14 @@ class PrivateFeedRepository extends FeedRepository {
     double decayFactor = 1.0,
   }) async {
     try {
-      // Query directly from posts collection
-      var postsQuery = firestore.collection('globalPrivatePosts')
-          //.where('isPrivate', isEqualTo: true)
+      print("DEBUG: Attempting to query globalPrivatePosts collection");
+
+      // Query the globalPrivatePosts collection directly
+      var postsQuery = globalPrivatePostsCollection
           .orderBy('createdAt', descending: true)
           .limit(limit);
+
+      print("DEBUG: Query created: $postsQuery");
 
       // Add pagination if lastPost is provided
       if (lastPost != null && lastPost.createdAt != null) {
@@ -55,7 +61,7 @@ class PrivateFeedRepository extends FeedRepository {
   }) {
     try {
       // Stream all private posts from the main posts collection
-      return firestore.collection('globalPrivatePosts')
+      return globalPrivatePostsCollection
           //.where('isPrivate', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)
@@ -91,7 +97,7 @@ class PrivateFeedRepository extends FeedRepository {
       }
 
       // Query for more posts after the last one
-      var postsSnapshot = await firestore.collection('globalPrivatePosts')
+      var postsSnapshot = await globalPrivatePostsCollection
           //.where('isPrivate', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .startAfter([lastPost.createdAt])
@@ -123,7 +129,7 @@ class PrivateFeedRepository extends FeedRepository {
       final DateTime threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
       final threeDaysAgoTimestamp = Timestamp.fromDate(threeDaysAgo);
 
-      var postsSnapshot = await firestore.collection('globalPrivatePosts')
+      var postsSnapshot = await globalPrivatePostsCollection
           //.where('isPrivate', isEqualTo: true)
           .where('createdAt', isGreaterThan: threeDaysAgoTimestamp)
           .orderBy('createdAt', descending: true)

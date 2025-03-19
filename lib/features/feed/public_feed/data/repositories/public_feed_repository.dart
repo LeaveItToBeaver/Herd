@@ -7,11 +7,6 @@ class PublicFeedRepository extends FeedRepository {
   PublicFeedRepository(FirebaseFirestore firestore) : super(firestore);
 
   /// Get posts for the public feed
-  ///
-  /// [userId] The current user's ID
-  /// [limit] Maximum number of posts to fetch (default: 20)
-  /// [lastPostId] Optional ID of the last post for pagination
-  /// [decayFactor] Optional factor to adjust algorithm decay rate (default: 1.0)
   Future<List<PostModel>> getPublicFeed({
     required String userId,
     int limit = 20,
@@ -19,6 +14,8 @@ class PublicFeedRepository extends FeedRepository {
     double decayFactor = 1.0,
   }) async {
     try {
+      List<PostModel> feedPosts = [];
+
       // First try to get user's feed if it exists
       var feedQuery = publicFeeds
           .doc(userId)
@@ -30,22 +27,20 @@ class PublicFeedRepository extends FeedRepository {
       if (lastPostId != null) {
         // Get the last document for pagination
         DocumentSnapshot lastDocSnapshot = await posts.doc(lastPostId).get();
-        feedQuery = feedQuery.startAfterDocument(lastDocSnapshot);
+        if (lastDocSnapshot.exists) {
+          feedQuery = feedQuery.startAfterDocument(lastDocSnapshot);
+        }
       }
 
       var userFeedSnapshot = await feedQuery.get();
-
-      List<PostModel> feedPosts = [];
 
       // If user feed has posts, use those
       if (userFeedSnapshot.docs.isNotEmpty) {
         feedPosts = userFeedSnapshot.docs
             .map((doc) => PostModel.fromMap(doc.id, doc.data()))
             .toList();
-      }
-      // Otherwise, fetch from general posts
-      else {
-        // Get posts, excluding private ones
+      } else {
+        // Otherwise, fetch from general posts collection (only public posts)
         var postsQuery = posts
             .where('isPrivate', isEqualTo: false)
             .orderBy('createdAt', descending: true)
@@ -55,7 +50,9 @@ class PublicFeedRepository extends FeedRepository {
         if (lastPostId != null) {
           // Get the last document for pagination
           DocumentSnapshot lastDocSnapshot = await posts.doc(lastPostId).get();
-          postsQuery = postsQuery.startAfterDocument(lastDocSnapshot);
+          if (lastDocSnapshot.exists) {
+            postsQuery = postsQuery.startAfterDocument(lastDocSnapshot);
+          }
         }
 
         var postsSnapshot = await postsQuery.get();
@@ -70,7 +67,6 @@ class PublicFeedRepository extends FeedRepository {
 
       // Return limited number of posts
       return sortedPosts.take(limit).toList();
-
     } catch (e, stackTrace) {
       logError('getPublicFeed', e, stackTrace);
       rethrow;
@@ -78,17 +74,14 @@ class PublicFeedRepository extends FeedRepository {
   }
 
   /// Stream posts for the public feed
-  ///
-  /// [userId] The current user's ID
-  /// [limit] Maximum number of posts to fetch (default: 20)
   Stream<List<PostModel>> streamPublicFeed({
     required String userId,
     int limit = 20,
     double decayFactor = 1.0,
   }) {
     try {
-      // Stream from user's feed collection
-      return publicFeeds
+      // Try to stream from user's feed collection first
+      final userFeedStream = publicFeeds
           .doc(userId)
           .collection('userFeed')
           .orderBy('createdAt', descending: true)
@@ -104,6 +97,24 @@ class PublicFeedRepository extends FeedRepository {
         return sortedPosts.take(limit).toList();
       });
 
+      // If the user has no feed documents, fall back to querying all public posts
+      return userFeedStream.handleError((error) {
+        // If there's an error with the user feed, return general public posts
+        return posts
+            .where('isPrivate', isEqualTo: false)
+            .orderBy('createdAt', descending: true)
+            .limit(limit * 2)
+            .snapshots()
+            .map((snapshot) {
+          List<PostModel> posts = snapshot.docs
+              .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+              .toList();
+
+          // Apply hot algorithm sorting
+          final sortedPosts = applySortingAlgorithm(posts, decayFactor: decayFactor);
+          return sortedPosts.take(limit).toList();
+        });
+      });
     } catch (e, stackTrace) {
       logError('streamPublicFeed', e, stackTrace);
       rethrow;
@@ -111,8 +122,6 @@ class PublicFeedRepository extends FeedRepository {
   }
 
   /// Get trending posts - posts with high engagement in a short time
-  ///
-  /// Uses a more aggressive decay factor to emphasize recent activity
   Future<List<PostModel>> getTrendingPosts({
     int limit = 10,
   }) async {
@@ -136,7 +145,6 @@ class PublicFeedRepository extends FeedRepository {
       final trendingPosts = applySortingAlgorithm(postsList, decayFactor: 0.5);
 
       return trendingPosts.take(limit).toList();
-
     } catch (e, stackTrace) {
       logError('getTrendingPosts', e, stackTrace);
       rethrow;
