@@ -26,14 +26,14 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     final currentUser = ref.watch(currentUserProvider);
 
     // Determine if the post is visible to the current user
-    final bool canViewPost = !widget.post.isPrivate ||
-        currentUser?.id == widget.post.authorId ||
-        _userHasPrivateAccess(currentUser, widget.post.authorId);
+    // final bool canViewPost = !widget.post.isPrivate ||
+    //     currentUser?.id == widget.post.authorId ||
+    //     _userHasPrivateAccess(currentUser, widget.post.authorId);
 
-    if (!canViewPost) {
-      // Don't display private posts the user shouldn't see
-      return const SizedBox.shrink();
-    }
+    // if (!canViewPost) {
+    //   // Don't display private posts the user shouldn't see
+    //   return const SizedBox.shrink();
+    // }
 
     return GestureDetector(
       onTap: () => context.pushNamed(
@@ -132,11 +132,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   }
 
   // Placeholder function - implement your actual access control logic
-  bool _userHasPrivateAccess(UserModel? currentUser, String authorId) {
-    // TODO: Implement actual private access check
-    // For now, let's assume no one has private access except the author
-    return false;
-  }
+  // bool _userHasPrivateAccess(UserModel? currentUser, String authorId) {
+  //   // TODO: Implement actual private access check
+  //   // For now, let's assume no one has private access except the author
+  //   return false;
+  // }
 
   Widget _buildLoadingHeader() {
     return const Row(
@@ -172,11 +172,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
             radius: 22.0,
             backgroundColor: Colors.grey[200],
             // Only use NetworkImage if the URL exists and isn't empty
-            backgroundImage: user.profileImageURL != null && user.profileImageURL!.isNotEmpty
-                ? NetworkImage(user.profileImageURL!)
+            backgroundImage: profileImageUrl != null && profileImageUrl!.isNotEmpty
+                ? NetworkImage(profileImageUrl)
                 : null,
             // Show placeholder icon if no image URL
-            child: user.profileImageURL == null || user.profileImageURL!.isEmpty
+            child: profileImageUrl == null || profileImageUrl.isEmpty
                 ? Icon(
               Icons.account_circle,
               color: Colors.grey[400],
