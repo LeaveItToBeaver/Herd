@@ -4,6 +4,7 @@ import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../providers/feed_provider.dart';
+import '../providers/state/private_feed_state.dart';
 
 class PrivateFeedScreen extends ConsumerStatefulWidget {
   const PrivateFeedScreen({super.key});
@@ -58,6 +59,15 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
   Widget build(BuildContext context) {
     final privateFeedState = ref.watch(privateFeedControllerProvider);
 
+    print("DEBUG UI: Posts count in state: ${privateFeedState.posts.length}");
+
+    // In the rendering code, verify what's happening
+    if (privateFeedState.posts.isEmpty && !privateFeedState.isLoading) {
+      // Check if this branch is being hit incorrectly
+      print("DEBUG UI: Empty feed branch triggered");
+      return _buildEmptyFeed();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Private Feed'),
@@ -106,6 +116,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
         controller: _scrollController,
         itemCount: state.posts.length + (state.isLoading ? 2 : 1),
         itemBuilder: (context, index) {
+          print("DEBUG UI: Building item at index $index");
           // Bottom loading indicator (before the padding)
           if (index == state.posts.length && state.isLoading) {
             return const Padding(

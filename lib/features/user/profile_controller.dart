@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
@@ -43,7 +44,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         throw Exception('User not found');
       }
 
-      // Check if private profile exists by checking for privateBio, privateProfileImageURL, or privateCoverImageURL
+      // Check if private profile exists
       final hasPrivateProfile = user.privateBio != null ||
           user.privateProfileImageURL != null ||
           user.privateCoverImageURL != null;
@@ -61,8 +62,20 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
           ? await _userRepository.isFollowing(currentUser.uid, userId)
           : false;
 
+      // Get connection count for ANY user, not just the current user
+      int connectionCount = 0;
+      if (usePrivateView) {
+        connectionCount = await _userRepository.getPrivateConnectionCount(userId);
+        print("DEBUG: Found $connectionCount private connections for user $userId");
+      }
+
+      // Since we now have freezed UserModel, we can use copyWith
+      final updatedUser = user.copyWith(
+        friends: connectionCount, // Use the actual connection count
+      );
+
       state = AsyncValue.data(ProfileState(
-        user: user,
+        user: updatedUser,
         posts: posts,
         isCurrentUser: currentUser?.uid == userId,
         isFollowing: isFollowing,
@@ -70,6 +83,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         hasPrivateProfile: hasPrivateProfile,
       ));
     } catch (e, stack) {
+      print("DEBUG: Profile loading error: $e");
       state = AsyncValue.error(e, stack);
     }
   }

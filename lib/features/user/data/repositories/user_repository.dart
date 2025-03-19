@@ -433,6 +433,22 @@ class UserRepository {
         .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
   }
 
+  Future<int> getPrivateConnectionCount(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('privateConnections')
+          .doc(userId)
+          .collection('userConnections')
+          .count()
+          .get();
+
+      return snapshot.count ?? 0;
+    } catch (e) {
+      print('Error getting private connection count: $e');
+      return 0;
+    }
+  }
+
 
 // Check if private profile exists
   Future<bool> hasPrivateProfile(String userId) async {

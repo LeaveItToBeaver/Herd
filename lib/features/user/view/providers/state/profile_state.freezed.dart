@@ -44,6 +44,8 @@ abstract class $ProfileStateCopyWith<$Res> {
       bool isFollowing,
       bool isPrivateView,
       bool hasPrivateProfile});
+
+  $UserModelCopyWith<$Res>? get user;
 }
 
 /// @nodoc
@@ -95,6 +97,20 @@ class _$ProfileStateCopyWithImpl<$Res, $Val extends ProfileState>
               as bool,
     ) as $Val);
   }
+
+  /// Create a copy of ProfileState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $UserModelCopyWith<$Res>? get user {
+    if (_value.user == null) {
+      return null;
+    }
+
+    return $UserModelCopyWith<$Res>(_value.user!, (value) {
+      return _then(_value.copyWith(user: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -112,6 +128,9 @@ abstract class _$$ProfileStateImplCopyWith<$Res>
       bool isFollowing,
       bool isPrivateView,
       bool hasPrivateProfile});
+
+  @override
+  $UserModelCopyWith<$Res>? get user;
 }
 
 /// @nodoc
