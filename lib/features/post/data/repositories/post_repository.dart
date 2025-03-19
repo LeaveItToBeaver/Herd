@@ -19,28 +19,32 @@ class PostRepository {
   CollectionReference<Map<String, dynamic>> get _privateFeeds => _firestore.collection('privateFeeds');
 
   /// Creating a post ///
-  // Create post
-// Create post
   Future<void> createPost(PostModel post) async {
     try {
-      // First create the post document
+      // First create the post document in main posts collection
       final docRef = await _posts.add(post.toMap());
       await docRef.update({'id': docRef.id});
 
       // Handle feed distribution based on post privacy
       if (post.isPrivate == true) {
+        // Add to global private posts collection
+        await _firestore
+            .collection('globalPrivatePosts')
+            .doc(docRef.id)
+            .set({
+          ...post.toMap(),
+          'id': docRef.id,
+        });
 
-        // First add to user's own private feed (this should always work)
+        // Add to user's own private feed
         await _privateFeeds
             .doc(post.authorId)
             .collection('privateFeed')
             .doc(docRef.id)
-            .set(post.toMap());
-
-        await _firestore
-            .collection('globalPrivatePosts')
-            .doc(docRef.id)
-            .set(post.toMap());
+            .set({
+          ...post.toMap(),
+          'id': docRef.id,
+        });
 
         try {
           // Try to get private connections, but don't fail if we can't access them
@@ -56,7 +60,10 @@ class PostRepository {
                 .doc(connection.id)
                 .collection('privateFeed')
                 .doc(docRef.id)
-                .set(post.toMap());
+                .set({
+              ...post.toMap(),
+              'id': docRef.id,
+            });
           }
         } catch (e) {
           // Log error but continue - the post is already created
@@ -69,7 +76,10 @@ class PostRepository {
             .doc(post.authorId)
             .collection('userFeed')
             .doc(docRef.id)
-            .set(post.toMap());
+            .set({
+          ...post.toMap(),
+          'id': docRef.id,
+        });
 
         // If it's not a herd post, add to followers' feeds
         if (post.herdId == null) {
@@ -85,7 +95,10 @@ class PostRepository {
                   .doc(follower.id)
                   .collection('userFeed')
                   .doc(docRef.id)
-                  .set(post.toMap());
+                  .set({
+                ...post.toMap(),
+                'id': docRef.id,
+              });
             }
           } catch (e) {
             // Log error but continue - the post is already created
