@@ -45,6 +45,8 @@ abstract class $CreatePostStateCopyWith<$Res> {
       bool isImage,
       bool isLoading,
       String? errorMessage});
+
+  $UserModelCopyWith<$Res>? get user;
 }
 
 /// @nodoc
@@ -101,6 +103,20 @@ class _$CreatePostStateCopyWithImpl<$Res, $Val extends CreatePostState>
               as String?,
     ) as $Val);
   }
+
+  /// Create a copy of CreatePostState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $UserModelCopyWith<$Res>? get user {
+    if (_value.user == null) {
+      return null;
+    }
+
+    return $UserModelCopyWith<$Res>(_value.user!, (value) {
+      return _then(_value.copyWith(user: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -119,6 +135,9 @@ abstract class _$$CreatePostStateImplCopyWith<$Res>
       bool isImage,
       bool isLoading,
       String? errorMessage});
+
+  @override
+  $UserModelCopyWith<$Res>? get user;
 }
 
 /// @nodoc
