@@ -82,40 +82,40 @@ class _PostScreenState extends ConsumerState<PostScreen> {
             return const Center(child: Text('Post not found.'));
           }
 
-          // Verify that the user can see this post
-          if (post.isPrivate && currentUser?.id != post.authorId) {
-            // Check if this user has permission to view private posts
-            // For now, we're just checking if they're the author
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.lock, size: 64, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'This is a private post',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'You don\'t have permission to view this content.',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context.go('/publicFeed'),
-                      child: const Text('Go to public feed'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
+          // // Verify that the user can see this post
+          // if (post.isPrivate && currentUser?.id != post.authorId) {
+          //   // Check if this user has permission to view private posts
+          //   // For now, we're just checking if they're the author
+          //   return Center(
+          //     child: Padding(
+          //       padding: const EdgeInsets.all(24.0),
+          //       child: Column(
+          //         mainAxisSize: MainAxisSize.min,
+          //         children: [
+          //           const Icon(Icons.lock, size: 64, color: Colors.grey),
+          //           const SizedBox(height: 16),
+          //           const Text(
+          //             'This is a private post',
+          //             style: TextStyle(
+          //               fontSize: 20,
+          //               fontWeight: FontWeight.bold,
+          //             ),
+          //           ),
+          //           const SizedBox(height: 8),
+          //           const Text(
+          //             'You don\'t have permission to view this content.',
+          //             textAlign: TextAlign.center,
+          //           ),
+          //           const SizedBox(height: 16),
+          //           ElevatedButton(
+          //             onPressed: () => context.go('/publicFeed'),
+          //             child: const Text('Go to public feed'),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   );
+          // }
 
           final userAsyncValue = ref.watch(userProvider(post.authorId));
           int postLikes = post.likeCount;

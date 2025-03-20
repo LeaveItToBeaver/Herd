@@ -65,8 +65,20 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Get connection count for ANY user, not just the current user
       int connectionCount = 0;
       if (usePrivateView) {
-        connectionCount = await _userRepository.getPrivateConnectionCount(userId);
-        print("DEBUG: Found $connectionCount private connections for user $userId");
+        try {
+          // This works for any user, not just the current one
+          final snapshot = await FirebaseFirestore.instance
+              .collection('privateConnections')
+              .doc(userId)
+              .collection('userConnections')
+              .count()
+              .get();
+          connectionCount = snapshot.count ?? 0;
+
+          print("DEBUG: Found $connectionCount private connections for user $userId");
+        } catch (e) {
+          print("DEBUG: Error getting private connections count: $e");
+        }
       }
 
       // Since we now have freezed UserModel, we can use copyWith
