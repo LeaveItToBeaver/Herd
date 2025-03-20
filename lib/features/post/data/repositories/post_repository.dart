@@ -373,39 +373,52 @@ class PostRepository {
     final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
     final postRef = _posts.doc(postId);
 
-    await _firestore.runTransaction((transaction) async {
-      // *** PRE-FETCH ALL DATA AT THE BEGINNING ***
-      final postSnapshot = await transaction.get(postRef);
-      final postLikeSnapshot = await transaction.get(postLikeRef);
-      final postDislikeSnapshot = await transaction.get(postDislikeRef);
+    try {
+      // First transaction: Handle the like/unlike operation
+      final transactionResult = await _firestore.runTransaction((transaction) async {
+        // Pre-fetch data
+        final postSnapshot = await transaction.get(postRef);
+        final postLikeSnapshot = await transaction.get(postLikeRef);
+        final postDislikeSnapshot = await transaction.get(postDislikeRef);
 
-      if (!postSnapshot.exists) {
-        throw Exception("Post not found");
-      }
+        if (!postSnapshot.exists) {
+          throw Exception("Post not found");
+        }
 
-      final hasDisliked = postDislikeSnapshot.exists;
-      final hasLiked = postLikeSnapshot.exists;
-
-      // *** NOW PERFORM LOGIC AND WRITES BASED ON PRE-FETCHED DATA ***
-
-      if (hasDisliked) {
-        transaction.delete(postDislikeRef);
-        transaction.update(postRef, {'dislikeCount': FieldValue.increment(-1)});
-      }
-
-      if (hasLiked) {
-        // Unlike the post
-        transaction.delete(postLikeRef);
-        transaction.update(postRef, {'likeCount': FieldValue.increment(-1)});
-      } else {
-        // Like the post
-        transaction.set(postLikeRef, {'createdAt': FieldValue.serverTimestamp()});
-        transaction.update(postRef, {'likeCount': FieldValue.increment(1)});
-
+        final hasDisliked = postDislikeSnapshot.exists;
+        final hasLiked = postLikeSnapshot.exists;
         final postAuthorId = postSnapshot.data()!['authorId'];
+
+        // Handle dislikes
+        if (hasDisliked) {
+          transaction.delete(postDislikeRef);
+          transaction.update(postRef, {'dislikeCount': FieldValue.increment(-1)});
+        }
+
+        // Handle likes
+        if (hasLiked) {
+          // Unlike the post
+          transaction.delete(postLikeRef);
+          transaction.update(postRef, {'likeCount': FieldValue.increment(-1)});
+          return {'postAuthorId': postAuthorId, 'isNewLike': false};
+        } else {
+          // Like the post
+          transaction.set(postLikeRef, {'createdAt': FieldValue.serverTimestamp()});
+          transaction.update(postRef, {'likeCount': FieldValue.increment(1)});
+          return {'postAuthorId': postAuthorId, 'isNewLike': true};
+        }
+      });
+
+      // Check if we need to increment user points (only if it's a new like)
+      if (transactionResult['isNewLike'] == true) {
+        final postAuthorId = transactionResult['postAuthorId'];
+        // Update points in a separate operation
         await UserRepository(_firestore).incrementUserPoints(postAuthorId, 1);
       }
-    });
+    } catch (e) {
+      print("Error in likePost operation: $e");
+      rethrow;
+    }
   }
 
   // Dislike Post
