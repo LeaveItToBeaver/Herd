@@ -332,40 +332,14 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
   }
 
   Widget _buildAboutSection(ProfileState profile) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Private Profile',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoRow('Username', '@${profile.user?.username}'),
-                  const SizedBox(height: 8),
-                  if (profile.user?.privateBio != null && profile.user!.privateBio!.isNotEmpty) ...[
-                    _buildInfoRow('Bio', profile.user!.privateBio!),
-                    const SizedBox(height: 8),
-                  ],
-                  _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
-                  const SizedBox(height: 8),
-                  _buildInfoRow('Private Posts', '${profile.posts.where((post) => post.isPrivate).length}'),
-                ],
-              ),
-            ),
-          ),
-
-          if (profile.isCurrentUser) ...[
-            const SizedBox(height: 24),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             const Text(
-              'Privacy Settings',
+              'Private Profile',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -373,36 +347,64 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSwitchRow(
-                      'Show Public Profile in Private Feed',
-                      true, // Default value
-                          (value) {
-                        // Update setting
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchRow(
-                      'Allow Connection Requests',
-                      true, // Default value
-                          (value) {
-                        // Update setting
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchRow(
-                      'Show Activity Status',
-                      false, // Default value
-                          (value) {
-                        // Update setting
-                      },
-                    ),
+                    _buildInfoRow('Username', '@${profile.user?.username}'),
+                    const SizedBox(height: 8),
+                    if (profile.user?.privateBio != null && profile.user!.privateBio!.isNotEmpty) ...[
+                      _buildInfoRow('Bio', profile.user!.privateBio!),
+                      const SizedBox(height: 8),
+                    ],
+                    _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
+                    const SizedBox(height: 8),
+                    _buildInfoRow('Private Posts', '${profile.posts.where((post) => post.isPrivate).length}'),
                   ],
                 ),
               ),
             ),
+
+            if (profile.isCurrentUser) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Privacy Settings',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      _buildSwitchRow(
+                        'Show Public Profile in Private Feed',
+                        true, // Default value
+                            (value) {
+                          // Update setting
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSwitchRow(
+                        'Allow Connection Requests',
+                        true, // Default value
+                            (value) {
+                          // Update setting
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSwitchRow(
+                        'Show Activity Status',
+                        false, // Default value
+                            (value) {
+                          // Update setting
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
