@@ -19,21 +19,43 @@ class PostWidget extends ConsumerStatefulWidget {
 }
 
 class _PostWidgetState extends ConsumerState<PostWidget> {
+  bool _hasInitializedInteraction = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // We'll initialize in didChangeDependencies instead of here
+    // as ref might not be fully set up in initState
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initializePostInteraction();
+  }
+
+  void _initializePostInteraction() {
+    // Only initialize once to avoid repeated calls
+    if (!_hasInitializedInteraction) {
+      final userId = ref.read(currentUserProvider)?.id;
+      if (userId != null) {
+        // Initialize post interaction state immediately (safely)
+        // We use Future.microtask to ensure this doesn't happen during build
+        Future.microtask(() {
+          if (mounted) { // Check if widget is still mounted
+            ref.read(postInteractionsProvider(widget.post.id).notifier).initializeState(userId);
+            _hasInitializedInteraction = true;
+          }
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
     final interactionState = ref.watch(postInteractionsProvider(widget.post.id));
     final currentUser = ref.watch(currentUserProvider);
-
-    // Determine if the post is visible to the current user
-    // final bool canViewPost = !widget.post.isPrivate ||
-    //     currentUser?.id == widget.post.authorId ||
-    //     _userHasPrivateAccess(currentUser, widget.post.authorId);
-
-    // if (!canViewPost) {
-    //   // Don't display private posts the user shouldn't see
-    //   return const SizedBox.shrink();
-    // }
 
     return GestureDetector(
       onTap: () => context.pushNamed(
@@ -121,7 +143,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
 
                   const SizedBox(height: 12),
 
-                  _buildActionButtons(ref, widget.post, interactionState),
+                  _buildActionButtons(widget.post, interactionState),
                 ],
               ),
             ),
@@ -130,13 +152,6 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
       ),
     );
   }
-
-  // Placeholder function - implement your actual access control logic
-  // bool _userHasPrivateAccess(UserModel? currentUser, String authorId) {
-  //   // TODO: Implement actual private access check
-  //   // For now, let's assume no one has private access except the author
-  //   return false;
-  // }
 
   Widget _buildLoadingHeader() {
     return const Row(
@@ -172,7 +187,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
             radius: 22.0,
             backgroundColor: Colors.grey[200],
             // Only use NetworkImage if the URL exists and isn't empty
-            backgroundImage: profileImageUrl != null && profileImageUrl!.isNotEmpty
+            backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
                 ? NetworkImage(profileImageUrl)
                 : null,
             // Show placeholder icon if no image URL
@@ -196,11 +211,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-            children: [
+                  children: [
                     Text(
                       isPrivate
-                          ? (user.username)
-                          : '${user.firstName} ${user.lastName}'.trim(),
+                          ? (user.username ?? '')
+                          : '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim(),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     if (isPrivate) ...[
@@ -242,19 +257,8 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     }
   }
 
-  Widget _buildActionButtons(WidgetRef ref, PostModel post, PostInteractionState interactionState) {
-    // If the state hasn't been initialized and the user is logged in, initialize it
-    if (!interactionState.isLoading &&
-        !interactionState.isLiked &&
-        !interactionState.isDisliked) {
-      final userId = ref.read(currentUserProvider)?.id;
-      if (userId != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(postInteractionsProvider(post.id).notifier).initializeState(userId);
-        });
-      }
-    }
-
+  // Fixed version without post-frame callbacks in the build method
+  Widget _buildActionButtons(PostModel post, PostInteractionState interactionState) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -277,13 +281,13 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
             _buildIconButton(
               interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
               color: interactionState.isLiked ? Colors.green : null,
-              onPressed: () => _handleLikePost(ref, post.id),
+              onPressed: () => _handleLikePost(post.id),
             ),
             _buildInfoColumn(post.likeCount - post.dislikeCount),
             _buildIconButton(
               interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
               color: interactionState.isDisliked ? Colors.red : null,
-              onPressed: () => _handleDislikePost(ref, post.id),
+              onPressed: () => _handleDislikePost(post.id),
             ),
           ],
         ),
@@ -312,20 +316,20 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
         enableFeedback: enabled,
       );
 
-  void _handleLikePost(WidgetRef ref, String postId) {
+  void _handleLikePost(String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
 
-    if (userId != null) {
+    if (userId != null && mounted) {
       ref.read(postInteractionsProvider(postId).notifier).likePost(userId);
     }
   }
 
-  void _handleDislikePost(WidgetRef ref, String postId) {
+  void _handleDislikePost(String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
 
-    if (userId != null) {
+    if (userId != null && mounted) {
       ref.read(postInteractionsProvider(postId).notifier).dislikePost(userId);
     }
   }

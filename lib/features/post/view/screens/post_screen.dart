@@ -41,22 +41,30 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: widget.isPrivate ? Colors.blue : Colors.black,
-        title: Row(
-          children: [
-            if (widget.isPrivate)
-              const Padding(
-                padding: EdgeInsets.only(right: 8.0),
-                child: Icon(Icons.lock, size: 20),
-              ),
-            postAsyncValue.when(
-              data: (post) => Text(
-                post?.title ?? 'Post',
-                overflow: TextOverflow.ellipsis,
-              ),
-              loading: () => const Text('Loading...'),
-              error: (error, stack) => const Text('Error'),
-            ),
-          ],
+        title: LayoutBuilder(
+            builder: (context, constraints) {
+              return Row(
+                children: [
+                  if (widget.isPrivate)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8.0),
+                      child: Icon(Icons.lock, size: 20),
+                    ),
+                  Expanded( // Use Expanded instead of Flexible for more forceful sizing
+                    child: postAsyncValue.when(
+                      data: (post) => Text(
+                        post?.title ?? 'Post',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        softWrap: false, // Prevent wrapping
+                      ),
+                      loading: () => const Text('Loading...'),
+                      error: (error, stack) => const Text('Error'),
+                    ),
+                  ),
+                ],
+              );
+            }
         ),
         actions: [
           // Add share button (disabled for private posts)
