@@ -23,6 +23,31 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     if (userId != null) {
       initializeState(userId);
     }
+    _ref.listen(currentUserProvider, (previous, next) {
+      if (next != null && next.id != userId) {
+        initializeState(next.id);
+      }
+    });
+    _ref.listen(isPostLikedByUserProvider(_postId), (previous, next) {
+      if (next.value != null) {
+        state = state.copyWith(isLiked: next.value!);
+      }
+    });
+    _ref.listen(isPostDislikedByUserProvider(_postId), (previous, next) {
+      if (next.value != null) {
+        state = state.copyWith(isDisliked: next.value!);
+      }
+    });
+    _ref.listen(postProvider(_postId), (previous, next) {
+      if (next.value != null) {
+        state = state.copyWith(totalLikes: next.value!.likeCount);
+      }
+    });
+    // _ref.listen(postProvider(_postId), (previous, next) {
+    //   if (next.value != null) {
+    //     state = state.copyWith(totalShares: next.value!.shareCount);
+    //   }
+    // });
   }
 
 

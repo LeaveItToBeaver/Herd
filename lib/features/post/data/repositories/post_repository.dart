@@ -10,8 +10,10 @@ import '../models/post_model.dart';
 class PostRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+
   // Collection references
   CollectionReference<Map<String, dynamic>> get _posts => _firestore.collection('posts');
+  CollectionReference<Map<String, dynamic>> get _globalPrivatePosts => _firestore.collection('globalPrivatePosts');
   CollectionReference<Map<String, dynamic>> get _comments => _firestore.collection('comments');
   CollectionReference<Map<String, dynamic>> get _likes => _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes => _firestore.collection('dislikes');
@@ -21,21 +23,17 @@ class PostRepository {
   /// Creating a post ///
   Future<void> createPost(PostModel post) async {
     try {
-      // First create the post document in main posts collection
-      final docRef = await _posts.add(post.toMap());
+      // First determine which collection to use based on privacy setting
+      final targetCollection = post.isPrivate ? _globalPrivatePosts : _posts;
+
+      // Create the post document in the appropriate collection
+      final docRef = await targetCollection.add(post.toMap());
+
+      // Update the id field with the auto-generated ID
       await docRef.update({'id': docRef.id});
 
-      // Handle feed distribution based on post privacy
-      if (post.isPrivate == true) {
-        // Add to global private posts collection
-        await _firestore
-            .collection('globalPrivatePosts')
-            .doc(docRef.id)
-            .set({
-          ...post.toMap(),
-          'id': docRef.id,
-        });
-
+      // Add to the post creator's own feed (this is still allowed by security rules)
+      if (post.isPrivate) {
         // Add to user's own private feed
         await _privateFeeds
             .doc(post.authorId)
@@ -45,33 +43,8 @@ class PostRepository {
           ...post.toMap(),
           'id': docRef.id,
         });
-
-        try {
-          // Try to get private connections, but don't fail if we can't access them
-          final connectionsSnapshot = await _firestore
-              .collection('privateConnections')
-              .doc(post.authorId)
-              .collection('userConnections')
-              .get();
-
-          // Add post to each connection's feed
-          for (final connection in connectionsSnapshot.docs) {
-            await _privateFeeds
-                .doc(connection.id)
-                .collection('privateFeed')
-                .doc(docRef.id)
-                .set({
-              ...post.toMap(),
-              'id': docRef.id,
-            });
-          }
-        } catch (e) {
-          // Log error but continue - the post is already created
-          debugPrint('Warning: Could not distribute post to private connections: $e');
-          // We won't rethrow here since the post itself was created successfully
-        }
       } else {
-        // Public post: Add to user's own feed first
+        // Add to user's own public feed
         await _feeds
             .doc(post.authorId)
             .collection('userFeed')
@@ -80,33 +53,11 @@ class PostRepository {
           ...post.toMap(),
           'id': docRef.id,
         });
-
-        // If it's not a herd post, add to followers' feeds
-        if (post.herdId == null) {
-          try {
-            final followersSnapshot = await _firestore
-                .collection('followers')
-                .doc(post.authorId)
-                .collection('userFollowers')
-                .get();
-
-            for (final follower in followersSnapshot.docs) {
-              await _feeds
-                  .doc(follower.id)
-                  .collection('userFeed')
-                  .doc(docRef.id)
-                  .set({
-                ...post.toMap(),
-                'id': docRef.id,
-              });
-            }
-          } catch (e) {
-            // Log error but continue - the post is already created
-            debugPrint('Warning: Could not distribute post to followers: $e');
-            // We won't rethrow here since the post itself was created successfully
-          }
-        }
       }
+
+      // The Cloud Function will handle distribution to other users' feeds
+      debugPrint('Post created with ID: ${docRef.id}');
+      debugPrint('Distribution to followers will be handled by Cloud Function');
     } catch (e) {
       debugPrint('Error creating post: $e');
       throw e; // Rethrow to allow proper error handling upstream
@@ -151,6 +102,7 @@ class PostRepository {
       throw Exception("Failed to upload media: $e");
     }
   }
+
 
   // Helper method to determine content type based on file extension
   String _getContentType(String extension) {
@@ -207,6 +159,7 @@ class PostRepository {
     return postsSnap.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList();
   }
 
+
   // Get private user feed with pagination
   Future<List<PostModel>> getPrivateUserFeed({
     required String userId,
@@ -220,7 +173,7 @@ class PostRepository {
         .limit(limit);
 
     if (lastPostId != null) {
-      final lastPostDoc = await _posts.doc(lastPostId).get();
+      final lastPostDoc = await _globalPrivatePosts.doc(lastPostId).get();
       if (lastPostDoc.exists) {
         query = query.startAfterDocument(lastPostDoc);
       }
@@ -299,31 +252,28 @@ class PostRepository {
   Future<void> deletePost(String postId) async {
     // Fetch post to check if it's private or public
     final postDoc = await _posts.doc(postId).get();
-    if (!postDoc.exists) {
+    final privatePostDoc = await _globalPrivatePosts.doc(postId).get();
+
+    // Determine which collection to delete from
+    if (postDoc.exists) {
+      await _posts.doc(postId).delete();
+      debugPrint('Public post deleted with ID: $postId');
+      debugPrint('Removal from followers\' feeds will be handled by Cloud Function');
+    } else if (privatePostDoc.exists) {
+      await _globalPrivatePosts.doc(postId).delete();
+      debugPrint('Private post deleted with ID: $postId');
+      debugPrint('Removal from private connections\' feeds will be handled by Cloud Function');
+    } else {
       throw Exception("Post not found");
     }
 
-    final isPrivate = postDoc.data()?['isPrivate'] ?? false;
-
-    await _posts.doc(postId).delete();
-
-    // Delete associated documents (comments, likes, dislikes, feeds)
+    // Delete associated documents (comments, likes, dislikes)
     await _deleteSubCollection(_comments.doc(postId).collection('postComments'));
     await _deleteSubCollection(_likes.doc(postId).collection('postLikes'));
     await _deleteSubCollection(_dislikes.doc(postId).collection('postDislikes'));
 
-    // Remove post from appropriate feeds
-    if (isPrivate) {
-      final privateFeeds = await _privateFeeds.get();
-      for (final feed in privateFeeds.docs) {
-        await feed.reference.collection('privateFeed').doc(postId).delete();
-      }
-    } else {
-      final feeds = await _feeds.get();
-      for (final feed in feeds.docs) {
-        await feed.reference.collection('userFeed').doc(postId).delete();
-      }
-    }
+    // Remove from the author's feed (the Cloud Function will handle distribution)
+    // You'd need the authorId from the post data here
   }
 
   // Utility: Delete all documents in a subcollection
@@ -341,7 +291,9 @@ class PostRepository {
         .where('herdId', isNull: true) // Exclude herd posts
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) =>
+          snapshot.docs.map((doc) =>
+              PostModel.fromMap(doc.id, doc.data())).toList());
   }
 
   // Get only user's public posts
@@ -352,18 +304,21 @@ class PostRepository {
         .where('isPrivate', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) =>
+          snapshot.docs.map((doc) =>
+              PostModel.fromMap(doc.id, doc.data())).toList());
   }
 
   // Get only user's private posts
   Stream<List<PostModel>> getUserPrivatePosts(String userId) {
-    return _posts
+    return _globalPrivatePosts
         .where('authorId', isEqualTo: userId)
         .where('herdId', isNull: true) // Exclude herd posts
-        .where('isPrivate', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) =>
+          snapshot.docs.map((doc) =>
+              PostModel.fromMap(doc.id, doc.data())).toList());
   }
 
   /// Liking and Disliking Posts ///

@@ -47,7 +47,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
           title: Text(_isPrivate ? "Create Private Post" : "Create Public Post"),
           actions: [
             // Add submit button in app bar
@@ -353,7 +353,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         );
 
         // Navigate to the post
-        context.go('/post/$postId?isPrivate=${_isPrivate}');
+        _isSubmitting ? context.go('/privatePost/$postId') : context.go('/post/$postId?isPrivate=${_isPrivate}');
       }
     } catch (e) {
       if (mounted) {
