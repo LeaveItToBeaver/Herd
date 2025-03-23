@@ -8,7 +8,9 @@ class PostModel {
   final String? herdId;  // If post belongs to a herd
   final String title;
   final String content;
-  final String? imageUrl;
+  final String? imageUrl;       // Full resolution image
+  final String? thumbnailUrl;   // Compressed image for feed
+  final String? mediaType;      // 'image', 'video', 'gif', etc.
   final int likeCount;
   final int dislikeCount;
   final int commentCount;
@@ -25,6 +27,8 @@ class PostModel {
     required this.title,
     required this.content,
     this.imageUrl,
+    this.thumbnailUrl,
+    this.mediaType,
     this.likeCount = 0,
     this.dislikeCount = 0,
     this.commentCount = 0,
@@ -60,6 +64,8 @@ class PostModel {
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       imageUrl: map['imageUrl'],
+      thumbnailUrl: map['thumbnailUrl'],
+      mediaType: map['mediaType'],
       likeCount: map['likeCount'] ?? 0,
       dislikeCount: map['dislikeCount'] ?? 0,
       commentCount: map['commentCount'] ?? 0,
@@ -78,6 +84,8 @@ class PostModel {
       'title': title,
       'content': content,
       'imageUrl': imageUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'mediaType': mediaType,
       'likeCount': likeCount,
       'dislikeCount': dislikeCount,
       'commentCount': commentCount,
@@ -100,6 +108,8 @@ class PostModel {
     String? title,
     String? content,
     String? imageUrl,
+    String? thumbnailUrl,
+    String? mediaType,
     int? likeCount,
     int? dislikeCount,
     int? commentCount,
@@ -116,6 +126,8 @@ class PostModel {
       title: title ?? this.title,
       content: content ?? this.content,
       imageUrl: imageUrl ?? this.imageUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      mediaType: mediaType ?? this.mediaType,
       likeCount: likeCount ?? this.likeCount,
       dislikeCount: dislikeCount ?? this.dislikeCount,
       commentCount: commentCount ?? this.commentCount,

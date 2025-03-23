@@ -1,6 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
 import '../providers/post_provider.dart';
@@ -20,6 +23,10 @@ class PostScreen extends ConsumerStatefulWidget {
 }
 
 class _PostScreenState extends ConsumerState<PostScreen> {
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool _isVideoInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -27,20 +34,84 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       final user = ref.read(currentUserProvider);
       final userId = user?.id;
       if (userId != null) {
-        ref.read(postInteractionsProvider(widget.postId).notifier)
-            .initializeState(userId);
+        // Use the updated provider with PostParams
+        ref.read(postInteractionsWithPrivacyProvider(
+            PostParams(
+                id: widget.postId,
+                isPrivate: widget.isPrivate
+            )
+        ).notifier).initializeState(userId);
       }
     });
   }
 
   @override
+  void dispose() {
+    _disposeVideoControllers();
+    super.dispose();
+  }
+
+  void _disposeVideoControllers() {
+    _chewieController?.dispose();
+    _videoController?.dispose();
+    _isVideoInitialized = false;
+  }
+
+  Future<void> _initializeVideo(String videoUrl) async {
+    if (_isVideoInitialized) return;
+
+    // Dispose any existing controllers first
+    _disposeVideoControllers();
+
+    try {
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+      await _videoController!.initialize();
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController!,
+        autoPlay: false,
+        looping: false,
+        aspectRatio: _videoController!.value.aspectRatio,
+        placeholder: Container(
+          color: Colors.black,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.blue,
+          handleColor: Colors.blue,
+          backgroundColor: Colors.grey,
+          bufferedColor: Colors.blue.withOpacity(0.5),
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing video: $e');
+      // Show an error snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load video: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final postAsyncValue = ref.watch(postProvider(widget.postId));
+    final postAsyncValue = ref.watch(
+        widget.isPrivate
+            ? postProviderWithPrivacy(PostParams(id: widget.postId, isPrivate: widget.isPrivate))
+            : postProvider(widget.postId)
+    );
     final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: widget.isPrivate ? Colors.blue : Colors.black,
+        backgroundColor: widget.isPrivate ? Colors.blue : Colors.white,
         title: LayoutBuilder(
             builder: (context, constraints) {
               return Row(
@@ -50,13 +121,13 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       padding: EdgeInsets.only(right: 8.0),
                       child: Icon(Icons.lock, size: 20),
                     ),
-                  Expanded( // Use Expanded instead of Flexible for more forceful sizing
+                  Expanded(
                     child: postAsyncValue.when(
                       data: (post) => Text(
                         post?.title ?? 'Post',
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
-                        softWrap: false, // Prevent wrapping
+                        softWrap: false,
                       ),
                       loading: () => const Text('Loading...'),
                       error: (error, stack) => const Text('Error'),
@@ -90,44 +161,16 @@ class _PostScreenState extends ConsumerState<PostScreen> {
             return const Center(child: Text('Post not found.'));
           }
 
-          // // Verify that the user can see this post
-          // if (post.isPrivate && currentUser?.id != post.authorId) {
-          //   // Check if this user has permission to view private posts
-          //   // For now, we're just checking if they're the author
-          //   return Center(
-          //     child: Padding(
-          //       padding: const EdgeInsets.all(24.0),
-          //       child: Column(
-          //         mainAxisSize: MainAxisSize.min,
-          //         children: [
-          //           const Icon(Icons.lock, size: 64, color: Colors.grey),
-          //           const SizedBox(height: 16),
-          //           const Text(
-          //             'This is a private post',
-          //             style: TextStyle(
-          //               fontSize: 20,
-          //               fontWeight: FontWeight.bold,
-          //             ),
-          //           ),
-          //           const SizedBox(height: 8),
-          //           const Text(
-          //             'You don\'t have permission to view this content.',
-          //             textAlign: TextAlign.center,
-          //           ),
-          //           const SizedBox(height: 16),
-          //           ElevatedButton(
-          //             onPressed: () => context.go('/publicFeed'),
-          //             child: const Text('Go to public feed'),
-          //           ),
-          //         ],
-          //       ),
-          //     ),
-          //   );
-          // }
-
           final userAsyncValue = ref.watch(userProvider(post.authorId));
           int postLikes = post.likeCount;
           int commentCount = post.commentCount;
+
+          // Initialize video if this is a video post
+          if (post.mediaType == 'video' && post.imageUrl != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _initializeVideo(post.imageUrl!);
+            });
+          }
 
           return SingleChildScrollView(
             child: Column(
@@ -305,26 +348,18 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Post content (text or image)
-                      if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
-                        Text(
-                          post.content,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.network(
-                            post.imageUrl!,
-                            errorBuilder: (context, error, stackTrace) =>
-                            const Center(child: Text('Failed to load image')),
-                          ),
-                        ),
-                      ] else
-                        Text(
-                          post.content,
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                      // Post content text
+                      Text(
+                        post.content,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Media content (if any)
+                      if (_hasMedia(post)) ...[
+                        _buildMedia(post),
+                      ],
                     ],
                   ),
                 ),
@@ -363,12 +398,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                         ref: ref,
                         likes: postLikes,
                         postId: widget.postId,
+                        isPrivate: widget.isPrivate,
                       ),
                     ],
                   ),
                 ),
-
-                // Comments section
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -527,6 +561,85 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
+  bool _hasMedia(dynamic post) {
+    return post.imageUrl != null && post.imageUrl.isNotEmpty;
+  }
+
+  Widget _buildMedia(dynamic post) {
+    // Always use the full resolution imageUrl for post detail view
+    final String imageUrl = post.imageUrl ?? '';
+    final String mediaType = post.mediaType ?? 'image';
+
+    if (mediaType == 'video') {
+      // Video player
+      if (_isVideoInitialized && _chewieController != null) {
+        return AspectRatio(
+          aspectRatio: _videoController!.value.aspectRatio,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Chewie(controller: _chewieController!),
+          ),
+        );
+      } else {
+        // Show loading placeholder
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: AspectRatio(
+            aspectRatio: 16/9, // Default aspect ratio until video loads
+            child: Container(
+              color: Colors.black,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        );
+      }
+    } else if (mediaType == 'gif') {
+      // GIF - use CachedNetworkImage
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          placeholder: (context, url) => Container(
+            color: Colors.grey[200],
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Colors.grey[200],
+            child: const Center(
+              child: Icon(Icons.error, color: Colors.red),
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Regular image
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.contain,
+          placeholder: (context, url) => Container(
+            color: Colors.grey[200],
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Colors.grey[200],
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error, color: Colors.red, size: 40),
+                  const SizedBox(height: 8),
+                  Text('Error loading image: $error', textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   String _formatTimestamp(DateTime? timestamp) {
     if (timestamp == null) return 'Unknown time';
 
@@ -635,8 +748,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     required WidgetRef ref,
     required int likes,
     required String postId,
+    required bool isPrivate,
   }){
-    final interactionState = ref.watch(postInteractionsProvider(postId));
+    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
+        PostParams(id: postId, isPrivate: widget.isPrivate)
+    ));
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -664,12 +780,15 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
+
   void _handleLikePost(BuildContext context, WidgetRef ref, String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
 
     if (userId != null) {
-      ref.read(postInteractionsProvider(postId).notifier).likePost(userId);
+      ref.read(postInteractionsWithPrivacyProvider(
+          PostParams(id: postId, isPrivate: widget.isPrivate)
+      ).notifier).likePost(userId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to like posts.')),
@@ -677,12 +796,15 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     }
   }
 
+// Similarly update _handleDislikePost
   void _handleDislikePost(BuildContext context, WidgetRef ref, String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
 
     if (userId != null) {
-      ref.read(postInteractionsProvider(postId).notifier).dislikePost(userId);
+      ref.read(postInteractionsWithPrivacyProvider(
+          PostParams(id: postId, isPrivate: widget.isPrivate)
+      ).notifier).dislikePost(userId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to dislike posts.')),

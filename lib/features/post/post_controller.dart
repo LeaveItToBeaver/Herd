@@ -22,10 +22,12 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     required String title,
     required String content,
     File? imageFile,
-    bool isPrivate = false, // Added privacy parameter with default value
+    bool isPrivate = false,
   }) async {
     String? postId;
     String? imageUrl;
+    String? thumbnailUrl;
+    String? mediaType;
 
     try {
       state = const AsyncValue.loading();
@@ -37,25 +39,28 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       // 2. Generate post ID
       postId = _postRepository.generatePostId();
 
-      // 3. Try to upload image if present
+      // 3. Try to upload media if present
       if (imageFile != null) {
         try {
-          imageUrl = await _postRepository.uploadImage(
-            imageFile,
+          // Use the new uploadMedia method to get both image URLs
+          final mediaUrls = await _postRepository.uploadMedia(
+            mediaFile: imageFile,
             postId: postId,
             userId: userId,
-            file: imageFile,
-            type: 'post',
-            isPrivate: isPrivate, // Pass privacy setting to repository
+            isPrivate: isPrivate,
           );
+
+          imageUrl = mediaUrls['imageUrl'];
+          thumbnailUrl = mediaUrls['thumbnailUrl'];
+          mediaType = mediaUrls['mediaType'];
         } catch (e) {
           // Log error but continue with post creation
-          print('Warning: Failed to upload image: $e');
-          // imageUrl will remain null
+          print('Warning: Failed to upload media: $e');
+          // URLs will remain null
         }
       }
 
-      // 4. Create post model
+      // 4. Create post model with the new fields
       final post = PostModel(
         id: postId,
         authorId: user.id,
@@ -66,13 +71,15 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
             : user.profileImageURL,
         content: content,
         title: title,
-        imageUrl: imageUrl, // This might be null if upload failed
+        imageUrl: imageUrl,
+        thumbnailUrl: thumbnailUrl,
+        mediaType: mediaType,
         likeCount: 0,
         dislikeCount: 0,
         commentCount: 0,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        isPrivate: isPrivate, // Set privacy flag
+        isPrivate: isPrivate,
       );
 
       // 5. Save post to Firestore
@@ -113,15 +120,30 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       await _postRepository.deletePost(postId);
 
       // Try to delete any uploaded images
-      final String path = isPrivate
+      final String basePath = isPrivate
           ? 'users/$userId/private/posts/$postId'
           : 'users/$userId/posts/$postId';
 
-      final storageRef = FirebaseStorage.instance.ref().child(path);
+      // List all files in the post directory
+      final storageRef = FirebaseStorage.instance.ref().child(basePath);
       try {
-        await storageRef.delete();
+        final listResult = await storageRef.listAll();
+
+        // Delete all files in this directory
+        for (var item in listResult.items) {
+          await item.delete();
+        }
+
+        // Also attempt to delete any subdirectories
+        for (var prefix in listResult.prefixes) {
+          final subListResult = await prefix.listAll();
+          for (var item in subListResult.items) {
+            await item.delete();
+          }
+        }
       } catch (e) {
-        // Ignore errors if the image doesn't exist
+        // Ignore errors if files don't exist
+        print('Warning during cleanup: $e');
       }
     } catch (e) {
       print('Warning: Cleanup of failed post encountered errors: $e');
@@ -139,7 +161,6 @@ final postControllerProvider = StateNotifierProvider<CreatePostController, Async
   final postRepository = ref.watch(postRepositoryProvider);
   return CreatePostController(userRepository, postRepository);
 });
-
 // Provider for user posts with privacy filter
 final userPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final postRepository = ref.watch(postRepositoryProvider);
