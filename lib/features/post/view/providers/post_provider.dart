@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/post/post_controller.dart';
+import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/state/create_post_state.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../../../user/view/providers/current_user_provider.dart';
-import '../../data/models/post_model.dart';
 import '../../data/repositories/post_repository.dart';
+import '../../post_controller.dart';
 
 // Repository provider
 final postRepositoryProvider = Provider<PostRepository>((ref) {
@@ -19,49 +19,76 @@ final userPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, u
   return repository.getUserPosts(userId);
 });
 
-// Creating a new post.
+// Creating a new post provider
 final postControllerProvider = StateNotifierProvider<CreatePostController, AsyncValue<CreatePostState>>((ref) {
   final userRepository = ref.watch(userRepositoryProvider);
   final postRepository = ref.watch(postRepositoryProvider);
   return CreatePostController(userRepository, postRepository);
 });
 
+// Regular post provider - uses a plain String as parameter
 final postProvider = StreamProvider.family<PostModel?, String>((ref, postId) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.streamPost(postId);
 });
 
-//Liking and disliking posts
+// Enhanced post provider - can specify isPrivate
+// Use a class instead of a record for better compatibility
+class PostParams {
+  final String id;
+  final bool isPrivate;
+
+  PostParams({required this.id, required this.isPrivate});
+}
+
+final postProviderWithPrivacy = StreamProvider.family<PostModel?, PostParams>((ref, params) {
+  final repository = ref.watch(postRepositoryProvider);
+  return repository.streamPost(params.id, isPrivate: params.isPrivate);
+});
+
+// Providers for checking like/dislike status
 final isPostLikedByUserProvider = FutureProvider.family<bool, String>((ref, postId) async {
   final user = ref.watch(currentUserProvider);
   final userId = user?.id;
 
   if (userId == null) {
-    return false; // Or handle it as needed, e.g., throw an error or return false
+    return false;
   }
 
   final repository = ref.watch(postRepositoryProvider);
   return repository.isPostLikedByUser(postId: postId, userId: userId);
 });
 
-// Provider to check if a post is disliked by the current user
 final isPostDislikedByUserProvider = FutureProvider.family<bool, String>((ref, postId) async {
   final user = ref.watch(currentUserProvider);
   final userId = user?.id;
 
   if (userId == null) {
-    return false; // Or handle it as needed
+    return false;
   }
 
   final repository = ref.watch(postRepositoryProvider);
   return repository.isPostDislikedByUser(postId: postId, userId: userId);
 });
 
-final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState,String>((ref, postId) {
+// Post interactions provider (original)
+final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, String>((ref, postId) {
   final repository = ref.watch(postRepositoryProvider);
   return PostInteractionsNotifier(
-      repository: repository,
-      ref: ref,
-      postId: postId
+    repository: repository,
+    ref: ref,
+    postId: postId,
+    isPrivate: null, // No privacy info specified
+  );
+});
+
+// Post interactions provider with privacy setting
+final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
+  final repository = ref.watch(postRepositoryProvider);
+  return PostInteractionsNotifier(
+    repository: repository,
+    ref: ref,
+    postId: params.id,
+    isPrivate: params.isPrivate,
   );
 });

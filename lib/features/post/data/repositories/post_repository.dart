@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
+import '../../../../core/services/image_helper.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../models/post_model.dart';
 
@@ -64,6 +66,137 @@ class PostRepository {
     }
   }
 
+  Future<Map<String, String?>> uploadMedia({
+    required File mediaFile,
+    required String postId,
+    required String userId,
+    bool isPrivate = false,
+  }) async {
+    try {
+      final extension = path.extension(mediaFile.path).toLowerCase();
+      String? mediaType;
+      String? fullResUrl;
+      String? thumbnailUrl;
+
+      // Determine media type
+      if (ImageHelper.isImage(mediaFile)) {
+        mediaType = ImageHelper.isGif(mediaFile) ? 'gif' : 'image';
+      } else if (ImageHelper.isVideo(mediaFile)) {
+        mediaType = 'video';
+      } else {
+        mediaType = 'other';
+      }
+
+      // Create the storage path with the correct extension
+      final String baseStoragePath = isPrivate
+          ? 'users/$userId/private/posts/$postId'
+          : 'users/$userId/posts/$postId';
+
+      // Set appropriate content type based on extension
+      final contentType = _getContentType(extension);
+
+      // For videos, just upload the full version
+      if (mediaType == 'video') {
+        final ref = _storage.ref().child('$baseStoragePath/video$extension');
+
+        // Set metadata with content type
+        final SettableMetadata metadata = SettableMetadata(
+          contentType: contentType,
+          customMetadata: {
+            'isPrivate': isPrivate.toString(),
+            'mediaType': mediaType,
+          },
+        );
+
+        // Upload with progress tracking
+        final uploadTask = ref.putFile(mediaFile, metadata);
+
+        // Add upload monitoring and error handling
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          debugPrint('Video upload progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%');
+        }, onError: (e) {
+          debugPrint('Video upload error: $e');
+        });
+
+        final snapshot = await uploadTask;
+        fullResUrl = await snapshot.ref.getDownloadURL();
+
+        // For videos, we use the same URL for both full and thumbnail for now
+        // (In a more advanced implementation, you could generate a thumbnail image from the video)
+        thumbnailUrl = fullResUrl;
+      }
+      // For GIFs, upload as is without compression
+      else if (mediaType == 'gif') {
+        final ref = _storage.ref().child('$baseStoragePath/fullres$extension');
+
+        final SettableMetadata metadata = SettableMetadata(
+          contentType: contentType,
+          customMetadata: {
+            'isPrivate': isPrivate.toString(),
+            'mediaType': mediaType,
+          },
+        );
+
+        final uploadTask = ref.putFile(mediaFile, metadata);
+        final snapshot = await uploadTask;
+        fullResUrl = await snapshot.ref.getDownloadURL();
+
+        // For GIFs, we use the same URL for both
+        thumbnailUrl = fullResUrl;
+      }
+      // For regular images, upload both versions
+      else if (mediaType == 'image') {
+        // 1. Upload full resolution image
+        final fullResRef = _storage.ref().child('$baseStoragePath/fullres$extension');
+
+        final fullResMetadata = SettableMetadata(
+          contentType: contentType,
+          customMetadata: {
+            'isPrivate': isPrivate.toString(),
+            'mediaType': mediaType,
+            'version': 'fullres',
+          },
+        );
+
+        final fullResUploadTask = fullResRef.putFile(mediaFile, fullResMetadata);
+        final fullResSnapshot = await fullResUploadTask;
+        fullResUrl = await fullResSnapshot.ref.getDownloadURL();
+
+        // 2. Create and upload compressed version
+        final compressedImage = await ImageHelper.compressImage(mediaFile, quality: 70);
+        if (compressedImage != null) {
+          final thumbnailRef = _storage.ref().child('$baseStoragePath/thumbnail$extension');
+
+          final thumbnailMetadata = SettableMetadata(
+            contentType: contentType,
+            customMetadata: {
+              'isPrivate': isPrivate.toString(),
+              'mediaType': mediaType,
+              'version': 'thumbnail',
+            },
+          );
+
+          final thumbnailUploadTask = thumbnailRef.putFile(compressedImage, thumbnailMetadata);
+          final thumbnailSnapshot = await thumbnailUploadTask;
+          thumbnailUrl = await thumbnailSnapshot.ref.getDownloadURL();
+        } else {
+          // If compression fails, use the full-res URL for both
+          thumbnailUrl = fullResUrl;
+        }
+      }
+
+      return {
+        'imageUrl': fullResUrl,
+        'thumbnailUrl': thumbnailUrl,
+        'mediaType': mediaType,
+      };
+    } catch (e) {
+      debugPrint('Error uploading media: $e');
+      throw Exception("Failed to upload media: $e");
+    }
+  }
+
+  // Legacy method for compatibility, redirects to the new uploadMedia method
   Future<String?> uploadImage(File imageFile, {
     required String postId,
     required String userId,
@@ -71,33 +204,19 @@ class PostRepository {
     String? type, // Optional
     bool isPrivate = false, // New parameter for differentiating private/public content
   }) async {
-    if (file == null || type == null) {
+    if (file == null) {
       return null; // No file to upload
     }
 
     try {
-      // Get the file extension to preserve it
-      final extension = path.extension(file.path).toLowerCase();
-
-      // Create the storage path with the correct extension
-      final String storagePath = isPrivate
-          ? 'users/$userId/private/posts/$postId/$type$extension'
-          : 'users/$userId/posts/$postId/$type$extension';
-
-      final ref = _storage.ref().child(storagePath);
-
-      // Set appropriate content type based on extension
-      final SettableMetadata metadata = SettableMetadata(
-        contentType: _getContentType(extension),
-        customMetadata: {'isPrivate': isPrivate.toString()},
+      final result = await uploadMedia(
+        mediaFile: file,
+        postId: postId,
+        userId: userId,
+        isPrivate: isPrivate,
       );
 
-      // Upload with metadata
-      final uploadTask = ref.putFile(file, metadata);
-
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
+      return result['imageUrl']; // Return the full resolution URL for backward compatibility
     } catch (e) {
       throw Exception("Failed to upload media: $e");
     }
@@ -236,16 +355,109 @@ class PostRepository {
   }
 
   // Get post by ID
-  Future<PostModel?> getPostById(String postId) async {
-    final doc = await _posts.doc(postId).get();
-    return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
+  Future<PostModel?> getPostById(String postId, {bool? isPrivate}) async {
+    try {
+      // If we know it's private, check only in private collection
+      if (isPrivate == true) {
+        final doc = await _globalPrivatePosts.doc(postId).get();
+        if (doc.exists) {
+          return PostModel.fromMap(doc.id, doc.data()!);
+        }
+        return null;
+      }
+
+      // If we know it's public, check only in public collection
+      if (isPrivate == false) {
+        final doc = await _posts.doc(postId).get();
+        if (doc.exists) {
+          return PostModel.fromMap(doc.id, doc.data()!);
+        }
+        return null;
+      }
+
+      // If we don't know, check both collections
+      // First try the public posts collection
+      final publicDoc = await _posts.doc(postId).get();
+      if (publicDoc.exists) {
+        return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
+      }
+
+      // Then try the private posts collection
+      final privateDoc = await _globalPrivatePosts.doc(postId).get();
+      if (privateDoc.exists) {
+        return PostModel.fromMap(privateDoc.id, privateDoc.data()!);
+      }
+
+      // If not found in either collection
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching post $postId: $e');
+      rethrow;
+    }
   }
 
   // Stream specific post
-  Stream<PostModel?> streamPost(String postId) {
-    return _posts.doc(postId).snapshots().map((doc) {
-      return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
-    });
+  Stream<PostModel?> streamPost(String postId, {bool? isPrivate}) {
+    try {
+      // If we know it's private, stream only from private collection
+      if (isPrivate == true) {
+        return _globalPrivatePosts.doc(postId).snapshots().map((doc) {
+          return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
+        });
+      }
+
+      // If we know it's public, stream only from public collection
+      if (isPrivate == false) {
+        return _posts.doc(postId).snapshots().map((doc) {
+          return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
+        });
+      }
+
+      // If we don't know for sure, create a custom merged stream
+      // using a StreamController
+      final controller = StreamController<PostModel?>();
+
+      // Subscribe to public posts stream
+      late StreamSubscription publicSub;
+      late StreamSubscription privateSub;
+      bool hasData = false;
+
+      publicSub = _posts.doc(postId).snapshots().map((doc) {
+        return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
+      }).listen((post) {
+        if (post != null) {
+          hasData = true;
+          controller.add(post);
+        } else if (!hasData) {
+          // Only add null if we haven't found data in either stream
+          controller.add(null);
+        }
+      });
+
+      // Subscribe to private posts stream
+      privateSub = _globalPrivatePosts.doc(postId).snapshots().map((doc) {
+        return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
+      }).listen((post) {
+        if (post != null) {
+          hasData = true;
+          controller.add(post);
+        } else if (!hasData) {
+          // Only add null if we haven't found data in either stream
+          controller.add(null);
+        }
+      });
+
+      // Clean up subscriptions when the stream is closed
+      controller.onCancel = () {
+        publicSub.cancel();
+        privateSub.cancel();
+      };
+
+      return controller.stream;
+    } catch (e) {
+      debugPrint('Error streaming post $postId: $e');
+      rethrow;
+    }
   }
 
   /// Post Deletion ///

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
@@ -124,15 +125,9 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
 
                   const SizedBox(height: 6),
 
-                  if (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        widget.post.imageUrl!,
-                        errorBuilder: (context, error, stackTrace) =>
-                        const Center(child: Text('Failed to load image')),
-                      ),
-                    )
+                  // Use the thumbnailUrl if available, otherwise fall back to imageUrl
+                  if (_shouldShowMedia())
+                    _buildMediaPreview()
                   else
                     Text(
                       widget.post.content,
@@ -150,6 +145,99 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
           ],
         ),
       ),
+    );
+  }
+
+  bool _shouldShowMedia() {
+    return
+      (widget.post.thumbnailUrl != null && widget.post.thumbnailUrl!.isNotEmpty) ||
+          (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty);
+  }
+
+  Widget _buildMediaPreview() {
+    // Use thumbnail in feed view if available, otherwise fall back to full image
+    final String imageUrl = widget.post.thumbnailUrl ?? widget.post.imageUrl ?? '';
+
+    // For GIFs, show a GIF indicator
+    final bool isGif = widget.post.mediaType == 'gif';
+
+    // For videos, show a video placeholder with play icon
+    final bool isVideo = widget.post.mediaType == 'video';
+
+    if (isVideo) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Center(
+              child: Text(
+                'Video',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+          ),
+          Icon(
+            Icons.play_circle_fill,
+            size: 64,
+            color: Colors.white.withOpacity(0.7),
+          ),
+        ],
+      );
+    }
+
+    // For images and GIFs
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: CachedNetworkImage(
+            imageUrl: imageUrl,
+            height: 200, // Fixed height for consistency in the feed
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              height: 200,
+              color: Colors.grey[200],
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              height: 200,
+              color: Colors.grey[200],
+              child: const Center(
+                child: Icon(Icons.error_outline, color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+
+        // Show GIF indicator if needed
+        if (isGif)
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'GIF',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
