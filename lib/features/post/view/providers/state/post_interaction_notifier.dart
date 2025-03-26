@@ -1,3 +1,5 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
@@ -10,6 +12,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
   final PostRepository _postRepository;
   final String _postId;
   final bool? _isPrivate;  // Now storing the privacy status
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   PostInteractionsNotifier({
     required PostRepository repository,
@@ -55,7 +58,12 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
           postProviderWithPrivacy(PostParams(id: _postId, isPrivate: _isPrivate!)),
               (previous, next) {
             if (next.value != null) {
-              state = state.copyWith(totalLikes: next.value!.likeCount);
+              final netLikes = next.value!.likeCount - next.value!.dislikeCount;
+              state = state.copyWith(
+                totalLikes: netLikes,
+                totalRawLikes: next.value!.likeCount,
+                totalRawDislikes: next.value!.dislikeCount,
+              );
             }
           }
       );
@@ -65,7 +73,12 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
           postProvider(_postId),
               (previous, next) {
             if (next.value != null) {
-              state = state.copyWith(totalLikes: next.value!.likeCount);
+              final netLikes = next.value!.likeCount - next.value!.dislikeCount;
+              state = state.copyWith(
+                totalLikes: netLikes,
+                totalRawLikes: next.value!.likeCount,
+                totalRawDislikes: next.value!.dislikeCount,
+              );
             }
           }
       );
@@ -88,12 +101,26 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       // Pass privacy status to the repository
       final post = await _postRepository.getPostById(_postId, isPrivate: _isPrivate);
 
-      state = state.copyWith(
-        isLoading: false,
-        isLiked: isLiked,
-        isDisliked: isDisliked,
-        totalLikes: post?.likeCount ?? 0,
-      );
+      if (post != null) {
+        final netLikes = post.likeCount - post.dislikeCount;
+        state = state.copyWith(
+          isLoading: false,
+          isLiked: isLiked,
+          isDisliked: isDisliked,
+          totalLikes: netLikes,
+          totalRawLikes: post.likeCount,
+          totalRawDislikes: post.dislikeCount,
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          isLiked: isLiked,
+          isDisliked: isDisliked,
+          totalLikes: 0,
+          totalRawLikes: 0,
+          totalRawDislikes: 0,
+        );
+      }
     } catch(e) {
       state = state.copyWith(
         isLoading: false,
@@ -104,26 +131,64 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
   Future<void> likePost(String userId) async {
     try {
-      state = state.copyWith(isLoading: true, error: null);
-      await _postRepository.likePost(postId: _postId, userId: userId);
+      // Capture original state to revert in case of error
+      final originalState = state;
 
-      // Invalidate providers to refresh data
-      _ref.invalidate(isPostLikedByUserProvider(_postId));
-      _ref.invalidate(isPostDislikedByUserProvider(_postId));
-
-      // Invalidate the appropriate post provider
-      if (_isPrivate != null) {
-        _ref.invalidate(postProviderWithPrivacy(PostParams(id: _postId, isPrivate: _isPrivate!)));
-      } else {
-        _ref.invalidate(postProvider(_postId));
-      }
+      // Optimistically update UI state
+      int rawLikeChange = state.isLiked ? -1 : 1;
+      int rawDislikeChange = state.isDisliked ? -1 : 0;
 
       state = state.copyWith(
-          isLoading: false,
-          isLiked: !state.isLiked,
-          isDisliked: false
+        isLoading: true,
+        error: null,
+        isLiked: !state.isLiked,
+        isDisliked: false, // Remove dislike if present
+        totalRawLikes: state.totalRawLikes + rawLikeChange,
+        totalRawDislikes: state.totalRawDislikes + rawDislikeChange,
+        totalLikes: (state.totalRawLikes + rawLikeChange) - (state.totalRawDislikes + rawDislikeChange),
       );
 
+      try {
+        // Call cloud function
+        final HttpsCallable callable = _functions.httpsCallable('handlePostLike');
+        final result = await callable.call<Map<String, dynamic>>({
+          'postId': _postId,
+          'isPrivate': _isPrivate,
+        });
+
+        final data = result.data;
+
+        // Update state with server-confirmed values
+        if (data != null && data['successful'] == true) {
+          state = state.copyWith(
+            isLoading: false,
+            isLiked: data['isLiked'] ?? !originalState.isLiked,
+            isDisliked: data['isDisliked'] ?? false,
+            totalRawLikes: data['likeCount'] ?? state.totalRawLikes,
+            totalRawDislikes: data['dislikeCount'] ?? state.totalRawDislikes,
+          );
+
+          // Calculate net likes
+          state = state.copyWith(
+            totalLikes: state.totalRawLikes - state.totalRawDislikes,
+          );
+
+          // Invalidate relevant providers to refresh UI
+          _invalidateProviders();
+        } else {
+          // Revert to original state on error
+          state = originalState.copyWith(isLoading: false);
+          throw Exception("Unexpected response from server");
+        }
+      } catch (e) {
+        // On error, use local repository as fallback
+        debugPrint('Cloud function error, falling back to repository: $e');
+        await _postRepository.likePost(postId: _postId, userId: userId);
+        _invalidateProviders();
+
+        // Update state using local calculation
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -134,31 +199,82 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
   Future<void> dislikePost(String userId) async {
     try {
-      state = state.copyWith(isLoading: true, error: null);
-      await _postRepository.dislikePost(postId: _postId, userId: userId);
+      // Capture original state to revert in case of error
+      final originalState = state;
 
-      // Invalidate providers to refresh data
-      _ref.invalidate(isPostLikedByUserProvider(_postId));
-      _ref.invalidate(isPostDislikedByUserProvider(_postId));
-
-      // Invalidate the appropriate post provider
-      if (_isPrivate != null) {
-        _ref.invalidate(postProviderWithPrivacy(PostParams(id: _postId, isPrivate: _isPrivate!)));
-      } else {
-        _ref.invalidate(postProvider(_postId));
-      }
+      // Optimistically update UI state
+      int rawDislikeChange = state.isDisliked ? -1 : 1;
+      int rawLikeChange = state.isLiked ? -1 : 0;
 
       state = state.copyWith(
-          isLoading: false,
-          isDisliked: !state.isDisliked,
-          isLiked: false
+        isLoading: true,
+        error: null,
+        isDisliked: !state.isDisliked,
+        isLiked: false, // Remove like if present
+        totalRawDislikes: state.totalRawDislikes + rawDislikeChange,
+        totalRawLikes: state.totalRawLikes + rawLikeChange,
+        totalLikes: (state.totalRawLikes + rawLikeChange) - (state.totalRawDislikes + rawDislikeChange),
       );
 
+      try {
+        // Call cloud function
+        final HttpsCallable callable = _functions.httpsCallable('handlePostDislike');
+        final result = await callable.call<Map<String, dynamic>>({
+          'postId': _postId,
+          'isPrivate': _isPrivate,
+        });
+
+        final data = result.data;
+
+        // Update state with server-confirmed values
+        if (data != null && data['successful'] == true) {
+          state = state.copyWith(
+            isLoading: false,
+            isDisliked: data['isDisliked'] ?? !originalState.isDisliked,
+            isLiked: data['isLiked'] ?? false,
+            totalRawLikes: data['likeCount'] ?? state.totalRawLikes,
+            totalRawDislikes: data['dislikeCount'] ?? state.totalRawDislikes,
+          );
+
+          // Calculate net likes
+          state = state.copyWith(
+            totalLikes: state.totalRawLikes - state.totalRawDislikes,
+          );
+
+          // Invalidate relevant providers to refresh UI
+          _invalidateProviders();
+        } else {
+          // Revert to original state on error
+          state = originalState.copyWith(isLoading: false);
+          throw Exception("Unexpected response from server");
+        }
+      } catch (e) {
+        // On error, use local repository as fallback
+        debugPrint('Cloud function error, falling back to repository: $e');
+        await _postRepository.dislikePost(postId: _postId, userId: userId);
+        _invalidateProviders();
+
+        // Update state using local calculation
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
+    }
+  }
+
+  // Helper method to invalidate all relevant providers
+  void _invalidateProviders() {
+    _ref.invalidate(isPostLikedByUserProvider(_postId));
+    _ref.invalidate(isPostDislikedByUserProvider(_postId));
+
+    // Invalidate the appropriate post provider
+    if (_isPrivate != null) {
+      _ref.invalidate(postProviderWithPrivacy(PostParams(id: _postId, isPrivate: _isPrivate!)));
+    } else {
+      _ref.invalidate(postProvider(_postId));
     }
   }
 }
