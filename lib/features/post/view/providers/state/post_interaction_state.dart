@@ -6,10 +6,12 @@ part 'post_interaction_state.freezed.dart';
 @freezed
 class PostInteractionState with _$PostInteractionState {
   const factory PostInteractionState({
-    @Default(0) int totalLikes,
-    @Default(false) bool isLoading, // Default to not loading
-    String? error,
-    @Default(false) bool isLiked,
-    @Default(false) bool isDisliked// Default to empty map
+    @Default(0) int totalLikes,       // Net likes (likes - dislikes)
+    @Default(0) int totalRawLikes,    // Raw like count
+    @Default(0) int totalRawDislikes, // Raw dislike count
+    @Default(false) bool isLoading,   // Loading state
+    String? error,                    // Error message
+    @Default(false) bool isLiked,     // Whether user has liked
+    @Default(false) bool isDisliked   // Whether user has disliked
   }) = _PostInteractionState;
 }

@@ -364,18 +364,20 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
             _buildInfoColumn(post.commentCount),
           ],
         ),
+        // Like and dislike section with updated interaction state
         Row(
           children: [
             _buildIconButton(
               interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
               color: interactionState.isLiked ? Colors.green : null,
-              onPressed: () => _handleLikePost(post.id),
+              onPressed: interactionState.isLoading ? null : () => _handleLikePost(post.id),
             ),
-            _buildInfoColumn(post.likeCount - post.dislikeCount),
+            // Display net likes (which can be negative)
+            _buildInfoColumn(interactionState.totalLikes),
             _buildIconButton(
               interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
               color: interactionState.isDisliked ? Colors.red : null,
-              onPressed: () => _handleDislikePost(post.id),
+              onPressed: interactionState.isLoading ? null : () => _handleDislikePost(post.id),
             ),
           ],
         ),
@@ -386,8 +388,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   Widget _buildInfoColumn(int count) => Column(
     children: [
       Text(
-        "$count",
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        count.toString(),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: count < 0 ? Colors.red : null, // Red for negative values
+        ),
       ),
     ],
   );

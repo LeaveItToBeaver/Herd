@@ -396,7 +396,6 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       _buildLikeDislikeButtons(
                         context: context,
                         ref: ref,
-                        likes: postLikes,
                         postId: widget.postId,
                         isPrivate: widget.isPrivate,
                       ),
@@ -746,12 +745,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   Widget _buildLikeDislikeButtons({
     required BuildContext context,
     required WidgetRef ref,
-    required int likes,
     required String postId,
     required bool isPrivate,
-  }){
+  }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: postId, isPrivate: widget.isPrivate)
+        PostParams(id: postId, isPrivate: isPrivate)
     ));
 
     return Card(
@@ -765,21 +763,31 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
                 color: interactionState.isLiked ? Colors.green : Colors.grey
             ),
-            onPressed: () => _handleLikePost(context, ref, postId),
+            onPressed: interactionState.isLoading
+                ? null
+                : () => _handleLikePost(context, ref, postId),
           ),
-          Text(likes.toString()),
+          // Display net likes (which can be negative)
+          Text(
+            interactionState.totalLikes.toString(),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: interactionState.totalLikes < 0 ? Colors.red : null,
+            ),
+          ),
           IconButton(
             icon: Icon(
                 interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
                 color: interactionState.isDisliked ? Colors.red : Colors.grey
             ),
-            onPressed: () => _handleDislikePost(context, ref, postId),
+            onPressed: interactionState.isLoading
+                ? null
+                : () => _handleDislikePost(context, ref, postId),
           ),
         ],
       ),
     );
   }
-
 
   void _handleLikePost(BuildContext context, WidgetRef ref, String postId) {
     final user = ref.read(currentUserProvider);
@@ -796,7 +804,6 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     }
   }
 
-// Similarly update _handleDislikePost
   void _handleDislikePost(BuildContext context, WidgetRef ref, String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
