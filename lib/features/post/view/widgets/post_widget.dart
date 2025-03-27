@@ -412,18 +412,32 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   void _handleLikePost(String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
+    final isPrivate = widget.post.isPrivate;
 
-    if (userId != null && mounted) {
-      ref.read(postInteractionsProvider(postId).notifier).likePost(userId);
+    if (userId != null) {
+      ref.read(postInteractionsWithPrivacyProvider(
+          PostParams(id: postId, isPrivate: isPrivate)
+      ).notifier).likePost(userId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to like posts.')),
+      );
     }
   }
 
   void _handleDislikePost(String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
+    final isPrivate = widget.post.isPrivate;
 
-    if (userId != null && mounted) {
-      ref.read(postInteractionsProvider(postId).notifier).dislikePost(userId);
+    if (userId != null) {
+      ref.read(postInteractionsWithPrivacyProvider(
+          PostParams(id: postId, isPrivate: isPrivate)
+      ).notifier).dislikePost(userId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to like posts.')),
+      );
     }
   }
 }
