@@ -39,8 +39,18 @@ class PostParams {
   final bool isPrivate;
 
   PostParams({required this.id, required this.isPrivate});
-}
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is PostParams &&
+              runtimeType == other.runtimeType &&
+              id == other.id &&
+              isPrivate == other.isPrivate;
+
+  @override
+  int get hashCode => id.hashCode ^ isPrivate.hashCode;
+}
 final postProviderWithPrivacy = StreamProvider.family<PostModel?, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.streamPost(params.id, isPrivate: params.isPrivate);
@@ -83,7 +93,8 @@ final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNo
 });
 
 // Post interactions provider with privacy setting
-final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
+final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
+    PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
   return PostInteractionsNotifier(
     repository: repository,

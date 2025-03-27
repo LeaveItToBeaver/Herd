@@ -7,8 +7,12 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Firebase.initializeApp();
+  await FirebaseAppCheck.instance.activate(
+    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+    // Set androidProvider to `AndroidProvider.debug`
+    androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.appAttest,
   );
 
   await FirebaseAppCheck.instance.activate(

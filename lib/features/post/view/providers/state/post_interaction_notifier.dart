@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
@@ -149,11 +150,16 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       try {
+
+        final user = FirebaseAuth.instance.currentUser;
+        final idToken = await user?.getIdToken();
+
         // Call cloud function
-        final HttpsCallable callable = _functions.httpsCallable('handlePostLike');
+        final callable = _functions.httpsCallable('handlePostLike');
         final result = await callable.call<Map<String, dynamic>>({
           'postId': _postId,
-          'isPrivate': _isPrivate,
+          'isPrivate': _isPrivate ?? false,
+          'idToken': idToken,
         });
 
         final data = result.data;
@@ -175,6 +181,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
           // Invalidate relevant providers to refresh UI
           _invalidateProviders();
+          return;
         } else {
           // Revert to original state on error
           state = originalState.copyWith(isLoading: false);
@@ -187,7 +194,11 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
         _invalidateProviders();
 
         // Update state using local calculation
-        state = state.copyWith(isLoading: false);
+        state = state.copyWith(
+          isLoading: false,
+          isLiked: !originalState.isLiked,
+          isDisliked: false,
+        );
       }
     } catch (e) {
       state = state.copyWith(
@@ -217,11 +228,16 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       try {
+        final user = FirebaseAuth.instance.currentUser;
+        final idToken = await user?.getIdToken();
+
+
         // Call cloud function
-        final HttpsCallable callable = _functions.httpsCallable('handlePostDislike');
+        final callable = _functions.httpsCallable('handlePostDislike');
         final result = await callable.call<Map<String, dynamic>>({
           'postId': _postId,
-          'isPrivate': _isPrivate,
+          'isPrivate':  _isPrivate ?? false,
+          'idToken': idToken,
         });
 
         final data = result.data;
@@ -243,6 +259,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
           // Invalidate relevant providers to refresh UI
           _invalidateProviders();
+          return;
         } else {
           // Revert to original state on error
           state = originalState.copyWith(isLoading: false);
@@ -255,7 +272,11 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
         _invalidateProviders();
 
         // Update state using local calculation
-        state = state.copyWith(isLoading: false);
+        state = state.copyWith(
+          isLoading: false,
+          isLiked: false,
+          isDisliked: !originalState.isDisliked,
+        );
       }
     } catch (e) {
       state = state.copyWith(
