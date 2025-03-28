@@ -361,7 +361,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
               Icons.comment_rounded,
               onPressed: () {},
             ),
-            _buildInfoColumn(post.commentCount),
+            _buildInfoColumn(interactionState.totalComments),
           ],
         ),
         // Like and dislike section with updated interaction state

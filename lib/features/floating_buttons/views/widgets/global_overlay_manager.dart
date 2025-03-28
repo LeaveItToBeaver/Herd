@@ -113,7 +113,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
         // Profile button
         if (showProfileBtn)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: 0.0),
             child: FloatingActionButton(
               heroTag: "floatingProfileBtn",
               backgroundColor: Colors.black,
@@ -158,6 +158,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
               context.pushNamed('search');
             },
           ),
+
       ],
     );
   }
@@ -310,6 +311,11 @@ class SideBubblesOverlay extends ConsumerWidget {
       );
     }
 
+    if (showSearchBtn && showProfileBtn) {
+      // Add a spacer between the two buttons
+      bubbles.add(const SizedBox(height: 16));
+    }
+
     // Add profile button if enabled
     if (showProfileBtn) {
       bubbles.add(
@@ -343,6 +349,7 @@ class SideBubblesOverlay extends ConsumerWidget {
         ),
       );
     }
+
 
     // Add feed toggle button
     bubbles.add(

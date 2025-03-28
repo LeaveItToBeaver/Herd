@@ -8,6 +8,7 @@ class PostInteractionState with _$PostInteractionState {
   const factory PostInteractionState({
     @Default(0) int totalLikes,       // Net likes (likes - dislikes)
     @Default(0) int totalRawLikes,    // Raw like count
+    @Default(0) int totalComments,    // Total comments
     @Default(0) int totalRawDislikes, // Raw dislike count
     @Default(false) bool isLoading,   // Loading state
     String? error,                    // Error message
