@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import '../../features/comment/view/screens/comment_thread_screen.dart';
 import '../../features/edit_user/private_profile/view/screens/edit_private_profile_screen.dart';
 import '../../features/edit_user/public_profile/view/screens/edit_public_profile_screen.dart';
 import '../../features/feed/providers/feed_type_provider.dart';
@@ -106,6 +107,32 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: const ConnectionRequestsScreen(),
             ),
+          );
+        },
+      ),
+
+      // Comment Thread Route
+      GoRoute(
+        path: '/commentThread',
+        name: 'commentThread',
+        parentNavigatorKey: rootNavigatorKey, // Use root navigator
+        pageBuilder: (context, state) {
+          final commentId = state.extra != null
+              ? (state.extra as Map<String, dynamic>)['commentId'] as String
+              : '';
+
+          if (commentId.isEmpty) {
+            return const NoTransitionPage(
+              child: Scaffold(
+                body: Center(
+                  child: Text('Comment ID is required'),
+                ),
+              ),
+            );
+          }
+
+          return NoTransitionPage(
+            child: CommentThreadScreen(commentId: commentId),
           );
         },
       ),

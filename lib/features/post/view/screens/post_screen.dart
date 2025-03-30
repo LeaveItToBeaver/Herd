@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
+
+import '../../../comment/view/widgets/comment_list_widget.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
 import '../providers/post_provider.dart';
+
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -464,81 +467,85 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                         ),
                       ),
                       // Sample comments - replace with actual comments
-                      ...List.generate(3, (index) =>
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const CircleAvatar(
-                                  radius: 16,
-                                  backgroundImage: AssetImage('assets/images/default_avatar.png'),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            "User ${index + 1}",
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            "2h ago",
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "This is a sample comment. Replace with actual comment data from your database.",
-                                        style: TextStyle(
-                                          color: Colors.grey.shade800,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          TextButton.icon(
-                                            icon: const Icon(Icons.thumb_up_outlined, size: 14),
-                                            label: const Text("Like", style: TextStyle(fontSize: 12)),
-                                            style: TextButton.styleFrom(
-                                              minimumSize: Size.zero,
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 4,
-                                              ),
-                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            ),
-                                            onPressed: () {},
-                                          ),
-                                          TextButton.icon(
-                                            icon: const Icon(Icons.reply, size: 14),
-                                            label: const Text("Reply", style: TextStyle(fontSize: 12)),
-                                            style: TextButton.styleFrom(
-                                              minimumSize: Size.zero,
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 4,
-                                              ),
-                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            ),
-                                            onPressed: () {},
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                      // ...List.generate(3, (index) =>
+                      //     Padding(
+                      //       padding: const EdgeInsets.only(bottom: 16.0),
+                      //       child: Row(
+                      //         crossAxisAlignment: CrossAxisAlignment.start,
+                      //         children: [
+                      //           const CircleAvatar(
+                      //             radius: 16,
+                      //             backgroundImage: AssetImage('assets/images/default_avatar.png'),
+                      //           ),
+                      //           const SizedBox(width: 12),
+                      //           Expanded(
+                      //             child: Column(
+                      //               crossAxisAlignment: CrossAxisAlignment.start,
+                      //               children: [
+                      //                 Row(
+                      //                   children: [
+                      //                     Text(
+                      //                       "User ${index + 1}",
+                      //                       style: const TextStyle(fontWeight: FontWeight.bold),
+                      //                     ),
+                      //                     const SizedBox(width: 8),
+                      //                     Text(
+                      //                       "2h ago",
+                      //                       style: TextStyle(
+                      //                         color: Colors.grey.shade600,
+                      //                         fontSize: 12,
+                      //                       ),
+                      //                     ),
+                      //                   ],
+                      //                 ),
+                      //                 const SizedBox(height: 4),
+                      //                 Text(
+                      //                   "This is a sample comment. Replace with actual comment data from your database.",
+                      //                   style: TextStyle(
+                      //                     color: Colors.grey.shade800,
+                      //                   ),
+                      //                 ),
+                      //                 const SizedBox(height: 4),
+                      //                 Row(
+                      //                   children: [
+                      //                     TextButton.icon(
+                      //                       icon: const Icon(Icons.thumb_up_outlined, size: 14),
+                      //                       label: const Text("Like", style: TextStyle(fontSize: 12)),
+                      //                       style: TextButton.styleFrom(
+                      //                         minimumSize: Size.zero,
+                      //                         padding: const EdgeInsets.symmetric(
+                      //                           horizontal: 8,
+                      //                           vertical: 4,
+                      //                         ),
+                      //                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      //                       ),
+                      //                       onPressed: () {},
+                      //                     ),
+                      //                     TextButton.icon(
+                      //                       icon: const Icon(Icons.reply, size: 14),
+                      //                       label: const Text("Reply", style: TextStyle(fontSize: 12)),
+                      //                       style: TextButton.styleFrom(
+                      //                         minimumSize: Size.zero,
+                      //                         padding: const EdgeInsets.symmetric(
+                      //                           horizontal: 8,
+                      //                           vertical: 4,
+                      //                         ),
+                      //                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      //                       ),
+                      //                       onPressed: () {},
+                      //                     ),
+                      //                   ],
+                      //                 ),
+                      //               ],
+                      //             ),
+                      //           ),
+                      //         ],
+                      //       ),
+                      //     ),
+                      // ),
+                      CommentListWidget(
+                        postId: widget.postId,
+                        isPrivatePost: widget.isPrivate,
                       ),
                       // Show more comments button
                       Center(

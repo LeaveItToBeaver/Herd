@@ -26,3 +26,6 @@ export 'package:herdapp/features/search/view/screens/search_screen.dart';
 
 //Misc
 export 'package:herdapp/screens/splash_screen.dart';
+
+//Comment
+export 'package:herdapp/features/comment/view/screens/comment_thread_screen.dart';

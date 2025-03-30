@@ -276,9 +276,16 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
   final String _commentId;
   final String _userId;
 
+
+
   CommentInteractionNotifier(this._repository, this._commentId, this._userId)
       : super(const CommentInteractionState()) {
     // Initialize with current state
+    _loadInteractionState();
+  }
+
+  // Initialize state when the provider is created
+  void initializeState() {
     _loadInteractionState();
   }
 
