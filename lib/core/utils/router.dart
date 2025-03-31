@@ -120,6 +120,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final commentId = state.extra != null
               ? (state.extra as Map<String, dynamic>)['commentId'] as String
               : '';
+          final postId = state.extra != null
+              ? (state.extra as Map<String, dynamic>)['postId'] as String
+              : '';
 
           if (commentId.isEmpty) {
             return const NoTransitionPage(
@@ -132,7 +135,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           }
 
           return NoTransitionPage(
-            child: CommentThreadScreen(commentId: commentId),
+            child: CommentThreadScreen(commentId: commentId, postId: postId),
           );
         },
       ),

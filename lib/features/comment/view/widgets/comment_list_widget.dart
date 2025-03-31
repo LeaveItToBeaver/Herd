@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +28,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
   final FocusNode _commentFocusNode = FocusNode();
   File? _mediaFile;
   bool _isSubmitting = false;
+  StreamSubscription? _commentRefreshListener;
 
   @override
   void initState() {
@@ -36,15 +38,24 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(commentsProvider(widget.postId).notifier).loadComments();
     });
+
+    // Set up comment refresh listener
+    _commentRefreshListener = Stream.periodic(const Duration(seconds: 10)).listen((_) {
+      if (mounted) {
+        ref.read(commentsProvider(widget.postId).notifier).loadComments();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _commentRefreshListener?.cancel();
     _commentController.dispose();
     _commentFocusNode.dispose();
     super.dispose();
   }
 
+// Modification to CommentListWidget build method:
   @override
   Widget build(BuildContext context) {
     final commentsState = ref.watch(commentsProvider(widget.postId));
@@ -52,6 +63,8 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
     final currentUser = ref.watch(currentUserProvider);
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Sort controls
         Padding(
@@ -180,54 +193,42 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
             ),
           ),
 
-        // Comments list
-        Expanded(
+        // Comments list - now as a Column, not a scrollable widget
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: commentsState.isLoading && commentsState.comments.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : commentsState.comments.isEmpty
               ? const Center(child: Text('No comments yet. Be the first to comment!'))
-              : RefreshIndicator(
-            onRefresh: () => ref.read(commentsProvider(widget.postId).notifier).loadComments(),
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              itemCount: commentsState.comments.length + 1, // +1 for bottom loading or padding
-              itemBuilder: (context, index) {
-                // Bottom loading indicator or padding
-                if (index == commentsState.comments.length) {
-                  if (commentsState.isLoading) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
+              : Column(
+            children: [
+              // Map comments to widgets directly
+              ...commentsState.comments.map((comment) => CommentWidget(
+                comment: comment,
+                isPrivatePost: widget.isPrivatePost,
+                onReplyTap: () => _showReplyDialog(context, comment.id),
+              )),
 
-                  if (commentsState.hasMore) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: TextButton(
-                          onPressed: () {
-                            ref.read(commentsProvider(widget.postId).notifier)
-                                .loadMoreComments();
-                          },
-                          child: const Text('Load More Comments'),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return const BottomNavPadding();
-                }
-
-                // Regular comment
-                final comment = commentsState.comments[index];
-                return CommentWidget(
-                  comment: comment,
-                  isPrivatePost: widget.isPrivatePost,
-                  onReplyTap: () => _showReplyDialog(context, comment.id),
-                );
-              },
-            ),
+              // Load more button
+              if (commentsState.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (commentsState.hasMore)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(
+                    child: TextButton(
+                      onPressed: () {
+                        ref.read(commentsProvider(widget.postId).notifier)
+                            .loadMoreComments();
+                      },
+                      child: const Text('Load More Comments'),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -283,12 +284,12 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
         mediaFile: _mediaFile,
       );
 
-      // Clear input
       _commentController.clear();
       setState(() => _mediaFile = null);
-
-      // Unfocus keyboard
       FocusScope.of(context).unfocus();
+
+      // Force refresh after submission
+      await ref.read(commentsProvider(widget.postId).notifier).loadComments();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -10,10 +10,22 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
 
+// TODO: Add GIF picker functionality
+// TODO: Add media upload functionality
+// TODO: Add comment editing functionality
+// TODO: Add comment deletion functionality
+// TODO: Add comment reporting functionality
+// TODO: Test the nested reply auto update.
+// TODO: Fix the comment threading screen postID error
+// TODO: Create cloud functions for loading and updating comments.
+
+
+
 class CommentThreadScreen extends ConsumerStatefulWidget {
   final String commentId;
+  final String postId;
 
-  const CommentThreadScreen({super.key, required this.commentId});
+  const CommentThreadScreen({super.key, required this.commentId, required this.postId});
 
   @override
   ConsumerState<CommentThreadScreen> createState() => _CommentThreadScreenState();
@@ -31,7 +43,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
     // Load thread data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(commentThreadProvider(widget.commentId).notifier).loadThread();
+
     });
   }
 
@@ -44,7 +56,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final threadState = ref.watch(commentThreadProvider(widget.commentId));
+    final threadState = ref.watch(commentThreadProvider((
+      commentId: widget.commentId,
+      postId: widget.postId
+    )));
     final currentUser = ref.watch(currentUserProvider);
 
     if (threadState == null) {
@@ -69,7 +84,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  ref.read(commentThreadProvider(widget.commentId).notifier).loadThread();
+                  ref.read(commentThreadProvider((
+                    commentId: widget.commentId,
+                    postId: widget.postId
+                  )).notifier).loadThread();
                 },
                 child: const Text('Retry'),
               ),
@@ -97,7 +115,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.read(commentThreadProvider(widget.commentId).notifier).loadThread();
+              ref.read(commentThreadProvider((
+                commentId: widget.commentId,
+                postId: widget.postId
+              )).notifier).loadThread();
             },
           ),
         ],
@@ -147,8 +168,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                     padding: const EdgeInsets.only(left: 16, top: 8, bottom: 16),
                     child: TextButton(
                       onPressed: () {
-                        ref.read(commentThreadProvider(widget.commentId).notifier)
-                            .loadMoreReplies();
+                        ref.read(commentThreadProvider((
+                          commentId: widget.commentId,
+                          postId: widget.postId
+                        )).notifier).loadMoreReplies();
                       },
                       child: threadState.isLoading
                           ? const CircularProgressIndicator()
@@ -313,7 +336,11 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
       return;
     }
 
-    final threadState = ref.read(commentThreadProvider(widget.commentId));
+    // Get the thread state
+    final threadState = ref.read(commentThreadProvider((
+      commentId: widget.commentId,
+      postId: widget.postId
+    )));
     if (threadState == null) return;
 
     setState(() => _isSubmitting = true);
@@ -340,7 +367,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
       FocusScope.of(context).unfocus();
 
       // Refresh the thread
-      ref.read(commentThreadProvider(widget.commentId).notifier).loadThread();
+      ref.read(commentThreadProvider((
+        commentId: widget.commentId,
+        postId: widget.postId
+      )).notifier).loadThread();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

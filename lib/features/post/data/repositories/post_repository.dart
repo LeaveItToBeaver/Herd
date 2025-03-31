@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
 import '../../../../core/services/image_helper.dart';
+import '../../../comment/data/models/comment_model.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../models/post_model.dart';
 
@@ -355,11 +356,19 @@ class PostRepository {
   }
 
   // Get post by ID
-  Future<PostModel?> getPostById(String postId, {bool? isPrivate}) async {
+  Future<PostModel?> getPostById(String postId, {bool? isPrivate, bool forceRefresh = false}) async {
     try {
+      // Set the correct fetch option based on forceRefresh
+      final fetchOptions = forceRefresh
+          ? GetOptions(source: Source.server)
+          : GetOptions(source: Source.serverAndCache);
+
       // If we know it's private, check only in private collection
       if (isPrivate == true) {
-        final doc = await _globalPrivatePosts.doc(postId).get();
+        final doc = await _firestore
+            .collection('globalPrivatePosts')
+            .doc(postId)
+            .get(fetchOptions);
         if (doc.exists) {
           return PostModel.fromMap(doc.id, doc.data()!);
         }
@@ -368,7 +377,10 @@ class PostRepository {
 
       // If we know it's public, check only in public collection
       if (isPrivate == false) {
-        final doc = await _posts.doc(postId).get();
+        final doc = await _firestore
+            .collection('posts')
+            .doc(postId)
+            .get(fetchOptions);
         if (doc.exists) {
           return PostModel.fromMap(doc.id, doc.data()!);
         }
