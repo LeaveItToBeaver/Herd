@@ -24,7 +24,7 @@ class CommentModel with _$CommentModel {
     @Default(0) int likeCount,
     @Default(0) int dislikeCount,
     @Default(0) int replyCount,
-    @Default(0.0) double hotnessScore,
+    double? hotnessScore,
   }) = _CommentModel;
 
   factory CommentModel.fromJson(Map<String, dynamic> json) =>
@@ -48,6 +48,7 @@ class CommentModel with _$CommentModel {
       likeCount: data['likeCount'] ?? 0,
       dislikeCount: data['dislikeCount'] ?? 0,
       replyCount: data['replyCount'] ?? 0,
+      hotnessScore: data['hotnessScore']?.toDouble(),
     );
   }
 

@@ -45,8 +45,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
     if (!_hasInitializedInteraction) {
       Future.microtask(() {
         if (mounted) {
-          ref.read(commentInteractionProvider(widget.comment.id).notifier)
-              .initializeState(); // Use the public method
+          ref.read(commentInteractionProvider((
+            commentId: widget.comment.id,
+            postId: widget.comment.postId
+          )).notifier).initializeState();
           _hasInitializedInteraction = true;
         }
       });
@@ -56,7 +58,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
   @override
   Widget build(BuildContext context) {
     // Get interaction state to display like/dislike status
-    final interactionState = ref.watch(commentInteractionProvider(widget.comment.id));
+    final interactionState = ref.watch(commentInteractionProvider((
+      commentId: widget.comment.id,
+      postId: widget.comment.postId
+    )));
     final expandedComments = ref.watch(expandedCommentsProvider);
     final isExpanded = expandedComments.expandedCommentIds.contains(widget.comment.id);
 
@@ -296,7 +301,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
   Widget _buildReplies() {
     return Consumer(
       builder: (context, ref, child) {
-        final threadStateAsync = ref.watch(commentThreadProvider(widget.comment.id));
+        final threadStateAsync = ref.watch(commentThreadProvider((
+        commentId: widget.comment.id,
+        postId: widget.comment.postId
+        )));
 
         if (threadStateAsync == null) {
           return const Padding(
@@ -342,8 +350,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                 ),
                 child: TextButton(
                   onPressed: () {
-                    ref.read(commentThreadProvider(widget.comment.id).notifier)
-                        .loadMoreReplies();
+                    ref.read(commentThreadProvider((
+                      commentId: widget.comment.id,
+                      postId: widget.comment.postId
+                    )).notifier).loadMoreReplies();
                   },
                   child: const Text('Load more replies'),
                 ),
@@ -387,8 +397,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       return;
     }
 
-    ref.read(commentInteractionProvider(widget.comment.id).notifier)
-        .toggleLike();
+    ref.read(commentInteractionProvider((
+      commentId: widget.comment.id,
+      postId: widget.comment.postId
+    )).notifier).toggleLike();
   }
 
   // Dislike function with optimistic update
@@ -401,8 +413,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       return;
     }
 
-    ref.read(commentInteractionProvider(widget.comment.id).notifier)
-        .toggleDislike();
+    ref.read(commentInteractionProvider((
+      commentId: widget.comment.id,
+      postId: widget.comment.postId
+    )).notifier).toggleDislike();
   }
 
   // Show reply dialog

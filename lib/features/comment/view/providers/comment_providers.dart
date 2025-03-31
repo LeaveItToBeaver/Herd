@@ -177,17 +177,18 @@ class CommentsNotifier extends StateNotifier<CommentState> {
   }
 }
 
-final commentThreadProvider = StateNotifierProvider.family<CommentThreadNotifier, CommentThreadState?, String>((ref, commentId) {
+final commentThreadProvider = StateNotifierProvider.family<CommentThreadNotifier, CommentThreadState?, ({String commentId, String? postId})>((ref, params) {
   final repository = ref.watch(commentRepositoryProvider);
-  return CommentThreadNotifier(repository, commentId);
+  return CommentThreadNotifier(repository, params.commentId, params.postId);
 });
 
 class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
   final CommentRepository _repository;
   final String _commentId;
   final FirebaseFirestore _firestore;
+  String? _postId;
 
-  CommentThreadNotifier(this._repository, this._commentId,
+  CommentThreadNotifier(this._repository, this._commentId, String? postId,
       {FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         super(null) {
@@ -197,41 +198,99 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
 
   Future<void> loadThread() async {
     try {
-      // First get the parent comment
-      final commentDoc = await _firestore.collection('comments').doc(_commentId).get();
+      // First get the parent comment to determine postId
+      // You need to query all comments collections to find where this comment is
+      final commentDoc = await _getCommentDoc();
 
-      if (!commentDoc.exists) {
+      if (commentDoc == null || !commentDoc.exists) {
         throw Exception('Comment not found');
       }
 
       final parentComment = CommentModel.fromFirestore(commentDoc);
+      _postId = parentComment.postId; // Store the postId for later queries
 
-      // Then load its replies
-      final replies = await _repository.getReplies(
-        commentId: _commentId,
-        limit: 30,
-      );
+      // Then load its replies using the correct postId
+      if (_postId != null) {
+        final replies = await _repository.getReplies(
+          postId: _postId!,
+          commentId: _commentId,
+          limit: 30,
+        );
 
-      state = CommentThreadState(
-        parentComment: parentComment,
-        replies: replies,
-        hasMore: replies.length >= 30,
-        lastDocument: replies.isNotEmpty ?
-        await _getLastDocument(replies.last.id) : null,
-      );
+        state = CommentThreadState(
+          parentComment: parentComment,
+          replies: replies,
+          hasMore: replies.length >= 30,
+          lastDocument: replies.isNotEmpty ?
+          await _getLastDocument(replies.last.id) : null,
+        );
+      } else {
+        throw Exception('Unable to determine post ID for comment');
+      }
     } catch (e) {
       print('Error loading thread: $e');
       // State remains null to indicate error
     }
   }
 
+  Future<DocumentSnapshot?> _getCommentDoc() async {
+    if (_postId != null) {
+      // If we already know the postId, use it directly
+      return await _firestore
+          .collection('comments')
+          .doc(_postId)
+          .collection('postComments')
+          .doc(_commentId)
+          .get();
+    }
+
+    final postsSnapshot = await _firestore.collection('posts').limit(50).get();
+
+    for (final postDoc in postsSnapshot.docs) {
+      final postId = postDoc.id;
+
+      final commentDoc = await _firestore
+          .collection('comments')
+          .doc(postId)
+          .collection('postComments')
+          .doc(_commentId)
+          .get();
+
+      if (commentDoc.exists) {
+        _postId = postId;
+        return commentDoc;
+      }
+    }
+
+    final privatePostsSnapshot = await _firestore.collection('globalPrivatePosts').limit(50).get();
+
+    for (final postDoc in privatePostsSnapshot.docs) {
+      final postId = postDoc.id;
+
+      final commentDoc = await _firestore
+          .collection('comments')
+          .doc(postId)
+          .collection('postComments')
+          .doc(_commentId)
+          .get();
+
+      if (commentDoc.exists) {
+        _postId = postId;
+        return commentDoc;
+      }
+    }
+
+    return null;
+  }
+
   Future<void> loadMoreReplies() async {
-    if (state == null || state!.isLoading || !state!.hasMore) return;
+    if (state == null || state!.isLoading || !state!.hasMore || _postId == null) return;
 
     try {
       state = state!.copyWith(isLoading: true);
 
       final replies = await _repository.getReplies(
+        postId: _postId!,
         commentId: _commentId,
         limit: 30,
         startAfter: state!.lastDocument,
@@ -254,8 +313,15 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
 
   // Helper to get document for pagination
   Future<DocumentSnapshot?> _getLastDocument(String commentId) async {
+    if (_postId == null) return null;
+
     try {
-      return await _firestore.collection('comments').doc(commentId).get();
+      return await _firestore
+          .collection('comments')
+          .doc(_postId)
+          .collection('postComments')
+          .doc(commentId)
+          .get();
     } catch (e) {
       print('Error getting document: $e');
       return null;
@@ -263,24 +329,25 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
   }
 }
 
-final commentInteractionProvider = StateNotifierProvider.family<CommentInteractionNotifier, CommentInteractionState, String>((ref, commentId) {
+final commentInteractionProvider = StateNotifierProvider.family<CommentInteractionNotifier, CommentInteractionState, ({String commentId, String postId})>((ref, params) {
   final repository = ref.watch(commentRepositoryProvider);
-  // Add null check for currentUserProvider
-  return CommentInteractionNotifier(repository, commentId, ref.read(currentUserProvider)?.id ?? '');
-  // Or use a default value if userId is null
-  // return CommentInteractionNotifier(repository, commentId, 'defaultUserId');
+  return CommentInteractionNotifier(
+      repository,
+      params.commentId,
+      ref.read(currentUserProvider)?.id ?? '',
+      params.postId
+  );
 });
 
 class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> {
   final CommentRepository _repository;
   final String _commentId;
   final String _userId;
+  final String _postId;
 
 
-
-  CommentInteractionNotifier(this._repository, this._commentId, this._userId)
+  CommentInteractionNotifier(this._repository, this._commentId, this._userId, this._postId)
       : super(const CommentInteractionState()) {
-    // Initialize with current state
     _loadInteractionState();
   }
 
@@ -304,6 +371,8 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
       // Get the comment to get current like/dislike counts
       final commentDoc = await FirebaseFirestore.instance
           .collection('comments')
+          .doc(_postId)
+          .collection('postComments')
           .doc(_commentId)
           .get();
 
@@ -351,6 +420,7 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
       await _repository.toggleLikeComment(
         commentId: _commentId,
         userId: _userId,
+        postId: _postId,
       );
 
       // Mark loading complete
@@ -399,6 +469,7 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
       await _repository.toggleDislikeComment(
         commentId: _commentId,
         userId: _userId,
+        postId: _postId,
       );
 
       // Mark loading complete

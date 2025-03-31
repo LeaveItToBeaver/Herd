@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
-
+import '../../../comment/view/providers/comment_providers.dart';
 import '../../../comment/view/widgets/comment_list_widget.dart';
+import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
-import '../providers/post_provider.dart';
-
+import '../providers/post_provider.dart' hide commentsProvider;
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -26,6 +26,7 @@ class PostScreen extends ConsumerStatefulWidget {
 }
 
 class _PostScreenState extends ConsumerState<PostScreen> {
+  final FocusNode _commentFocusNode = FocusNode();
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   bool _isVideoInitialized = false;
@@ -49,7 +50,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   }
 
   @override
+  @override
   void dispose() {
+    _commentFocusNode.dispose();
     _disposeVideoControllers();
     super.dispose();
   }
@@ -103,6 +106,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     }
   }
 
+// In your PostScreen widget
   @override
   Widget build(BuildContext context) {
     final postAsyncValue = ref.watch(
@@ -141,13 +145,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
             }
         ),
         actions: [
-          // Add share button (disabled for private posts)
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: widget.isPrivate
-                ? null // Disable for private posts
+                ? null
                 : () {
-              // Share post logic
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Sharing post...')),
               );
@@ -156,6 +158,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
           ),
         ],
       ),
+
+      // Main content with RefreshIndicator for pull-to-refresh
       body: postAsyncValue.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
@@ -164,406 +168,368 @@ class _PostScreenState extends ConsumerState<PostScreen> {
             return const Center(child: Text('Post not found.'));
           }
 
-          final userAsyncValue = ref.watch(userProvider(post.authorId));
-          int postLikes = post.likeCount;
-          int commentCount = post.commentCount;
-
-          // Initialize video if this is a video post
-          if (post.mediaType == 'video' && post.imageUrl != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _initializeVideo(post.imageUrl!);
-            });
-          }
-
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Privacy badge for private posts
-                if (post.isPrivate)
-                  Container(
-                    color: Colors.blue.withOpacity(0.1),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.lock, size: 16, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Private Post',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Only visible to your connections',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                userAsyncValue.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (error, stack) => Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text('Error: $error'),
-                  ),
-                  data: (user) {
-                    if (user == null) {
-                      return const Padding(
-                        padding: EdgeInsets.all(12.0),
-                        child: Text('User not found'),
-                      );
-                    }
-
-                    // Determine which profile image to use based on privacy
-                    final profileImageUrl = post.isPrivate
-                        ? user.privateProfileImageURL ?? user.profileImageURL
-                        : user.profileImageURL;
-
-                    return Padding(
-                      padding: const EdgeInsets.all(12),
+          // Wrap with RefreshIndicator for pull-to-refresh
+          return RefreshIndicator(
+            onRefresh: () => _refreshPost(),
+            child: SingleChildScrollView(
+              // Important: physics needed for RefreshIndicator to work
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Privacy badge (if needed)
+                  if (post.isPrivate)
+                    Container(
+                      color: Colors.blue.withOpacity(0.1),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       child: Row(
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              // Navigate to appropriate profile
-                              if (post.isPrivate) {
-                                context.pushNamed(
-                                  'privateProfile',
-                                  pathParameters: {'id': user.id},
-                                );
-                              } else {
-                                context.pushNamed(
-                                  'publicProfile',
-                                  pathParameters: {'id': user.id},
-                                );
-                              }
-                            },
-                            child: CircleAvatar(
-                              radius: 25,
-                              backgroundImage: profileImageUrl != null
-                                  ? NetworkImage(profileImageUrl)
-                                  : const AssetImage('assets/images/default_avatar.png')
-                              as ImageProvider,
+                          const Icon(Icons.lock, size: 16, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Private Post',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    // Navigate to appropriate profile
-                                    if (post.isPrivate) {
-                                      context.pushNamed(
-                                        'privateProfile',
-                                        pathParameters: {'id': user.id},
-                                      );
-                                    } else {
-                                      context.pushNamed(
-                                        'publicProfile',
-                                        pathParameters: {'id': user.id},
-                                      );
-                                    }
-                                  },
-                                  child: Text(
-                                    user.username ?? 'Anonymous',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                Text(
-                                  _formatTimestamp(post.createdAt),
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                          const Spacer(),
+                          Text(
+                            'Only visible to your connections',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontSize: 12,
                             ),
                           ),
-                          // Edit/delete menu for post owner
-                          if (currentUser?.id == post.authorId)
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert),
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  // TODO: Implement edit post
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Edit post not implemented yet')),
-                                  );
-                                } else if (value == 'delete') {
-                                  _showDeleteConfirmation(context, post.id);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem<String>(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit),
-                                      SizedBox(width: 8),
-                                      Text('Edit Post'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem<String>(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text('Delete Post', style: TextStyle(color: Colors.red)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
                         ],
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
+                    ),
 
-                // Post content
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Post title
-                      Text(
-                        post.title,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                  // Post content
+                  _buildPostContent(postAsyncValue, currentUser),
 
-                      // Post content text
-                      Text(
-                        post.content,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Media content (if any)
-                      if (_hasMedia(post)) ...[
-                        _buildMedia(post),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Reaction buttons
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade200),
-                      bottom: BorderSide(color: Colors.grey.shade200),
+                  // Comments section header
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      "Comments",
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
-                  width: MediaQuery.of(context).size.width,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildActionButton(
-                        icon: Icons.share_rounded,
-                        label: 'Share',
-                        onPressed: post.isPrivate ? null : () {}, // Disable for private posts
-                        enabled: !post.isPrivate,
-                      ),
-                      _buildActionButton(
-                        icon: Icons.comment_rounded,
-                        label: commentCount.toString(),
-                        onPressed: () {
-                          // TODO: Implement opening comments section
-                        },
-                      ),
-                      _buildLikeDislikeButtons(
-                        context: context,
-                        ref: ref,
-                        postId: widget.postId,
-                        isPrivate: widget.isPrivate,
-                      ),
-                    ],
+
+                  // Comments list widget
+                  CommentListWidget(
+                    postId: widget.postId,
+                    isPrivatePost: widget.isPrivate,
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Comments",
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          TextButton.icon(
-                            icon: const Icon(Icons.add_comment),
-                            label: const Text("Add Comment"),
-                            onPressed: () {
-                              // TODO: Implement add comment
-                            },
-                          ),
-                        ],
-                      ),
-                      // Comment form
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundImage: currentUser?.profileImageURL != null
-                                  ? NetworkImage(currentUser!.profileImageURL!)
-                                  : const AssetImage('assets/images/default_avatar.png')
-                              as ImageProvider,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  hintText: 'Write a comment...',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.send),
-                              onPressed: () {
-                                // TODO: Implement send comment
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Sample comments - replace with actual comments
-                      // ...List.generate(3, (index) =>
-                      //     Padding(
-                      //       padding: const EdgeInsets.only(bottom: 16.0),
-                      //       child: Row(
-                      //         crossAxisAlignment: CrossAxisAlignment.start,
-                      //         children: [
-                      //           const CircleAvatar(
-                      //             radius: 16,
-                      //             backgroundImage: AssetImage('assets/images/default_avatar.png'),
-                      //           ),
-                      //           const SizedBox(width: 12),
-                      //           Expanded(
-                      //             child: Column(
-                      //               crossAxisAlignment: CrossAxisAlignment.start,
-                      //               children: [
-                      //                 Row(
-                      //                   children: [
-                      //                     Text(
-                      //                       "User ${index + 1}",
-                      //                       style: const TextStyle(fontWeight: FontWeight.bold),
-                      //                     ),
-                      //                     const SizedBox(width: 8),
-                      //                     Text(
-                      //                       "2h ago",
-                      //                       style: TextStyle(
-                      //                         color: Colors.grey.shade600,
-                      //                         fontSize: 12,
-                      //                       ),
-                      //                     ),
-                      //                   ],
-                      //                 ),
-                      //                 const SizedBox(height: 4),
-                      //                 Text(
-                      //                   "This is a sample comment. Replace with actual comment data from your database.",
-                      //                   style: TextStyle(
-                      //                     color: Colors.grey.shade800,
-                      //                   ),
-                      //                 ),
-                      //                 const SizedBox(height: 4),
-                      //                 Row(
-                      //                   children: [
-                      //                     TextButton.icon(
-                      //                       icon: const Icon(Icons.thumb_up_outlined, size: 14),
-                      //                       label: const Text("Like", style: TextStyle(fontSize: 12)),
-                      //                       style: TextButton.styleFrom(
-                      //                         minimumSize: Size.zero,
-                      //                         padding: const EdgeInsets.symmetric(
-                      //                           horizontal: 8,
-                      //                           vertical: 4,
-                      //                         ),
-                      //                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      //                       ),
-                      //                       onPressed: () {},
-                      //                     ),
-                      //                     TextButton.icon(
-                      //                       icon: const Icon(Icons.reply, size: 14),
-                      //                       label: const Text("Reply", style: TextStyle(fontSize: 12)),
-                      //                       style: TextButton.styleFrom(
-                      //                         minimumSize: Size.zero,
-                      //                         padding: const EdgeInsets.symmetric(
-                      //                           horizontal: 8,
-                      //                           vertical: 4,
-                      //                         ),
-                      //                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      //                       ),
-                      //                       onPressed: () {},
-                      //                     ),
-                      //                   ],
-                      //                 ),
-                      //               ],
-                      //             ),
-                      //           ),
-                      //         ],
-                      //       ),
-                      //     ),
-                      // ),
-                      CommentListWidget(
-                        postId: widget.postId,
-                        isPrivatePost: widget.isPrivate,
-                      ),
-                      // Show more comments button
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            // TODO: Implement load more comments
-                          },
-                          child: const Text("Show More Comments"),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
+
+                  // Extra bottom padding
+                  const SizedBox(height: 80),
+                ],
+              ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Future<void> _refreshPost() async {
+    try {
+      // Show a loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Refreshing...'), duration: Duration(milliseconds: 800))
+      );
+
+      // Force invalidate all related providers
+      if (widget.isPrivate) {
+        ref.refresh(postProviderWithPrivacy(PostParams(id: widget.postId, isPrivate: true)));
+      } else {
+        ref.refresh(postProvider(widget.postId));
+      }
+
+      // Force reload comments
+      await ref.read(commentsProvider(widget.postId).notifier).loadComments();
+
+      // Reload interaction data
+      final userId = ref.read(currentUserProvider)?.id;
+      if (userId != null) {
+        // Use the existing interaction provider
+        ref.invalidate(postInteractionsWithPrivacyProvider(
+            PostParams(id: widget.postId, isPrivate: widget.isPrivate)
+        ));
+
+        // Initialize the interaction state
+        await ref.read(postInteractionsWithPrivacyProvider(
+            PostParams(id: widget.postId, isPrivate: widget.isPrivate)
+        ).notifier).initializeState(userId);
+      }
+
+      // Force UI update
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error refreshing: $e'))
+        );
+      }
+    }
+  }
+
+  Widget _buildPostContent(AsyncValue<dynamic> postAsyncValue, UserModel? currentUser) {
+    return postAsyncValue.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(child: Text('Error: $error')),
+      data: (post) {
+        if (post == null) {
+          return const Center(child: Text('Post not found.'));
+        }
+
+        final userAsyncValue = ref.watch(userProvider(post.authorId));
+        int postLikes = post.likeCount;
+        int commentCount = post.commentCount;
+
+        // Initialize video if this is a video post
+        if (post.mediaType == 'video' && post.imageUrl != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _initializeVideo(post.imageUrl!);
+          });
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+              // Privacy badge for private posts
+              if (post.isPrivate)
+                Container(
+                  color: Colors.blue.withOpacity(0.1),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock, size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Private Post',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Only visible to your connections',
+                        style: TextStyle(
+                          color: Colors.blue.shade700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              userAsyncValue.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, stack) => Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Text('Error: $error'),
+                ),
+                data: (user) {
+                  if (user == null) {
+                    return const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Text('User not found'),
+                    );
+                  }
+
+                  // Determine which profile image to use based on privacy
+                  final profileImageUrl = post.isPrivate
+                      ? user.privateProfileImageURL ?? user.profileImageURL
+                      : user.profileImageURL;
+
+                  return Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            // Navigate to appropriate profile
+                            if (post.isPrivate) {
+                              context.pushNamed(
+                                'privateProfile',
+                                pathParameters: {'id': user.id},
+                              );
+                            } else {
+                              context.pushNamed(
+                                'publicProfile',
+                                pathParameters: {'id': user.id},
+                              );
+                            }
+                          },
+                          child: CircleAvatar(
+                            radius: 25,
+                            backgroundImage: profileImageUrl != null
+                                ? NetworkImage(profileImageUrl)
+                                : const AssetImage('assets/images/default_avatar.png')
+                            as ImageProvider,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  // Navigate to appropriate profile
+                                  if (post.isPrivate) {
+                                    context.pushNamed(
+                                      'privateProfile',
+                                      pathParameters: {'id': user.id},
+                                    );
+                                  } else {
+                                    context.pushNamed(
+                                      'publicProfile',
+                                      pathParameters: {'id': user.id},
+                                    );
+                                  }
+                                },
+                                child: Text(
+                                  user.username ?? 'Anonymous',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Text(
+                                _formatTimestamp(post.createdAt),
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Edit/delete menu for post owner
+                        if (currentUser?.id == post.authorId)
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                // TODO: Implement edit post
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Edit post not implemented yet')),
+                                );
+                              } else if (value == 'delete') {
+                                _showDeleteConfirmation(context, post.id);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem<String>(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Edit Post'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete Post', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Post content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Post title
+                    Text(
+                      post.title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Post content text
+                    Text(
+                      post.content,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Media content (if any)
+                    if (_hasMedia(post)) ...[
+                      _buildMedia(post),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Reaction buttons
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade200),
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                width: MediaQuery.of(context).size.width,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.share_rounded,
+                      label: 'Share',
+                      onPressed: post.isPrivate ? null : () {}, // Disable for private posts
+                      enabled: !post.isPrivate,
+                    ),
+                    _buildActionButton(
+                      icon: Icons.comment_rounded,
+                      label: commentCount.toString(),
+                      onPressed: () {
+                        // TODO: Implement opening comments section
+                      },
+                    ),
+                    _buildLikeDislikeButtons(
+                      context: context,
+                      ref: ref,
+                      postId: widget.postId,
+                      isPrivate: widget.isPrivate,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+        );
+      },
     );
   }
 
@@ -824,5 +790,18 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         const SnackBar(content: Text('You must be logged in to dislike posts.')),
       );
     }
+  }
+
+  ImageProvider? _getCurrentUserProfileImage() {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser == null) return null;
+
+    final profileImageUrl = widget.isPrivate
+        ? (currentUser.privateProfileImageURL ?? currentUser.profileImageURL)
+        : currentUser.profileImageURL;
+
+    return profileImageUrl != null
+        ? NetworkImage(profileImageUrl)
+        : const AssetImage('assets/images/default_avatar.png');
   }
 }

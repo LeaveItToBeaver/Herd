@@ -28,7 +28,7 @@ export 'package:herdapp/features/post/view/providers/state/post_interaction_noti
 
 
 //Comment
-export 'package:herdapp/features/comment/view/providers/comment_providers.dart';
+//export 'package:herdapp/features/comment/view/providers/comment_providers.dart';
 export 'package:herdapp/features/comment/view/providers/state/comment_state.dart';
 
 //Navigation

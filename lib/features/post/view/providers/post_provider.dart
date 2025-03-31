@@ -3,6 +3,9 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/state/create_post_state.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
+import '../../../comment/data/repositories/comment_repository.dart';
+import '../../../comment/view/providers/comment_providers.dart';
+import '../../../comment/view/providers/state/comment_state.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../data/repositories/post_repository.dart';
@@ -90,6 +93,12 @@ final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNo
     postId: postId,
     isPrivate: null, // No privacy info specified
   );
+});
+
+final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentState, String>((ref, postId) {
+  final repository = ref.watch(commentRepositoryProvider);
+  final sortBy = ref.watch(commentSortProvider);
+  return CommentsNotifier(repository, postId, sortBy);
 });
 
 // Post interactions provider with privacy setting
