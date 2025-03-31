@@ -600,6 +600,7 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
         parentId: widget.parentId,
         isPrivatePost: widget.isPrivatePost,
         mediaFile: _mediaFile,
+        ref: ref,
       );
 
       if (mounted) {

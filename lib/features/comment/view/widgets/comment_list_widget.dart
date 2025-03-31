@@ -282,6 +282,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
         content: _commentController.text.trim(),
         isPrivatePost: widget.isPrivatePost,
         mediaFile: _mediaFile,
+        ref: ref
       );
 
       _commentController.clear();

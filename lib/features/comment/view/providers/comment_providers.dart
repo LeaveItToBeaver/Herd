@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/comment/view/providers/reply_providers.dart';
 import 'package:herdapp/features/comment/view/providers/state/comment_state.dart';
 
 import '../../../user/view/providers/current_user_provider.dart';
@@ -41,6 +42,7 @@ final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentS
   return CommentsNotifier(repository, postId, sortBy);
 });
 
+
 class CommentsNotifier extends StateNotifier<CommentState> {
   final CommentRepository _repository;
   final String _postId;
@@ -50,6 +52,34 @@ class CommentsNotifier extends StateNotifier<CommentState> {
       : super(CommentState.initial().copyWith(sortBy: _sortBy)) {
     // Load initial comments
     loadComments();
+  }
+
+  void invalidateRelatedProviders(WidgetRef ref, String postId, String? parentId) {
+    // Invalidate the comments provider for this post
+    ref.invalidate(commentsProvider(postId));
+
+    // Invalidate any reply providers for this post
+    ref.invalidate(repliesProvider(postId));
+
+    // Reload current data
+    loadComments();
+
+    if (state.isLoading) {
+      // If loading, we can also invalidate the loading state
+      ref.invalidate(commentsProvider(postId));
+    }
+
+    if (parentId != null) {
+      // Invalidate the specific comment thread provider
+      ref.invalidate(commentThreadProvider((commentId: parentId, postId: postId)));
+    } else {
+      // Invalidate the main comment thread provider
+      ref.invalidate(commentThreadProvider((commentId: _postId, postId: postId)));
+    }
+
+    // Note: For thread providers, you'd typically need to call this
+    // from UI code with the specific commentId, as this class
+    // doesn't track which comment threads are currently being viewed
   }
 
   Future<void> loadComments() async {
@@ -126,6 +156,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     String? parentId,
     bool isPrivatePost = false,
     File? mediaFile,
+    required WidgetRef ref,
   }) async {
     try {
       final comment = await _repository.createComment(
@@ -155,6 +186,12 @@ class CommentsNotifier extends StateNotifier<CommentState> {
 
         state = state.copyWith(comments: updatedComments);
       }
+
+      // Invalidate the replies provider for this post
+      invalidateRelatedProviders(ref, _postId, parentId);
+
+      // Then reload comments
+      await loadComments();
 
       return comment;
     } catch (e) {

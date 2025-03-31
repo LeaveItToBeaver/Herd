@@ -10,15 +10,17 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
 
+import '../providers/reply_providers.dart';
+
 // TODO: Add GIF picker functionality
 // TODO: Add media upload functionality
 // TODO: Add comment editing functionality
 // TODO: Add comment deletion functionality
 // TODO: Add comment reporting functionality
+
 // TODO: Test the nested reply auto update.
 // TODO: Fix the comment threading screen postID error
 // TODO: Create cloud functions for loading and updating comments.
-
 
 
 class CommentThreadScreen extends ConsumerStatefulWidget {
@@ -357,20 +359,21 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
         parentId: widget.commentId,
         isPrivatePost: isPrivatePost,
         mediaFile: _mediaFile,
+        ref: ref,
       );
 
       // Clear input
       _replyController.clear();
       setState(() => _mediaFile = null);
-
-      // Unfocus keyboard
       FocusScope.of(context).unfocus();
 
       // Refresh the thread
-      ref.read(commentThreadProvider((
+      ref.invalidate(repliesProvider(widget.postId));
+        ref.read(commentThreadProvider((
         commentId: widget.commentId,
         postId: widget.postId
       )).notifier).loadThread();
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

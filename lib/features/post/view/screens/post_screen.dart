@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../../comment/view/providers/comment_providers.dart';
+import '../../../comment/view/providers/reply_providers.dart';
 import '../../../comment/view/widgets/comment_list_widget.dart';
 import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
@@ -250,6 +251,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
       // Force reload comments
       await ref.read(commentsProvider(widget.postId).notifier).loadComments();
+      await ref.read(repliesProvider(widget.postId).notifier).loadReplies();
 
       // Reload interaction data
       final userId = ref.read(currentUserProvider)?.id;
