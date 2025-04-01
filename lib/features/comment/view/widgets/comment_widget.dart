@@ -11,6 +11,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../../core/services/image_helper.dart';
 import '../../../user/view/providers/current_user_provider.dart';
+import '../providers/reply_providers.dart';
 
 class CommentWidget extends ConsumerStatefulWidget {
   final CommentModel comment;
@@ -365,7 +366,6 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
   }
 
   // Build "View thread" button for deep comment chains
-// In _buildViewThreadButton method
   Widget _buildViewThreadButton() {
     return Padding(
       padding: EdgeInsets.only(
@@ -376,7 +376,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       child: TextButton.icon(
         onPressed: () {
           // Navigate to full thread view
-          context.push('/commentThread', extra: {'commentId': widget.comment.id});
+          context.push('/commentThread', extra: {
+            'commentId': widget.comment.id,
+            'postId': widget.comment.postId
+          });
         },
         icon: const Icon(Icons.forum, size: 16),
         label: const Text(
@@ -602,6 +605,12 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
         mediaFile: _mediaFile,
         ref: ref,
       );
+
+      ref.invalidate(repliesProvider(widget.postId));
+      ref.invalidate(commentThreadProvider((commentId: widget.parentId, postId: widget.postId)));
+
+      // Increment update counter to force refresh of listeners
+      ref.read(commentUpdateProvider.notifier).state++;
 
       if (mounted) {
         Navigator.pop(context);

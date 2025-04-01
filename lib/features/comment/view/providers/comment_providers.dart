@@ -42,6 +42,8 @@ final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentS
   return CommentsNotifier(repository, postId, sortBy);
 });
 
+// Provider for comment update count
+final commentUpdateProvider = StateProvider<int>((ref) => 0);
 
 class CommentsNotifier extends StateNotifier<CommentState> {
   final CommentRepository _repository;
@@ -54,32 +56,25 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     loadComments();
   }
 
-  void invalidateRelatedProviders(WidgetRef ref, String postId, String? parentId) {
-    // Invalidate the comments provider for this post
-    ref.invalidate(commentsProvider(postId));
-
-    // Invalidate any reply providers for this post
-    ref.invalidate(repliesProvider(postId));
-
-    // Reload current data
-    loadComments();
-
-    if (state.isLoading) {
-      // If loading, we can also invalidate the loading state
+  Future<void> invalidateRelatedProviders(WidgetRef ref, String postId, String? parentId) async {
+    try {
+      // Invalidate providers
       ref.invalidate(commentsProvider(postId));
-    }
+      ref.invalidate(repliesProvider(postId));
 
-    if (parentId != null) {
-      // Invalidate the specific comment thread provider
-      ref.invalidate(commentThreadProvider((commentId: parentId, postId: postId)));
-    } else {
-      // Invalidate the main comment thread provider
-      ref.invalidate(commentThreadProvider((commentId: _postId, postId: postId)));
-    }
+      // Don't call loadComments() directly here
+      // Instead, let the UI reload data as needed
 
-    // Note: For thread providers, you'd typically need to call this
-    // from UI code with the specific commentId, as this class
-    // doesn't track which comment threads are currently being viewed
+      if (parentId != null) {
+        ref.invalidate(commentThreadProvider((commentId: parentId, postId: postId)));
+      } else {
+        ref.invalidate(commentThreadProvider((commentId: _postId, postId: postId)));
+      }
+
+      // The UI should handle refreshing data after invalidation
+    } catch (e) {
+      print('Error invalidating providers: $e');
+    }
   }
 
   Future<void> loadComments() async {
@@ -168,30 +163,31 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         mediaFile: mediaFile,
       );
 
-      // If it's a top-level comment, add to the list
-      if (parentId == null) {
-        state = state.copyWith(
-          comments: [comment, ...state.comments],
-        );
+      try {
+        // If it's a top-level comment, add to the list
+        if (parentId == null) {
+          state = state.copyWith(
+            comments: [comment, ...state.comments],
+          );
+        }
+
+        // If comment has parent within our list, increment its reply count
+        if (parentId != null) {
+          final updatedComments = state.comments.map((c) {
+            if (c.id == parentId) {
+              return c.copyWith(replyCount: c.replyCount + 1);
+            }
+            return c;
+          }).toList();
+
+          state = state.copyWith(comments: updatedComments);
+        }
+
+        // Invalidate the replies provider for this post
+        invalidateRelatedProviders(ref, _postId, parentId);
+      } catch (e) {
+        print('Error uploading comment: $e');
       }
-
-      // If comment has parent within our list, increment its reply count
-      if (parentId != null) {
-        final updatedComments = state.comments.map((c) {
-          if (c.id == parentId) {
-            return c.copyWith(replyCount: c.replyCount + 1);
-          }
-          return c;
-        }).toList();
-
-        state = state.copyWith(comments: updatedComments);
-      }
-
-      // Invalidate the replies provider for this post
-      invalidateRelatedProviders(ref, _postId, parentId);
-
-      // Then reload comments
-      await loadComments();
 
       return comment;
     } catch (e) {
