@@ -107,13 +107,15 @@ class FloatingButtonsColumn extends ConsumerWidget {
     // Get current feed type for determining profile route
     final currentFeed = ref.watch(currentFeedProvider);
 
+    final bool bothButtonsVisible = showProfileBtn && showSearchBtn;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Profile button
         if (showProfileBtn)
           Padding(
-            padding: const EdgeInsets.only(bottom: 0.0),
+            padding: EdgeInsets.only(bottom: bothButtonsVisible ? 8.0 : 0.0),
             child: FloatingActionButton(
               heroTag: "floatingProfileBtn",
               backgroundColor: Colors.black,
