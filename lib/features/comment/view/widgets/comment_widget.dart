@@ -15,7 +15,7 @@ import '../providers/reply_providers.dart';
 
 class CommentWidget extends ConsumerStatefulWidget {
   final CommentModel comment;
-  final bool isPrivatePost;
+  final bool isAltPost;
   final int depth;
   final int maxDepth;
   final Function()? onReplyTap;
@@ -23,7 +23,7 @@ class CommentWidget extends ConsumerStatefulWidget {
   const CommentWidget({
     Key? key,
     required this.comment,
-    this.isPrivatePost = false,
+    this.isAltPost = false,
     this.depth = 0,
     this.maxDepth = 3,
     this.onReplyTap,
@@ -76,7 +76,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: widget.isPrivatePost ? Colors.blue.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+          color: widget.isAltPost ? Colors.blue.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -111,7 +111,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                     ),
                   ),
                 ),
-                if (widget.isPrivatePost) ...[
+                if (widget.isAltPost) ...[
                   const SizedBox(width: 4),
                   Icon(Icons.lock, size: 12, color: Colors.blue.shade300)
                 ],
@@ -335,7 +335,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
           children: [
             ...replies.map((reply) => CommentWidget(
               comment: reply,
-              isPrivatePost: widget.isPrivatePost,
+              isAltPost: widget.isAltPost,
               depth: widget.depth + 1,
               maxDepth: widget.maxDepth,
               onReplyTap: () => _showReplyDialog(context, reply.id),
@@ -430,16 +430,16 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       builder: (context) => ReplyDialog(
         postId: widget.comment.postId,
         parentId: parentId,
-        isPrivatePost: widget.isPrivatePost,
+        isAltPost: widget.isAltPost,
       ),
     );
   }
 
   // Navigate to user profile
   void _navigateToUserProfile(BuildContext context, String userId) {
-    if (widget.isPrivatePost) {
+    if (widget.isAltPost) {
       context.pushNamed(
-        'privateProfile',
+        'altProfile',
         pathParameters: {'id': userId},
       );
     } else {
@@ -482,13 +482,13 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
 class ReplyDialog extends ConsumerStatefulWidget {
   final String postId;
   final String parentId;
-  final bool isPrivatePost;
+  final bool isAltPost;
 
   const ReplyDialog({
     Key? key,
     required this.postId,
     required this.parentId,
-    required this.isPrivatePost,
+    required this.isAltPost,
   }) : super(key: key);
 
   @override
@@ -601,7 +601,7 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
         authorId: currentUser.id,
         content: _contentController.text.trim(),
         parentId: widget.parentId,
-        isPrivatePost: widget.isPrivatePost,
+        isAltPost: widget.isAltPost,
         mediaFile: _mediaFile,
         ref: ref,
       );

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 
-import '../../data/models/private_connection_request_model.dart';
+import '../../data/models/alt_connection_request_model.dart';
 
 class ConnectionRequestsScreen extends ConsumerWidget {
   const ConnectionRequestsScreen({super.key});
@@ -25,7 +25,7 @@ class ConnectionRequestsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Connection Requests'),
       ),
-      body: StreamBuilder<List<PrivateConnectionRequest>>(
+      body: StreamBuilder<List<AltConnectionRequest>>(
         stream: userRepository.getPendingConnectionRequests(currentUser.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -54,7 +54,7 @@ class ConnectionRequestsScreen extends ConsumerWidget {
                 request: request,
                 onAccept: () async {
                   try {
-                    await userRepository.acceptPrivateConnection(
+                    await userRepository.acceptAltConnection(
                       currentUser.uid,
                       request.requesterId,
                     );
@@ -73,7 +73,7 @@ class ConnectionRequestsScreen extends ConsumerWidget {
                 },
                 onReject: () async {
                   try {
-                    await userRepository.rejectPrivateConnection(
+                    await userRepository.rejectAltConnection(
                       currentUser.uid,
                       request.requesterId,
                     );
@@ -100,7 +100,7 @@ class ConnectionRequestsScreen extends ConsumerWidget {
 }
 
 class ConnectionRequestItem extends StatelessWidget {
-  final PrivateConnectionRequest request;
+  final AltConnectionRequest request;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 

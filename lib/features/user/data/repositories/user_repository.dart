@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/private_connection_request_model.dart';
+import '../models/alt_connection_request_model.dart';
+import '../models/alt_connection_request_model.dart';
 import '../models/user_model.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -286,13 +287,13 @@ class UserRepository {
 
 
 
-  // Private user methods:
-  Future<String> uploadPrivateImage({
+  // Alt user methods:
+  Future<String> uploadAltImage({
     required String userId,
     required File file,
     required String type,
   }) async {
-    final ref = _storage.ref().child('users/$userId/private/$type.jpg');
+    final ref = _storage.ref().child('users/$userId/alt/$type.jpg');
     final uploadTask = ref.putFile(file);
 
     final snapshot = await uploadTask;
@@ -300,7 +301,7 @@ class UserRepository {
     return downloadUrl;
   }
 
-  Future<void> requestPrivateConnection(String userId, String targetUserId) async {
+  Future<void> requestAltConnection(String userId, String targetUserId) async {
     try {
       // Get requester information to include in the request
       final requester = await getUserById(userId);
@@ -309,7 +310,7 @@ class UserRepository {
       }
 
       // Create a connection request document
-      await _firestore.collection('privateConnectionRequests')
+      await _firestore.collection('altConnectionRequests')
           .doc(targetUserId)
           .collection('requests')
           .doc(userId)
@@ -317,21 +318,21 @@ class UserRepository {
         'requesterId': userId,
         'requesterName': '${requester.firstName} ${requester.lastName}'.trim(),
         'requesterUsername': requester.username,
-        'requesterProfileImageURL': requester.privateProfileImageURL ?? requester.profileImageURL,
+        'requesterProfileImageURL': requester.altProfileImageURL ?? requester.profileImageURL,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'pending'
       });
     } catch (e) {
-      print('Error requesting private connection: $e');
+      print('Error requesting alt connection: $e');
       rethrow;
     }
   }
 
-  // Accept a private connection request
-  Future<void> acceptPrivateConnection(String userId, String requesterId) async {
+  // Accept a alt connection request
+  Future<void> acceptAltConnection(String userId, String requesterId) async {
     try {
-      // Add to private connections (bidirectional)
-      await _firestore.collection('privateConnections')
+      // Add to alt connections (bidirectional)
+      await _firestore.collection('altConnections')
           .doc(userId)
           .collection('userConnections')
           .doc(requesterId)
@@ -339,7 +340,7 @@ class UserRepository {
         'timestamp': FieldValue.serverTimestamp()
       });
 
-      await _firestore.collection('privateConnections')
+      await _firestore.collection('altConnections')
           .doc(requesterId)
           .collection('userConnections')
           .doc(userId)
@@ -348,7 +349,7 @@ class UserRepository {
       });
 
       // Update the request status
-      await _firestore.collection('privateConnectionRequests')
+      await _firestore.collection('altConnectionRequests')
           .doc(userId)
           .collection('requests')
           .doc(requesterId)
@@ -356,46 +357,46 @@ class UserRepository {
 
       // Update connection counts for both users
       await _firestore.collection('users').doc(userId)
-          .update({'privateFriends': FieldValue.increment(1)});
+          .update({'altFriends': FieldValue.increment(1)});
 
       await _firestore.collection('users').doc(requesterId)
-          .update({'privateFriends': FieldValue.increment(1)});
+          .update({'altFriends': FieldValue.increment(1)});
     } catch (e) {
-      print('Error accepting private connection: $e');
+      print('Error accepting alt connection: $e');
       rethrow;
     }
   }
 
-  // Reject a private connection request
-  Future<void> rejectPrivateConnection(String userId, String requesterId) async {
+  // Reject a alt connection request
+  Future<void> rejectAltConnection(String userId, String requesterId) async {
     try {
-      await _firestore.collection('privateConnectionRequests')
+      await _firestore.collection('altConnectionRequests')
           .doc(userId)
           .collection('requests')
           .doc(requesterId)
           .update({'status': 'rejected'});
     } catch (e) {
-      print('Error rejecting private connection: $e');
+      print('Error rejecting alt connection: $e');
       rethrow;
     }
   }
 
-  // Get all pending private connection requests for a user
-  Stream<List<PrivateConnectionRequest>> getPendingConnectionRequests(String userId) {
-    return _firestore.collection('privateConnectionRequests')
+  // Get all pending alt connection requests for a user
+  Stream<List<AltConnectionRequest>> getPendingConnectionRequests(String userId) {
+    return _firestore.collection('altConnectionRequests')
         .doc(userId)
         .collection('requests')
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
-      return PrivateConnectionRequest.fromMap(doc.data());
+      return AltConnectionRequest.fromMap(doc.data());
     }).toList());
   }
 
-  // Check if a private connection request already exists
-  Future<bool> hasPrivateConnectionRequest(String requesterId, String targetUserId) async {
+  // Check if a alt connection request already exists
+  Future<bool> hasAltConnectionRequest(String requesterId, String targetUserId) async {
     try {
-      final doc = await _firestore.collection('privateConnectionRequests')
+      final doc = await _firestore.collection('altConnectionRequests')
           .doc(targetUserId)
           .collection('requests')
           .doc(requesterId)
@@ -403,15 +404,15 @@ class UserRepository {
 
       return doc.exists;
     } catch (e) {
-      print('Error checking private connection request: $e');
+      print('Error checking alt connection request: $e');
       return false;
     }
   }
 
-  // Check if users are already privately connected
-  Future<bool> arePrivatelyConnected(String userId1, String userId2) async {
+  // Check if users are already altly connected
+  Future<bool> areAltlyConnected(String userId1, String userId2) async {
     try {
-      final doc = await _firestore.collection('privateConnections')
+      final doc = await _firestore.collection('altConnections')
           .doc(userId1)
           .collection('userConnections')
           .doc(userId2)
@@ -419,24 +420,24 @@ class UserRepository {
 
       return doc.exists;
     } catch (e) {
-      print('Error checking private connection: $e');
+      print('Error checking alt connection: $e');
       return false;
     }
   }
 
-  // Get all private connections for a user
-  Stream<List<String>> getPrivateConnectionIds(String userId) {
-    return _firestore.collection('privateConnections')
+  // Get all alt connections for a user
+  Stream<List<String>> getAltConnectionIds(String userId) {
+    return _firestore.collection('altConnections')
         .doc(userId)
         .collection('userConnections')
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
   }
 
-  Future<int> getPrivateConnectionCount(String userId) async {
+  Future<int> getAltConnectionCount(String userId) async {
     try {
       final snapshot = await _firestore
-          .collection('privateConnections')
+          .collection('altConnections')
           .doc(userId)
           .collection('userConnections')
           .count()
@@ -444,52 +445,52 @@ class UserRepository {
 
       return snapshot.count ?? 0;
     } catch (e) {
-      print('Error getting private connection count: $e');
+      print('Error getting alt connection count: $e');
       return 0;
     }
   }
 
 
-// Check if private profile exists
-  Future<bool> hasPrivateProfile(String userId) async {
+// Check if alt profile exists
+  Future<bool> hasAltProfile(String userId) async {
     final doc = await _users.doc(userId).get();
     if (!doc.exists) return false;
 
     final data = doc.data()!;
-    return data['privateBio'] != null ||
-        data['privateProfileImageURL'] != null ||
-        data['privateCoverImageURL'] != null;
+    return data['altBio'] != null ||
+        data['altProfileImageURL'] != null ||
+        data['altCoverImageURL'] != null;
   }
 
-// Create or update private profile
-  Future<void> updatePrivateProfile(String userId, Map<String, dynamic> privateData) async {
+// Create or update alt profile
+  Future<void> updateAltProfile(String userId, Map<String, dynamic> altData) async {
     final Map<String, dynamic> sanitizedData = {};
 
-    // Explicitly handle known private fields
-    if (privateData.containsKey('privateBio')) {
-      sanitizedData['privateBio'] = privateData['privateBio'];
+    // Explicitly handle known alt fields
+    if (altData.containsKey('altBio')) {
+      sanitizedData['altBio'] = altData['altBio'];
     }
 
-    if (privateData.containsKey('privateProfileImageURL')) {
-      sanitizedData['privateProfileImageURL'] = privateData['privateProfileImageURL'];
+    if (altData.containsKey('altProfileImageURL')) {
+      sanitizedData['altProfileImageURL'] = altData['altProfileImageURL'];
     }
 
-    if (privateData.containsKey('privateCoverImageURL')) {
-      sanitizedData['privateCoverImageURL'] = privateData['privateCoverImageURL'];
+    if (altData.containsKey('altCoverImageURL')) {
+      sanitizedData['altCoverImageURL'] = altData['altCoverImageURL'];
     }
 
 
     await _users.doc(userId).update({
-      ...privateData,
-      'privateUpdatedAt': FieldValue.serverTimestamp(),
+      ...altData,
+      'altUpdatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-// Add private connection
-  Future<void> addPrivateConnection(String userId, String connectionId) async {
-    // Add to private connections collection
+// Add alt connection
+  Future<void> addAltConnection(String userId, String connectionId) async {
+    // Add to alt connections collection
     await _firestore
-        .collection('privateConnections')
+        .collection('altConnections')
         .doc(userId)
         .collection('userConnections')
         .doc(connectionId)
@@ -499,14 +500,14 @@ class UserRepository {
 
     // Update counts
     await _users.doc(userId).update({
-      'privateFriends': FieldValue.increment(1)
+      'altFriends': FieldValue.increment(1)
     });
   }
 
-// Remove private connection
-  Future<void> removePrivateConnection(String userId, String connectionId) async {
+// Remove alt connection
+  Future<void> removeAltConnection(String userId, String connectionId) async {
     await _firestore
-        .collection('privateConnections')
+        .collection('altConnections')
         .doc(userId)
         .collection('userConnections')
         .doc(connectionId)
@@ -514,14 +515,14 @@ class UserRepository {
 
     // Update counts
     await _users.doc(userId).update({
-      'privateFriends': FieldValue.increment(-1)
+      'altFriends': FieldValue.increment(-1)
     });
   }
 
-// Check if users are privately connected
-  Future<bool> isPrivatelyConnected(String userId, String otherUserId) async {
+// Check if users are altly connected
+  Future<bool> isAltlyConnected(String userId, String otherUserId) async {
     final doc = await _firestore
-        .collection('privateConnections')
+        .collection('altConnections')
         .doc(userId)
         .collection('userConnections')
         .doc(otherUserId)

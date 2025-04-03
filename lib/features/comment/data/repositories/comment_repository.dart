@@ -30,7 +30,7 @@ class CommentRepository {
     required String authorId,
     required String content,
     String? parentId,
-    bool isPrivatePost = false,
+    bool isAltPost = false,
     File? mediaFile,
   }) async {
     try {
@@ -78,8 +78,8 @@ class CommentRepository {
       final userData = userDoc.data();
 
       // Select appropriate profile image based on post privacy
-      final profileImageUrl = isPrivatePost && userData?['privateProfileImageURL'] != null
-          ? userData!['privateProfileImageURL']
+      final profileImageUrl = isAltPost && userData?['altProfileImageURL'] != null
+          ? userData!['altProfileImageURL']
           : userData?['profileImageURL'];
 
       // Create comment model
@@ -94,7 +94,7 @@ class CommentRepository {
         depth: depth,
         authorUsername: userData?['username'] ?? 'Unknown',
         authorProfileImage: profileImageUrl,
-        isPrivatePost: isPrivatePost,
+        isAltPost: isAltPost,
         mediaUrl: mediaUrl,
         likeCount: 0,
         dislikeCount: 0,
@@ -105,7 +105,7 @@ class CommentRepository {
       await commentRef.set(comment.toFirestore());
 
       // Update comment count on the post
-      await _firestore.collection(isPrivatePost ? 'globalPrivatePosts' : 'posts')
+      await _firestore.collection(isAltPost ? 'globalAltPosts' : 'posts')
           .doc(postId)
           .update({
         'commentCount': FieldValue.increment(1),
@@ -451,7 +451,7 @@ class CommentRepository {
     required String commentId,
     required String authorId,
     required String postId,
-    required bool isPrivatePost,
+    required bool isAltPost,
   }) async {
     try {
       // Get the comment first to check authorization
@@ -494,7 +494,7 @@ class CommentRepository {
 
         // Update post comment count
         await _firestore
-            .collection(isPrivatePost ? 'globalPrivatePosts' : 'posts')
+            .collection(isAltPost ? 'globalAltPosts' : 'posts')
             .doc(postId)
             .update({
           'commentCount': FieldValue.increment(-1),

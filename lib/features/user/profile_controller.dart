@@ -21,7 +21,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     return ProfileState.initial();
   }
 
-  Future<void> loadProfile(String userId, {bool? isPrivateView}) async {
+  Future<void> loadProfile(String userId, {bool? isAltView}) async {
     // Validate userId
     if (userId.isEmpty) {
       state = AsyncValue.error('User ID is empty', StackTrace.current);
@@ -34,9 +34,9 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Get current user for comparison
       final currentUser = ref.read(authProvider);
 
-      // Determine if we're viewing the private or public profile
+      // Determine if we're viewing the alt or public profile
       final currentFeed = ref.read(currentFeedProvider);
-      final usePrivateView = isPrivateView ?? (currentFeed == FeedType.private);
+      final useAltView = isAltView ?? (currentFeed == FeedType.alt);
 
       // Fetch user data
       final user = await _userRepository.getUserById(userId);
@@ -44,15 +44,15 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         throw Exception('User not found');
       }
 
-      // Check if private profile exists
-      final hasPrivateProfile = user.privateBio != null ||
-          user.privateProfileImageURL != null ||
-          user.privateCoverImageURL != null;
+      // Check if alt profile exists
+      final hasAltProfile = user.altBio != null ||
+          user.altProfileImageURL != null ||
+          user.altCoverImageURL != null;
 
       // Fetch posts based on view type
       List<PostModel> posts;
-      if (usePrivateView) {
-        posts = await _postRepository.getUserPrivatePosts(userId).first;
+      if (useAltView) {
+        posts = await _postRepository.getUserAltPosts(userId).first;
       } else {
         posts = await _postRepository.getUserPublicPosts(userId).first;
       }
@@ -64,20 +64,20 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
 
       // Get connection count for ANY user, not just the current user
       int connectionCount = 0;
-      if (usePrivateView) {
+      if (useAltView) {
         try {
           // This works for any user, not just the current one
           final snapshot = await FirebaseFirestore.instance
-              .collection('privateConnections')
+              .collection('altConnections')
               .doc(userId)
               .collection('userConnections')
               .count()
               .get();
           connectionCount = snapshot.count ?? 0;
 
-          print("DEBUG: Found $connectionCount private connections for user $userId");
+          print("DEBUG: Found $connectionCount alt connections for user $userId");
         } catch (e) {
-          print("DEBUG: Error getting private connections count: $e");
+          print("DEBUG: Error getting alt connections count: $e");
         }
       }
 
@@ -91,8 +91,8 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         posts: posts,
         isCurrentUser: currentUser?.uid == userId,
         isFollowing: isFollowing,
-        isPrivateView: usePrivateView,
-        hasPrivateProfile: hasPrivateProfile,
+        isAltView: useAltView,
+        hasAltProfile: hasAltProfile,
       ));
     } catch (e, stack) {
       print("DEBUG: Profile loading error: $e");
@@ -117,20 +117,20 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Reload profile with same view type
       await loadProfile(
           currentState.user!.id,
-          isPrivateView: currentState.isPrivateView
+          isAltView: currentState.isAltView
       );
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
 
-  Future<void> createPrivateProfile(Map<String, dynamic> data) async {
+  Future<void> createAltProfile(Map<String, dynamic> data) async {
     final currentUser = ref.read(authProvider);
     if (currentUser == null) return;
 
     try {
       await _userRepository.updateUser(currentUser.uid, data);
-      await loadProfile(currentUser.uid, isPrivateView: true);
+      await loadProfile(currentUser.uid, isAltView: true);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -142,7 +142,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
 
     try {
       await _userRepository.updateUser(currentUser.uid, data);
-      await loadProfile(currentUser.uid, isPrivateView: !isPublicProfile);
+      await loadProfile(currentUser.uid, isAltView: !isPublicProfile);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }

@@ -1,8 +1,8 @@
-// lib/features/user/data/models/private_connection_request.dart
+// lib/features/user/data/models/alt_connection_request.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PrivateConnectionRequest {
+class AltConnectionRequest {
   final String requesterId;
   final String? requesterName;
   final String? requesterUsername;
@@ -10,7 +10,7 @@ class PrivateConnectionRequest {
   final DateTime? timestamp;
   final String status; // "pending", "accepted", "rejected"
 
-  PrivateConnectionRequest({
+  AltConnectionRequest({
     required this.requesterId,
     this.requesterName,
     this.requesterUsername,
@@ -19,8 +19,8 @@ class PrivateConnectionRequest {
     required this.status,
   });
 
-  factory PrivateConnectionRequest.fromMap(Map<String, dynamic> map) {
-    return PrivateConnectionRequest(
+  factory AltConnectionRequest.fromMap(Map<String, dynamic> map) {
+    return AltConnectionRequest(
       requesterId: map['requesterId'] ?? '',
       requesterName: map['requesterName'],
       requesterUsername: map['requesterUsername'],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
+import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../search_controller.dart';
 import '../providers/state/search_state.dart';
 
@@ -40,6 +41,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: _buildSearchResults(searchState),
               ),
               _buildSearchBar(),
+              BottomNavPadding(
+                height: 60.0,
+              ),
             ],
           ),
         ),
@@ -95,9 +99,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
                 onTap: () {
                   final feedType = ref.read(currentFeedProvider);
-                  if (feedType == FeedType.private) {
+                  if (feedType == FeedType.alt) {
                     context.pushNamed(
-                      'privateProfile',
+                      'altProfile',
                       pathParameters: {'id': user.id},
                     );
                   } else {

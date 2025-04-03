@@ -35,13 +35,13 @@ final postProvider = StreamProvider.family<PostModel?, String>((ref, postId) {
   return repository.streamPost(postId);
 });
 
-// Enhanced post provider - can specify isPrivate
+// Enhanced post provider - can specify isAlt
 // Use a class instead of a record for better compatibility
 class PostParams {
   final String id;
-  final bool isPrivate;
+  final bool isAlt;
 
-  PostParams({required this.id, required this.isPrivate});
+  PostParams({required this.id, required this.isAlt});
 
   @override
   bool operator ==(Object other) =>
@@ -49,14 +49,14 @@ class PostParams {
           other is PostParams &&
               runtimeType == other.runtimeType &&
               id == other.id &&
-              isPrivate == other.isPrivate;
+              isAlt == other.isAlt;
 
   @override
-  int get hashCode => id.hashCode ^ isPrivate.hashCode;
+  int get hashCode => id.hashCode ^ isAlt.hashCode;
 }
 final postProviderWithPrivacy = StreamProvider.family<PostModel?, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
-  return repository.streamPost(params.id, isPrivate: params.isPrivate);
+  return repository.streamPost(params.id, isAlt: params.isAlt);
 });
 
 // Providers for checking like/dislike status
@@ -91,7 +91,7 @@ final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNo
     repository: repository,
     ref: ref,
     postId: postId,
-    isPrivate: null, // No privacy info specified
+    isAlt: null, // No privacy info specified
   );
 });
 
@@ -109,6 +109,6 @@ final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
     repository: repository,
     ref: ref,
     postId: params.id,
-    isPrivate: params.isPrivate,
+    isAlt: params.isAlt,
   );
 });

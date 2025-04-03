@@ -19,9 +19,9 @@ class FeedRepository {
   CollectionReference<Map<String, dynamic>> get publicFeeds =>
       firestore.collection('feeds');
 
-  /// Get a reference to the private feeds collection
-  CollectionReference<Map<String, dynamic>> get privateFeeds =>
-      firestore.collection('privateFeeds');
+  /// Get a reference to the alt feeds collection
+  CollectionReference<Map<String, dynamic>> get altFeeds =>
+      firestore.collection('altFeeds');
 
   /// Calculate the net votes for a post
   int calculateNetVotes(PostModel post) {

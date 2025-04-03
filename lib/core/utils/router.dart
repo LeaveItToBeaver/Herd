@@ -5,13 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import '../../features/comment/view/screens/comment_thread_screen.dart';
-import '../../features/edit_user/private_profile/view/screens/edit_private_profile_screen.dart';
+import '../../features/edit_user/alt_profile/view/screens/edit_alt_profile_screen.dart';
 import '../../features/edit_user/public_profile/view/screens/edit_public_profile_screen.dart';
+import '../../features/feed/alt_feed/view/screens/alt_screen.dart';
 import '../../features/feed/providers/feed_type_provider.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
 import '../../features/user/data/models/user_model.dart';
 import '../../features/user/view/screens/connection_request_screen.dart';
-import '../../features/user/view/screens/private_profile_screen.dart';
+import '../../features/user/view/screens/alt_profile_screen.dart';
 import '../../features/user/view/screens/public_profile_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -51,7 +52,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && isGoingToAuth) {
-        return currentFeed == FeedType.private ? '/privateFeed' : '/publicFeed';
+        return currentFeed == FeedType.alt ? '/altFeed' : '/publicFeed';
       }
 
       // Allow all other navigation
@@ -149,16 +150,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
         routes: [
           GoRoute(
-            path: '/privateFeed',
-            name: 'privateFeed',
+            path: '/altFeed',
+            name: 'altFeed',
             parentNavigatorKey: shellNavigatorKey,
             pageBuilder: (context, state) {
-              // Set current feed to private when viewing private feed
+              // Set current feed to alt when viewing alt feed
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref.read(currentFeedProvider.notifier).state = FeedType.private;
+                ref.read(currentFeedProvider.notifier).state = FeedType.alt;
               });
               return const NoTransitionPage(
-                child: PrivateFeedScreen(),
+                child: AltFeedScreen(),
               );
             },
           ),
@@ -170,7 +171,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               // Pass the current feed type to determine post privacy default
               final feedType = ref.read(currentFeedProvider);
-              final isPrivate = feedType == FeedType.private;
+              final isAlt = feedType == FeedType.alt;
 
               return NoTransitionPage(
                 child: GlobalOverlayManager(
@@ -180,7 +181,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   showSearchBtn: false,
                   child: Stack(
                       children: [
-                        CreatePostScreen(isPrivate: isPrivate),
+                        CreatePostScreen(isAlt: isAlt),
                       ],
                   ),
                 ),
@@ -214,8 +215,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
               // Determine which profile to show based on current feed
               final feedType = ref.read(currentFeedProvider);
-              if (feedType == FeedType.private) {
-                return '/privateProfile/$userId';
+              if (feedType == FeedType.alt) {
+                return '/altProfile/$userId';
               } else {
                 return '/publicProfile/$userId';
               }
@@ -269,10 +270,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Private profile route
+      // Alt profile route
       GoRoute(
-        path: '/privateProfile/:id',
-        name: 'privateProfile',
+        path: '/altProfile/:id',
+        name: 'altProfile',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final currentUserId = ref.read(authProvider)?.uid;
@@ -289,9 +290,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             );
           }
 
-          // Set feed type to private when viewing private profile
+          // Set feed type to alt when viewing alt profile
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            ref.read(currentFeedProvider.notifier).state = FeedType.private;
+            ref.read(currentFeedProvider.notifier).state = FeedType.alt;
           });
 
           return NoTransitionPage(
@@ -304,7 +305,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSearchBtn: true,
                 child: Stack(
                     children: [
-                      PrivateProfileScreen(userId: userId),
+                      AltProfileScreen(userId: userId),
                     ]
                 ),
               ),
@@ -334,7 +335,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 body: SafeArea(
                   child: isPublic
                       ? PublicProfileEditScreen(user: user)
-                      : PrivateProfileEditScreen(
+                      : AltProfileEditScreen(
                     user: user,
                     isInitialSetup: isInitialSetup,
                   ),
@@ -352,14 +353,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey, // Use root navigator
         pageBuilder: (context, state) {
           final postId = state.pathParameters['id']!;
-          // Get isPrivate parameter if it exists
-          final isPrivate = state.uri.queryParameters['isPrivate'] == 'true';
+          // Get isAlt parameter if it exists
+          final isAlt = state.uri.queryParameters['isAlt'] == 'true';
 
           return MaterialPage(
             key: state.pageKey,
             child: PostScreen(
               postId: postId,
-              isPrivate: isPrivate,
+              isAlt: isAlt,
             ),
           );
         },

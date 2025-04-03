@@ -1,6 +1,6 @@
 //User Widgets
 export 'package:herdapp/features/user/view/widgets/about_section_widget.dart';
-export 'package:herdapp/features/user/view/widgets/private_connection_request_button.dart';
+export 'package:herdapp/features/user/view/widgets/alt_connection_request_button.dart';
 export 'package:herdapp/features/user/view/widgets/profile_button.dart';
 export 'package:herdapp/features/user/view/widgets/profile_info.dart';
 export 'package:herdapp/features/user/view/widgets/profile_stats.dart';

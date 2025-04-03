@@ -16,7 +16,7 @@ class PostModel {
   final int commentCount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final bool isPrivate; // Added to distinguish private and public posts
+  final bool isAlt; // Added to distinguish alt and public posts
 
   PostModel({
     required this.id,
@@ -34,7 +34,7 @@ class PostModel {
     this.commentCount = 0,
     this.createdAt,
     this.updatedAt,
-    this.isPrivate = false, // Default to public
+    this.isAlt = false, // Default to public
   });
 
   static DateTime? _parseDateTime(dynamic value) {
@@ -71,7 +71,7 @@ class PostModel {
       commentCount: map['commentCount'] ?? 0,
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
-      isPrivate: map['isPrivate'] ?? false,
+      isAlt: map['isAlt'] ?? false,
     );
   }
 
@@ -95,7 +95,7 @@ class PostModel {
       'updatedAt': updatedAt != null
           ? Timestamp.fromDate(updatedAt!)
           : FieldValue.serverTimestamp(),
-      'isPrivate': isPrivate,
+      'isAlt': isAlt,
     };
   }
 
@@ -115,7 +115,7 @@ class PostModel {
     int? commentCount,
     DateTime? createdAt,
     DateTime? updatedAt,
-    bool? isPrivate,
+    bool? isAlt,
   }) {
     return PostModel(
       id: id ?? this.id,
@@ -133,7 +133,7 @@ class PostModel {
       commentCount: commentCount ?? this.commentCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      isPrivate: isPrivate ?? this.isPrivate,
+      isAlt: isAlt ?? this.isAlt,
     );
   }
 }

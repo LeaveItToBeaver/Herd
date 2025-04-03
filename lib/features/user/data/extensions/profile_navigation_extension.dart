@@ -13,11 +13,11 @@ extension ProfileNavigation on BuildContext {
       case FeedType.public:
         pushNamed('profile', pathParameters: {'id': userId});
         break;
-      case FeedType.private:
+      case FeedType.alt:
       // If you're maintaining a single profile route:
         pushNamed('profile', pathParameters: {'id': userId});
         // Or if you create separate routes:
-        // pushNamed('privateProfile', pathParameters: {'id': userId});
+        // pushNamed('altProfile', pathParameters: {'id': userId});
         break;
     }
   }
@@ -29,7 +29,7 @@ extension ProfileNavigation on BuildContext {
       case FeedType.public:
         pushNamed('editProfile', extra: {'user': user, 'isPublic': true});
         break;
-      case FeedType.private:
+      case FeedType.alt:
         pushNamed('editProfile', extra: {'user': user, 'isPublic': false});
         break;
     }
