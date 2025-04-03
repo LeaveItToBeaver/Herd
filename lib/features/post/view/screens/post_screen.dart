@@ -14,12 +14,12 @@ import '../providers/post_provider.dart' hide commentsProvider;
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
-  final bool isPrivate;
+  final bool isAlt;
 
   const PostScreen({
     super.key,
     required this.postId,
-    this.isPrivate = false,
+    this.isAlt = false,
   });
 
   @override
@@ -43,7 +43,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         ref.read(postInteractionsWithPrivacyProvider(
             PostParams(
                 id: widget.postId,
-                isPrivate: widget.isPrivate
+                isAlt: widget.isAlt
             )
         ).notifier).initializeState(userId);
       }
@@ -111,20 +111,20 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   @override
   Widget build(BuildContext context) {
     final postAsyncValue = ref.watch(
-        widget.isPrivate
-            ? postProviderWithPrivacy(PostParams(id: widget.postId, isPrivate: widget.isPrivate))
+        widget.isAlt
+            ? postProviderWithPrivacy(PostParams(id: widget.postId, isAlt: widget.isAlt))
             : postProvider(widget.postId)
     );
     final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: widget.isPrivate ? Colors.blue : Colors.white,
+        backgroundColor: widget.isAlt ? Colors.blue : Colors.white,
         title: LayoutBuilder(
             builder: (context, constraints) {
               return Row(
                 children: [
-                  if (widget.isPrivate)
+                  if (widget.isAlt)
                     const Padding(
                       padding: EdgeInsets.only(right: 8.0),
                       child: Icon(Icons.lock, size: 20),
@@ -148,14 +148,14 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: widget.isPrivate
+            onPressed: widget.isAlt
                 ? null
                 : () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Sharing post...')),
               );
             },
-            color: widget.isPrivate ? Colors.grey : Colors.white,
+            color: widget.isAlt ? Colors.grey : Colors.white,
           ),
         ],
       ),
@@ -179,7 +179,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Privacy badge (if needed)
-                  if (post.isPrivate)
+                  if (post.isAlt)
                     Container(
                       color: Colors.blue.withOpacity(0.1),
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -188,7 +188,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                           const Icon(Icons.lock, size: 16, color: Colors.blue),
                           const SizedBox(width: 8),
                           const Text(
-                            'Private Post',
+                            'Alt Post',
                             style: TextStyle(
                               color: Colors.blue,
                               fontWeight: FontWeight.bold,
@@ -221,7 +221,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                   // Comments list widget
                   CommentListWidget(
                     postId: widget.postId,
-                    isPrivatePost: widget.isPrivate,
+                    isAltPost: widget.isAlt,
                   ),
 
                   // Extra bottom padding
@@ -243,8 +243,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       );
 
       // Force invalidate all related providers
-      if (widget.isPrivate) {
-        ref.refresh(postProviderWithPrivacy(PostParams(id: widget.postId, isPrivate: true)));
+      if (widget.isAlt) {
+        ref.refresh(postProviderWithPrivacy(PostParams(id: widget.postId, isAlt: true)));
       } else {
         ref.refresh(postProvider(widget.postId));
       }
@@ -258,12 +258,12 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       if (userId != null) {
         // Use the existing interaction provider
         ref.invalidate(postInteractionsWithPrivacyProvider(
-            PostParams(id: widget.postId, isPrivate: widget.isPrivate)
+            PostParams(id: widget.postId, isAlt: widget.isAlt)
         ));
 
         // Initialize the interaction state
         await ref.read(postInteractionsWithPrivacyProvider(
-            PostParams(id: widget.postId, isPrivate: widget.isPrivate)
+            PostParams(id: widget.postId, isAlt: widget.isAlt)
         ).notifier).initializeState(userId);
       }
 
@@ -321,8 +321,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                   }
 
                   // Determine which profile image to use based on privacy
-                  final profileImageUrl = post.isPrivate
-                      ? user.privateProfileImageURL ?? user.profileImageURL
+                  final profileImageUrl = post.isAlt
+                      ? user.altProfileImageURL ?? user.profileImageURL
                       : user.profileImageURL;
 
                   return Padding(
@@ -332,9 +332,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                         GestureDetector(
                           onTap: () {
                             // Navigate to appropriate profile
-                            if (post.isPrivate) {
+                            if (post.isAlt) {
                               context.pushNamed(
-                                'privateProfile',
+                                'altProfile',
                                 pathParameters: {'id': user.id},
                               );
                             } else {
@@ -360,9 +360,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                               GestureDetector(
                                 onTap: () {
                                   // Navigate to appropriate profile
-                                  if (post.isPrivate) {
+                                  if (post.isAlt) {
                                     context.pushNamed(
-                                      'privateProfile',
+                                      'altProfile',
                                       pathParameters: {'id': user.id},
                                     );
                                   } else {
@@ -482,8 +482,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                     _buildActionButton(
                       icon: Icons.share_rounded,
                       label: 'Share',
-                      onPressed: post.isPrivate ? null : () {}, // Disable for private posts
-                      enabled: !post.isPrivate,
+                      onPressed: post.isAlt ? null : () {}, // Disable for alt posts
+                      enabled: !post.isAlt,
                     ),
                     _buildActionButton(
                       icon: Icons.comment_rounded,
@@ -496,7 +496,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       context: context,
                       ref: ref,
                       postId: widget.postId,
-                      isPrivate: widget.isPrivate,
+                      isAlt: widget.isAlt,
                     ),
                   ],
                 ),
@@ -693,10 +693,10 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     required BuildContext context,
     required WidgetRef ref,
     required String postId,
-    required bool isPrivate,
+    required bool isAlt,
   }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: postId, isPrivate: isPrivate)
+        PostParams(id: postId, isAlt: isAlt)
     ));
 
     return Card(
@@ -742,7 +742,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
     if (userId != null) {
       ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isPrivate: widget.isPrivate)
+          PostParams(id: postId, isAlt: widget.isAlt)
       ).notifier).likePost(userId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -757,7 +757,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
     if (userId != null) {
       ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isPrivate: widget.isPrivate)
+          PostParams(id: postId, isAlt: widget.isAlt)
       ).notifier).dislikePost(userId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -770,8 +770,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     final currentUser = ref.read(currentUserProvider);
     if (currentUser == null) return null;
 
-    final profileImageUrl = widget.isPrivate
-        ? (currentUser.privateProfileImageURL ?? currentUser.profileImageURL)
+    final profileImageUrl = widget.isAlt
+        ? (currentUser.altProfileImageURL ?? currentUser.profileImageURL)
         : currentUser.profileImageURL;
 
     return profileImageUrl != null

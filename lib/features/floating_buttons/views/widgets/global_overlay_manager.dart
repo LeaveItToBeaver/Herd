@@ -128,9 +128,9 @@ class FloatingButtonsColumn extends ConsumerWidget {
                 final currentUser = ref.read(authProvider);
                 if (currentUser?.uid != null) {
                   // Navigate to the appropriate profile based on current feed
-                  if (currentFeed == FeedType.private) {
+                  if (currentFeed == FeedType.alt) {
                     context.pushNamed(
-                      'privateProfile',
+                      'altProfile',
                       pathParameters: {'id': currentUser!.uid},
                     );
                   } else {
@@ -188,8 +188,8 @@ class BottomNavOverlay extends ConsumerWidget {
       String? routeName = bottomNavRoutes[selectedItem];
 
       // Override route for Home/Feed based on feed type
-      if (selectedItem == BottomNavItem.privateFeed && feedType == FeedType.private) {
-        routeName = 'privateFeed';
+      if (selectedItem == BottomNavItem.altFeed && feedType == FeedType.alt) {
+        routeName = 'altFeed';
       } else if (selectedItem == BottomNavItem.publicFeed && feedType == FeedType.public) {
         routeName = 'publicFeed';
       }
@@ -229,9 +229,9 @@ class BottomNavOverlay extends ConsumerWidget {
                 ? const Color.fromARGB(255, 226, 62, 87)
                 : Colors.grey;
 
-            // If this is the home icon, apply a special color for private feed
-            if (item == BottomNavItem.privateFeed && feedType == FeedType.private && isSelected) {
-              iconColor = Colors.blue; // Use a different color for private feed
+            // If this is the home icon, apply a special color for alt feed
+            if (item == BottomNavItem.altFeed && feedType == FeedType.alt && isSelected) {
+              iconColor = Colors.blue; // Use a different color for alt feed
             }
 
             return Expanded(
@@ -250,7 +250,7 @@ class BottomNavOverlay extends ConsumerWidget {
                           size: 24,
                         ),
                         // Add an indicator for feed type on the home icon
-                        if (item == BottomNavItem.privateFeed && feedType == FeedType.private)
+                        if (item == BottomNavItem.altFeed && feedType == FeedType.alt)
                           Positioned(
                             right: 0,
                             top: 0,
@@ -333,9 +333,9 @@ class SideBubblesOverlay extends ConsumerWidget {
             final currentUser = ref.read(authProvider);
             if (currentUser?.uid != null) {
               // Navigate based on current feed type
-              if (feedType == FeedType.private) {
+              if (feedType == FeedType.alt) {
                 context.pushNamed(
-                  'privateProfile',
+                  'altProfile',
                   pathParameters: {'id': currentUser!.uid},
                 );
               } else {
@@ -357,21 +357,21 @@ class SideBubblesOverlay extends ConsumerWidget {
     bubbles.add(
       _buildBubble(
         context: context,
-        child: feedType == FeedType.private
+        child: feedType == FeedType.alt
             ? const Icon(Icons.lock, color: Colors.white, size: 24)
             : const Icon(Icons.public, color: Colors.white, size: 24),
-        backgroundColor: feedType == FeedType.private ? Colors.blue : Colors.black,
+        backgroundColor: feedType == FeedType.alt ? Colors.blue : Colors.black,
         onTap: () {
           // Toggle feed type
-          final newFeedType = feedType == FeedType.private
+          final newFeedType = feedType == FeedType.alt
               ? FeedType.public
-              : FeedType.private;
+              : FeedType.alt;
 
           ref.read(currentFeedProvider.notifier).state = newFeedType;
 
           // Navigate to the appropriate feed
-          if (newFeedType == FeedType.private) {
-            context.goNamed('privateFeed');
+          if (newFeedType == FeedType.alt) {
+            context.goNamed('altFeed');
           } else {
             context.goNamed('publicFeed');
           }

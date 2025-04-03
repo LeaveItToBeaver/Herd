@@ -19,15 +19,15 @@ class UserModel with _$UserModel {
     @Default(0) int? following,
     @Default(0) int? friends,
     @Default(0) int? userPoints,
-    String? privateUserUID,
+    String? altUserUID,
     String? bio,
     String? profileImageURL,
     String? coverImageURL,
 
-    // Private profile fields
-    String? privateBio,
-    String? privateProfileImageURL,
-    String? privateCoverImageURL,
+    // Alt profile fields
+    String? altBio,
+    String? altProfileImageURL,
+    String? altCoverImageURL,
   }) = _UserModel;
 
   // Factory constructor to create a UserModel from Firebase User
@@ -64,14 +64,14 @@ class UserModel with _$UserModel {
       followers: map['followers'] ?? 0,
       following: map['following'] ?? 0,
       friends: map['friends'] ?? 0,
-      privateUserUID: map['privateUserUID'],
+      altUserUID: map['altUserUID'],
       userPoints: map['userPoints'] ?? 0,
       bio: map['bio'] ?? '',
       profileImageURL: map['profileImageURL'],
       coverImageURL: map['coverImageURL'],
-      privateBio: map['privateBio'],
-      privateProfileImageURL: map['privateProfileImageURL'],
-      privateCoverImageURL: map['privateCoverImageURL'],
+      altBio: map['altBio'],
+      altProfileImageURL: map['altProfileImageURL'],
+      altCoverImageURL: map['altCoverImageURL'],
     );
   }
 
@@ -98,14 +98,14 @@ class UserModel with _$UserModel {
       'followers': followers,
       'following': following,
       'friends': friends,
-      'privateUserUID': privateUserUID,
+      'altUserUID': altUserUID,
       'userPoints': userPoints,
       'bio': bio,
       'profileImageURL': profileImageURL,
       'coverImageURL': coverImageURL,
-      'privateBio': privateBio,
-      'privateProfileImageURL': privateProfileImageURL,
-      'privateCoverImageURL': privateCoverImageURL,
+      'altBio': altBio,
+      'altProfileImageURL': altProfileImageURL,
+      'altCoverImageURL': altCoverImageURL,
     };
   }
 }

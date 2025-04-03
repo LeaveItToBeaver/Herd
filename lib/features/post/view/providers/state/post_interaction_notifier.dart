@@ -12,18 +12,18 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
   final Ref _ref;
   final PostRepository _postRepository;
   final String _postId;
-  final bool? _isPrivate;  // Now storing the privacy status
+  final bool? _isAlt;  // Now storing the privacy status
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   PostInteractionsNotifier({
     required PostRepository repository,
     required Ref ref,
     required String postId,
-    bool? isPrivate,  // Add this parameter
+    bool? isAlt,  // Add this parameter
   })  : _postRepository = repository,
         _ref = ref,
         _postId = postId,
-        _isPrivate = isPrivate,  // Save it to the field
+        _isAlt = isAlt,  // Save it to the field
         super(const PostInteractionState()) {
     // Auto-initialize when created
     final userId = _ref.read(currentUserProvider)?.id;
@@ -53,10 +53,10 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     });
 
     // Listen for post updates
-    if (_isPrivate != null) {
+    if (_isAlt != null) {
       // If we know privacy status, use the enhanced provider
       _ref.listen(
-          postProviderWithPrivacy(PostParams(id: _postId, isPrivate: _isPrivate!)),
+          postProviderWithPrivacy(PostParams(id: _postId, isAlt: _isAlt!)),
               (previous, next) {
             if (next.value != null) {
               final netLikes = next.value!.likeCount - next.value!.dislikeCount;
@@ -100,7 +100,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       // Pass privacy status to the repository
-      final post = await _postRepository.getPostById(_postId, isPrivate: _isPrivate);
+      final post = await _postRepository.getPostById(_postId, isAlt: _isAlt);
 
       if (post != null) {
         final netLikes = post.likeCount - post.dislikeCount;
@@ -158,7 +158,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
         final callable = _functions.httpsCallable('handlePostLike');
         final result = await callable.call<Map<String, dynamic>>({
           'postId': _postId,
-          'isPrivate': _isPrivate ?? false,
+          'isAlt': _isAlt ?? false,
           'idToken': idToken,
         });
 
@@ -236,7 +236,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
         final callable = _functions.httpsCallable('handlePostDislike');
         final result = await callable.call<Map<String, dynamic>>({
           'postId': _postId,
-          'isPrivate':  _isPrivate ?? false,
+          'isAlt':  _isAlt ?? false,
           'idToken': idToken,
         });
 
@@ -292,8 +292,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     _ref.invalidate(isPostDislikedByUserProvider(_postId));
 
     // Invalidate the appropriate post provider
-    if (_isPrivate != null) {
-      _ref.invalidate(postProviderWithPrivacy(PostParams(id: _postId, isPrivate: _isPrivate!)));
+    if (_isAlt != null) {
+      _ref.invalidate(postProviderWithPrivacy(PostParams(id: _postId, isAlt: _isAlt!)));
     } else {
       _ref.invalidate(postProvider(_postId));
     }

@@ -92,7 +92,7 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
     required String parentId,
     required String authorId,
     required String content,
-    bool isPrivatePost = false,
+    bool isAltPost = false,
     File? mediaFile,
   }) async {
     try {
@@ -101,7 +101,7 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
         authorId: authorId,
         content: content,
         parentId: parentId,
-        isPrivatePost: isPrivatePost,
+        isAltPost: isAltPost,
         mediaFile: mediaFile,
       );
 

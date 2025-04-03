@@ -4,16 +4,16 @@ import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../providers/feed_provider.dart';
-import '../providers/state/private_feed_state.dart';
+import '../providers/state/alt_feed_state.dart';
 
-class PrivateFeedScreen extends ConsumerStatefulWidget {
-  const PrivateFeedScreen({super.key});
+class AltFeedScreen extends ConsumerStatefulWidget {
+  const AltFeedScreen({super.key});
 
   @override
-  ConsumerState<PrivateFeedScreen> createState() => _PrivateFeedScreenState();
+  ConsumerState<AltFeedScreen> createState() => _AltFeedScreenState();
 }
 
-class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
+class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -22,7 +22,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
 
     // Initialize feed on first load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(privateFeedControllerProvider.notifier).loadInitialPosts();
+      ref.read(altFeedControllerProvider.notifier).loadInitialPosts();
     });
 
     // Add scroll listener for pagination
@@ -39,7 +39,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
   /// Listener for scroll events to trigger pagination
   void _scrollListener() {
     // Get the current state
-    final state = ref.read(privateFeedControllerProvider);
+    final state = ref.read(altFeedControllerProvider);
 
     // If already loading or no more posts, do nothing
     if (state.isLoading || !state.hasMorePosts) return;
@@ -51,18 +51,18 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
 
     if (reachedTriggerPosition) {
       // Load more posts
-      ref.read(privateFeedControllerProvider.notifier).loadMorePosts();
+      ref.read(altFeedControllerProvider.notifier).loadMorePosts();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final privateFeedState = ref.watch(privateFeedControllerProvider);
+    final altFeedState = ref.watch(altFeedControllerProvider);
 
-    print("DEBUG UI: Posts count in state: ${privateFeedState.posts.length}");
+    print("DEBUG UI: Posts count in state: ${altFeedState.posts.length}");
 
     // In the rendering code, verify what's happening
-    if (privateFeedState.posts.isEmpty && !privateFeedState.isLoading) {
+    if (altFeedState.posts.isEmpty && !altFeedState.isLoading) {
       // Check if this branch is being hit incorrectly
       print("DEBUG UI: Empty feed branch triggered");
       return _buildEmptyFeed();
@@ -70,13 +70,13 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Private Feed'),
+        title: const Text('Alt Feed'),
         actions: [
           // Refresh button
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.read(privateFeedControllerProvider.notifier).refreshFeed();
+              ref.read(altFeedControllerProvider.notifier).refreshFeed();
             },
           ),
           // Optional highlighted posts button
@@ -86,16 +86,16 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
           ),
         ],
       ),
-      body: _buildBody(privateFeedState),
+      body: _buildBody(altFeedState),
     );
   }
 
   /// Build the main body of the feed based on state
-  Widget _buildBody(PrivateFeedState state) {
+  Widget _buildBody(AltFeedState state) {
     // Show error if any
     if (state.error != null) {
       return _buildErrorWidget(state.error!, () {
-        ref.read(privateFeedControllerProvider.notifier).refreshFeed();
+        ref.read(altFeedControllerProvider.notifier).refreshFeed();
       });
     }
 
@@ -111,7 +111,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
 
     // Show posts with pull-to-refresh
     return RefreshIndicator(
-      onRefresh: () => ref.read(privateFeedControllerProvider.notifier).refreshFeed(),
+      onRefresh: () => ref.read(altFeedControllerProvider.notifier).refreshFeed(),
       child: ListView.builder(
         controller: _scrollController,
         itemCount: state.posts.length + (state.isLoading ? 2 : 1),
@@ -151,20 +151,20 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'No private posts yet',
+            'No alt posts yet',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Be the first to create a private post!',
+            'Be the first to create a alt post!',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.edit),
-            label: const Text('Create a private post'),
+            label: const Text('Create a alt post'),
             onPressed: () {
-              // Navigate to create post screen with isPrivate=true
+              // Navigate to create post screen with isAlt=true
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
@@ -192,7 +192,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Failed to load private feed',
+              'Failed to load alt feed',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -263,7 +263,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, child) {
-                      final highlightedPosts = ref.watch(highlightedPrivatePostsProvider);
+                      final highlightedPosts = ref.watch(highlightedAltPostsProvider);
 
                       return highlightedPosts.when(
                         data: (posts) {
@@ -289,7 +289,7 @@ class _PrivateFeedScreenState extends ConsumerState<PrivateFeedScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     const Text(
-                                      "Popular private posts will appear here",
+                                      "Popular alt posts will appear here",
                                       textAlign: TextAlign.center,
                                     ),
                                   ],

@@ -32,7 +32,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
       if (widget.userId.isNotEmpty) {
         ref.read(profileControllerProvider.notifier).loadProfile(
           widget.userId,
-          isPrivateView: false, // Force public view
+          isAltView: false, // Force public view
         );
       }
     });
@@ -61,7 +61,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
             onRefresh: () async {
               await ref
                   .read(profileControllerProvider.notifier)
-                  .loadProfile(widget.userId, isPrivateView: false);
+                  .loadProfile(widget.userId, isAltView: false);
             },
             child: NestedScrollView(
               controller: _scrollViewController,
@@ -198,7 +198,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                 children: [
                   // Public posts tab - only showing public posts
                   PostListWidget(
-                    posts: profile.posts.where((post) => !post.isPrivate).toList(),
+                    posts: profile.posts.where((post) => !post.isAlt).toList(),
                     userId: profile.user?.id ?? (throw Exception("User ID is null")),
                   ),
                   // About tab - show public profile info
@@ -310,7 +310,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () {
-              ref.read(profileControllerProvider.notifier).loadProfile(widget.userId, isPrivateView: false);
+              ref.read(profileControllerProvider.notifier).loadProfile(widget.userId, isAltView: false);
             },
             child: const Text('Retry'),
           ),

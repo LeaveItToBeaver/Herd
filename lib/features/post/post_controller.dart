@@ -22,7 +22,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     required String title,
     required String content,
     File? imageFile,
-    bool isPrivate = false,
+    bool isAlt = false,
   }) async {
     String? postId;
     String? imageUrl;
@@ -47,7 +47,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
             mediaFile: imageFile,
             postId: postId,
             userId: userId,
-            isPrivate: isPrivate,
+            isAlt: isAlt,
           );
 
           imageUrl = mediaUrls['imageUrl'];
@@ -66,8 +66,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         authorId: user.id,
         username: user.username ?? 'Anonymous',
         // Use appropriate profile image based on privacy setting
-        profileImageURL: isPrivate
-            ? (user.privateProfileImageURL ?? user.profileImageURL)
+        profileImageURL: isAlt
+            ? (user.altProfileImageURL ?? user.profileImageURL)
             : user.profileImageURL,
         content: content,
         title: title,
@@ -79,7 +79,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         commentCount: 0,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        isPrivate: isPrivate,
+        isAlt: isAlt,
       );
 
       // 5. Save post to Firestore
@@ -104,7 +104,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       // If we have a postId, try to clean up any partially created resources
       if (postId != null) {
         try {
-          await _cleanupFailedPost(postId, userId, isPrivate);
+          await _cleanupFailedPost(postId, userId, isAlt);
         } catch (cleanupError) {
           print('Warning: Failed to cleanup failed post: $cleanupError');
         }
@@ -114,14 +114,14 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     }
   }
 
-  Future<void> _cleanupFailedPost(String postId, String userId, bool isPrivate) async {
+  Future<void> _cleanupFailedPost(String postId, String userId, bool isAlt) async {
     try {
       // Try to delete the post document if it was created
       await _postRepository.deletePost(postId);
 
       // Try to delete any uploaded images
-      final String basePath = isPrivate
-          ? 'users/$userId/private/posts/$postId'
+      final String basePath = isAlt
+          ? 'users/$userId/alt/posts/$postId'
           : 'users/$userId/posts/$postId';
 
       // List all files in the post directory
@@ -173,10 +173,10 @@ final userPublicPostsProvider = StreamProvider.family<List<PostModel>, String>((
   return postRepository.getUserPublicPosts(userId);
 });
 
-// Provider for user's private posts only
-final userPrivatePostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
+// Provider for user's alt posts only
+final userAltPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final postRepository = ref.watch(postRepositoryProvider);
-  return postRepository.getUserPrivatePosts(userId);
+  return postRepository.getUserAltPosts(userId);
 });
 
 // Provider for a single post

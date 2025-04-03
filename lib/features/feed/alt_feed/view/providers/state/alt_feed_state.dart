@@ -1,20 +1,20 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 
-part 'private_feed_state.freezed.dart';
+part 'alt_feed_state.freezed.dart';
 
 @freezed
-class PrivateFeedState with _$PrivateFeedState {
-  const factory PrivateFeedState({
+class AltFeedState with _$AltFeedState {
+  const factory AltFeedState({
     required List<PostModel> posts,
     @Default(false) bool isLoading,
     @Default(true) bool hasMorePosts,
     Object? error,
     @Default(false) bool isRefreshing,
     PostModel? lastPost,
-  }) = _PrivateFeedState;
+  }) = _AltFeedState;
 
-  factory PrivateFeedState.initial() => const PrivateFeedState(
+  factory AltFeedState.initial() => const AltFeedState(
     posts: [],
     isLoading: false,
     hasMorePosts: true,

@@ -149,7 +149,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     required String authorId,
     required String content,
     String? parentId,
-    bool isPrivatePost = false,
+    bool isAltPost = false,
     File? mediaFile,
     required WidgetRef ref,
   }) async {
@@ -159,7 +159,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         authorId: authorId,
         content: content,
         parentId: parentId,
-        isPrivatePost: isPrivatePost,
+        isAltPost: isAltPost,
         mediaFile: mediaFile,
       );
 
@@ -295,9 +295,9 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
       }
     }
 
-    final privatePostsSnapshot = await _firestore.collection('globalPrivatePosts').limit(50).get();
+    final altPostsSnapshot = await _firestore.collection('globalAltPosts').limit(50).get();
 
-    for (final postDoc in privatePostsSnapshot.docs) {
+    for (final postDoc in altPostsSnapshot.docs) {
       final postId = postDoc.id;
 
       final commentDoc = await _firestore

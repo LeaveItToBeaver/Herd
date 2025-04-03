@@ -3,20 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 
-/// A button that handles private connection actions between users
-class PrivateConnectionButton extends ConsumerStatefulWidget {
+/// A button that handles alt connection actions between users
+class AltConnectionButton extends ConsumerStatefulWidget {
   final String targetUserId;
 
-  const PrivateConnectionButton({
+  const AltConnectionButton({
     Key? key,
     required this.targetUserId,
   }) : super(key: key);
 
   @override
-  ConsumerState<PrivateConnectionButton> createState() => _PrivateConnectionButtonState();
+  ConsumerState<AltConnectionButton> createState() => _AltConnectionButtonState();
 }
 
-class _PrivateConnectionButtonState extends ConsumerState<PrivateConnectionButton> {
+class _AltConnectionButtonState extends ConsumerState<AltConnectionButton> {
   bool _isLoading = false;
   bool _isConnected = false;
   bool _hasPendingRequest = false;
@@ -40,13 +40,13 @@ class _PrivateConnectionButtonState extends ConsumerState<PrivateConnectionButto
       });
 
       // Check if already connected
-      final isConnected = await userRepository.arePrivatelyConnected(
+      final isConnected = await userRepository.areAltlyConnected(
         currentUser.uid,
         widget.targetUserId,
       );
 
       // Check if there's a pending request
-      final hasPendingRequest = await userRepository.hasPrivateConnectionRequest(
+      final hasPendingRequest = await userRepository.hasAltConnectionRequest(
         currentUser.uid,
         widget.targetUserId,
       );
@@ -82,7 +82,7 @@ class _PrivateConnectionButtonState extends ConsumerState<PrivateConnectionButto
         _isLoading = true;
       });
 
-      await userRepository.requestPrivateConnection(
+      await userRepository.requestAltConnection(
         currentUser.uid,
         widget.targetUserId,
       );

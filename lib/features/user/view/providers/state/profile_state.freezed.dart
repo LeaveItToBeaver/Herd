@@ -21,8 +21,8 @@ mixin _$ProfileState {
   List<PostModel> get posts => throw _privateConstructorUsedError;
   bool get isCurrentUser => throw _privateConstructorUsedError;
   bool get isFollowing => throw _privateConstructorUsedError;
-  bool get isPrivateView => throw _privateConstructorUsedError;
-  bool get hasPrivateProfile => throw _privateConstructorUsedError;
+  bool get isAltView => throw _privateConstructorUsedError;
+  bool get hasAltProfile => throw _privateConstructorUsedError;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -42,8 +42,8 @@ abstract class $ProfileStateCopyWith<$Res> {
       List<PostModel> posts,
       bool isCurrentUser,
       bool isFollowing,
-      bool isPrivateView,
-      bool hasPrivateProfile});
+      bool isAltView,
+      bool hasAltProfile});
 
   $UserModelCopyWith<$Res>? get user;
 }
@@ -67,8 +67,8 @@ class _$ProfileStateCopyWithImpl<$Res, $Val extends ProfileState>
     Object? posts = null,
     Object? isCurrentUser = null,
     Object? isFollowing = null,
-    Object? isPrivateView = null,
-    Object? hasPrivateProfile = null,
+    Object? isAltView = null,
+    Object? hasAltProfile = null,
   }) {
     return _then(_value.copyWith(
       user: freezed == user
@@ -87,13 +87,13 @@ class _$ProfileStateCopyWithImpl<$Res, $Val extends ProfileState>
           ? _value.isFollowing
           : isFollowing // ignore: cast_nullable_to_non_nullable
               as bool,
-      isPrivateView: null == isPrivateView
-          ? _value.isPrivateView
-          : isPrivateView // ignore: cast_nullable_to_non_nullable
+      isAltView: null == isAltView
+          ? _value.isAltView
+          : isAltView // ignore: cast_nullable_to_non_nullable
               as bool,
-      hasPrivateProfile: null == hasPrivateProfile
-          ? _value.hasPrivateProfile
-          : hasPrivateProfile // ignore: cast_nullable_to_non_nullable
+      hasAltProfile: null == hasAltProfile
+          ? _value.hasAltProfile
+          : hasAltProfile // ignore: cast_nullable_to_non_nullable
               as bool,
     ) as $Val);
   }
@@ -126,8 +126,8 @@ abstract class _$$ProfileStateImplCopyWith<$Res>
       List<PostModel> posts,
       bool isCurrentUser,
       bool isFollowing,
-      bool isPrivateView,
-      bool hasPrivateProfile});
+      bool isAltView,
+      bool hasAltProfile});
 
   @override
   $UserModelCopyWith<$Res>? get user;
@@ -150,8 +150,8 @@ class __$$ProfileStateImplCopyWithImpl<$Res>
     Object? posts = null,
     Object? isCurrentUser = null,
     Object? isFollowing = null,
-    Object? isPrivateView = null,
-    Object? hasPrivateProfile = null,
+    Object? isAltView = null,
+    Object? hasAltProfile = null,
   }) {
     return _then(_$ProfileStateImpl(
       user: freezed == user
@@ -170,13 +170,13 @@ class __$$ProfileStateImplCopyWithImpl<$Res>
           ? _value.isFollowing
           : isFollowing // ignore: cast_nullable_to_non_nullable
               as bool,
-      isPrivateView: null == isPrivateView
-          ? _value.isPrivateView
-          : isPrivateView // ignore: cast_nullable_to_non_nullable
+      isAltView: null == isAltView
+          ? _value.isAltView
+          : isAltView // ignore: cast_nullable_to_non_nullable
               as bool,
-      hasPrivateProfile: null == hasPrivateProfile
-          ? _value.hasPrivateProfile
-          : hasPrivateProfile // ignore: cast_nullable_to_non_nullable
+      hasAltProfile: null == hasAltProfile
+          ? _value.hasAltProfile
+          : hasAltProfile // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -190,8 +190,8 @@ class _$ProfileStateImpl implements _ProfileState {
       required final List<PostModel> posts,
       required this.isCurrentUser,
       required this.isFollowing,
-      required this.isPrivateView,
-      required this.hasPrivateProfile})
+      required this.isAltView,
+      required this.hasAltProfile})
       : _posts = posts;
 
   @override
@@ -211,13 +211,13 @@ class _$ProfileStateImpl implements _ProfileState {
   @override
   final bool isFollowing;
   @override
-  final bool isPrivateView;
+  final bool isAltView;
   @override
-  final bool hasPrivateProfile;
+  final bool hasAltProfile;
 
   @override
   String toString() {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isPrivateView: $isPrivateView, hasPrivateProfile: $hasPrivateProfile)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile)';
   }
 
   @override
@@ -231,10 +231,10 @@ class _$ProfileStateImpl implements _ProfileState {
                 other.isCurrentUser == isCurrentUser) &&
             (identical(other.isFollowing, isFollowing) ||
                 other.isFollowing == isFollowing) &&
-            (identical(other.isPrivateView, isPrivateView) ||
-                other.isPrivateView == isPrivateView) &&
-            (identical(other.hasPrivateProfile, hasPrivateProfile) ||
-                other.hasPrivateProfile == hasPrivateProfile));
+            (identical(other.isAltView, isAltView) ||
+                other.isAltView == isAltView) &&
+            (identical(other.hasAltProfile, hasAltProfile) ||
+                other.hasAltProfile == hasAltProfile));
   }
 
   @override
@@ -244,8 +244,8 @@ class _$ProfileStateImpl implements _ProfileState {
       const DeepCollectionEquality().hash(_posts),
       isCurrentUser,
       isFollowing,
-      isPrivateView,
-      hasPrivateProfile);
+      isAltView,
+      hasAltProfile);
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -262,8 +262,8 @@ abstract class _ProfileState implements ProfileState {
       required final List<PostModel> posts,
       required final bool isCurrentUser,
       required final bool isFollowing,
-      required final bool isPrivateView,
-      required final bool hasPrivateProfile}) = _$ProfileStateImpl;
+      required final bool isAltView,
+      required final bool hasAltProfile}) = _$ProfileStateImpl;
 
   @override
   UserModel? get user; // Make user nullable
@@ -274,9 +274,9 @@ abstract class _ProfileState implements ProfileState {
   @override
   bool get isFollowing;
   @override
-  bool get isPrivateView;
+  bool get isAltView;
   @override
-  bool get hasPrivateProfile;
+  bool get hasAltProfile;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.

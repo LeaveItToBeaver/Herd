@@ -6,23 +6,23 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../providers/edit_private_profile_notifier.dart';
+import '../providers/edit_alt_profile_notifier.dart';
 
-class PrivateProfileEditScreen extends ConsumerStatefulWidget {
+class AltProfileEditScreen extends ConsumerStatefulWidget {
   final UserModel user;
   final bool isInitialSetup;
 
-  const PrivateProfileEditScreen({
+  const AltProfileEditScreen({
     Key? key,
     required this.user,
     this.isInitialSetup = false,
   }) : super(key: key);
 
   @override
-  ConsumerState<PrivateProfileEditScreen> createState() => _PrivateProfileEditScreenState();
+  ConsumerState<AltProfileEditScreen> createState() => _AltProfileEditScreenState();
 }
 
-class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScreen> {
+class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   File? _profileImage;
@@ -32,24 +32,24 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
   @override
   void initState() {
     super.initState();
-    _bioController.text = widget.user.privateBio ?? '';
+    _bioController.text = widget.user.altBio ?? '';
     _usernameController.text = widget.user.username;
   }
 
   void _saveChanges() async {
-    ref.read(editPrivateProfileProvider(widget.user).notifier).bioChanged(_bioController.text);
-    ref.read(editPrivateProfileProvider(widget.user).notifier).usernameChanged(_usernameController.text);
-    await ref.read(editPrivateProfileProvider(widget.user).notifier).submit();
+    ref.read(editAltProfileProvider(widget.user).notifier).bioChanged(_bioController.text);
+    ref.read(editAltProfileProvider(widget.user).notifier).usernameChanged(_usernameController.text);
+    await ref.read(editAltProfileProvider(widget.user).notifier).submit();
 
-    if (ref.read(editPrivateProfileProvider(widget.user)).errorMessage == null && context.mounted) {
+    if (ref.read(editAltProfileProvider(widget.user)).errorMessage == null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Private profile updated sucessfully.")),
+        const SnackBar(content: Text("Alt profile updated sucessfully.")),
       );
 
       context.pop();
 
       if (widget.isInitialSetup) {
-        context.go('/privateFeed');
+        context.go('/altFeed');
       }
     }
   }
@@ -67,7 +67,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
       setState(() {
         _profileImage = File(image.path);
       });
-      ref.read(editPrivateProfileProvider(widget.user).notifier).profileImageChanged(_profileImage);
+      ref.read(editAltProfileProvider(widget.user).notifier).profileImageChanged(_profileImage);
     }
   }
 
@@ -77,17 +77,17 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
       setState(() {
         _coverImage = File(image.path);
       });
-      ref.read(editPrivateProfileProvider(widget.user).notifier).coverImageChanged(_coverImage);
+      ref.read(editAltProfileProvider(widget.user).notifier).coverImageChanged(_coverImage);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(editPrivateProfileProvider(widget.user));
+    final state = ref.watch(editAltProfileProvider(widget.user));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isInitialSetup ? 'Set Up Private Profile' : 'Edit Private Profile'),
+        title: Text(widget.isInitialSetup ? 'Set Up Alt Profile' : 'Edit Alt Profile'),
         actions: [
           TextButton(
             onPressed: state.isSubmitting ? null : _saveChanges,
@@ -114,14 +114,14 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome to Your Private Profile',
+                      'Welcome to Your Alt Profile',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'This is where you can create a separate identity for interacting with the world. Your private profile has its own bio, profile picture, and content that won\'t be visible on your public profile.',
+                      'This is where you can create a separate identity for interacting with the world. Your alt profile has its own bio, profile picture, and content that won\'t be visible on your public profile.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -137,7 +137,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                 children: [
                   UserCoverImage(
                     isSelected: true,
-                    coverImageUrl: widget.user.privateCoverImageURL,
+                    coverImageUrl: widget.user.altCoverImageURL,
                     coverFile: _coverImage,
                   ),
                   Container(
@@ -164,7 +164,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                   children: [
                     UserProfileImage(
                       radius: 50,
-                      profileImageUrl: widget.user.privateProfileImageURL ?? widget.user.profileImageURL,
+                      profileImageUrl: widget.user.altProfileImageURL ?? widget.user.profileImageURL,
                       profileImage: _profileImage,
                     ),
                     Positioned(
@@ -215,7 +215,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
             ],
 
             Text(
-              'Private Bio',
+              'Alt Bio',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.secondary,
@@ -230,7 +230,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                hintText: state.bio.isEmpty ? 'Tell us about yourself in your private profile...' : null,
+                hintText: state.bio.isEmpty ? 'Tell us about yourself in your alt profile...' : null,
               ),
             ),
             const SizedBox(height: 24),
@@ -266,7 +266,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                     ),
                     const SizedBox(height: 12),
                     _buildSwitchRow(
-                      'Show Public Profile in Private Feed',
+                      'Show Public Profile in Alt Feed',
                       true, // Default value
                           (value) {
                         //TODO: Update setting
@@ -297,7 +297,7 @@ class _PrivateProfileEditScreenState extends ConsumerState<PrivateProfileEditScr
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'After setting up your private profile, you can create private posts, connect with friends, and join herds. Switch between your public and private profiles using the navbar at the bottom of the screen.',
+                      'After setting up your alt profile, you can create alt posts, connect with friends, and join herds. Switch between your public and alt profiles using the navbar at the bottom of the screen.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],

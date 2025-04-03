@@ -10,11 +10,11 @@ import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
-  final bool isPrivate;
+  final bool isAlt;
 
   const CreatePostScreen({
     super.key,
-    this.isPrivate = false, // Default to public posts
+    this.isAlt = false, // Default to public posts
   });
 
   @override
@@ -27,14 +27,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   String _content = '';
   File? _postMedia;
   bool _isSubmitting = false;
-  late bool _isPrivate;
+  late bool _isAlt;
   bool _isVideo = false;
 
   @override
   void initState() {
     super.initState();
     // Initialize with the provided value
-    _isPrivate = widget.isPrivate;
+    _isAlt = widget.isAlt;
   }
 
   @override
@@ -48,7 +48,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
-          title: Text(_isPrivate ? "Create Private Post" : "Create Public Post"),
+          title: Text(_isAlt ? "Create Alt Post" : "Create Public Post"),
           actions: [
             // Add submit button in app bar
             if (!_isSubmitting)
@@ -99,7 +99,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: _isPrivate ? Colors.blue : Colors.grey.shade300,
+                color: _isAlt ? Colors.blue : Colors.grey.shade300,
                 width: 1,
               ),
             ),
@@ -118,11 +118,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ),
                       ),
                       Switch(
-                        value: _isPrivate,
+                        value: _isAlt,
                         activeColor: Colors.blue,
                         onChanged: (value) {
                           setState(() {
-                            _isPrivate = value;
+                            _isAlt = value;
                           });
                         },
                       ),
@@ -132,22 +132,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   Row(
                     children: [
                       Icon(
-                        _isPrivate ? Icons.lock : Icons.public,
-                        color: _isPrivate ? Colors.blue : Colors.grey,
+                        _isAlt ? Icons.lock : Icons.public,
+                        color: _isAlt ? Colors.blue : Colors.grey,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _isPrivate ? 'Private Post' : 'Public Post',
+                        _isAlt ? 'Alt Post' : 'Public Post',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: _isPrivate ? Colors.blue : Colors.grey,
+                          color: _isAlt ? Colors.blue : Colors.grey,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _isPrivate
-                        ? 'Only visible to your private connections.'
+                    _isAlt
+                        ? 'Only visible to your alt connections.'
                         : 'Visible to everyone in your public feed.',
                     style: theme.textTheme.bodySmall,
                   ),
@@ -172,15 +172,15 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             height: 50,
             child: ElevatedButton.icon(
               icon: Icon(
-                _isPrivate ? Icons.lock : Icons.send,
+                _isAlt ? Icons.lock : Icons.send,
                 color: Colors.white,
               ),
               label: Text(
-                _isPrivate ? 'Post Privately' : 'Post Publicly',
+                _isAlt ? 'Post Altly' : 'Post Publicly',
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isPrivate ? Colors.blue : Colors.black,
+                backgroundColor: _isAlt ? Colors.blue : Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -234,7 +234,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _isPrivate ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300,
+            color: _isAlt ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300,
           ),
         ),
         child: _postMedia != null
@@ -245,13 +245,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             Icon(
               Icons.add_photo_alternate,
               size: 64,
-              color: _isPrivate ? Colors.blue.withOpacity(0.7) : Colors.black54,
+              color: _isAlt ? Colors.blue.withOpacity(0.7) : Colors.black54,
             ),
             const SizedBox(height: 8),
             Text(
               'Tap to add media (images, GIFs, videos)',
               style: TextStyle(
-                color: _isPrivate ? Colors.blue.withOpacity(0.7) : Colors.black54,
+                color: _isAlt ? Colors.blue.withOpacity(0.7) : Colors.black54,
               ),
             ),
           ],
@@ -261,7 +261,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Widget _buildPostForm(BuildContext context) {
-    final borderColor = _isPrivate ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300;
+    final borderColor = _isAlt ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300;
 
     return Form(
       key: _formKey,
@@ -278,13 +278,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _isPrivate ? Colors.blue : Colors.black,
+                  color: _isAlt ? Colors.blue : Colors.black,
                   width: 2,
                 ),
               ),
               prefixIcon: Icon(
                 Icons.title,
-                color: _isPrivate ? Colors.blue : null,
+                color: _isAlt ? Colors.blue : null,
               ),
             ),
             onChanged: (value) => _title = value,
@@ -305,7 +305,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _isPrivate ? Colors.blue : Colors.black,
+                  color: _isAlt ? Colors.blue : Colors.black,
                   width: 2,
                 ),
               ),
@@ -313,7 +313,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 padding: const EdgeInsets.only(bottom: 100),
                 child: Icon(
                   Icons.article,
-                  color: _isPrivate ? Colors.blue : null,
+                  color: _isAlt ? Colors.blue : null,
                 ),
               ),
             ),
@@ -338,22 +338,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         content: _content,
         imageFile: _postMedia,
         userId: currentUser.id,
-        isPrivate: _isPrivate, // Pass privacy setting to controller
+        isAlt: _isAlt, // Pass privacy setting to controller
       );
 
       if (mounted) {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isPrivate
-                ? 'Private post created successfully!'
+            content: Text(_isAlt
+                ? 'Alt post created successfully!'
                 : 'Post created successfully!'),
-            backgroundColor: _isPrivate ? Colors.blue : Colors.green,
+            backgroundColor: _isAlt ? Colors.blue : Colors.green,
           ),
         );
 
         // Navigate to the post
-        _isSubmitting ? context.go('/privatePost/$postId') : context.go('/post/$postId?isPrivate=${_isPrivate}');
+        _isSubmitting ? context.go('/altPost/$postId') : context.go('/post/$postId?isAlt=${_isAlt}');
       }
     } catch (e) {
       if (mounted) {

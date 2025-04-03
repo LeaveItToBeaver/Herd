@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
 enum BottomNavItem {
-  privateFeed,
+  altFeed,
   create,
   publicFeed,
 }
 
 final bottomNavItems = [
-  BottomNavItem.privateFeed,
+  BottomNavItem.altFeed,
   BottomNavItem.create,
   BottomNavItem.publicFeed,
 ];
 
 final bottomNavIcons = {
-  BottomNavItem.privateFeed: Icons.home_filled,
+  BottomNavItem.altFeed: Icons.home_filled,
   BottomNavItem.create: Icons.add,
   BottomNavItem.publicFeed: Icons.home,
 };
 
 final bottomNavRoutes = {
-  BottomNavItem.privateFeed: 'privateFeed',
+  BottomNavItem.altFeed: 'altFeed',
   BottomNavItem.create: 'create',
   BottomNavItem.publicFeed: 'publicFeed',
 };

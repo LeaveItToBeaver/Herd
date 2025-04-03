@@ -100,13 +100,13 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
     }
 
     final parentComment = threadState.parentComment;
-    final isPrivatePost = parentComment.isPrivatePost;
+    final isAltPost = parentComment.isAltPost;
 
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            if (isPrivatePost) ...[
+            if (isAltPost) ...[
               const Icon(Icons.lock, size: 16),
               const SizedBox(width: 8),
             ],
@@ -135,7 +135,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                 // Parent comment
                 CommentWidget(
                   comment: parentComment,
-                  isPrivatePost: isPrivatePost,
+                  isAltPost: isAltPost,
                   depth: 0,
                   maxDepth: 20, // Allow deeper nesting in thread view
                   onReplyTap: () => _focusReplyField(),
@@ -158,7 +158,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                 // Replies list
                 ...threadState.replies.map((reply) => CommentWidget(
                   comment: reply,
-                  isPrivatePost: isPrivatePost,
+                  isAltPost: isAltPost,
                   depth: 1, // Start at depth 1 since these are direct replies
                   maxDepth: 20, // Allow deeper nesting in thread view
                   onReplyTap: () => _focusReplyField(),
@@ -210,8 +210,8 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                       CircleAvatar(
                         radius: 16,
                         backgroundImage: currentUser.profileImageURL != null
-                            ? NetworkImage(isPrivatePost
-                            ? (currentUser.privateProfileImageURL ?? currentUser.profileImageURL!)
+                            ? NetworkImage(isAltPost
+                            ? (currentUser.altProfileImageURL ?? currentUser.profileImageURL!)
                             : currentUser.profileImageURL!)
                             : null,
                         child: currentUser.profileImageURL == null
@@ -350,14 +350,14 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
     try {
       // Get the post ID from the parent comment
       final postId = threadState.parentComment.postId;
-      final isPrivatePost = threadState.parentComment.isPrivatePost;
+      final isAltPost = threadState.parentComment.isAltPost;
 
       // Create the reply
       await ref.read(commentsProvider(postId).notifier).createComment(
         authorId: currentUser.id,
         content: _replyController.text.trim(),
         parentId: widget.commentId,
-        isPrivatePost: isPrivatePost,
+        isAltPost: isAltPost,
         mediaFile: _mediaFile,
         ref: ref,
       );

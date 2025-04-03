@@ -45,7 +45,7 @@ class _PublicProfileEditScreenState extends ConsumerState<PublicProfileEditScree
 
     if (ref.read(editPublicProfileProvider(widget.user)).errorMessage == null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Private profile updated sucessfully.")),
+        const SnackBar(content: Text("Alt profile updated sucessfully.")),
       );
 
       context.pop();

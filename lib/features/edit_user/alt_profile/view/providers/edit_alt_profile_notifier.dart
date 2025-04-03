@@ -1,19 +1,19 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/edit_user/private_profile/view/providers/state/edit_private_profile_state.dart';
+import 'package:herdapp/features/edit_user/alt_profile/view/providers/state/edit_alt_profile_state.dart';
 
 import '../../../../user/data/models/user_model.dart';
 import '../../../../user/data/repositories/user_repository.dart';
 
-class EditPrivateProfileNotifier extends StateNotifier<EditPrivateProfileState> {
+class EditAltProfileNotifier extends StateNotifier<EditAltProfileState> {
   final UserRepository userRepository;
   final UserModel user;
 
-  EditPrivateProfileNotifier({required this.userRepository, required this.user})
-      : super(EditPrivateProfileState(
+  EditAltProfileNotifier({required this.userRepository, required this.user})
+      : super(EditAltProfileState(
     username: user.username,
-    bio: user.privateBio ?? '',
+    bio: user.altBio ?? '',
   ));
 
   void usernameChanged(String value) {
@@ -23,7 +23,7 @@ class EditPrivateProfileNotifier extends StateNotifier<EditPrivateProfileState> 
   void bioChanged(String value) {
     state = state.copyWith(bio: value);
   }
-
+  
   void coverImageChanged(File? file) {
     state = state.copyWith(coverImage: file);
   }
@@ -40,29 +40,29 @@ class EditPrivateProfileNotifier extends StateNotifier<EditPrivateProfileState> 
       final Map<String, dynamic> updatedData = {
         // Username is shared between profiles, so this stays the same
         'username': state.username,
-        // Use privateBio instead of bio for the private profile
-        'privateBio': state.bio,
+        // Use altBio instead of bio for the alt profile
+        'altBio': state.bio,
       };
 
       if (state.coverImage != null) {
         final coverImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.coverImage!,
-          type: 'private_cover',
+          type: 'alt_cover',
         );
-        updatedData['privateCoverImageURL'] = coverImageUrl;
+        updatedData['altCoverImageURL'] = coverImageUrl;
       }
 
       if (state.profileImage != null) {
         final profileImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.profileImage!,
-          type: 'private_profile',
+          type: 'alt_profile',
         );
-        updatedData['privateProfileImageURL'] = profileImageUrl;
+        updatedData['altProfileImageURL'] = profileImageUrl;
       }
 
-      await userRepository.updatePrivateProfile(user.id, updatedData);
+      await userRepository.updateAltProfile(user.id, updatedData);
       state = state.copyWith(isSubmitting: false);
     } catch (error) {
       state = state.copyWith(isSubmitting: false, errorMessage: error.toString());
@@ -70,10 +70,10 @@ class EditPrivateProfileNotifier extends StateNotifier<EditPrivateProfileState> 
   }
 }
 
-final editPrivateProfileProvider =
-StateNotifierProvider.family<EditPrivateProfileNotifier, EditPrivateProfileState, UserModel>(
+final editAltProfileProvider =
+StateNotifierProvider.family<EditAltProfileNotifier, EditAltProfileState, UserModel>(
       (ref, user) {
     final userRepository = ref.watch(userRepositoryProvider);
-    return EditPrivateProfileNotifier(userRepository: userRepository, user: user);
+    return EditAltProfileNotifier(userRepository: userRepository, user: user);
   },
 );

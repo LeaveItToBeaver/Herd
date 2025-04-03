@@ -3,11 +3,11 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/feed/data/repositories/feed_repository.dart';
 
 /// Repository for handling private feed operations
-class PrivateFeedRepository extends FeedRepository {
-  PrivateFeedRepository(super.firestore);
+class AltFeedRepository extends FeedRepository {
+  AltFeedRepository(super.firestore);
 
-  CollectionReference<Map<String, dynamic>> get globalPrivatePostsCollection =>
-      firestore.collection('globalPrivatePosts');
+  CollectionReference<Map<String, dynamic>> get globalAltPostsCollection =>
+      firestore.collection('globalAltPosts');
 
   /// Get posts for the private feed - shows ALL private posts globally
   ///
@@ -15,18 +15,18 @@ class PrivateFeedRepository extends FeedRepository {
   /// [limit] Maximum number of posts to fetch (default: 15)
   /// [lastPost] Optional last post for pagination
   /// [decayFactor] Optional factor to adjust algorithm decay rate (default: 1.0)
-// In PrivateFeedRepository
-  Future<List<PostModel>> getPrivateFeed({
+// In AltFeedRepository
+  Future<List<PostModel>> getAltFeed({
     required String userId,  // This parameter isn't needed if showing all posts globally
     int limit = 15,
     PostModel? lastPost,
     double decayFactor = 1.0,
   }) async {
     try {
-      print("DEBUG: Attempting to query globalPrivatePosts collection");
+      print("DEBUG: Attempting to query globalAltPosts collection");
 
-      // Query the globalPrivatePosts collection directly
-      var postsQuery = globalPrivatePostsCollection
+      // Query the globalAltPosts collection directly
+      var postsQuery = globalAltPostsCollection
           .orderBy('createdAt', descending: true)
           .limit(limit);
 
@@ -49,20 +49,20 @@ class PrivateFeedRepository extends FeedRepository {
 
       return sortedPosts;
     } catch (e, stackTrace) {
-      logError('getPrivateFeed', e, stackTrace);
+      logError('getAltFeed', e, stackTrace);
       rethrow;
     }
   }
 
-// Similarly for streamPrivateFeed
-  Stream<List<PostModel>> streamPrivateFeed({
+// Similarly for streamAltFeed
+  Stream<List<PostModel>> streamAltFeed({
     int limit = 15,
     double decayFactor = 1.0,
   }) {
     try {
       // Stream all private posts from the main posts collection
-      return globalPrivatePostsCollection
-          //.where('isPrivate', isEqualTo: true)
+      return globalAltPostsCollection
+          //.where('isAlt', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)
           .snapshots()
@@ -76,7 +76,7 @@ class PrivateFeedRepository extends FeedRepository {
         return sortedPosts;
       });
     } catch (e, stackTrace) {
-      logError('streamPrivateFeed', e, stackTrace);
+      logError('streamAltFeed', e, stackTrace);
       rethrow;
     }
   }
@@ -85,7 +85,7 @@ class PrivateFeedRepository extends FeedRepository {
   ///
   /// [lastPost] The last post currently displayed
   /// [limit] Number of additional posts to fetch
-  Future<List<PostModel>> getMorePrivatePosts({
+  Future<List<PostModel>> getMoreAltPosts({
     required PostModel lastPost,
     int limit = 15,
     double decayFactor = 1.0,
@@ -97,8 +97,8 @@ class PrivateFeedRepository extends FeedRepository {
       }
 
       // Query for more posts after the last one
-      var postsSnapshot = await globalPrivatePostsCollection
-          //.where('isPrivate', isEqualTo: true)
+      var postsSnapshot = await globalAltPostsCollection
+          //.where('isAlt', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .startAfter([lastPost.createdAt])
           .limit(limit)
@@ -114,14 +114,14 @@ class PrivateFeedRepository extends FeedRepository {
 
       return sortedPosts;
     } catch (e, stackTrace) {
-      logError('getMorePrivatePosts', e, stackTrace);
+      logError('getMoreAltPosts', e, stackTrace);
       rethrow;
     }
   }
 
   /// Get highlighted private posts with high engagement
   /// This is useful for featuring posts at the top of the feed
-  Future<List<PostModel>> getHighlightedPrivatePosts({
+  Future<List<PostModel>> getHighlightedAltPosts({
     int limit = 5,
   }) async {
     try {
@@ -129,8 +129,8 @@ class PrivateFeedRepository extends FeedRepository {
       final DateTime threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
       final threeDaysAgoTimestamp = Timestamp.fromDate(threeDaysAgo);
 
-      var postsSnapshot = await globalPrivatePostsCollection
-          //.where('isPrivate', isEqualTo: true)
+      var postsSnapshot = await globalAltPostsCollection
+          //.where('isAlt', isEqualTo: true)
           .where('createdAt', isGreaterThan: threeDaysAgoTimestamp)
           .orderBy('createdAt', descending: true)
           .limit(limit * 3) // Get more to allow for sorting by engagement
@@ -145,7 +145,7 @@ class PrivateFeedRepository extends FeedRepository {
 
       return highlightedPosts.take(limit).toList();
     } catch (e, stackTrace) {
-      logError('getHighlightedPrivatePosts', e, stackTrace);
+      logError('getHighlightedAltPosts', e, stackTrace);
       rethrow;
     }
   }

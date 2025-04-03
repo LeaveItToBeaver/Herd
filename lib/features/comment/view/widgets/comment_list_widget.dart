@@ -11,12 +11,12 @@ import 'package:herdapp/features/user/view/providers/current_user_provider.dart'
 
 class CommentListWidget extends ConsumerStatefulWidget {
   final String postId;
-  final bool isPrivatePost;
+  final bool isAltPost;
 
   const CommentListWidget({
     Key? key,
     required this.postId,
-    this.isPrivatePost = false,
+    this.isAltPost = false,
   }) : super(key: key);
 
   @override
@@ -109,8 +109,8 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
                 CircleAvatar(
                   radius: 20,
                   backgroundImage: currentUser.profileImageURL != null
-                      ? NetworkImage(widget.isPrivatePost
-                      ? (currentUser.privateProfileImageURL ?? currentUser.profileImageURL!)
+                      ? NetworkImage(widget.isAltPost
+                      ? (currentUser.altProfileImageURL ?? currentUser.profileImageURL!)
                       : currentUser.profileImageURL!)
                       : null,
                   child: currentUser.profileImageURL == null
@@ -205,7 +205,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
               // Map comments to widgets directly
               ...commentsState.comments.map((comment) => CommentWidget(
                 comment: comment,
-                isPrivatePost: widget.isPrivatePost,
+                isAltPost: widget.isAltPost,
                 onReplyTap: () => _showReplyDialog(context, comment.id),
               )),
 
@@ -280,7 +280,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
       await ref.read(commentsProvider(widget.postId).notifier).createComment(
         authorId: currentUser.id,
         content: _commentController.text.trim(),
-        isPrivatePost: widget.isPrivatePost,
+        isAltPost: widget.isAltPost,
         mediaFile: _mediaFile,
         ref: ref
       );
@@ -311,7 +311,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
       builder: (context) => ReplyDialog(
         postId: widget.postId,
         parentId: parentId,
-        isPrivatePost: widget.isPrivatePost,
+        isAltPost: widget.isAltPost,
       ),
     );
   }

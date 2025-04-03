@@ -6,18 +6,18 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 import '../../../auth/view/providers/auth_provider.dart';
 import '../providers/state/profile_state.dart';
-import '../widgets/private_connection_request_button.dart';
+import '../widgets/alt_connection_request_button.dart';
 
-class PrivateProfileScreen extends ConsumerStatefulWidget {
+class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
 
-  const PrivateProfileScreen({super.key, required this.userId});
+  const AltProfileScreen({super.key, required this.userId});
 
   @override
-  ConsumerState<PrivateProfileScreen> createState() => _PrivateProfileScreenState();
+  ConsumerState<AltProfileScreen> createState() => _AltProfileScreenState();
 }
 
-class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
+class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late ScrollController _scrollViewController;
@@ -33,7 +33,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
       if (widget.userId.isNotEmpty) {
         ref.read(profileControllerProvider.notifier).loadProfile(
           widget.userId,
-          isPrivateView: true, // Force private view
+          isAltView: true, // Force alt view
         );
       }
     });
@@ -59,16 +59,16 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
           }
 
           // Check if this is the current user viewing their own profile
-          // AND they don't have a private profile set up yet
-          if (profile.isCurrentUser && !profile.hasPrivateProfile) {
-            return _buildCreatePrivateProfileView(profile);
+          // AND they don't have a alt profile set up yet
+          if (profile.isCurrentUser && !profile.hasAltProfile) {
+            return _buildCreateAltProfileView(profile);
           }
 
           return RefreshIndicator(
             onRefresh: () async {
               await ref
                   .read(profileControllerProvider.notifier)
-                  .loadProfile(widget.userId, isPrivateView: true);
+                  .loadProfile(widget.userId, isAltView: true);
             },
             child: NestedScrollView(
               controller: _scrollViewController,
@@ -84,7 +84,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                       Positioned.fill(
                           child: UserCoverImage(
                             isSelected: false,
-                            coverImageUrl: profile.user?.privateCoverImageURL ?? profile.user?.coverImageURL,
+                            coverImageUrl: profile.user?.altCoverImageURL ?? profile.user?.coverImageURL,
                           )
                       )
                     ],
@@ -140,7 +140,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                               children: [
                                 UserProfileImage(
                                   radius: 40.0,
-                                  profileImageUrl: profile.user?.privateProfileImageURL ?? profile.user?.profileImageURL,
+                                  profileImageUrl: profile.user?.altProfileImageURL ?? profile.user?.profileImageURL,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -158,16 +158,16 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                               ],
                             ),
                             const SizedBox(height: 16),
-                            if (profile.user?.privateBio != null && profile.user!.privateBio!.isNotEmpty)
+                            if (profile.user?.altBio != null && profile.user!.altBio!.isNotEmpty)
                               Text(
-                                profile.user!.privateBio!,
+                                profile.user!.altBio!,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _buildStatColumn('Private Posts', profile.posts.where((post) => post.isPrivate).length.toString()),
+                                _buildStatColumn('Alt Posts', profile.posts.where((post) => post.isAlt).length.toString()),
                                 _buildStatColumn('Connections', profile.user?.friends?.toString() ?? '0'),
                                 _buildStatColumn('Groups', '0'), // Assuming groups field is not yet implemented
                               ],
@@ -176,7 +176,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                             if (!profile.isCurrentUser)
                               SizedBox(
                                 width: double.infinity,
-                                child: PrivateConnectionButton(targetUserId: profile.user!.id),
+                                child: AltConnectionButton(targetUserId: profile.user!.id),
                               ),
                           ],
                         ),
@@ -191,7 +191,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                     unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: const [
-                      Tab(text: 'Private Posts'),
+                      Tab(text: 'Alt Posts'),
                       Tab(text: 'Groups'),
                       Tab(text: 'About'),
                     ],
@@ -201,14 +201,14 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
               body: TabBarView(
                 controller: _tabController,
                 children: [
-                  // Private posts tab - filter only private posts
+                  // Alt posts tab - filter only alt posts
                   PostListWidget(
-                    posts: profile.posts.where((post) => post.isPrivate).toList(),
+                    posts: profile.posts.where((post) => post.isAlt).toList(),
                     userId: profile.user?.id ?? (throw Exception("User ID is null")),
                   ),
                   // Groups tab - show user's groups
                   _buildGroupsSection(profile),
-                  // About tab - show private profile info
+                  // About tab - show alt profile info
                   _buildAboutSection(profile),
                 ],
               ),
@@ -218,8 +218,8 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
     );
   }
 
-  // Build the view for when a user needs to create their private profile
-  Widget _buildCreatePrivateProfileView(ProfileState profile) {
+  // Build the view for when a user needs to create their alt profile
+  Widget _buildCreateAltProfileView(ProfileState profile) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -233,7 +233,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              'Welcome to Your Private Space',
+              'Welcome to Your Alt Space',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -241,14 +241,14 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Your private profile allows you to connect with close friends and share content that\'s just for them.',
+              'Your alt profile allows you to connect with close friends and share content that\'s just for them.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
-                // Navigate to set up private profile
+                // Navigate to set up alt profile
                 context.push('/editProfile', extra: {
                   'user': profile.user!,
                   'isPublic': false,
@@ -261,7 +261,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 textStyle: const TextStyle(fontSize: 16),
               ),
-              child: const Text('Set Up Your Private Profile'),
+              child: const Text('Set Up Your Alt Profile'),
             ),
             const SizedBox(height: 16),
             TextButton(
@@ -339,7 +339,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Private Profile',
+              'Alt Profile',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -351,13 +351,13 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                   children: [
                     _buildInfoRow('Username', '@${profile.user?.username}'),
                     const SizedBox(height: 8),
-                    if (profile.user?.privateBio != null && profile.user!.privateBio!.isNotEmpty) ...[
-                      _buildInfoRow('Bio', profile.user!.privateBio!),
+                    if (profile.user?.altBio != null && profile.user!.altBio!.isNotEmpty) ...[
+                      _buildInfoRow('Bio', profile.user!.altBio!),
                       const SizedBox(height: 8),
                     ],
                     _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Private Posts', '${profile.posts.where((post) => post.isPrivate).length}'),
+                    _buildInfoRow('Alt Posts', '${profile.posts.where((post) => post.isAlt).length}'),
                   ],
                 ),
               ),
@@ -376,7 +376,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
                   child: Column(
                     children: [
                       _buildSwitchRow(
-                        'Show Public Profile in Private Feed',
+                        'Show Public Profile in Alt Feed',
                         true, // Default value
                             (value) {
                           // Update setting
@@ -448,7 +448,7 @@ class _PrivateProfileScreenState extends ConsumerState<PrivateProfileScreen>
 
   Widget errorWidget(Object error, StackTrace stack) {
     if (kDebugMode) {
-      print('Private Profile Screen Error: $error');
+      print('Alt Profile Screen Error: $error');
     }
 
     return Center(

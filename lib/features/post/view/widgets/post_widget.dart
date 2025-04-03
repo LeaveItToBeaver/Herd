@@ -62,14 +62,14 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
       onTap: () => context.pushNamed(
         'post',
         pathParameters: {'id': widget.post.id},
-        queryParameters: {'isPrivate': widget.post.isPrivate.toString()},
+        queryParameters: {'isAlt': widget.post.isAlt.toString()},
       ),
       child: Card(
         elevation: 5,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
-          side: widget.post.isPrivate
+          side: widget.post.isAlt
               ? BorderSide(color: Colors.blue.shade300, width: 2)
               : BorderSide.none,
         ),
@@ -77,7 +77,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Privacy indicator bar
-            if (widget.post.isPrivate)
+            if (widget.post.isAlt)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
@@ -93,7 +93,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
                     const Icon(Icons.lock, size: 14, color: Colors.blue),
                     const SizedBox(width: 6),
                     Text(
-                      'Private Post',
+                      'Alt Post',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -112,7 +112,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
                   userAsyncValue.when(
                     loading: () => _buildLoadingHeader(),
                     error: (error, stack) => Text('Error: $error'),
-                    data: (user) => _buildUserHeader(context, user, widget.post.authorId, widget.post.isPrivate),
+                    data: (user) => _buildUserHeader(context, user, widget.post.authorId, widget.post.isAlt),
                   ),
 
                   const SizedBox(height: 12),
@@ -254,21 +254,21 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     );
   }
 
-  Widget _buildUserHeader(BuildContext context, UserModel? user, String authorId, bool isPrivate) {
+  Widget _buildUserHeader(BuildContext context, UserModel? user, String authorId, bool isAlt) {
     if (user == null) {
       return const Text('User not found');
     }
 
     // Use appropriate profile image based on post privacy
-    final profileImageUrl = isPrivate
-        ? (user.privateProfileImageURL ?? user.profileImageURL)
+    final profileImageUrl = isAlt
+        ? (user.altProfileImageURL ?? user.profileImageURL)
         : user.profileImageURL;
 
     return Row(
       children: [
         GestureDetector(
           onTap: () => context.pushNamed(
-            isPrivate ? 'privateProfile' : 'publicProfile',
+            isAlt ? 'altProfile' : 'publicProfile',
             pathParameters: {'id': authorId},
           ),
           child: CircleAvatar(
@@ -292,7 +292,7 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
         Expanded(
           child: GestureDetector(
             onTap: () => context.pushNamed(
-              isPrivate ? 'privateProfile' : 'publicProfile',
+              isAlt ? 'altProfile' : 'publicProfile',
               pathParameters: {'id': authorId},
             ),
             child: Column(
@@ -301,12 +301,12 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
                 Row(
                   children: [
                     Text(
-                      isPrivate
+                      isAlt
                           ? (user.username ?? '')
                           : '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim(),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    if (isPrivate) ...[
+                    if (isAlt) ...[
                       const SizedBox(width: 6),
                       const Icon(Icons.lock, size: 14, color: Colors.blue),
                     ],
@@ -352,8 +352,8 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
       children: [
         _buildIconButton(
           Icons.share_rounded,
-          onPressed: post.isPrivate ? null : () {},
-          enabled: !post.isPrivate,
+          onPressed: post.isAlt ? null : () {},
+          enabled: !post.isAlt,
         ),
         Row(
           children: [
@@ -412,11 +412,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   void _handleLikePost(String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
-    final isPrivate = widget.post.isPrivate;
+    final isAlt = widget.post.isAlt;
 
     if (userId != null) {
       ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isPrivate: isPrivate)
+          PostParams(id: postId, isAlt: isAlt)
       ).notifier).likePost(userId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -428,11 +428,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   void _handleDislikePost(String postId) {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
-    final isPrivate = widget.post.isPrivate;
+    final isAlt = widget.post.isAlt;
 
     if (userId != null) {
       ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isPrivate: isPrivate)
+          PostParams(id: postId, isAlt: isAlt)
       ).notifier).dislikePost(userId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

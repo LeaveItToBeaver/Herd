@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/feed/public_feed/data/repositories/public_feed_repository.dart';
-import 'package:herdapp/features/feed/private_feed/data/repositories/private_feed_repository.dart';
+import 'package:herdapp/features/feed/alt_feed/data/repositories/alt_feed_repository.dart';
 
-import '../private_feed/view/providers/state/private_feed_state.dart';
+import '../alt_feed/view/providers/state/alt_feed_state.dart';
 import '../public_feed/view/providers/state/public_feed_state.dart';
 
 // Repository providers
@@ -13,8 +13,8 @@ final publicFeedRepositoryProvider = Provider<PublicFeedRepository>((ref) {
   return PublicFeedRepository(FirebaseFirestore.instance);
 });
 
-final privateFeedRepositoryProvider = Provider<PrivateFeedRepository>((ref) {
-  return PrivateFeedRepository(FirebaseFirestore.instance);
+final altFeedRepositoryProvider = Provider<AltFeedRepository>((ref) {
+  return AltFeedRepository(FirebaseFirestore.instance);
 });
 
 // Decay factor provider - allows customizing the algorithm weight
@@ -165,15 +165,15 @@ final publicFeedControllerProvider = StateNotifierProvider<PublicFeedController,
   return PublicFeedController(repository, user.uid);
 });
 
-// ===== PRIVATE FEED PROVIDERS =====
+// ===== Alt FEED PROVIDERS =====
 
-/// Controller for private feed with pagination using Freezed state
-class PrivateFeedController extends StateNotifier<PrivateFeedState> {
-  final PrivateFeedRepository repository;
+/// Controller for alt feed with pagination using Freezed state
+class AltFeedController extends StateNotifier<AltFeedState> {
+  final AltFeedRepository repository;
   final int pageSize;
 
-  PrivateFeedController(this.repository, {this.pageSize = 15})
-      : super(PrivateFeedState.initial());
+  AltFeedController(this.repository, {this.pageSize = 15})
+      : super(AltFeedState.initial());
 
   /// Initialize the feed with first batch of posts
   Future<void> loadInitialPosts() async {
@@ -184,11 +184,11 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
       state = state.copyWith(isLoading: true, error: null);
 
       print("DEBUG: loadInitialPosts called");
-      final posts = await repository.getPrivateFeed(
+      final posts = await repository.getAltFeed(
         userId: '',
         limit: pageSize,
       );
-      print("DEBUG: getPrivateFeed returned ${posts.length} posts");
+      print("DEBUG: getAltFeed returned ${posts.length} posts");
 
       state = state.copyWith(
         posts: posts,
@@ -217,7 +217,7 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
       // Get the last post for pagination
       final lastPost = state.lastPost ?? state.posts.last;
 
-      final morePosts = await repository.getMorePrivatePosts(
+      final morePosts = await repository.getMoreAltPosts(
         lastPost: lastPost,
         limit: pageSize,
       );
@@ -252,7 +252,7 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
     try {
       state = state.copyWith(isRefreshing: true, error: null);
 
-      final posts = await repository.getPrivateFeed(
+      final posts = await repository.getAltFeed(
         userId: '',  // No need for userId in global feed
         limit: pageSize,
       );
@@ -274,14 +274,14 @@ class PrivateFeedController extends StateNotifier<PrivateFeedState> {
   }
 }
 
-/// Provider for the private feed controller
-final privateFeedControllerProvider = StateNotifierProvider<PrivateFeedController, PrivateFeedState>((ref) {
-  final repository = ref.watch(privateFeedRepositoryProvider);
-  return PrivateFeedController(repository);
+/// Provider for the alt feed controller
+final altFeedControllerProvider = StateNotifierProvider<AltFeedController, AltFeedState>((ref) {
+  final repository = ref.watch(altFeedRepositoryProvider);
+  return AltFeedController(repository);
 });
 
-/// Provider for highlighted private posts
-final highlightedPrivatePostsProvider = FutureProvider<List<PostModel>>((ref) {
-  final repository = ref.watch(privateFeedRepositoryProvider);
-  return repository.getHighlightedPrivatePosts();
+/// Provider for highlighted alt posts
+final highlightedAltPostsProvider = FutureProvider<List<PostModel>>((ref) {
+  final repository = ref.watch(altFeedRepositoryProvider);
+  return repository.getHighlightedAltPosts();
 });

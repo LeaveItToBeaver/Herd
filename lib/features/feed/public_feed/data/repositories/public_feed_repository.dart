@@ -42,7 +42,7 @@ class PublicFeedRepository extends FeedRepository {
       } else {
         // Otherwise, fetch from general posts collection (only public posts)
         var postsQuery = posts
-            .where('isPrivate', isEqualTo: false)
+            .where('isAlt', isEqualTo: false)
             .orderBy('createdAt', descending: true)
             .limit(limit * 2); // Fetch more to allow for sorting
 
@@ -101,7 +101,7 @@ class PublicFeedRepository extends FeedRepository {
       return userFeedStream.handleError((error) {
         // If there's an error with the user feed, return general public posts
         return posts
-            .where('isPrivate', isEqualTo: false)
+            .where('isAlt', isEqualTo: false)
             .orderBy('createdAt', descending: true)
             .limit(limit * 2)
             .snapshots()
@@ -131,7 +131,7 @@ class PublicFeedRepository extends FeedRepository {
       final yesterdayTimestamp = Timestamp.fromDate(yesterday);
 
       var postsSnapshot = await posts
-          .where('isPrivate', isEqualTo: false)
+          .where('isAlt', isEqualTo: false)
           .where('createdAt', isGreaterThan: yesterdayTimestamp)
           .orderBy('createdAt', descending: true)
           .limit(limit * 3) // Get more posts to sort

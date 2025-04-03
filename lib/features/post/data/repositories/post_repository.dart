@@ -16,18 +16,18 @@ class PostRepository {
 
   // Collection references
   CollectionReference<Map<String, dynamic>> get _posts => _firestore.collection('posts');
-  CollectionReference<Map<String, dynamic>> get _globalPrivatePosts => _firestore.collection('globalPrivatePosts');
+  CollectionReference<Map<String, dynamic>> get _globalAltPosts => _firestore.collection('globalAltPosts');
   CollectionReference<Map<String, dynamic>> get _comments => _firestore.collection('comments');
   CollectionReference<Map<String, dynamic>> get _likes => _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes => _firestore.collection('dislikes');
   CollectionReference<Map<String, dynamic>> get _feeds => _firestore.collection('feeds');
-  CollectionReference<Map<String, dynamic>> get _privateFeeds => _firestore.collection('privateFeeds');
+  CollectionReference<Map<String, dynamic>> get _altFeeds => _firestore.collection('altFeeds');
 
   /// Creating a post ///
   Future<void> createPost(PostModel post) async {
     try {
       // First determine which collection to use based on privacy setting
-      final targetCollection = post.isPrivate ? _globalPrivatePosts : _posts;
+      final targetCollection = post.isAlt ? _globalAltPosts : _posts;
 
       // Create the post document in the appropriate collection
       final docRef = await targetCollection.add(post.toMap());
@@ -36,11 +36,11 @@ class PostRepository {
       await docRef.update({'id': docRef.id});
 
       // Add to the post creator's own feed (this is still allowed by security rules)
-      if (post.isPrivate) {
-        // Add to user's own private feed
-        await _privateFeeds
+      if (post.isAlt) {
+        // Add to user's own alt feed
+        await _altFeeds
             .doc(post.authorId)
-            .collection('privateFeed')
+            .collection('altFeed')
             .doc(docRef.id)
             .set({
           ...post.toMap(),
@@ -71,7 +71,7 @@ class PostRepository {
     required File mediaFile,
     required String postId,
     required String userId,
-    bool isPrivate = false,
+    bool isAlt = false,
   }) async {
     try {
       final extension = path.extension(mediaFile.path).toLowerCase();
@@ -89,8 +89,8 @@ class PostRepository {
       }
 
       // Create the storage path with the correct extension
-      final String baseStoragePath = isPrivate
-          ? 'users/$userId/private/posts/$postId'
+      final String baseStoragePath = isAlt
+          ? 'users/$userId/alt/posts/$postId'
           : 'users/$userId/posts/$postId';
 
       // Set appropriate content type based on extension
@@ -104,7 +104,7 @@ class PostRepository {
         final SettableMetadata metadata = SettableMetadata(
           contentType: contentType,
           customMetadata: {
-            'isPrivate': isPrivate.toString(),
+            'isAlt': isAlt.toString(),
             'mediaType': mediaType,
           },
         );
@@ -133,7 +133,7 @@ class PostRepository {
         final SettableMetadata metadata = SettableMetadata(
           contentType: contentType,
           customMetadata: {
-            'isPrivate': isPrivate.toString(),
+            'isAlt': isAlt.toString(),
             'mediaType': mediaType,
           },
         );
@@ -153,7 +153,7 @@ class PostRepository {
         final fullResMetadata = SettableMetadata(
           contentType: contentType,
           customMetadata: {
-            'isPrivate': isPrivate.toString(),
+            'isAlt': isAlt.toString(),
             'mediaType': mediaType,
             'version': 'fullres',
           },
@@ -171,7 +171,7 @@ class PostRepository {
           final thumbnailMetadata = SettableMetadata(
             contentType: contentType,
             customMetadata: {
-              'isPrivate': isPrivate.toString(),
+              'isAlt': isAlt.toString(),
               'mediaType': mediaType,
               'version': 'thumbnail',
             },
@@ -203,7 +203,7 @@ class PostRepository {
     required String userId,
     File? file, // Optional
     String? type, // Optional
-    bool isPrivate = false, // New parameter for differentiating private/public content
+    bool isAlt = false, // New parameter for differentiating alt/public content
   }) async {
     if (file == null) {
       return null; // No file to upload
@@ -214,7 +214,7 @@ class PostRepository {
         mediaFile: file,
         postId: postId,
         userId: userId,
-        isPrivate: isPrivate,
+        isAlt: isAlt,
       );
 
       return result['imageUrl']; // Return the full resolution URL for backward compatibility
@@ -280,20 +280,20 @@ class PostRepository {
   }
 
 
-  // Get private user feed with pagination
-  Future<List<PostModel>> getPrivateUserFeed({
+  // Get alt user feed with pagination
+  Future<List<PostModel>> getAltUserFeed({
     required String userId,
     String? lastPostId,
     int limit = 10,
   }) async {
-    var query = _privateFeeds
+    var query = _altFeeds
         .doc(userId)
-        .collection('privateFeed')
+        .collection('altFeed')
         .orderBy('createdAt', descending: true)
         .limit(limit);
 
     if (lastPostId != null) {
-      final lastPostDoc = await _globalPrivatePosts.doc(lastPostId).get();
+      final lastPostDoc = await _globalAltPosts.doc(lastPostId).get();
       if (lastPostDoc.exists) {
         query = query.startAfterDocument(lastPostDoc);
       }
@@ -303,13 +303,13 @@ class PostRepository {
     return postsSnap.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList();
   }
 
-  Future<List<PostModel>> getPostsWithAuthorDetails({bool privateOnly = false}) async {
+  Future<List<PostModel>> getPostsWithAuthorDetails({bool altOnly = false}) async {
     var query = _posts.orderBy('createdAt', descending: true);
 
-    if (privateOnly) {
-      query = query.where('isPrivate', isEqualTo: true);
+    if (altOnly) {
+      query = query.where('isAlt', isEqualTo: true);
     } else {
-      query = query.where('isPrivate', isEqualTo: false);
+      query = query.where('isAlt', isEqualTo: false);
     }
 
     final postsSnap = await query.get();
@@ -327,13 +327,13 @@ class PostRepository {
           id: post.id,
           authorId: post.authorId,
           username: authorData['username'] ?? 'Unknown',
-          profileImageURL: post.isPrivate
-              ? authorData['privateProfileImageURL'] ?? authorData['profileImageURL']
+          profileImageURL: post.isAlt
+              ? authorData['altProfileImageURL'] ?? authorData['profileImageURL']
               : authorData['profileImageURL'],
           title: post.title,
           content: post.content,
           imageUrl: post.imageUrl,
-          isPrivate: post.isPrivate,
+          isAlt: post.isAlt,
           likeCount: post.likeCount,
           dislikeCount: post.dislikeCount,
           commentCount: post.commentCount,
@@ -356,17 +356,17 @@ class PostRepository {
   }
 
   // Get post by ID
-  Future<PostModel?> getPostById(String postId, {bool? isPrivate, bool forceRefresh = false}) async {
+  Future<PostModel?> getPostById(String postId, {bool? isAlt, bool forceRefresh = false}) async {
     try {
       // Set the correct fetch option based on forceRefresh
       final fetchOptions = forceRefresh
           ? GetOptions(source: Source.server)
           : GetOptions(source: Source.serverAndCache);
 
-      // If we know it's private, check only in private collection
-      if (isPrivate == true) {
+      // If we know it's alt, check only in alt collection
+      if (isAlt == true) {
         final doc = await _firestore
-            .collection('globalPrivatePosts')
+            .collection('globalAltPosts')
             .doc(postId)
             .get(fetchOptions);
         if (doc.exists) {
@@ -376,7 +376,7 @@ class PostRepository {
       }
 
       // If we know it's public, check only in public collection
-      if (isPrivate == false) {
+      if (isAlt == false) {
         final doc = await _firestore
             .collection('posts')
             .doc(postId)
@@ -394,10 +394,10 @@ class PostRepository {
         return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
       }
 
-      // Then try the private posts collection
-      final privateDoc = await _globalPrivatePosts.doc(postId).get();
-      if (privateDoc.exists) {
-        return PostModel.fromMap(privateDoc.id, privateDoc.data()!);
+      // Then try the alt posts collection
+      final altDoc = await _globalAltPosts.doc(postId).get();
+      if (altDoc.exists) {
+        return PostModel.fromMap(altDoc.id, altDoc.data()!);
       }
 
       // If not found in either collection
@@ -409,17 +409,17 @@ class PostRepository {
   }
 
   // Stream specific post
-  Stream<PostModel?> streamPost(String postId, {bool? isPrivate}) {
+  Stream<PostModel?> streamPost(String postId, {bool? isAlt}) {
     try {
-      // If we know it's private, stream only from private collection
-      if (isPrivate == true) {
-        return _globalPrivatePosts.doc(postId).snapshots().map((doc) {
+      // If we know it's alt, stream only from alt collection
+      if (isAlt == true) {
+        return _globalAltPosts.doc(postId).snapshots().map((doc) {
           return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
         });
       }
 
       // If we know it's public, stream only from public collection
-      if (isPrivate == false) {
+      if (isAlt == false) {
         return _posts.doc(postId).snapshots().map((doc) {
           return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
         });
@@ -431,7 +431,7 @@ class PostRepository {
 
       // Subscribe to public posts stream
       late StreamSubscription publicSub;
-      late StreamSubscription privateSub;
+      late StreamSubscription altSub;
       bool hasData = false;
 
       publicSub = _posts.doc(postId).snapshots().map((doc) {
@@ -446,8 +446,8 @@ class PostRepository {
         }
       });
 
-      // Subscribe to private posts stream
-      privateSub = _globalPrivatePosts.doc(postId).snapshots().map((doc) {
+      // Subscribe to alt posts stream
+      altSub = _globalAltPosts.doc(postId).snapshots().map((doc) {
         return doc.exists ? PostModel.fromMap(doc.id, doc.data()!) : null;
       }).listen((post) {
         if (post != null) {
@@ -462,7 +462,7 @@ class PostRepository {
       // Clean up subscriptions when the stream is closed
       controller.onCancel = () {
         publicSub.cancel();
-        privateSub.cancel();
+        altSub.cancel();
       };
 
       return controller.stream;
@@ -474,19 +474,19 @@ class PostRepository {
 
   /// Post Deletion ///
   Future<void> deletePost(String postId) async {
-    // Fetch post to check if it's private or public
+    // Fetch post to check if it's alt or public
     final postDoc = await _posts.doc(postId).get();
-    final privatePostDoc = await _globalPrivatePosts.doc(postId).get();
+    final altPostDoc = await _globalAltPosts.doc(postId).get();
 
     // Determine which collection to delete from
     if (postDoc.exists) {
       await _posts.doc(postId).delete();
       debugPrint('Public post deleted with ID: $postId');
       debugPrint('Removal from followers\' feeds will be handled by Cloud Function');
-    } else if (privatePostDoc.exists) {
-      await _globalPrivatePosts.doc(postId).delete();
-      debugPrint('Private post deleted with ID: $postId');
-      debugPrint('Removal from private connections\' feeds will be handled by Cloud Function');
+    } else if (altPostDoc.exists) {
+      await _globalAltPosts.doc(postId).delete();
+      debugPrint('Alt post deleted with ID: $postId');
+      debugPrint('Removal from alt connections\' feeds will be handled by Cloud Function');
     } else {
       throw Exception("Post not found");
     }
@@ -525,7 +525,7 @@ class PostRepository {
     return _posts
         .where('authorId', isEqualTo: userId)
         .where('herdId', isNull: true) // Exclude herd posts
-        .where('isPrivate', isEqualTo: false)
+        .where('isAlt', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) =>
@@ -533,9 +533,9 @@ class PostRepository {
               PostModel.fromMap(doc.id, doc.data())).toList());
   }
 
-  // Get only user's private posts
-  Stream<List<PostModel>> getUserPrivatePosts(String userId) {
-    return _globalPrivatePosts
+  // Get only user's alt posts
+  Stream<List<PostModel>> getUserAltPosts(String userId) {
+    return _globalAltPosts
         .where('authorId', isEqualTo: userId)
         .where('herdId', isNull: true) // Exclude herd posts
         .orderBy('createdAt', descending: true)
