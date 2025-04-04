@@ -4,16 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import '../../features/comment/view/screens/comment_thread_screen.dart';
-import '../../features/edit_user/alt_profile/view/screens/edit_alt_profile_screen.dart';
-import '../../features/edit_user/public_profile/view/screens/edit_public_profile_screen.dart';
-import '../../features/feed/alt_feed/view/screens/alt_screen.dart';
-import '../../features/feed/providers/feed_type_provider.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
+import '../../features/herds/view/screens/create_herd_screen.dart';
+import '../../features/herds/view/screens/herd_screen.dart';
 import '../../features/user/data/models/user_model.dart';
-import '../../features/user/view/screens/connection_request_screen.dart';
-import '../../features/user/view/screens/alt_profile_screen.dart';
-import '../../features/user/view/screens/public_profile_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(authProvider);
@@ -96,6 +90,39 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ),
+      ),
+
+      GoRoute(
+        path: '/herd/:id',
+        name: 'herd',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final herdId = state.pathParameters['id']!;
+
+          return NoTransitionPage(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: GlobalOverlayManager(
+                showBottomNav: true,
+                showSideBubbles: false,
+                showProfileBtn: true,
+                showSearchBtn: true,
+                child: HerdScreen(herdId: herdId),
+              ),
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/createHerd',
+        name: 'createHerd',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          return const NoTransitionPage(
+            child: CreateHerdScreen(),
+          );
+        },
       ),
 
       GoRoute(

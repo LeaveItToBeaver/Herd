@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
@@ -29,6 +30,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   bool _isSubmitting = false;
   late bool _isAlt;
   bool _isVideo = false;
+  String? _selectedHerdId;
+  String? _selectedHerdName;
 
   @override
   void initState() {
@@ -77,10 +80,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         body: currentUser == null
             ? const Center(child: CircularProgressIndicator())
             : postState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stackTrace) => _buildForm(context, currentUser),
-          data: (_) => _buildForm(context, currentUser),
-        ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => _buildForm(context, currentUser),
+                data: (_) => _buildForm(context, currentUser),
+              ),
       ),
     );
   }
@@ -156,6 +159,71 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
           ),
 
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Posting To',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _showHerdSelectionDialog,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade400),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _selectedHerdId != null ? Icons.group : Icons.person,
+                            size: 18,
+                            color: _selectedHerdId != null ? Colors.blue : Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _selectedHerdId != null
+                                  ? 'h/$_selectedHerdName'
+                                  : 'Personal post (no herd)',
+                              style: TextStyle(
+                                color: _selectedHerdId != null ? Colors.blue : null,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(height: 16),
 
           _mediaPicker(context),
@@ -188,10 +256,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               onPressed: _isSubmitting
                   ? null
                   : () {
-                if (currentUser != null) {
-                  _submitForm(context, currentUser);
-                }
-              },
+                      if (currentUser != null) {
+                        _submitForm(context, currentUser);
+                      }
+                    },
             ),
           ),
         ],
@@ -212,18 +280,20 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
           if (pickedFile != null) {
             final extension = pickedFile.path.toLowerCase().substring(
-              pickedFile.path.lastIndexOf('.'),
-            );
+                  pickedFile.path.lastIndexOf('.'),
+                );
 
             setState(() {
               _postMedia = pickedFile;
               // Check if file is video based on extension
-              _isVideo = ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
+              _isVideo =
+                  ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
             });
           }
         } catch (e) {
           if (context.mounted) {
-            _showErrorSnackBar(context, 'Failed to pick media. Please try again.');
+            _showErrorSnackBar(
+                context, 'Failed to pick media. Please try again.');
           }
         }
       },
@@ -240,28 +310,32 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         child: _postMedia != null
             ? _buildMediaPreview()
             : Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_photo_alternate,
-              size: 64,
-              color: _isAlt ? Colors.blue.withOpacity(0.7) : Colors.black54,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap to add media (images, GIFs, videos)',
-              style: TextStyle(
-                color: _isAlt ? Colors.blue.withOpacity(0.7) : Colors.black54,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate,
+                    size: 64,
+                    color:
+                        _isAlt ? Colors.blue.withOpacity(0.7) : Colors.black54,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap to add media (images, GIFs, videos)',
+                    style: TextStyle(
+                      color: _isAlt
+                          ? Colors.blue.withOpacity(0.7)
+                          : Colors.black54,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
   Widget _buildPostForm(BuildContext context) {
-    final borderColor = _isAlt ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300;
+    final borderColor =
+        _isAlt ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300;
 
     return Form(
       key: _formKey,
@@ -288,8 +362,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
             ),
             onChanged: (value) => _title = value,
-            validator: (value) =>
-            value == null || value.isEmpty ? 'Title cannot be empty.' : null,
+            validator: (value) => value == null || value.isEmpty
+                ? 'Title cannot be empty.'
+                : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -334,12 +409,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     try {
       final postId = await ref.read(postControllerProvider.notifier).createPost(
-        title: _title,
-        content: _content,
-        imageFile: _postMedia,
-        userId: currentUser.id,
-        isAlt: _isAlt, // Pass privacy setting to controller
-      );
+            title: _title,
+            content: _content,
+            imageFile: _postMedia,
+            userId: currentUser.id,
+            isAlt: _isAlt,
+            herdId: _selectedHerdId!,
+          );
 
       if (mounted) {
         // Show success message
@@ -353,7 +429,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         );
 
         // Navigate to the post
-        _isSubmitting ? context.go('/altPost/$postId') : context.go('/post/$postId?isAlt=${_isAlt}');
+        _isSubmitting
+            ? context.go('/altPost/$postId')
+            : context.go('/post/$postId?isAlt=${_isAlt}');
       }
     } catch (e) {
       if (mounted) {
@@ -391,88 +469,146 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     if (_postMedia == null) return const SizedBox.shrink();
 
     final extension = _postMedia!.path.toLowerCase().substring(
-      _postMedia!.path.lastIndexOf('.'),
-    );
+          _postMedia!.path.lastIndexOf('.'),
+        );
 
     if (_isVideo) {
       return Stack(
         alignment: Alignment.center,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              color: Colors.black87,
-              width: double.infinity,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                color: Colors.black87,
+                width: double.infinity,
                 height: double.infinity,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.videocam,
-                      size: 48,
-                      color: Colors.white70,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Video',
-                      style: TextStyle(
-                          color: Colors.white,
-                        fontWeight: FontWeight.bold
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.videocam,
+                        size: 48,
+                        color: Colors.white70,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      extension.toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Video',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
                       ),
-                    )
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        extension.toUpperCase(),
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-            )
-          ),
+              )),
           Icon(
             Icons.play_circle_fill,
             size: 64,
             color: Colors.white.withOpacity(0.8),
           ),
-
         ],
       );
     }
 
     if (extension == '.gif') {
-      return Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(_postMedia!, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-          ),
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'GIF',
-                style: TextStyle(color: Colors.white),
-              ),
+      return Stack(children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(_postMedia!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity),
+        ),
+        Positioned(
+          bottom: 8,
+          right: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'GIF',
+              style: TextStyle(color: Colors.white),
             ),
           ),
-        ]
-      );
+        ),
+      ]);
     }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Image.file(_postMedia!, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+      child: Image.file(_postMedia!,
+          fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+    );
+  }
+
+  Future<void> _showHerdSelectionDialog() async {
+    final userHerds = await ref.read(userHerdsProvider.future);
+
+    if (!mounted) return;
+
+    final selectedHerd = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select a Herd'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: userHerds.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  // No Herd option
+                  return ListTile(
+                    leading: const Icon(Icons.group_off),
+                    title: const Text('No Herd'),
+                    selected: _selectedHerdId == null,
+                    onTap: () {
+                      setState(() {
+                        _selectedHerdId = null;
+                        _selectedHerdName = null;
+                      });
+                      Navigator.of(context).pop(null);
+                    },
+                  );
+                }
+
+                final herd = userHerds[index - 1];
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: herd.profileImageURL != null
+                        ? NetworkImage(herd.profileImageURL!)
+                        : null,
+                    child: herd.profileImageURL == null
+                        ? const Icon(Icons.group)
+                        : null,
+                  ),
+                  title: Text(herd.name),
+                  subtitle: Text(herd.description),
+                  selected: _selectedHerdId == herd.id,
+                  onTap: () {
+                    setState(() {
+                      _selectedHerdId = herd.id;
+                      _selectedHerdName = herd.name;
+                    });
+                    Navigator.of(context).pop(herd.id);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

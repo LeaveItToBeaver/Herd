@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 import '../../../auth/view/providers/auth_provider.dart';
+import '../../../herds/view/providers/herd_providers.dart';
 import '../providers/state/profile_state.dart';
 import '../widgets/alt_connection_request_button.dart';
 
@@ -299,35 +300,74 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
   Widget _buildGroupsSection(ProfileState profile) {
     // Placeholder for groups section
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.group, size: 48, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(
-            'No Groups Yet',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Join or create groups to connect with others',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          if (profile.isCurrentUser)
-            ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to create or join group screen
+    return Consumer(
+      builder: (context, ref, child) {
+        final userHerdsAsyncValue = ref.watch(userHerdsProvider);
+
+        return userHerdsAsyncValue.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(child: Text('Error: $error')),
+          data: (herds) {
+            if (herds.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.group_off, size: 48, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Herds',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'This user hasn\'t joined any herds yet',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    if (profile.isCurrentUser) ...[
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          context.pushNamed('createHerd');
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create a Herd'),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              itemCount: herds.length,
+              itemBuilder: (context, index) {
+                final herd = herds[index];
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: herd.profileImageURL != null
+                        ? NetworkImage(herd.profileImageURL!)
+                        : null,
+                    child: herd.profileImageURL == null
+                        ? const Icon(Icons.group)
+                        : null,
+                  ),
+                  title: Text('h/${herd.name}'),
+                  subtitle: Text('${herd.memberCount} members'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    context.pushNamed(
+                      'herd',
+                      pathParameters: {'id': herd.id},
+                    );
+                  },
+                );
               },
-              icon: const Icon(Icons.add),
-              label: const Text('Create or Join Group'),
-            ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
