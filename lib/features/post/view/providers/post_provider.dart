@@ -6,6 +6,7 @@ import 'package:herdapp/features/post/view/providers/state/post_interaction_stat
 import '../../../comment/data/repositories/comment_repository.dart';
 import '../../../comment/view/providers/comment_providers.dart';
 import '../../../comment/view/providers/state/comment_state.dart';
+import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../data/repositories/post_repository.dart';
@@ -111,4 +112,37 @@ final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
     postId: params.id,
     isAlt: params.isAlt,
   );
+});
+
+final userPostsWithHerdsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) async* {
+  final postRepository = ref.watch(postRepositoryProvider);
+  final herdRepository = ref.watch(herdRepositoryProvider);
+
+  // Get regular user posts
+  Stream<List<PostModel>> regularPosts = postRepository.getUserPosts(userId);
+
+  // Stream combined results
+  await for (final posts in regularPosts) {
+    // Get user's herds
+    final userHerds = await herdRepository.getUserHerds(userId);
+    List<PostModel> allPosts = List.from(posts);
+
+    // For each herd, get posts by this user
+    for (final herd in userHerds) {
+      final herdPosts = await herdRepository.getHerdPosts(
+          herdId: herd.id,
+          limit: 50
+      );
+
+      // Filter for posts by this user
+      final userHerdPosts = herdPosts.where((post) => post.authorId == userId).toList();
+      allPosts.addAll(userHerdPosts);
+    }
+
+    // Sort all posts by date
+    allPosts.sort((a, b) => (b.createdAt ?? DateTime.now())
+        .compareTo(a.createdAt ?? DateTime.now()));
+
+    yield allPosts;
+  }
 });

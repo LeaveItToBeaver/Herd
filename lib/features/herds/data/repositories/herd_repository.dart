@@ -60,6 +60,10 @@ class HerdRepository {
         'isModerator': true,
       });
 
+      await _herds.doc(herdId).update({
+        'memberCount': FieldValue.increment(1),
+      });
+
       // Return the herd ID
       return herdId;
     } catch (e, stackTrace) {
