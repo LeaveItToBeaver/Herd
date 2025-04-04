@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/core/utils/unique_page.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
 import '../../features/herds/view/screens/herd_screen.dart';
@@ -192,43 +193,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
 
           GoRoute(
-            path: '/create',
-            name: 'create',
-            parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) {
-              // Pass the current feed type to determine post privacy default
-              final feedType = ref.read(currentFeedProvider);
-              final isAlt = feedType == FeedType.alt;
-
-              // Check if we have a herdId parameter (for creating posts in herds)
-              final herdId = state.uri.queryParameters['herdId'];
-
-              // Create a unique key for the page based on the parameters
-              // This prevents duplicate key issues in the navigator
-              final uniqueKey = ValueKey('create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}');
-
-              return NoTransitionPage(
-                key: uniqueKey,
-                child: GlobalOverlayManager(
-                  showBottomNav: true,
-                  showSideBubbles: false,
-                  showProfileBtn: true,
-                  showSearchBtn: false,
-                  child: Stack(
-                    children: [
-                      // Pass herdId if provided, otherwise normal create post
-                      CreatePostScreen(
-                        isAlt: isAlt,
-                        herdId: herdId,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          GoRoute(
             path: '/publicFeed',
             name: 'publicFeed',
             parentNavigatorKey: shellNavigatorKey,
@@ -265,6 +229,43 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Routes that appear OUTSIDE the shell (will have back button)
+
+      GoRoute(
+        path: '/create',
+        name: 'create',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          // Pass the current feed type to determine post privacy default
+          final feedType = ref.read(currentFeedProvider);
+          final isAlt = feedType == FeedType.alt;
+
+          // Check if we have a herdId parameter from query parameters
+          final herdId = state.uri.queryParameters['herdId'];
+
+          // Debug the parameter
+          if (kDebugMode) {
+            print('Create route received herdId: $herdId');
+          }
+
+          // Create a unique key with timestamp
+          final uniqueKey = ValueKey('create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}-${DateTime.now().millisecondsSinceEpoch}');
+
+          return NoTransitionPage(
+            key: uniqueKey,
+            child: GlobalOverlayManager(
+              showBottomNav: true,
+              showSideBubbles: false,
+              showProfileBtn: true,
+              showSearchBtn: false,
+              child: CreatePostScreen(
+                isAlt: isAlt,
+                herdId: herdId,
+              ),
+            ),
+          );
+        },
+      ),
+
       // Public Profile Route
       GoRoute(
         path: '/publicProfile/:id',

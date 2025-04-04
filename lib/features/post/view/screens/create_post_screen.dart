@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,9 +40,39 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize with the provided value
+
+    // Debug log the received herdId parameter
+    if (kDebugMode) {
+      print('CreatePostScreen received herdId: ${widget.herdId}');
+    }
+
+    // Initialize with the provided values
     _isAlt = widget.isAlt;
     _selectedHerdId = widget.herdId;
+
+    // If we have a herdId, fetch the herd name
+    if (_selectedHerdId != null) {
+      _fetchHerdName();
+    }
+  }
+
+// Add this method to fetch the herd name when a herdId is provided
+  void _fetchHerdName() async {
+    try {
+      final herd = await ref.read(herdProvider(_selectedHerdId!).future);
+      if (mounted && herd != null) {
+        setState(() {
+          _selectedHerdName = herd.name;
+          if (kDebugMode) {
+            print('Fetched herd name: $_selectedHerdName');
+          }
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching herd name: $e');
+      }
+    }
   }
 
   @override
