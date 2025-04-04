@@ -195,11 +195,6 @@ class BottomNavOverlay extends ConsumerWidget {
       if (selectedItem == BottomNavItem.create) {
         // If we're on a herd screen and the user is a member, create a post in that herd
         if (currentHerdId != null && isHerdMember) {
-          // Debug log the navigation
-          if (kDebugMode) {
-            print('Navigating to create with herdId: $currentHerdId');
-          }
-
           // Use context.pushNamed with the right parameters
           context.pushNamed(
             'create',
@@ -207,10 +202,16 @@ class BottomNavOverlay extends ConsumerWidget {
           );
           return;
         } else {
-          // Regular create post
+          // Regular create post - explicitly reset any herd context
+          ref.read(currentHerdIdProvider.notifier).state = null;
           context.pushNamed('create');
           return;
         }
+      }
+
+      // Reset current herd ID when navigating to feeds
+      if (selectedItem == BottomNavItem.altFeed || selectedItem == BottomNavItem.publicFeed) {
+        ref.read(currentHerdIdProvider.notifier).state = null;
       }
 
       // For other navigation items, use normal goNamed
