@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
+import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
@@ -39,9 +41,39 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize with the provided value
+
+    // Debug log the received herdId parameter
+    if (kDebugMode) {
+      print('CreatePostScreen received herdId: ${widget.herdId}');
+    }
+
+    // Initialize with the provided values
     _isAlt = widget.isAlt;
     _selectedHerdId = widget.herdId;
+
+    // If we have a herdId, fetch the herd name
+    if (_selectedHerdId != null) {
+      _fetchHerdName();
+    }
+  }
+
+// Add this method to fetch the herd name when a herdId is provided
+  void _fetchHerdName() async {
+    try {
+      final herd = await ref.read(herdProvider(_selectedHerdId!).future);
+      if (mounted && herd != null) {
+        setState(() {
+          _selectedHerdName = herd.name;
+          if (kDebugMode) {
+            print('Fetched herd name: $_selectedHerdName');
+          }
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching herd name: $e');
+      }
+    }
   }
 
   @override
@@ -57,16 +89,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           backgroundColor: Colors.white,
           title: Text(_isAlt ? "Create Alt Post" : "Create Public Post"),
           actions: [
-            // Add submit button in app bar
-            if (!_isSubmitting)
-              IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: () {
-                  if (currentUser != null) {
-                    _submitForm(context, currentUser);
-                  }
-                },
-              ),
             if (_isSubmitting)
               const Padding(
                 padding: EdgeInsets.all(16.0),
@@ -164,6 +186,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
           const SizedBox(height: 16),
           // Herd selection card
+
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -249,7 +272,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 color: Colors.white,
               ),
               label: Text(
-                _isAlt ? 'Post Altly' : 'Post Publicly',
+                _isAlt ? 'Create Alt Post' : 'Create Post',
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
@@ -267,6 +290,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     },
             ),
           ),
+
+          BottomNavPadding(), // Add padding to avoid bottom nav bar overlap
         ],
       ),
     );
