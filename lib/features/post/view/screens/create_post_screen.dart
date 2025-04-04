@@ -409,13 +409,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     try {
       final postId = await ref.read(postControllerProvider.notifier).createPost(
-            title: _title,
-            content: _content,
-            imageFile: _postMedia,
-            userId: currentUser.id,
-            isAlt: _isAlt,
-            herdId: _selectedHerdId!,
-          );
+        title: _title,
+        content: _content,
+        imageFile: _postMedia,
+        userId: currentUser.id,
+        isAlt: _isAlt,
+        herdId: _selectedHerdId ?? '', // Use empty string if null
+      );
 
       if (mounted) {
         // Show success message
@@ -429,9 +429,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         );
 
         // Navigate to the post
-        _isSubmitting
-            ? context.go('/altPost/$postId')
-            : context.go('/post/$postId?isAlt=${_isAlt}');
+        context.pushNamed(
+          'post',  // Use the proper route name from your router
+          pathParameters: {'id': postId},
+          queryParameters: {'isAlt': _isAlt.toString()},
+        );
       }
     } catch (e) {
       if (mounted) {

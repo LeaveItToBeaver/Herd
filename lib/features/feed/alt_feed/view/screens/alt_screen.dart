@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
+import '../../../../auth/view/providers/auth_provider.dart';
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../providers/feed_provider.dart';
 import '../providers/state/alt_feed_state.dart';
@@ -22,7 +23,10 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
 
     // Initialize feed on first load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(altFeedControllerProvider.notifier).loadInitialPosts();
+      final currentUser = ref.read(authProvider);
+      ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
+        userId: currentUser?.uid,
+      );
     });
 
     // Add scroll listener for pagination

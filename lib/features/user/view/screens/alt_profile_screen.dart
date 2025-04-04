@@ -170,7 +170,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               children: [
                                 _buildStatColumn('Alt Posts', profile.posts.where((post) => post.isAlt).length.toString()),
                                 _buildStatColumn('Connections', profile.user?.friends?.toString() ?? '0'),
-                                _buildStatColumn('Groups', '0'), // Assuming groups field is not yet implemented
+                                _buildStatColumn('Herds', '0'),
                               ],
                             ),
                             const SizedBox(height: 16),

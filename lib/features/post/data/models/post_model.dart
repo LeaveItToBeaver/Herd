@@ -5,7 +5,7 @@ class PostModel {
   final String authorId;
   final String? username;
   final String? profileImageURL;
-  final String? herdId;  // If post belongs to a herd
+  final String? herdId;        // Herd ID for private posts
   final String title;
   final String content;
   final String? imageUrl;       // Full resolution image
@@ -16,7 +16,8 @@ class PostModel {
   final int commentCount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final bool isAlt; // Added to distinguish alt and public posts
+  final bool isAlt;
+
 
   PostModel({
     required this.id,
@@ -60,7 +61,7 @@ class PostModel {
       authorId: map['authorId'] ?? '',
       username: map['username'],
       profileImageURL: map['profileImageURL'],
-      herdId: map['herdId'],
+      herdId: map['herdId'] ?? '',
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       imageUrl: map['imageUrl'],
@@ -80,7 +81,7 @@ class PostModel {
       'authorId': authorId,
       'username': username,
       'profileImageURL': profileImageURL,
-      'herdId': herdId,
+      'herdId': herdId?.isEmpty == true ? null : herdId,
       'title': title,
       'content': content,
       'imageUrl': imageUrl,
