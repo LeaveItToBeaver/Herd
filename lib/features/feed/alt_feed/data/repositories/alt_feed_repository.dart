@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/feed/data/repositories/feed_repository.dart';
 
-/// Repository for handling private feed operations
+/// Repository for handling alt feed operations
 class AltFeedRepository extends FeedRepository {
   AltFeedRepository(super.firestore);
 
@@ -14,14 +14,9 @@ class AltFeedRepository extends FeedRepository {
     required String userId,
     int limit = 10,
     PostModel? lastPost,
-    double decayFactor = 1.0,
   }) async {
     try {
-      if (userId.isEmpty) {
-        return [];
-      }
-
-      // Get list of herds the user follows
+      // Get user's followed herds
       final followedHerds = await firestore
           .collection('userHerds')
           .doc(userId)
@@ -34,35 +29,55 @@ class AltFeedRepository extends FeedRepository {
 
       final herdIds = followedHerds.docs.map((doc) => doc.id).toList();
 
-      // Query posts from these herds
-      var query = firestore.collection('posts')
-          .where('herdId', whereIn: herdIds)
-          .where('isAlt', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
-          .limit(limit);
+      // Create a list to hold futures for parallel execution
+      List<Future<QuerySnapshot>> queryFutures = [];
 
-      // Add pagination if lastPost is provided
-      if (lastPost != null && lastPost.createdAt != null) {
-        query = query.startAfter([lastPost.createdAt]);
+      // Split into batches (Firestore whereIn limit is 10)
+      for (int i = 0; i < herdIds.length; i += 10) {
+        final batchIds = herdIds.sublist(
+            i, i + 10 > herdIds.length ? herdIds.length : i + 10);
+
+        var query = firestore.collection('posts')
+            .where('herdId', whereIn: batchIds)
+            .where('isAlt', isEqualTo: true)
+            .orderBy('hotScore', descending: true)
+            .limit(limit);
+
+        if (lastPost != null && lastPost.hotScore != null) {
+          query = query.startAfter([lastPost.hotScore]);
+        }
+
+        // Add the query to our futures list instead of awaiting it
+        queryFutures.add(query.get());
       }
 
-      final snapshot = await query.get();
+      // Execute all queries in parallel
+      final snapshots = await Future.wait(queryFutures);
 
-      List<PostModel> herdPosts = snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-          .toList();
+      // Combine and process results
+      List<PostModel> allHerdPosts = [];
+      for (var snapshot in snapshots) {
+        allHerdPosts.addAll(snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data() as Map<String, dynamic>)));
+      }
 
-      // Apply hot sorting algorithm
-      final sortedPosts = applySortingAlgorithm(herdPosts, decayFactor: decayFactor);
+      // Sort the combined results
+      allHerdPosts.sort((a, b) =>
+          (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
 
-      return sortedPosts;
+      // Apply limit to final results
+      if (allHerdPosts.length > limit) {
+        allHerdPosts = allHerdPosts.sublist(0, limit);
+      }
+
+      return allHerdPosts;
     } catch (e, stackTrace) {
       logError('getFollowedHerdsPosts', e, stackTrace);
       rethrow;
     }
   }
 
-  /// Get posts for the private feed - shows ALL private posts globally
+  /// Get posts for the alt feed - shows ALL alt posts globally
   ///
   /// [userId] The current user's ID
   /// [limit] Maximum number of posts to fetch (default: 15)
@@ -73,24 +88,22 @@ class AltFeedRepository extends FeedRepository {
     required String userId,
     int limit = 15,
     PostModel? lastPost,
-    double decayFactor = 1.0,
-    bool includeHerdPosts = true, // New parameter
+    bool includeHerdPosts = true,
   }) async {
     try {
       // First, get normal alt posts
       var postsQuery = globalAltPostsCollection
-          .where('herdId', isNull: true) // Only include non-herd posts here
-          .orderBy('createdAt', descending: true)
+          .where('herdId', isNull: true)
+          .orderBy('hotScore', descending: true) // Sort by hot score
           .limit(limit);
 
-      // Add pagination if lastPost is provided
-      if (lastPost != null && lastPost.createdAt != null) {
-        postsQuery = postsQuery.startAfter([lastPost.createdAt]);
+      if (lastPost != null && lastPost.hotScore != null) {
+        postsQuery = postsQuery.startAfter([lastPost.hotScore]);
       }
 
       var postsSnapshot = await postsQuery.get();
-
-      List<PostModel> privatePosts = postsSnapshot.docs
+      
+      List<PostModel> altPosts = postsSnapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
 
@@ -100,17 +113,21 @@ class AltFeedRepository extends FeedRepository {
           userId: userId,
           limit: limit,
           lastPost: lastPost,
-          decayFactor: decayFactor,
         );
+        altPosts.addAll(herdPosts);
 
-        // Combine both types of posts
-        privatePosts.addAll(herdPosts);
+        // Since we're getting from two collections, we need to sort
+        // after combining (normally wouldn't need this when using one collection)
+        altPosts.sort((a, b) =>
+            (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
+
+        // Limit to original requested amount
+        if (altPosts.length > limit) {
+          altPosts = altPosts.sublist(0, limit);
+        }
       }
 
-      // Apply hot sorting algorithm to the combined list
-      final sortedPosts = applySortingAlgorithm(privatePosts, decayFactor: decayFactor);
-
-      return sortedPosts;
+      return altPosts;
     } catch (e, stackTrace) {
       logError('getAltFeed', e, stackTrace);
       rethrow;
@@ -123,19 +140,19 @@ class AltFeedRepository extends FeedRepository {
     double decayFactor = 1.0,
   }) {
     try {
-      // Stream all private posts from the main posts collection
+      // Stream all alt posts from the main posts collection
       return globalAltPostsCollection
           //.where('isAlt', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)
           .snapshots()
           .map((snapshot) {
-        List<PostModel> privatePosts = snapshot.docs
+        List<PostModel> altPosts = snapshot.docs
             .map((doc) => PostModel.fromMap(doc.id, doc.data()))
             .toList();
 
         // Apply hot algorithm sorting
-        final sortedPosts = applySortingAlgorithm(privatePosts, decayFactor: decayFactor);
+        final sortedPosts = applySortingAlgorithm(altPosts, decayFactor: decayFactor);
         return sortedPosts;
       });
     } catch (e, stackTrace) {
@@ -182,13 +199,13 @@ class AltFeedRepository extends FeedRepository {
     }
   }
 
-  /// Get highlighted private posts with high engagement
+  /// Get highlighted alt posts with high engagement
   /// This is useful for featuring posts at the top of the feed
   Future<List<PostModel>> getHighlightedAltPosts({
     int limit = 5,
   }) async {
     try {
-      // Get recent private posts (from last 3 days) with high engagement
+      // Get recent alt posts (from last 3 days) with high engagement
       final DateTime threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
       final threeDaysAgoTimestamp = Timestamp.fromDate(threeDaysAgo);
 

@@ -150,6 +150,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       try {
+        final post = await _postRepository.getPostById(_postId, isAlt: _isAlt);
+        final herdId = post?.herdId;
 
         final user = FirebaseAuth.instance.currentUser;
         final idToken = await user?.getIdToken();
@@ -160,6 +162,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
           'postId': _postId,
           'isAlt': _isAlt ?? false,
           'idToken': idToken,
+          'herdId': herdId,
         });
 
         final data = result.data;
@@ -228,6 +231,9 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       try {
+        final post = await _postRepository.getPostById(_postId, isAlt: _isAlt);
+        final herdId = post?.herdId;
+
         final user = FirebaseAuth.instance.currentUser;
         final idToken = await user?.getIdToken();
 
@@ -238,6 +244,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
           'postId': _postId,
           'isAlt':  _isAlt ?? false,
           'idToken': idToken,
+          'herdId': herdId,
         });
 
         final data = result.data;

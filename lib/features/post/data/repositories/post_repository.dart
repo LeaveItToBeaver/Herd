@@ -356,14 +356,42 @@ class PostRepository {
   }
 
   // Get post by ID
-  Future<PostModel?> getPostById(String postId, {bool? isAlt, bool forceRefresh = false}) async {
+  Future<PostModel?> getPostById(String postId, {bool? isAlt, String? herdId, bool forceRefresh = false}) async {
     try {
       // Set the correct fetch option based on forceRefresh
       final fetchOptions = forceRefresh
           ? GetOptions(source: Source.server)
           : GetOptions(source: Source.serverAndCache);
 
-      // If we know it's alt, check only in alt collection
+      if (herdId != null && herdId.isNotEmpty) {
+        final doc = await _firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .doc(postId)
+            .get(fetchOptions);
+
+        if (doc.exists) {
+          return PostModel.fromMap(doc.id, doc.data()!);
+        }
+      }
+
+      final herdPostQuery = await _firestore
+      .collectionGroup('posts')
+      .where(FieldPath.documentId, isEqualTo: postId)
+      .limit(1)
+      .get(fetchOptions);
+
+      if (herdPostQuery.docs.isNotEmpty) {
+        return PostModel.fromMap(postId, herdPostQuery.docs.first.data()); // Check for the postId directly
+      }
+
+      final publicDoc = await _posts.doc(postId).get();
+      if (publicDoc.exists) {
+        return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
+      }
+
+
       if (isAlt == true) {
         final doc = await _firestore
             .collection('globalAltPosts')
@@ -387,20 +415,13 @@ class PostRepository {
         return null;
       }
 
-      // If we don't know, check both collections
-      // First try the public posts collection
-      final publicDoc = await _posts.doc(postId).get();
-      if (publicDoc.exists) {
-        return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
-      }
-
       // Then try the alt posts collection
       final altDoc = await _globalAltPosts.doc(postId).get();
       if (altDoc.exists) {
         return PostModel.fromMap(altDoc.id, altDoc.data()!);
       }
 
-      // If not found in either collection
+
       return null;
     } catch (e) {
       debugPrint('Error fetching post $postId: $e');

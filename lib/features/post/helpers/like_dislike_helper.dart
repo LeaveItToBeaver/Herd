@@ -1,0 +1,99 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../user/view/providers/current_user_provider.dart';
+import '../view/providers/post_provider.dart';
+
+class LikeDislikeHelper {
+  // Static methods that don't depend on class instance
+  static void handleLikePost({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String postId,
+    required bool isAlt,
+  }) {
+    final user = ref.read(currentUserProvider);
+    final userId = user?.id;
+
+    if (userId != null) {
+      ref.read(postInteractionsWithPrivacyProvider(
+          PostParams(id: postId, isAlt: isAlt)
+      ).notifier).likePost(userId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to like posts.')),
+      );
+    }
+  }
+
+  static void handleDislikePost({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String postId,
+    required bool isAlt,
+  }) {
+    final user = ref.read(currentUserProvider);
+    final userId = user?.id;
+
+    if (userId != null) {
+      ref.read(postInteractionsWithPrivacyProvider(
+          PostParams(id: postId, isAlt: isAlt)
+      ).notifier).dislikePost(userId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to dislike posts.')),
+      );
+    }
+  }
+
+  // Helper method to build the UI for like/dislike buttons
+  static Widget buildLikeDislikeButtons({
+    required BuildContext context,
+    required WidgetRef ref,
+    required int likes,
+    required String postId,
+    required bool isAlt,
+  }) {
+    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
+        PostParams(id: postId, isAlt: isAlt)
+    ));
+
+    // Always use the state-provided totalLikes value
+    final displayLikes = interactionState.totalLikes;
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+                interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                color: interactionState.isLiked ? Colors.green : Colors.grey
+            ),
+            onPressed: () => handleLikePost(
+              context: context,
+              ref: ref,
+              postId: postId,
+              isAlt: isAlt,
+            ),
+          ),
+          Text(displayLikes.toString()),
+          IconButton(
+            icon: Icon(
+                interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+                color: interactionState.isDisliked ? Colors.red : Colors.grey
+            ),
+            onPressed: () => handleDislikePost(
+              context: context,
+              ref: ref,
+              postId: postId,
+              isAlt: isAlt,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

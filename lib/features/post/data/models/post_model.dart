@@ -17,6 +17,7 @@ class PostModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool isAlt;
+  final double? hotScore;
 
 
   PostModel({
@@ -36,6 +37,7 @@ class PostModel {
     this.createdAt,
     this.updatedAt,
     this.isAlt = false, // Default to public
+    this.hotScore,
   });
 
   static DateTime? _parseDateTime(dynamic value) {
@@ -73,6 +75,7 @@ class PostModel {
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
       isAlt: map['isAlt'] ?? false,
+      hotScore: map['hotScore'] != null ? (map['hotScore'] as num).toDouble() : null,
     );
   }
 
@@ -97,6 +100,7 @@ class PostModel {
           ? Timestamp.fromDate(updatedAt!)
           : FieldValue.serverTimestamp(),
       'isAlt': isAlt,
+      'hotScore': hotScore,
     };
   }
 
@@ -117,6 +121,7 @@ class PostModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isAlt,
+    double? hotScore,
   }) {
     return PostModel(
       id: id ?? this.id,
@@ -135,6 +140,7 @@ class PostModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isAlt: isAlt ?? this.isAlt,
+      hotScore: hotScore ?? this.hotScore,
     );
   }
 }
