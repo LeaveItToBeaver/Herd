@@ -23,6 +23,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     required String content,
     File? imageFile,
     bool isAlt = false,
+    String herdId = '',
   }) async {
     String? postId;
     String? imageUrl;

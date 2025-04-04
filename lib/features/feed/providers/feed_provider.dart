@@ -171,9 +171,16 @@ final publicFeedControllerProvider = StateNotifierProvider<PublicFeedController,
 class AltFeedController extends StateNotifier<AltFeedState> {
   final AltFeedRepository repository;
   final int pageSize;
+  bool _showHerdPosts = true;
+  bool get showHerdPosts => _showHerdPosts;
 
   AltFeedController(this.repository, {this.pageSize = 15})
       : super(AltFeedState.initial());
+
+  void toggleHerdPostsFilter(bool show) {
+    _showHerdPosts = show;
+    refreshFeed();
+  }
 
   /// Initialize the feed with first batch of posts
   Future<void> loadInitialPosts() async {
@@ -183,12 +190,11 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 
       state = state.copyWith(isLoading: true, error: null);
 
-      print("DEBUG: loadInitialPosts called");
       final posts = await repository.getAltFeed(
         userId: '',
         limit: pageSize,
+        includeHerdPosts: _showHerdPosts, // Pass the filter
       );
-      print("DEBUG: getAltFeed returned ${posts.length} posts");
 
       state = state.copyWith(
         posts: posts,
@@ -277,6 +283,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 /// Provider for the alt feed controller
 final altFeedControllerProvider = StateNotifierProvider<AltFeedController, AltFeedState>((ref) {
   final repository = ref.watch(altFeedRepositoryProvider);
+
   return AltFeedController(repository);
 });
 

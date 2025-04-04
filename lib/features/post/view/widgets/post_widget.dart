@@ -5,6 +5,8 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/view/providers/user_provider.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../herds/data/models/herd_model.dart';
+import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../providers/post_provider.dart';
@@ -263,6 +265,38 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     final profileImageUrl = isAlt
         ? (user.altProfileImageURL ?? user.profileImageURL)
         : user.profileImageURL;
+
+    // In post_widget.dart, add this near the username display
+    if (widget.post.herdId != null && widget.post.herdId!.isNotEmpty) {
+      FutureBuilder<HerdModel?>(
+        future: ref.read(herdProvider(widget.post.herdId!).future),
+        builder: (context, snapshot) {
+          if (snapshot.hasData && snapshot.data != null) {
+            return GestureDetector(
+              onTap: () => context.pushNamed(
+                'herd',
+                pathParameters: {'id': widget.post.herdId!},
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.group, size: 14, color: Colors.blue),
+                  const SizedBox(width: 4),
+                  Text(
+                    'h/${snapshot.data!.name}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      );
+    }
 
     return Row(
       children: [

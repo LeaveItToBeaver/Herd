@@ -9,28 +9,75 @@ class AltFeedRepository extends FeedRepository {
   CollectionReference<Map<String, dynamic>> get globalAltPostsCollection =>
       firestore.collection('globalAltPosts');
 
+
+  Future<List<PostModel>> getFollowedHerdsPosts({
+    required String userId,
+    int limit = 10,
+    PostModel? lastPost,
+    double decayFactor = 1.0,
+  }) async {
+    try {
+      // Get list of herds the user follows
+      final followedHerds = await firestore
+          .collection('userHerds')
+          .doc(userId)
+          .collection('following')
+          .get();
+
+      if (followedHerds.docs.isEmpty) {
+        return [];
+      }
+
+      final herdIds = followedHerds.docs.map((doc) => doc.id).toList();
+
+      // Query posts from these herds
+      var query = firestore.collection('posts')
+          .where('herdId', whereIn: herdIds)
+          .where('isAlt', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .limit(limit);
+
+      // Add pagination if lastPost is provided
+      if (lastPost != null && lastPost.createdAt != null) {
+        query = query.startAfter([lastPost.createdAt]);
+      }
+
+      final snapshot = await query.get();
+
+      List<PostModel> herdPosts = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+          .toList();
+
+      // Apply hot sorting algorithm
+      final sortedPosts = applySortingAlgorithm(herdPosts, decayFactor: decayFactor);
+
+      return sortedPosts;
+    } catch (e, stackTrace) {
+      logError('getFollowedHerdsPosts', e, stackTrace);
+      rethrow;
+    }
+  }
+
   /// Get posts for the private feed - shows ALL private posts globally
   ///
   /// [userId] The current user's ID
   /// [limit] Maximum number of posts to fetch (default: 15)
   /// [lastPost] Optional last post for pagination
   /// [decayFactor] Optional factor to adjust algorithm decay rate (default: 1.0)
-// In AltFeedRepository
+  // In AltFeedRepository
   Future<List<PostModel>> getAltFeed({
-    required String userId,  // This parameter isn't needed if showing all posts globally
+    required String userId,
     int limit = 15,
     PostModel? lastPost,
     double decayFactor = 1.0,
+    bool includeHerdPosts = true, // New parameter
   }) async {
     try {
-      print("DEBUG: Attempting to query globalAltPosts collection");
-
-      // Query the globalAltPosts collection directly
+      // First, get normal alt posts
       var postsQuery = globalAltPostsCollection
+          .where('herdId', isNull: true) // Only include non-herd posts here
           .orderBy('createdAt', descending: true)
           .limit(limit);
-
-      print("DEBUG: Query created: $postsQuery");
 
       // Add pagination if lastPost is provided
       if (lastPost != null && lastPost.createdAt != null) {
@@ -39,12 +86,24 @@ class AltFeedRepository extends FeedRepository {
 
       var postsSnapshot = await postsQuery.get();
 
-      // Convert to PostModel objects
       List<PostModel> privatePosts = postsSnapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
 
-      // Apply hot sorting algorithm
+      // If we want to include herd posts, fetch those too
+      if (includeHerdPosts) {
+        final herdPosts = await getFollowedHerdsPosts(
+          userId: userId,
+          limit: limit,
+          lastPost: lastPost,
+          decayFactor: decayFactor,
+        );
+
+        // Combine both types of posts
+        privatePosts.addAll(herdPosts);
+      }
+
+      // Apply hot sorting algorithm to the combined list
       final sortedPosts = applySortingAlgorithm(privatePosts, decayFactor: decayFactor);
 
       return sortedPosts;

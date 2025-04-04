@@ -58,6 +58,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
   @override
   Widget build(BuildContext context) {
     final altFeedState = ref.watch(altFeedControllerProvider);
+    final showHerdPosts = ref.watch(altFeedControllerProvider.notifier).showHerdPosts;
 
     print("DEBUG UI: Posts count in state: ${altFeedState.posts.length}");
 
@@ -83,6 +84,31 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
           IconButton(
             icon: const Icon(Icons.star),
             onPressed: () => _showHighlightedPosts(context),
+          ),
+
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list),
+            onOpened: null,
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'all',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check,
+                      color: showHerdPosts ? Colors.blue : Colors.grey,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Show Herd Posts'),
+                  ],
+                ),
+                onTap: () {
+                  final controller = ref.read(altFeedControllerProvider.notifier);
+                  controller.toggleHerdPostsFilter(!showHerdPosts);
+                },
+              ),
+            ],
           ),
         ],
       ),
