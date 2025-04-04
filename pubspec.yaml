@@ -38,6 +38,7 @@ dependencies:
   chewie: ^1.11.0
   flutter_image_compress: ^2.4.0
   timeago: ^3.7.0
+  google_mobile_ads: ^5.3.1
 
 
 dev_dependencies:
