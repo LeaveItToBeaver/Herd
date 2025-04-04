@@ -17,6 +17,10 @@ class AltFeedRepository extends FeedRepository {
     double decayFactor = 1.0,
   }) async {
     try {
+      if (userId.isEmpty) {
+        return [];
+      }
+
       // Get list of herds the user follows
       final followedHerds = await firestore
           .collection('userHerds')

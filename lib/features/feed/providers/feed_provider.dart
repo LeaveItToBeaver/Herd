@@ -182,8 +182,8 @@ class AltFeedController extends StateNotifier<AltFeedState> {
     refreshFeed();
   }
 
-  /// Initialize the feed with first batch of posts
-  Future<void> loadInitialPosts() async {
+// In AltFeedController class
+  Future<void> loadInitialPosts({String? userId}) async {
     try {
       // Don't reload if already loading
       if (state.isLoading) return;
@@ -191,9 +191,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       state = state.copyWith(isLoading: true, error: null);
 
       final posts = await repository.getAltFeed(
-        userId: '',
+        userId: userId ?? '', // Use provided userId or empty string as fallback
         limit: pageSize,
-        includeHerdPosts: _showHerdPosts, // Pass the filter
+        includeHerdPosts: _showHerdPosts,
       );
 
       state = state.copyWith(
