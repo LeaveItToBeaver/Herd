@@ -81,3 +81,6 @@ final canCreateHerdProvider = FutureProvider((ref) async {
 
   return herdRepository.checkUserEligibility(user.uid);
 });
+
+// Add new provider to track the current herd ID when viewing a herd screen
+final currentHerdIdProvider = StateProvider<String?>((ref) => null);

@@ -24,10 +24,28 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // Use a small delay to ensure widget is fully mounted before setting state
+    // This prevents potential navigation conflicts during widget initialization
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(currentHerdIdProvider.notifier).state = widget.herdId;
+      }
+    });
   }
 
   @override
   void dispose() {
+    // Clear the current herd ID when leaving the screen
+    // Use try-catch to handle potential state disposal issues
+    try {
+      if (mounted) {
+        ref.read(currentHerdIdProvider.notifier).state = null;
+      }
+    } catch (e) {
+      // Ignore errors that might occur if provider is already disposed
+      debugPrint('Error clearing herd ID: $e');
+    }
     _tabController.dispose();
     super.dispose();
   }
@@ -55,12 +73,12 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(herd.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   background: herd.coverImageURL != null
                       ? Image.network(herd.coverImageURL!, fit: BoxFit.cover)
@@ -296,17 +314,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
           );
         },
       ),
-      floatingActionButton: isCurrentUserMember.when(
-        loading: () => null,
-        error: (_, __) => null,
-        data: (isMember) => isMember ? FloatingActionButton(
-          onPressed: () {
-            // Navigate to create post screen with herdId
-            context.pushNamed('create', queryParameters: {'herdId': widget.herdId});
-          },
-          child: const Icon(Icons.add),
-        ) : null,
-      ),
+      // Floating action button removed
     );
   }
 }

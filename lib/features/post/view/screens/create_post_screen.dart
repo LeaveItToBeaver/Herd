@@ -12,10 +12,12 @@ import '../../../user/view/providers/current_user_provider.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
   final bool isAlt;
+  final String? herdId;
 
   const CreatePostScreen({
     super.key,
-    this.isAlt = false, // Default to public posts
+    this.isAlt = false, // Default to false for public posts
+    this.herdId, // Optional herd ID for posting to a specific herd
   });
 
   @override
@@ -32,12 +34,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   bool _isVideo = false;
   String? _selectedHerdId;
   String? _selectedHerdName;
+  bool _isHerdPost = false;
 
   @override
   void initState() {
     super.initState();
     // Initialize with the provided value
     _isAlt = widget.isAlt;
+    _selectedHerdId = widget.herdId;
   }
 
   @override
@@ -158,7 +162,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
             ),
           ),
-
+          const SizedBox(height: 16),
+          // Herd selection card
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

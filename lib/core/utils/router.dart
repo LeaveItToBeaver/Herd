@@ -200,16 +200,28 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               final feedType = ref.read(currentFeedProvider);
               final isAlt = feedType == FeedType.alt;
 
+              // Check if we have a herdId parameter (for creating posts in herds)
+              final herdId = state.uri.queryParameters['herdId'];
+
+              // Create a unique key for the page based on the parameters
+              // This prevents duplicate key issues in the navigator
+              final uniqueKey = ValueKey('create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}');
+
               return NoTransitionPage(
+                key: uniqueKey,
                 child: GlobalOverlayManager(
                   showBottomNav: true,
                   showSideBubbles: false,
                   showProfileBtn: true,
                   showSearchBtn: false,
                   child: Stack(
-                      children: [
-                        CreatePostScreen(isAlt: isAlt),
-                      ],
+                    children: [
+                      // Pass herdId if provided, otherwise normal create post
+                      CreatePostScreen(
+                        isAlt: isAlt,
+                        herdId: herdId,
+                      ),
+                    ],
                   ),
                 ),
               );

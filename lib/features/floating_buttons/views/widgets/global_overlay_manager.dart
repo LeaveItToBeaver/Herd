@@ -6,6 +6,7 @@ import '../../../../core/utils/enums/bottom_nav_item.dart';
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../feed/providers/feed_type_provider.dart';
 import '../../../navigation/view/providers/bottom_nav_bar_provider.dart';
+import '../../../herds/view/providers/herd_providers.dart';
 
 class GlobalOverlayManager extends StatelessWidget {
   final Widget child;
@@ -179,10 +180,33 @@ class BottomNavOverlay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentItem = ref.watch(bottomNavProvider);
     final feedType = currentFeedType ?? ref.watch(currentFeedProvider);
+    final currentHerdId = ref.watch(currentHerdIdProvider);
+    final isHerdMember = currentHerdId != null
+        ? ref.watch(isHerdMemberProvider(currentHerdId)).value ?? false
+        : false;
 
     void onItemTapped(int index) {
       final selectedItem = BottomNavItem.values[index];
       ref.read(bottomNavProvider.notifier).state = selectedItem;
+
+      // Handle create action with context awareness for herds
+      if (selectedItem == BottomNavItem.create) {
+        // If we're on a herd screen and the user is a member, create a post in that herd
+        if (currentHerdId != null && isHerdMember) {
+          // Use pushNamed instead of goNamed to preserve navigation stack
+          // This prevents duplicate key issues
+          context.pushNamed(
+              'create',
+              queryParameters: {'herdId': currentHerdId}
+          );
+          return;
+        } else {
+          // Regular create post with current feed type
+          context.pushNamed('create');
+          return;
+        }
+      }
+
 
       // Get route based on both the selected nav item and current feed type
       String? routeName = bottomNavRoutes[selectedItem];
@@ -234,6 +258,11 @@ class BottomNavOverlay extends ConsumerWidget {
               iconColor = Colors.blue; // Use a different color for alt feed
             }
 
+            // Customize the 'create' icon if we're in a herd context
+            if (item == BottomNavItem.create && currentHerdId != null && isHerdMember) {
+              iconColor = isSelected ? Colors.green : Colors.grey;
+            }
+
             return Expanded(
               child: InkWell(
                 onTap: () => onItemTapped(index),
@@ -259,6 +288,20 @@ class BottomNavOverlay extends ConsumerWidget {
                               height: 8,
                               decoration: const BoxDecoration(
                                 color: Colors.blue,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        // Add an indicator for herd context on the create button
+                        if (item == BottomNavItem.create && currentHerdId != null && isHerdMember)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.green,
                                 shape: BoxShape.circle,
                               ),
                             ),
