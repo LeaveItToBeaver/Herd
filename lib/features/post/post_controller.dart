@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
@@ -7,6 +8,7 @@ import 'package:herdapp/features/post/view/providers/state/post_interaction_noti
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
+import '../herds/data/repositories/herd_repository.dart';
 import '../user/view/providers/current_user_provider.dart';
 import 'data/models/post_model.dart';
 
@@ -71,7 +73,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
             ? (user.altProfileImageURL ?? user.profileImageURL)
             : user.profileImageURL,
         content: content,
-        herdId: herdId,
+        herdId: herdId.isNotEmpty ? herdId : null, // Add this line
         title: title,
         imageUrl: imageUrl,
         thumbnailUrl: thumbnailUrl,
@@ -86,6 +88,11 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
       // 5. Save post to Firestore
       await _postRepository.createPost(post);
+
+      if (herdId.isNotEmpty) {
+        final herdRepository = HerdRepository(FirebaseFirestore.instance); // Or use dependency injection
+        await herdRepository.addPostToHerd(herdId, post, userId);
+      }
 
       // 6. Update state with success
       state = AsyncValue.data(CreatePostState(
