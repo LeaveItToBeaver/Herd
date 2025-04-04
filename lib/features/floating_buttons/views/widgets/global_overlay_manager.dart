@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -185,6 +186,7 @@ class BottomNavOverlay extends ConsumerWidget {
         ? ref.watch(isHerdMemberProvider(currentHerdId)).value ?? false
         : false;
 
+
     void onItemTapped(int index) {
       final selectedItem = BottomNavItem.values[index];
       ref.read(bottomNavProvider.notifier).state = selectedItem;
@@ -193,22 +195,25 @@ class BottomNavOverlay extends ConsumerWidget {
       if (selectedItem == BottomNavItem.create) {
         // If we're on a herd screen and the user is a member, create a post in that herd
         if (currentHerdId != null && isHerdMember) {
-          // Use pushNamed instead of goNamed to preserve navigation stack
-          // This prevents duplicate key issues
+          // Debug log the navigation
+          if (kDebugMode) {
+            print('Navigating to create with herdId: $currentHerdId');
+          }
+
+          // Use context.pushNamed with the right parameters
           context.pushNamed(
-              'create',
-              queryParameters: {'herdId': currentHerdId}
+            'create',
+            queryParameters: {'herdId': currentHerdId},
           );
           return;
         } else {
-          // Regular create post with current feed type
+          // Regular create post
           context.pushNamed('create');
           return;
         }
       }
 
-
-      // Get route based on both the selected nav item and current feed type
+      // For other navigation items, use normal goNamed
       String? routeName = bottomNavRoutes[selectedItem];
 
       // Override route for Home/Feed based on feed type
