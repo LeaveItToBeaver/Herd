@@ -54,18 +54,19 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                 floating: true,
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text('h/${herd.name}'),
+                  title: Text(herd.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                  ),
                   background: herd.coverImageURL != null
                       ? Image.network(herd.coverImageURL!, fit: BoxFit.cover)
                       : Container(color: Colors.blueGrey),
                 ),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {
-                      // Navigate to search
-                    },
-                  ),
                   IconButton(
                     icon: const Icon(Icons.more_vert),
                     onPressed: () {
@@ -301,7 +302,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
         data: (isMember) => isMember ? FloatingActionButton(
           onPressed: () {
             // Navigate to create post screen with herdId
-            context.pushNamed('createPost', queryParameters: {'herdId': widget.herdId});
+            context.pushNamed('create', queryParameters: {'herdId': widget.herdId});
           },
           child: const Icon(Icons.add),
         ) : null,
