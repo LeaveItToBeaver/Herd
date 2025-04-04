@@ -9,6 +9,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
+import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
@@ -88,16 +89,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           backgroundColor: Colors.white,
           title: Text(_isAlt ? "Create Alt Post" : "Create Public Post"),
           actions: [
-            // Add submit button in app bar
-            if (!_isSubmitting)
-              IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: () {
-                  if (currentUser != null) {
-                    _submitForm(context, currentUser);
-                  }
-                },
-              ),
             if (_isSubmitting)
               const Padding(
                 padding: EdgeInsets.all(16.0),
@@ -195,6 +186,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
           const SizedBox(height: 16),
           // Herd selection card
+
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -280,7 +272,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 color: Colors.white,
               ),
               label: Text(
-                _isAlt ? 'Post Altly' : 'Post Publicly',
+                _isAlt ? 'Create Alt Post' : 'Create Post',
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
@@ -298,6 +290,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     },
             ),
           ),
+
+          BottomNavPadding(), // Add padding to avoid bottom nav bar overlap
         ],
       ),
     );

@@ -71,6 +71,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
             ? (user.altProfileImageURL ?? user.profileImageURL)
             : user.profileImageURL,
         content: content,
+        herdId: herdId,
         title: title,
         imageUrl: imageUrl,
         thumbnailUrl: thumbnailUrl,

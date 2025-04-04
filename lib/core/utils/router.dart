@@ -6,6 +6,7 @@ import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/utils/unique_page.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
+import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
 import '../../features/herds/view/screens/herd_screen.dart';
 import '../../features/user/data/models/user_model.dart';
@@ -241,6 +242,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
           // Check if we have a herdId parameter from query parameters
           final herdId = state.uri.queryParameters['herdId'];
+
+          // If coming directly to create and not from a herd screen, ensure herd ID is null
+          if (herdId == null) {
+            // Force reset the current herd provider
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(currentHerdIdProvider.notifier).state = null;
+            });
+          }
 
           // Debug the parameter
           if (kDebugMode) {
