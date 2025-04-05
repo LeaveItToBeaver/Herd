@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../data/models/comment_model.dart';
 
 part 'reply_state.freezed.dart';
 
 @freezed
-class ReplyState with _$ReplyState {
+abstract class ReplyState with _$ReplyState {
   const factory ReplyState({
     required List<CommentModel> replies,
     required bool isLoading,

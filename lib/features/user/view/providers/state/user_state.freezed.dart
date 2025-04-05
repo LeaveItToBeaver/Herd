@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,240 +10,173 @@ part of 'user_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$UserState {
-  String get id => throw _privateConstructorUsedError;
-  String get firstName => throw _privateConstructorUsedError;
-  String get lastName => throw _privateConstructorUsedError;
-  String get username => throw _privateConstructorUsedError;
-  String get email => throw _privateConstructorUsedError;
-  DateTime? get createdAt => throw _privateConstructorUsedError;
-  DateTime? get updatedAt => throw _privateConstructorUsedError;
-  int? get followers => throw _privateConstructorUsedError;
-  int? get following => throw _privateConstructorUsedError;
-  int? get friends => throw _privateConstructorUsedError;
-  int? get userPoints => throw _privateConstructorUsedError;
-  String? get privateUserUID => throw _privateConstructorUsedError;
-  String? get bio => throw _privateConstructorUsedError;
-  String? get profileImageURL => throw _privateConstructorUsedError;
-  String? get coverImageURL =>
-      throw _privateConstructorUsedError; // Add fields for private profile
-  String? get privateBio => throw _privateConstructorUsedError;
-  String? get privateProfileImageURL => throw _privateConstructorUsedError;
-  String? get privateCoverImageURL => throw _privateConstructorUsedError;
-  int? get privateFollowers => throw _privateConstructorUsedError;
-  int? get privateFollowing => throw _privateConstructorUsedError;
-  int? get privateFriends => throw _privateConstructorUsedError;
-  int? get privateUserPoints => throw _privateConstructorUsedError;
-  DateTime? get privateCreatedAt => throw _privateConstructorUsedError;
-  DateTime? get privateUpdatedAt => throw _privateConstructorUsedError;
-  List<String>? get privateConnections => throw _privateConstructorUsedError;
-  List<String>? get groups => throw _privateConstructorUsedError;
+mixin _$UserState implements DiagnosticableTreeMixin {
+  String get id;
+  String get firstName;
+  String get lastName;
+  String get username;
+  String get email;
+  DateTime? get createdAt;
+  DateTime? get updatedAt;
+  int? get followers;
+  int? get following;
+  int? get friends;
+  int? get userPoints;
+  String? get privateUserUID;
+  String? get bio;
+  String? get profileImageURL;
+  String? get coverImageURL; // Add fields for private profile
+  String? get privateBio;
+  String? get privateProfileImageURL;
+  String? get privateCoverImageURL;
+  int? get privateFollowers;
+  int? get privateFollowing;
+  int? get privateFriends;
+  int? get privateUserPoints;
+  DateTime? get privateCreatedAt;
+  DateTime? get privateUpdatedAt;
+  List<String>? get privateConnections;
+  List<String>? get groups;
 
   /// Create a copy of UserState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $UserStateCopyWith<UserState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $UserStateCopyWith<$Res> {
-  factory $UserStateCopyWith(UserState value, $Res Function(UserState) then) =
-      _$UserStateCopyWithImpl<$Res, UserState>;
-  @useResult
-  $Res call(
-      {String id,
-      String firstName,
-      String lastName,
-      String username,
-      String email,
-      DateTime? createdAt,
-      DateTime? updatedAt,
-      int? followers,
-      int? following,
-      int? friends,
-      int? userPoints,
-      String? privateUserUID,
-      String? bio,
-      String? profileImageURL,
-      String? coverImageURL,
-      String? privateBio,
-      String? privateProfileImageURL,
-      String? privateCoverImageURL,
-      int? privateFollowers,
-      int? privateFollowing,
-      int? privateFriends,
-      int? privateUserPoints,
-      DateTime? privateCreatedAt,
-      DateTime? privateUpdatedAt,
-      List<String>? privateConnections,
-      List<String>? groups});
-}
-
-/// @nodoc
-class _$UserStateCopyWithImpl<$Res, $Val extends UserState>
-    implements $UserStateCopyWith<$Res> {
-  _$UserStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $UserStateCopyWith<UserState> get copyWith =>
+      _$UserStateCopyWithImpl<UserState>(this as UserState, _$identity);
+
   @override
-  $Res call({
-    Object? id = null,
-    Object? firstName = null,
-    Object? lastName = null,
-    Object? username = null,
-    Object? email = null,
-    Object? createdAt = freezed,
-    Object? updatedAt = freezed,
-    Object? followers = freezed,
-    Object? following = freezed,
-    Object? friends = freezed,
-    Object? userPoints = freezed,
-    Object? privateUserUID = freezed,
-    Object? bio = freezed,
-    Object? profileImageURL = freezed,
-    Object? coverImageURL = freezed,
-    Object? privateBio = freezed,
-    Object? privateProfileImageURL = freezed,
-    Object? privateCoverImageURL = freezed,
-    Object? privateFollowers = freezed,
-    Object? privateFollowing = freezed,
-    Object? privateFriends = freezed,
-    Object? privateUserPoints = freezed,
-    Object? privateCreatedAt = freezed,
-    Object? privateUpdatedAt = freezed,
-    Object? privateConnections = freezed,
-    Object? groups = freezed,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      firstName: null == firstName
-          ? _value.firstName
-          : firstName // ignore: cast_nullable_to_non_nullable
-              as String,
-      lastName: null == lastName
-          ? _value.lastName
-          : lastName // ignore: cast_nullable_to_non_nullable
-              as String,
-      username: null == username
-          ? _value.username
-          : username // ignore: cast_nullable_to_non_nullable
-              as String,
-      email: null == email
-          ? _value.email
-          : email // ignore: cast_nullable_to_non_nullable
-              as String,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      followers: freezed == followers
-          ? _value.followers
-          : followers // ignore: cast_nullable_to_non_nullable
-              as int?,
-      following: freezed == following
-          ? _value.following
-          : following // ignore: cast_nullable_to_non_nullable
-              as int?,
-      friends: freezed == friends
-          ? _value.friends
-          : friends // ignore: cast_nullable_to_non_nullable
-              as int?,
-      userPoints: freezed == userPoints
-          ? _value.userPoints
-          : userPoints // ignore: cast_nullable_to_non_nullable
-              as int?,
-      privateUserUID: freezed == privateUserUID
-          ? _value.privateUserUID
-          : privateUserUID // ignore: cast_nullable_to_non_nullable
-              as String?,
-      bio: freezed == bio
-          ? _value.bio
-          : bio // ignore: cast_nullable_to_non_nullable
-              as String?,
-      profileImageURL: freezed == profileImageURL
-          ? _value.profileImageURL
-          : profileImageURL // ignore: cast_nullable_to_non_nullable
-              as String?,
-      coverImageURL: freezed == coverImageURL
-          ? _value.coverImageURL
-          : coverImageURL // ignore: cast_nullable_to_non_nullable
-              as String?,
-      privateBio: freezed == privateBio
-          ? _value.privateBio
-          : privateBio // ignore: cast_nullable_to_non_nullable
-              as String?,
-      privateProfileImageURL: freezed == privateProfileImageURL
-          ? _value.privateProfileImageURL
-          : privateProfileImageURL // ignore: cast_nullable_to_non_nullable
-              as String?,
-      privateCoverImageURL: freezed == privateCoverImageURL
-          ? _value.privateCoverImageURL
-          : privateCoverImageURL // ignore: cast_nullable_to_non_nullable
-              as String?,
-      privateFollowers: freezed == privateFollowers
-          ? _value.privateFollowers
-          : privateFollowers // ignore: cast_nullable_to_non_nullable
-              as int?,
-      privateFollowing: freezed == privateFollowing
-          ? _value.privateFollowing
-          : privateFollowing // ignore: cast_nullable_to_non_nullable
-              as int?,
-      privateFriends: freezed == privateFriends
-          ? _value.privateFriends
-          : privateFriends // ignore: cast_nullable_to_non_nullable
-              as int?,
-      privateUserPoints: freezed == privateUserPoints
-          ? _value.privateUserPoints
-          : privateUserPoints // ignore: cast_nullable_to_non_nullable
-              as int?,
-      privateCreatedAt: freezed == privateCreatedAt
-          ? _value.privateCreatedAt
-          : privateCreatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      privateUpdatedAt: freezed == privateUpdatedAt
-          ? _value.privateUpdatedAt
-          : privateUpdatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      privateConnections: freezed == privateConnections
-          ? _value.privateConnections
-          : privateConnections // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      groups: freezed == groups
-          ? _value.groups
-          : groups // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-    ) as $Val);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'UserState'))
+      ..add(DiagnosticsProperty('id', id))
+      ..add(DiagnosticsProperty('firstName', firstName))
+      ..add(DiagnosticsProperty('lastName', lastName))
+      ..add(DiagnosticsProperty('username', username))
+      ..add(DiagnosticsProperty('email', email))
+      ..add(DiagnosticsProperty('createdAt', createdAt))
+      ..add(DiagnosticsProperty('updatedAt', updatedAt))
+      ..add(DiagnosticsProperty('followers', followers))
+      ..add(DiagnosticsProperty('following', following))
+      ..add(DiagnosticsProperty('friends', friends))
+      ..add(DiagnosticsProperty('userPoints', userPoints))
+      ..add(DiagnosticsProperty('privateUserUID', privateUserUID))
+      ..add(DiagnosticsProperty('bio', bio))
+      ..add(DiagnosticsProperty('profileImageURL', profileImageURL))
+      ..add(DiagnosticsProperty('coverImageURL', coverImageURL))
+      ..add(DiagnosticsProperty('privateBio', privateBio))
+      ..add(
+          DiagnosticsProperty('privateProfileImageURL', privateProfileImageURL))
+      ..add(DiagnosticsProperty('privateCoverImageURL', privateCoverImageURL))
+      ..add(DiagnosticsProperty('privateFollowers', privateFollowers))
+      ..add(DiagnosticsProperty('privateFollowing', privateFollowing))
+      ..add(DiagnosticsProperty('privateFriends', privateFriends))
+      ..add(DiagnosticsProperty('privateUserPoints', privateUserPoints))
+      ..add(DiagnosticsProperty('privateCreatedAt', privateCreatedAt))
+      ..add(DiagnosticsProperty('privateUpdatedAt', privateUpdatedAt))
+      ..add(DiagnosticsProperty('privateConnections', privateConnections))
+      ..add(DiagnosticsProperty('groups', groups));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is UserState &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.firstName, firstName) ||
+                other.firstName == firstName) &&
+            (identical(other.lastName, lastName) ||
+                other.lastName == lastName) &&
+            (identical(other.username, username) ||
+                other.username == username) &&
+            (identical(other.email, email) || other.email == email) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt) &&
+            (identical(other.followers, followers) ||
+                other.followers == followers) &&
+            (identical(other.following, following) ||
+                other.following == following) &&
+            (identical(other.friends, friends) || other.friends == friends) &&
+            (identical(other.userPoints, userPoints) ||
+                other.userPoints == userPoints) &&
+            (identical(other.privateUserUID, privateUserUID) ||
+                other.privateUserUID == privateUserUID) &&
+            (identical(other.bio, bio) || other.bio == bio) &&
+            (identical(other.profileImageURL, profileImageURL) ||
+                other.profileImageURL == profileImageURL) &&
+            (identical(other.coverImageURL, coverImageURL) ||
+                other.coverImageURL == coverImageURL) &&
+            (identical(other.privateBio, privateBio) ||
+                other.privateBio == privateBio) &&
+            (identical(other.privateProfileImageURL, privateProfileImageURL) ||
+                other.privateProfileImageURL == privateProfileImageURL) &&
+            (identical(other.privateCoverImageURL, privateCoverImageURL) ||
+                other.privateCoverImageURL == privateCoverImageURL) &&
+            (identical(other.privateFollowers, privateFollowers) ||
+                other.privateFollowers == privateFollowers) &&
+            (identical(other.privateFollowing, privateFollowing) ||
+                other.privateFollowing == privateFollowing) &&
+            (identical(other.privateFriends, privateFriends) ||
+                other.privateFriends == privateFriends) &&
+            (identical(other.privateUserPoints, privateUserPoints) ||
+                other.privateUserPoints == privateUserPoints) &&
+            (identical(other.privateCreatedAt, privateCreatedAt) ||
+                other.privateCreatedAt == privateCreatedAt) &&
+            (identical(other.privateUpdatedAt, privateUpdatedAt) ||
+                other.privateUpdatedAt == privateUpdatedAt) &&
+            const DeepCollectionEquality()
+                .equals(other.privateConnections, privateConnections) &&
+            const DeepCollectionEquality().equals(other.groups, groups));
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        firstName,
+        lastName,
+        username,
+        email,
+        createdAt,
+        updatedAt,
+        followers,
+        following,
+        friends,
+        userPoints,
+        privateUserUID,
+        bio,
+        profileImageURL,
+        coverImageURL,
+        privateBio,
+        privateProfileImageURL,
+        privateCoverImageURL,
+        privateFollowers,
+        privateFollowing,
+        privateFriends,
+        privateUserPoints,
+        privateCreatedAt,
+        privateUpdatedAt,
+        const DeepCollectionEquality().hash(privateConnections),
+        const DeepCollectionEquality().hash(groups)
+      ]);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'UserState(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, privateUserUID: $privateUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, privateBio: $privateBio, privateProfileImageURL: $privateProfileImageURL, privateCoverImageURL: $privateCoverImageURL, privateFollowers: $privateFollowers, privateFollowing: $privateFollowing, privateFriends: $privateFriends, privateUserPoints: $privateUserPoints, privateCreatedAt: $privateCreatedAt, privateUpdatedAt: $privateUpdatedAt, privateConnections: $privateConnections, groups: $groups)';
   }
 }
 
 /// @nodoc
-abstract class _$$UserStateImplCopyWith<$Res>
-    implements $UserStateCopyWith<$Res> {
-  factory _$$UserStateImplCopyWith(
-          _$UserStateImpl value, $Res Function(_$UserStateImpl) then) =
-      __$$UserStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $UserStateCopyWith<$Res> {
+  factory $UserStateCopyWith(UserState value, $Res Function(UserState) _then) =
+      _$UserStateCopyWithImpl;
   @useResult
   $Res call(
       {String id,
@@ -274,12 +208,11 @@ abstract class _$$UserStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$UserStateImplCopyWithImpl<$Res>
-    extends _$UserStateCopyWithImpl<$Res, _$UserStateImpl>
-    implements _$$UserStateImplCopyWith<$Res> {
-  __$$UserStateImplCopyWithImpl(
-      _$UserStateImpl _value, $Res Function(_$UserStateImpl) _then)
-      : super(_value, _then);
+class _$UserStateCopyWithImpl<$Res> implements $UserStateCopyWith<$Res> {
+  _$UserStateCopyWithImpl(this._self, this._then);
+
+  final UserState _self;
+  final $Res Function(UserState) _then;
 
   /// Create a copy of UserState
   /// with the given fields replaced by the non-null parameter values.
@@ -313,109 +246,109 @@ class __$$UserStateImplCopyWithImpl<$Res>
     Object? privateConnections = freezed,
     Object? groups = freezed,
   }) {
-    return _then(_$UserStateImpl(
+    return _then(_self.copyWith(
       id: null == id
-          ? _value.id
+          ? _self.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
       firstName: null == firstName
-          ? _value.firstName
+          ? _self.firstName
           : firstName // ignore: cast_nullable_to_non_nullable
               as String,
       lastName: null == lastName
-          ? _value.lastName
+          ? _self.lastName
           : lastName // ignore: cast_nullable_to_non_nullable
               as String,
       username: null == username
-          ? _value.username
+          ? _self.username
           : username // ignore: cast_nullable_to_non_nullable
               as String,
       email: null == email
-          ? _value.email
+          ? _self.email
           : email // ignore: cast_nullable_to_non_nullable
               as String,
       createdAt: freezed == createdAt
-          ? _value.createdAt
+          ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       updatedAt: freezed == updatedAt
-          ? _value.updatedAt
+          ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       followers: freezed == followers
-          ? _value.followers
+          ? _self.followers
           : followers // ignore: cast_nullable_to_non_nullable
               as int?,
       following: freezed == following
-          ? _value.following
+          ? _self.following
           : following // ignore: cast_nullable_to_non_nullable
               as int?,
       friends: freezed == friends
-          ? _value.friends
+          ? _self.friends
           : friends // ignore: cast_nullable_to_non_nullable
               as int?,
       userPoints: freezed == userPoints
-          ? _value.userPoints
+          ? _self.userPoints
           : userPoints // ignore: cast_nullable_to_non_nullable
               as int?,
       privateUserUID: freezed == privateUserUID
-          ? _value.privateUserUID
+          ? _self.privateUserUID
           : privateUserUID // ignore: cast_nullable_to_non_nullable
               as String?,
       bio: freezed == bio
-          ? _value.bio
+          ? _self.bio
           : bio // ignore: cast_nullable_to_non_nullable
               as String?,
       profileImageURL: freezed == profileImageURL
-          ? _value.profileImageURL
+          ? _self.profileImageURL
           : profileImageURL // ignore: cast_nullable_to_non_nullable
               as String?,
       coverImageURL: freezed == coverImageURL
-          ? _value.coverImageURL
+          ? _self.coverImageURL
           : coverImageURL // ignore: cast_nullable_to_non_nullable
               as String?,
       privateBio: freezed == privateBio
-          ? _value.privateBio
+          ? _self.privateBio
           : privateBio // ignore: cast_nullable_to_non_nullable
               as String?,
       privateProfileImageURL: freezed == privateProfileImageURL
-          ? _value.privateProfileImageURL
+          ? _self.privateProfileImageURL
           : privateProfileImageURL // ignore: cast_nullable_to_non_nullable
               as String?,
       privateCoverImageURL: freezed == privateCoverImageURL
-          ? _value.privateCoverImageURL
+          ? _self.privateCoverImageURL
           : privateCoverImageURL // ignore: cast_nullable_to_non_nullable
               as String?,
       privateFollowers: freezed == privateFollowers
-          ? _value.privateFollowers
+          ? _self.privateFollowers
           : privateFollowers // ignore: cast_nullable_to_non_nullable
               as int?,
       privateFollowing: freezed == privateFollowing
-          ? _value.privateFollowing
+          ? _self.privateFollowing
           : privateFollowing // ignore: cast_nullable_to_non_nullable
               as int?,
       privateFriends: freezed == privateFriends
-          ? _value.privateFriends
+          ? _self.privateFriends
           : privateFriends // ignore: cast_nullable_to_non_nullable
               as int?,
       privateUserPoints: freezed == privateUserPoints
-          ? _value.privateUserPoints
+          ? _self.privateUserPoints
           : privateUserPoints // ignore: cast_nullable_to_non_nullable
               as int?,
       privateCreatedAt: freezed == privateCreatedAt
-          ? _value.privateCreatedAt
+          ? _self.privateCreatedAt
           : privateCreatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       privateUpdatedAt: freezed == privateUpdatedAt
-          ? _value.privateUpdatedAt
+          ? _self.privateUpdatedAt
           : privateUpdatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       privateConnections: freezed == privateConnections
-          ? _value._privateConnections
+          ? _self.privateConnections
           : privateConnections // ignore: cast_nullable_to_non_nullable
               as List<String>?,
       groups: freezed == groups
-          ? _value._groups
+          ? _self.groups
           : groups // ignore: cast_nullable_to_non_nullable
               as List<String>?,
     ));
@@ -424,8 +357,8 @@ class __$$UserStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$UserStateImpl implements _UserState {
-  const _$UserStateImpl(
+class _UserState with DiagnosticableTreeMixin implements UserState {
+  const _UserState(
       {required this.id,
       required this.firstName,
       required this.lastName,
@@ -533,16 +466,52 @@ class _$UserStateImpl implements _UserState {
     return EqualUnmodifiableListView(value);
   }
 
+  /// Create a copy of UserState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'UserState(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, privateUserUID: $privateUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, privateBio: $privateBio, privateProfileImageURL: $privateProfileImageURL, privateCoverImageURL: $privateCoverImageURL, privateFollowers: $privateFollowers, privateFollowing: $privateFollowing, privateFriends: $privateFriends, privateUserPoints: $privateUserPoints, privateCreatedAt: $privateCreatedAt, privateUpdatedAt: $privateUpdatedAt, privateConnections: $privateConnections, groups: $groups)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$UserStateCopyWith<_UserState> get copyWith =>
+      __$UserStateCopyWithImpl<_UserState>(this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'UserState'))
+      ..add(DiagnosticsProperty('id', id))
+      ..add(DiagnosticsProperty('firstName', firstName))
+      ..add(DiagnosticsProperty('lastName', lastName))
+      ..add(DiagnosticsProperty('username', username))
+      ..add(DiagnosticsProperty('email', email))
+      ..add(DiagnosticsProperty('createdAt', createdAt))
+      ..add(DiagnosticsProperty('updatedAt', updatedAt))
+      ..add(DiagnosticsProperty('followers', followers))
+      ..add(DiagnosticsProperty('following', following))
+      ..add(DiagnosticsProperty('friends', friends))
+      ..add(DiagnosticsProperty('userPoints', userPoints))
+      ..add(DiagnosticsProperty('privateUserUID', privateUserUID))
+      ..add(DiagnosticsProperty('bio', bio))
+      ..add(DiagnosticsProperty('profileImageURL', profileImageURL))
+      ..add(DiagnosticsProperty('coverImageURL', coverImageURL))
+      ..add(DiagnosticsProperty('privateBio', privateBio))
+      ..add(
+          DiagnosticsProperty('privateProfileImageURL', privateProfileImageURL))
+      ..add(DiagnosticsProperty('privateCoverImageURL', privateCoverImageURL))
+      ..add(DiagnosticsProperty('privateFollowers', privateFollowers))
+      ..add(DiagnosticsProperty('privateFollowing', privateFollowing))
+      ..add(DiagnosticsProperty('privateFriends', privateFriends))
+      ..add(DiagnosticsProperty('privateUserPoints', privateUserPoints))
+      ..add(DiagnosticsProperty('privateCreatedAt', privateCreatedAt))
+      ..add(DiagnosticsProperty('privateUpdatedAt', privateUpdatedAt))
+      ..add(DiagnosticsProperty('privateConnections', privateConnections))
+      ..add(DiagnosticsProperty('groups', groups));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$UserStateImpl &&
+            other is _UserState &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.firstName, firstName) ||
                 other.firstName == firstName) &&
@@ -623,101 +592,195 @@ class _$UserStateImpl implements _UserState {
         const DeepCollectionEquality().hash(_groups)
       ]);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'UserState(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, privateUserUID: $privateUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, privateBio: $privateBio, privateProfileImageURL: $privateProfileImageURL, privateCoverImageURL: $privateCoverImageURL, privateFollowers: $privateFollowers, privateFollowing: $privateFollowing, privateFriends: $privateFriends, privateUserPoints: $privateUserPoints, privateCreatedAt: $privateCreatedAt, privateUpdatedAt: $privateUpdatedAt, privateConnections: $privateConnections, groups: $groups)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$UserStateCopyWith<$Res>
+    implements $UserStateCopyWith<$Res> {
+  factory _$UserStateCopyWith(
+          _UserState value, $Res Function(_UserState) _then) =
+      __$UserStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String firstName,
+      String lastName,
+      String username,
+      String email,
+      DateTime? createdAt,
+      DateTime? updatedAt,
+      int? followers,
+      int? following,
+      int? friends,
+      int? userPoints,
+      String? privateUserUID,
+      String? bio,
+      String? profileImageURL,
+      String? coverImageURL,
+      String? privateBio,
+      String? privateProfileImageURL,
+      String? privateCoverImageURL,
+      int? privateFollowers,
+      int? privateFollowing,
+      int? privateFriends,
+      int? privateUserPoints,
+      DateTime? privateCreatedAt,
+      DateTime? privateUpdatedAt,
+      List<String>? privateConnections,
+      List<String>? groups});
+}
+
+/// @nodoc
+class __$UserStateCopyWithImpl<$Res> implements _$UserStateCopyWith<$Res> {
+  __$UserStateCopyWithImpl(this._self, this._then);
+
+  final _UserState _self;
+  final $Res Function(_UserState) _then;
+
   /// Create a copy of UserState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$UserStateImplCopyWith<_$UserStateImpl> get copyWith =>
-      __$$UserStateImplCopyWithImpl<_$UserStateImpl>(this, _$identity);
+  $Res call({
+    Object? id = null,
+    Object? firstName = null,
+    Object? lastName = null,
+    Object? username = null,
+    Object? email = null,
+    Object? createdAt = freezed,
+    Object? updatedAt = freezed,
+    Object? followers = freezed,
+    Object? following = freezed,
+    Object? friends = freezed,
+    Object? userPoints = freezed,
+    Object? privateUserUID = freezed,
+    Object? bio = freezed,
+    Object? profileImageURL = freezed,
+    Object? coverImageURL = freezed,
+    Object? privateBio = freezed,
+    Object? privateProfileImageURL = freezed,
+    Object? privateCoverImageURL = freezed,
+    Object? privateFollowers = freezed,
+    Object? privateFollowing = freezed,
+    Object? privateFriends = freezed,
+    Object? privateUserPoints = freezed,
+    Object? privateCreatedAt = freezed,
+    Object? privateUpdatedAt = freezed,
+    Object? privateConnections = freezed,
+    Object? groups = freezed,
+  }) {
+    return _then(_UserState(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      firstName: null == firstName
+          ? _self.firstName
+          : firstName // ignore: cast_nullable_to_non_nullable
+              as String,
+      lastName: null == lastName
+          ? _self.lastName
+          : lastName // ignore: cast_nullable_to_non_nullable
+              as String,
+      username: null == username
+          ? _self.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String,
+      email: null == email
+          ? _self.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      createdAt: freezed == createdAt
+          ? _self.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      updatedAt: freezed == updatedAt
+          ? _self.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      followers: freezed == followers
+          ? _self.followers
+          : followers // ignore: cast_nullable_to_non_nullable
+              as int?,
+      following: freezed == following
+          ? _self.following
+          : following // ignore: cast_nullable_to_non_nullable
+              as int?,
+      friends: freezed == friends
+          ? _self.friends
+          : friends // ignore: cast_nullable_to_non_nullable
+              as int?,
+      userPoints: freezed == userPoints
+          ? _self.userPoints
+          : userPoints // ignore: cast_nullable_to_non_nullable
+              as int?,
+      privateUserUID: freezed == privateUserUID
+          ? _self.privateUserUID
+          : privateUserUID // ignore: cast_nullable_to_non_nullable
+              as String?,
+      bio: freezed == bio
+          ? _self.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
+      profileImageURL: freezed == profileImageURL
+          ? _self.profileImageURL
+          : profileImageURL // ignore: cast_nullable_to_non_nullable
+              as String?,
+      coverImageURL: freezed == coverImageURL
+          ? _self.coverImageURL
+          : coverImageURL // ignore: cast_nullable_to_non_nullable
+              as String?,
+      privateBio: freezed == privateBio
+          ? _self.privateBio
+          : privateBio // ignore: cast_nullable_to_non_nullable
+              as String?,
+      privateProfileImageURL: freezed == privateProfileImageURL
+          ? _self.privateProfileImageURL
+          : privateProfileImageURL // ignore: cast_nullable_to_non_nullable
+              as String?,
+      privateCoverImageURL: freezed == privateCoverImageURL
+          ? _self.privateCoverImageURL
+          : privateCoverImageURL // ignore: cast_nullable_to_non_nullable
+              as String?,
+      privateFollowers: freezed == privateFollowers
+          ? _self.privateFollowers
+          : privateFollowers // ignore: cast_nullable_to_non_nullable
+              as int?,
+      privateFollowing: freezed == privateFollowing
+          ? _self.privateFollowing
+          : privateFollowing // ignore: cast_nullable_to_non_nullable
+              as int?,
+      privateFriends: freezed == privateFriends
+          ? _self.privateFriends
+          : privateFriends // ignore: cast_nullable_to_non_nullable
+              as int?,
+      privateUserPoints: freezed == privateUserPoints
+          ? _self.privateUserPoints
+          : privateUserPoints // ignore: cast_nullable_to_non_nullable
+              as int?,
+      privateCreatedAt: freezed == privateCreatedAt
+          ? _self.privateCreatedAt
+          : privateCreatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      privateUpdatedAt: freezed == privateUpdatedAt
+          ? _self.privateUpdatedAt
+          : privateUpdatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      privateConnections: freezed == privateConnections
+          ? _self._privateConnections
+          : privateConnections // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
+      groups: freezed == groups
+          ? _self._groups
+          : groups // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
+    ));
+  }
 }
 
-abstract class _UserState implements UserState {
-  const factory _UserState(
-      {required final String id,
-      required final String firstName,
-      required final String lastName,
-      required final String username,
-      required final String email,
-      final DateTime? createdAt,
-      final DateTime? updatedAt,
-      final int? followers,
-      final int? following,
-      final int? friends,
-      final int? userPoints,
-      final String? privateUserUID,
-      final String? bio,
-      final String? profileImageURL,
-      final String? coverImageURL,
-      final String? privateBio,
-      final String? privateProfileImageURL,
-      final String? privateCoverImageURL,
-      final int? privateFollowers,
-      final int? privateFollowing,
-      final int? privateFriends,
-      final int? privateUserPoints,
-      final DateTime? privateCreatedAt,
-      final DateTime? privateUpdatedAt,
-      final List<String>? privateConnections,
-      final List<String>? groups}) = _$UserStateImpl;
-
-  @override
-  String get id;
-  @override
-  String get firstName;
-  @override
-  String get lastName;
-  @override
-  String get username;
-  @override
-  String get email;
-  @override
-  DateTime? get createdAt;
-  @override
-  DateTime? get updatedAt;
-  @override
-  int? get followers;
-  @override
-  int? get following;
-  @override
-  int? get friends;
-  @override
-  int? get userPoints;
-  @override
-  String? get privateUserUID;
-  @override
-  String? get bio;
-  @override
-  String? get profileImageURL;
-  @override
-  String? get coverImageURL; // Add fields for private profile
-  @override
-  String? get privateBio;
-  @override
-  String? get privateProfileImageURL;
-  @override
-  String? get privateCoverImageURL;
-  @override
-  int? get privateFollowers;
-  @override
-  int? get privateFollowing;
-  @override
-  int? get privateFriends;
-  @override
-  int? get privateUserPoints;
-  @override
-  DateTime? get privateCreatedAt;
-  @override
-  DateTime? get privateUpdatedAt;
-  @override
-  List<String>? get privateConnections;
-  @override
-  List<String>? get groups;
-
-  /// Create a copy of UserState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$UserStateImplCopyWith<_$UserStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+// dart format on

@@ -4,7 +4,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'public_feed_state.dart';
+part of 'alt_feed_states.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -14,7 +14,7 @@ part of 'public_feed_state.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$PublicFeedState implements DiagnosticableTreeMixin {
+mixin _$AltFeedState implements DiagnosticableTreeMixin {
   List<PostModel> get posts;
   bool get isLoading;
   bool get hasMorePosts;
@@ -22,18 +22,18 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
   bool get isRefreshing;
   PostModel? get lastPost;
 
-  /// Create a copy of PublicFeedState
+  /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
-  $PublicFeedStateCopyWith<PublicFeedState> get copyWith =>
-      _$PublicFeedStateCopyWithImpl<PublicFeedState>(
-          this as PublicFeedState, _$identity);
+  $AltFeedStateCopyWith<AltFeedState> get copyWith =>
+      _$AltFeedStateCopyWithImpl<AltFeedState>(
+          this as AltFeedState, _$identity);
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     properties
-      ..add(DiagnosticsProperty('type', 'PublicFeedState'))
+      ..add(DiagnosticsProperty('type', 'AltFeedState'))
       ..add(DiagnosticsProperty('posts', posts))
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
@@ -46,7 +46,7 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is PublicFeedState &&
+            other is AltFeedState &&
             const DeepCollectionEquality().equals(other.posts, posts) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
@@ -71,15 +71,15 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PublicFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
+    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
   }
 }
 
 /// @nodoc
-abstract mixin class $PublicFeedStateCopyWith<$Res> {
-  factory $PublicFeedStateCopyWith(
-          PublicFeedState value, $Res Function(PublicFeedState) _then) =
-      _$PublicFeedStateCopyWithImpl;
+abstract mixin class $AltFeedStateCopyWith<$Res> {
+  factory $AltFeedStateCopyWith(
+          AltFeedState value, $Res Function(AltFeedState) _then) =
+      _$AltFeedStateCopyWithImpl;
   @useResult
   $Res call(
       {List<PostModel> posts,
@@ -93,14 +93,13 @@ abstract mixin class $PublicFeedStateCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$PublicFeedStateCopyWithImpl<$Res>
-    implements $PublicFeedStateCopyWith<$Res> {
-  _$PublicFeedStateCopyWithImpl(this._self, this._then);
+class _$AltFeedStateCopyWithImpl<$Res> implements $AltFeedStateCopyWith<$Res> {
+  _$AltFeedStateCopyWithImpl(this._self, this._then);
 
-  final PublicFeedState _self;
-  final $Res Function(PublicFeedState) _then;
+  final AltFeedState _self;
+  final $Res Function(AltFeedState) _then;
 
-  /// Create a copy of PublicFeedState
+  /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -137,7 +136,7 @@ class _$PublicFeedStateCopyWithImpl<$Res>
     ));
   }
 
-  /// Create a copy of PublicFeedState
+  /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
@@ -154,8 +153,8 @@ class _$PublicFeedStateCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
-  const _PublicFeedState(
+class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
+  const _AltFeedState(
       {required final List<PostModel> posts,
       this.isLoading = false,
       this.hasMorePosts = true,
@@ -186,18 +185,18 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
   @override
   final PostModel? lastPost;
 
-  /// Create a copy of PublicFeedState
+  /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
-  _$PublicFeedStateCopyWith<_PublicFeedState> get copyWith =>
-      __$PublicFeedStateCopyWithImpl<_PublicFeedState>(this, _$identity);
+  _$AltFeedStateCopyWith<_AltFeedState> get copyWith =>
+      __$AltFeedStateCopyWithImpl<_AltFeedState>(this, _$identity);
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     properties
-      ..add(DiagnosticsProperty('type', 'PublicFeedState'))
+      ..add(DiagnosticsProperty('type', 'AltFeedState'))
       ..add(DiagnosticsProperty('posts', posts))
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
@@ -210,7 +209,7 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _PublicFeedState &&
+            other is _AltFeedState &&
             const DeepCollectionEquality().equals(other._posts, _posts) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
@@ -235,16 +234,16 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PublicFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
+    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
   }
 }
 
 /// @nodoc
-abstract mixin class _$PublicFeedStateCopyWith<$Res>
-    implements $PublicFeedStateCopyWith<$Res> {
-  factory _$PublicFeedStateCopyWith(
-          _PublicFeedState value, $Res Function(_PublicFeedState) _then) =
-      __$PublicFeedStateCopyWithImpl;
+abstract mixin class _$AltFeedStateCopyWith<$Res>
+    implements $AltFeedStateCopyWith<$Res> {
+  factory _$AltFeedStateCopyWith(
+          _AltFeedState value, $Res Function(_AltFeedState) _then) =
+      __$AltFeedStateCopyWithImpl;
   @override
   @useResult
   $Res call(
@@ -260,14 +259,14 @@ abstract mixin class _$PublicFeedStateCopyWith<$Res>
 }
 
 /// @nodoc
-class __$PublicFeedStateCopyWithImpl<$Res>
-    implements _$PublicFeedStateCopyWith<$Res> {
-  __$PublicFeedStateCopyWithImpl(this._self, this._then);
+class __$AltFeedStateCopyWithImpl<$Res>
+    implements _$AltFeedStateCopyWith<$Res> {
+  __$AltFeedStateCopyWithImpl(this._self, this._then);
 
-  final _PublicFeedState _self;
-  final $Res Function(_PublicFeedState) _then;
+  final _AltFeedState _self;
+  final $Res Function(_AltFeedState) _then;
 
-  /// Create a copy of PublicFeedState
+  /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
@@ -279,7 +278,7 @@ class __$PublicFeedStateCopyWithImpl<$Res>
     Object? isRefreshing = null,
     Object? lastPost = freezed,
   }) {
-    return _then(_PublicFeedState(
+    return _then(_AltFeedState(
       posts: null == posts
           ? _self._posts
           : posts // ignore: cast_nullable_to_non_nullable
@@ -304,7 +303,7 @@ class __$PublicFeedStateCopyWithImpl<$Res>
     ));
   }
 
-  /// Create a copy of PublicFeedState
+  /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')

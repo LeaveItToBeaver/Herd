@@ -8,6 +8,7 @@ const { logger } = require("firebase-functions");
 admin.initializeApp();
 const firestore = admin.firestore();
 
+// Hot algorithm implementation for post ranking - this stays mostly the same
 const hotAlgorithm = {
   calculateHotScore: (netVotes, createdAt, decayFactor = 1.0) => {
     // Logarithmic scoring that accounts for recency and engagement
@@ -21,7 +22,6 @@ const hotAlgorithm = {
     return sign * magnitude * timeDecay;
   },
 
-  // Sorting method with more sophisticated ranking
   sortPosts: (posts, decayFactor = 1.0) => {
     return posts.sort((a, b) => {
       const aScore = hotAlgorithm.calculateHotScore(
@@ -39,10 +39,10 @@ const hotAlgorithm = {
   }
 };
 
-
-
-
-
+/**
+ * Fan-out post to followers' feeds when a new post is created
+ * This is the core function for the write-time fan-out pattern
+ */
 exports.distributePost = onDocumentCreated(
   "posts/{postId}",
   async (event) => {
@@ -51,7 +51,7 @@ exports.distributePost = onDocumentCreated(
 
     // Validate post data
     if (!postData || !postData.authorId) {
-      console.error(`Invalid post data for ID: ${postId}`);
+      logger.error(`Invalid post data for ID: ${postId}`);
       return null;
     }
 
@@ -61,618 +61,235 @@ exports.distributePost = onDocumentCreated(
       postData.createdAt ? postData.createdAt.toDate() : new Date()
     );
 
-    // Determine feed types based on post attributes
-    const feedTypes = [
-      postData.isAlt ? 'altFeeds' : 'publicFeeds',
-      ...(postData.herdId ? [`herdFeeds/${postData.herdId}`] : [])
-    ];
+    // Enhanced post data with feed metadata
+    const enhancedPostData = {
+      ...postData,
+      hotScore: initialHotScore,
+      // Keep original isAlt flag for filtering
+      // Add feedType based on post attributes
+      feedType: postData.isAlt ? 'alt' : 'public'
+    };
 
-    // Batch write to multiple feed collections
-    const writeBatches = feedTypes.map(feedType => {
-      const batch = admin.firestore().batch();
+    try {
+      // Determine distribution targets based on post type
+      let targetUserIds = [];
 
-      // Determine followers/members based on feed type
-      const followersRef = postData.isAlt
-        ? admin.firestore().collection('altConnections').doc(postData.authorId).collection('connections')
-        : admin.firestore().collection('followers').doc(postData.authorId).collection('userFollowers');
+      if (postData.isAlt) {
+        // For alt posts - distribute to alt connections
+        const connectionsSnapshot = await firestore
+          .collection("altConnections")
+          .doc(postData.authorId)
+          .collection("userConnections")
+          .get();
 
-      // Add hot score to post data for efficient sorting
-      const enhancedPostData = {
-        ...postData,
-        hotScore: initialHotScore,
-        feedType: feedType.split('/')[0],
-        ...(postData.herdId ? { herdId: postData.herdId } : {})
-      };
+        targetUserIds = connectionsSnapshot.docs.map(doc => doc.id);
+      } else {
+        // For public posts - distribute to followers
+        const followersSnapshot = await firestore
+          .collection("followers")
+          .doc(postData.authorId)
+          .collection("userFollowers")
+          .get();
 
-      return { feedType, followersRef, enhancedPostData, batch };
-    });
+        targetUserIds = followersSnapshot.docs.map(doc => doc.id);
+      }
 
-    // Batch processing for each feed type
-    for (const { feedType, followersRef, enhancedPostData, batch } of writeBatches) {
-      const followersSnapshot = await followersRef.get();
+      // Add author to recipient list (they see their own posts)
+      if (!targetUserIds.includes(postData.authorId)) {
+        targetUserIds.push(postData.authorId);
+      }
 
-      followersSnapshot.forEach(followerDoc => {
-        const feedRef = admin.firestore()
-          .collection('userFeeds')
-          .doc(followerDoc.id)
-          .collection(feedType)
+      // If post belongs to a herd, add herd members to targets
+      if (postData.herdId) {
+        // Update feedType for herd posts
+        enhancedPostData.feedType = 'herd';
+
+        const herdMembersSnapshot = await firestore
+          .collection("herdMembers")
+          .doc(postData.herdId)
+          .collection("members")
+          .get();
+
+        const herdMemberIds = herdMembersSnapshot.docs.map(doc => doc.id);
+
+        // Merge with existing targets (using Set for uniqueness)
+        targetUserIds = [...new Set([...targetUserIds, ...herdMemberIds])];
+      }
+
+      // Fan out to user feeds (batch processing)
+      const MAX_BATCH_SIZE = 500; // Firestore limit
+      let batch = firestore.batch();
+      let operationCount = 0;
+
+      for (const userId of targetUserIds) {
+        const userFeedRef = firestore
+          .collection("userFeeds")
+          .doc(userId)
+          .collection("feed")
           .doc(postId);
 
-        batch.set(feedRef, enhancedPostData);
-      });
+        batch.set(userFeedRef, enhancedPostData);
+        operationCount++;
 
-      await batch.commit();
+        // If batch is full, commit and reset
+        if (operationCount >= MAX_BATCH_SIZE) {
+          await batch.commit();
+          batch = firestore.batch();
+          operationCount = 0;
+          logger.info(`Committed batch of ${MAX_BATCH_SIZE} operations`);
+        }
+      }
+
+      // Commit any remaining operations
+      if (operationCount > 0) {
+        await batch.commit();
+        logger.info(`Committed final batch of ${operationCount} operations`);
+      }
+
+      logger.info(`Successfully distributed post ${postId} to ${targetUserIds.length} feeds`);
+      return null;
+    } catch (error) {
+      logger.error(`Error distributing post ${postId}:`, error);
+      throw error;
     }
-
-    return null;
   }
 );
 
-
 /**
- * Cloud Function triggered when a new alt post is created
- * Distributes the post to the feeds of all alt connections
- */
-exports.distributeAltPost = onDocumentCreated(
-    "posts/{postId}",
-    async (event) => {
-        const postId = event.params.postId;
-        const postData = event.data.data();
-
-        if (!postData) {
-            console.error(`No post data found for ID: ${postId}`);
-            return null;
-        }
-
-        const authorId = postData.authorId;
-        if (!authorId) {
-            console.error(`No author ID found for post: ${postId}`);
-            return null;
-        }
-
-        const initialHotScore = hotAlgorithm.calculateHotScore(
-          0, // New posts have 0 net votes
-          postData.createdAt ? postData.createdAt.toDate() : new Date()
-        );
-
-        postData.hotScore = initialHotScore;
-
-        await firestore.collection("userFeeds").collection(userId).doc(postId).update({
-            hotScore: initialHotScore
-        });
-
-        try {
-            console.log(`Starting distribution of alt post ${postId} by author ${authorId}`);
-
-            // Get all alt connections of the post author
-            const connectionsSnapshot = await firestore
-                .collection("altConnections")
-                .doc(authorId)
-                .collection("userConnections")
-                .get();
-
-            if (connectionsSnapshot.empty) {
-                console.log(`No alt connections found for user ${authorId}`);
-                return null;
-            }
-
-            // Create a batch write to efficiently handle multiple writes
-            let currentBatch = firestore.batch();
-            let operationCount = 0;
-            const MAX_BATCH_SIZE = 500; // Firestore batch limit
-
-            console.log(`Distributing alt post to ${connectionsSnapshot.size} connections`);
-
-            // Add the post to each connection's alt feed
-            for (const connectionDoc of connectionsSnapshot.docs) {
-                const connectionId = connectionDoc.id;
-
-                // Create reference to the connection's alt feed
-                const altFeedRef = firestore
-                    .collection("userFeeds")
-                    .doc(connectionId)
-                    .collection("altFeed")
-                    .doc(postId);
-
-                // Add post to connection's alt feed
-                currentBatch.set(altFeedRef, postData);
-                operationCount++;
-
-                // If we've reached the batch limit, commit and create a new batch
-                if (operationCount >= MAX_BATCH_SIZE) {
-                    await currentBatch.commit();
-                    console.log(`Committed batch of ${operationCount} operations`);
-                    currentBatch = firestore.batch();
-                    operationCount = 0;
-                }
-            }
-
-            // Commit any remaining operations
-            if (operationCount > 0) {
-                await currentBatch.commit();
-                console.log(`Committed final batch of ${operationCount} operations`);
-            }
-
-            console.log(`Successfully distributed alt post ${postId} to all connections`);
-            return null;
-        } catch (error) {
-            console.error(`Error distributing alt post ${postId}:`, error);
-            throw error;
-        }
-    });
-
-/**
- * Function to handle post deletion and remove it from all feeds
+ * Remove post from all feeds when the post is deleted
  */
 exports.removeDeletedPost = onDocumentDeleted(
-    "posts/{postId}",
-    async (event) => {
-        const postId = event.params.postId;
-        const postData = event.data.data();
-
-        if (!postData) {
-            console.error(`No post data found for deleted ID: ${postId}`);
-            return null;
-        }
-
-        const authorId = postData.authorId;
-        if (!authorId) {
-            console.error(`No author ID found for deleted post: ${postId}`);
-            return null;
-        }
-
-        try {
-            console.log(`Removing deleted post ${postId} from feeds`);
-
-            // Get all followers of the post author
-            const followersSnapshot = await firestore
-                .collection("followers")
-                .doc(authorId)
-                .collection("userFollowers")
-                .get();
-
-            if (followersSnapshot.empty) {
-                console.log(`No followers found for user ${authorId}`);
-                return null;
-            }
-
-            // Create batches to handle deletions
-            let currentBatch = firestore.batch();
-            let operationCount = 0;
-            const MAX_BATCH_SIZE = 500;
-
-            // Remove the post from each follower's feed
-            for (const followerDoc of followersSnapshot.docs) {
-                const followerId = followerDoc.id;
-
-                const feedRef = firestore
-                    .collection("feeds")
-                    .doc(followerId)
-                    .collection("userFeed")
-                    .doc(postId);
-
-                currentBatch.delete(feedRef);
-                operationCount++;
-
-                if (operationCount >= MAX_BATCH_SIZE) {
-                    await currentBatch.commit();
-                    currentBatch = firestore.batch();
-                    operationCount = 0;
-                }
-            }
-
-            if (operationCount > 0) {
-                await currentBatch.commit();
-            }
-
-            console.log(`Successfully removed deleted post ${postId} from all feeds`);
-            return null;
-        } catch (error) {
-            console.error(`Error removing deleted post ${postId}:`, error);
-            throw error;
-        }
-    });
-
-/**
- * Function to handle alt post deletion
- */
-exports.removeDeletedAltPost = onDocumentDeleted(
-    "globalAltPosts/{postId}",
-    async (event) => {
-        const postId = event.params.postId;
-        const postData = event.data.data();
-
-        if (!postData) {
-            console.error(`No post data found for deleted ID: ${postId}`);
-            return null;
-        }
-
-        const authorId = postData.authorId;
-        if (!authorId) {
-            console.error(`No author ID found for deleted post: ${postId}`);
-            return null;
-        }
-
-        try {
-            console.log(`Removing deleted alt post ${postId} from feeds`);
-
-            // Get all alt connections of the post author
-            const connectionsSnapshot = await firestore
-                .collection("altConnections")
-                .doc(authorId)
-                .collection("userConnections")
-                .get();
-
-            if (connectionsSnapshot.empty) {
-                console.log(`No alt connections found for user ${authorId}`);
-                return null;
-            }
-
-            // Create batches to handle deletions
-            let currentBatch = firestore.batch();
-            let operationCount = 0;
-            const MAX_BATCH_SIZE = 500;
-
-            // Remove the post from each connection's alt feed
-            for (const connectionDoc of connectionsSnapshot.docs) {
-                const connectionId = connectionDoc.id;
-
-                const altFeedRef = firestore
-                    .collection("altFeeds")
-                    .doc(connectionId)
-                    .collection("altFeed")
-                    .doc(postId);
-
-                currentBatch.delete(altFeedRef);
-                operationCount++;
-
-                if (operationCount >= MAX_BATCH_SIZE) {
-                    await currentBatch.commit();
-                    currentBatch = firestore.batch();
-                    operationCount = 0;
-                }
-            }
-
-            if (operationCount > 0) {
-                await currentBatch.commit();
-            }
-
-            console.log(`Successfully removed deleted alt post ${postId} from all alt feeds`);
-            return null;
-        } catch (error) {
-            console.error(`Error removing deleted alt post ${postId}:`, error);
-            throw error;
-        }
-    });
-
-/**
- * Cloud Function to handle post likes
- * - Toggles like status
- * - Removes dislike if exists
- * - Updates post like/dislike counts
- * - Updates user points
- */
-//exports.handlePostLike = onCall(async (request) => {
-//    const idToken = request.data.idToken;
-//    if (!idToken) {
-//        throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
-//    }
-//
-//    const userId = request.auth.uid;
-//    const herdId = request.data.herdId;
-//    const postId = request.data.postId;
-//    const isAlt = request.data.isAlt || false;
-//
-//    if (!postId) {
-//        throw new HttpsError('invalid-argument', 'Post ID is required');
-//    }
-//
-//    try {
-//        const decodedToken = await admin.auth().verifyIdToken(idToken);
-//        // Start a Firestore transaction to ensure atomic updates
-//        return await firestore.runTransaction(async (transaction) => {
-//            // Determine which collection to use based on post type
-//            let postRef;
-//
-//            if (herdId) {
-//                postRef = firestore.collection('herdPosts').doc(herdId).collection('posts').doc(postId);
-//            }
-//            if (isAlt) {
-//                postRef = firestore.collection('globalAltPosts').doc(postId);
-//            }
-//            else {
-//                postRef = firestore.collection('posts').doc(postId);
-//            }
-//
-//            const postDoc = await transaction.get(postRef);
-//
-//            if (!postDoc.exists) {
-//                throw new HttpsError('not-found', 'Post not found');
-//            }
-//
-//            // Get post data
-//            const postData = postDoc.data();
-//            const authorId = postData.authorId;
-//
-//            // References to like and dislike collections
-//            const likeRef = firestore.collection('likes').doc(postId).collection('postLikes').doc(userId);
-//            const dislikeRef = firestore.collection('dislikes').doc(postId).collection('postDislikes').doc(userId);
-//
-//            // Get current like/dislike state
-//            const likeDoc = await transaction.get(likeRef);
-//            const dislikeDoc = await transaction.get(dislikeRef);
-//
-//            const isLiked = likeDoc.exists;
-//            const isDisliked = dislikeDoc.exists;
-//
-//            // Determine update operations
-//            let likeChange = 0;
-//            let dislikeChange = 0;
-//            let pointChange = 0;
-//
-//            // Handle like toggle
-//            if (isLiked) {
-//                // Unlike: remove like
-//                transaction.delete(likeRef);
-//                likeChange = -1;
-//                pointChange = -1;
-//            } else {
-//                // Like: add like
-//                transaction.set(likeRef, { timestamp: admin.firestore.FieldValue.serverTimestamp() });
-//                likeChange = 1;
-//                pointChange = 1;
-//
-//                // If was disliked, remove dislike
-//                if (isDisliked) {
-//                    transaction.delete(dislikeRef);
-//                    dislikeChange = -1;
-//                    pointChange += 1; // +1 for removing dislike
-//                }
-//            }
-//
-//            // Update post like/dislike counts
-//            transaction.update(postRef, {
-//                likeCount: admin.firestore.FieldValue.increment(likeChange),
-//                dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-//            });
-//
-//            // Update author's points (only if not toggling own post)
-//            if (authorId !== userId && pointChange !== 0) {
-//                const authorRef = firestore.collection('users').doc(authorId);
-//                transaction.update(authorRef, {
-//                    userPoints: admin.firestore.FieldValue.increment(pointChange)
-//                });
-//            }
-//
-//            // Return the state for client sync
-//            return {
-//                isLiked: !isLiked,
-//                isDisliked: false,
-//                likeCount: (postData.likeCount || 0) + likeChange,
-//                dislikeCount: (postData.dislikeCount || 0) + dislikeChange,
-//                successful: true
-//            };
-//        });
-//    } catch (error) {
-//        console.error('Error handling like:', error);
-//        throw new HttpsError('internal', 'Failed to process like');
-//    }
-//});
-//
-///**
-// * Cloud Function to handle post dislikes
-// * - Toggles dislike status
-// * - Removes like if exists
-// * - Updates post like/dislike counts
-// * - Updates user points
-// */
-//exports.handlePostDislike = onCall(async (request) => {
-//    const idToken = request.data.idToken;
-//    if (!idToken) {
-//        throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
-//    }
-//
-//    const userId = request.auth.uid;
-//    const herdId = request.data.herdId;
-//    const postId = request.data.postId;
-//    const isAlt = request.data.isAlt || false;
-//
-//
-//    if (!postId) {
-//        throw new HttpsError('invalid-argument', 'Post ID is required');
-//    }
-//
-//    try {
-//        const decodedToken = await admin.auth().verifyIdToken(idToken);
-//        // Start a Firestore transaction to ensure atomic updates
-//        return await firestore.runTransaction(async (transaction) => {
-//            let postRef;
-//
-//            if (herdId) {
-//                postRef = firestore.collection('herdPosts').doc(herdId).collection('posts').doc(postId);
-//            }
-//            if (isAlt) {
-//                postRef = firestore.collection('globalAltPosts').doc(postId);
-//            }
-//            else {
-//                postRef = firestore.collection('posts').doc(postId);
-//            }
-//
-//            const postDoc = await transaction.get(postRef);
-//
-//            if (!postDoc.exists) {
-//                throw new HttpsError('not-found', 'Post not found');
-//            }
-//
-//            // Get post data
-//            const postData = postDoc.data();
-//            const authorId = postData.authorId;
-//
-//            // References to like and dislike collections
-//            const likeRef = firestore.collection('likes').doc(postId).collection('postLikes').doc(userId);
-//            const dislikeRef = firestore.collection('dislikes').doc(postId).collection('postDislikes').doc(userId);
-//
-//            // Get current like/dislike state
-//            const likeDoc = await transaction.get(likeRef);
-//            const dislikeDoc = await transaction.get(dislikeRef);
-//
-//            const isLiked = likeDoc.exists;
-//            const isDisliked = dislikeDoc.exists;
-//
-//            // Determine update operations
-//            let likeChange = 0;
-//            let dislikeChange = 0;
-//            let pointChange = 0;
-//
-//            // Handle dislike toggle
-//            if (isDisliked) {
-//                // Undislike: remove dislike
-//                transaction.delete(dislikeRef);
-//                dislikeChange = -1;
-//                pointChange = 1; // +1 for removing dislike
-//            } else {
-//                // Dislike: add dislike
-//                transaction.set(dislikeRef, { timestamp: admin.firestore.FieldValue.serverTimestamp() });
-//                dislikeChange = 1;
-//                pointChange = -1;
-//
-//                // If was liked, remove like
-//                if (isLiked) {
-//                    transaction.delete(likeRef);
-//                    likeChange = -1;
-//                    pointChange -= 1; // -1 for removing like
-//                }
-//            }
-//
-//            // Update post like/dislike counts
-//            transaction.update(postRef, {
-//                likeCount: admin.firestore.FieldValue.increment(likeChange),
-//                dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-//            });
-//
-//            // Update author's points (only if not toggling own post)
-//            if (authorId !== userId && pointChange !== 0) {
-//                const authorRef = firestore.collection('users').doc(authorId);
-//                transaction.update(authorRef, {
-//                    userPoints: admin.firestore.FieldValue.increment(pointChange)
-//                });
-//            }
-//
-//            // Return the state for client sync
-//            return {
-//                isLiked: false,
-//                isDisliked: !isDisliked,
-//                likeCount: (postData.likeCount || 0) + likeChange,
-//                dislikeCount: (postData.dislikeCount || 0) + dislikeChange,
-//                successful: true
-//            };
-//        });
-//    } catch (error) {
-//        console.error('Error handling dislike:', error);
-//        throw new HttpsError('internal', 'Failed to process dislike');
-//    }
-//});
-
-/**
- * Scheduled function to calculate and update hot scores for all posts
- * Runs every 15 minutes to keep scores current without overloading your Firebase quota
- */
-exports.updateHotScores = onSchedule(
-  "every 15 minutes",
+  "posts/{postId}",
   async (event) => {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const postId = event.params.postId;
+    const postData = event.data.data();
 
-    // Collections to update
-    const collectionsToUpdate = [
-      { name: 'posts', alt: false },
-      { name: 'globalAltPosts', alt: true },
-      // Add herd post collection
-      { name: 'herdPosts', herd: true }
-    ];
+    if (!postData) {
+      logger.error(`No post data found for deleted ID: ${postId}`);
+      return null;
+    }
 
-    for (const collection of collectionsToUpdate) {
-      const query = admin.firestore()
-        .collection(collection.name)
-        .where('createdAt', '>', oneWeekAgo);
+    try {
+      // Find all user feeds containing this post
+      const feedQuery = firestore
+        .collectionGroup("feed")
+        .where("__name__", "==", postId)
+        .select(); // Use select() to minimize data read
 
-      const snapshot = await query.get();
+      const feedEntries = await feedQuery.get();
 
-      const updateBatch = admin.firestore().batch();
+      if (feedEntries.empty) {
+        logger.info(`No feed entries found for deleted post ${postId}`);
+        return null;
+      }
 
-      snapshot.docs.forEach(doc => {
-        const postData = doc.data();
-        const netVotes = (postData.likeCount || 0) - (postData.dislikeCount || 0);
+      logger.info(`Removing deleted post ${postId} from ${feedEntries.size} feeds`);
 
-        const updatedHotScore = hotAlgorithm.calculateHotScore(
-          netVotes,
-          postData.createdAt.toDate()
-        );
+      // Batch delete from all feeds
+      const MAX_BATCH_SIZE = 500;
+      let batch = firestore.batch();
+      let operationCount = 0;
 
-        // Only update if score changed significantly
-        if (!postData.hotScore || Math.abs(postData.hotScore - updatedHotScore) > 0.001) {
-          updateBatch.update(doc.ref, {
-            hotScore: updatedHotScore
-          });
+      for (const doc of feedEntries.docs) {
+        batch.delete(doc.ref);
+        operationCount++;
+
+        if (operationCount >= MAX_BATCH_SIZE) {
+          await batch.commit();
+          batch = firestore.batch();
+          operationCount = 0;
         }
-      });
+      }
 
-      await updateBatch.commit();
+      if (operationCount > 0) {
+        await batch.commit();
+      }
+
+      logger.info(`Successfully removed deleted post ${postId} from all feeds`);
+      return null;
+    } catch (error) {
+      logger.error(`Error removing deleted post ${postId}:`, error);
+      throw error;
     }
   }
 );
 
-exports.getFeed = onCall(async (request) => {
-  const {
-    userId,
-    feedType = 'public',
-    herdId = null,
-    limit = 20,
-    lastHotScore = null
-  } = request.data;
+/**
+ * Update post hot scores across all feeds when a post is liked/disliked
+ */
+exports.updatePostInFeeds = onDocumentUpdated(
+  "posts/{postId}",
+  async (event) => {
+    const postId = event.params.postId;
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
 
-  // Validate user authentication
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be logged in');
+    // Only process if engagement metrics have changed
+    if (
+      beforeData.likeCount === afterData.likeCount &&
+      beforeData.dislikeCount === afterData.dislikeCount
+    ) {
+      return null;
+    }
+
+    try {
+      // Calculate new hot score
+      const netVotes = afterData.likeCount - afterData.dislikeCount;
+      const createdAt = afterData.createdAt.toDate();
+      const updatedHotScore = hotAlgorithm.calculateHotScore(netVotes, createdAt);
+
+      // Find all user feeds containing this post
+      const feedQuery = firestore
+        .collectionGroup("feed")
+        .where("__name__", "==", postId)
+        .select(); // Use select() to minimize data read
+
+      const feedEntries = await feedQuery.get();
+
+      if (feedEntries.empty) {
+        logger.info(`No feed entries found for post ${postId}`);
+        return null;
+      }
+
+      logger.info(`Updating hot score for post ${postId} in ${feedEntries.size} feeds`);
+
+      // Batch update all feeds
+      const MAX_BATCH_SIZE = 500;
+      let batch = firestore.batch();
+      let operationCount = 0;
+
+      for (const doc of feedEntries.docs) {
+        batch.update(doc.ref, { hotScore: updatedHotScore });
+        operationCount++;
+
+        if (operationCount >= MAX_BATCH_SIZE) {
+          await batch.commit();
+          batch = firestore.batch();
+          operationCount = 0;
+        }
+      }
+
+      if (operationCount > 0) {
+        await batch.commit();
+      }
+
+      logger.info(`Successfully updated post ${postId} hot score in all feeds`);
+      return null;
+    } catch (error) {
+      logger.error(`Error updating post ${postId} in feeds:`, error);
+      throw error;
+    }
   }
+);
 
-  let feedQuery = admin.firestore()
-    .collection('userFeeds')
-    .doc(userId)
-    .collection(feedType);
-
-  // Add optional herd filter
-  if (herdId) {
-    feedQuery = feedQuery.where('herdId', '==', herdId);
-  }
-
-  // Use hot score for pagination and sorting
-  feedQuery = feedQuery
-    .orderBy('hotScore', 'desc')
-    .limit(limit);
-
-  // Add cursor-based pagination if last hot score provided
-  if (lastHotScore) {
-    feedQuery = feedQuery.startAfter(lastHotScore);
-  }
-
-  const snapshot = await feedQuery.get();
-  const posts = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-
-  return { posts };
-});
-
-
+/**
+ * Handle post interactions (likes/dislikes) with the unified feed approach
+ */
 exports.handlePostInteraction = onCall(async (request) => {
   const {
     postId,
     interactionType,
-    isAlt = false
   } = request.data;
-
 
   // Validate authentication
   if (!request.auth) {
@@ -680,11 +297,11 @@ exports.handlePostInteraction = onCall(async (request) => {
   }
 
   const userId = request.auth.uid;
-  const postRef = admin.firestore()
-    .collection(isAlt ? 'globalAltPosts' : 'posts')
-    .doc(postId);
 
-  return admin.firestore().runTransaction(async (transaction) => {
+  // Reference to the source-of-truth post
+  const postRef = firestore.collection('posts').doc(postId);
+
+  return firestore.runTransaction(async (transaction) => {
     const postDoc = await transaction.get(postRef);
 
     if (!postDoc.exists) {
@@ -706,7 +323,11 @@ exports.handlePostInteraction = onCall(async (request) => {
     };
 
     const config = interactions[interactionType];
-    const interactionRef = admin.firestore()
+    if (!config) {
+      throw new HttpsError('invalid-argument', 'Invalid interaction type');
+    }
+
+    const interactionRef = firestore
       .collection(config.collection)
       .doc(postId)
       .collection('userInteractions')
@@ -721,7 +342,7 @@ exports.handlePostInteraction = onCall(async (request) => {
       [config.incrementField]:
         admin.firestore.FieldValue.increment(isCurrentlyInteracted ? -1 : 1),
       [config.decrementField]:
-        admin.firestore.FieldValue.increment(isCurrentlyInteracted ? 1 : -1)
+        admin.firestore.FieldValue.increment(0) // Placeholder, updated later if needed
     });
 
     // Toggle interaction document
@@ -731,10 +352,29 @@ exports.handlePostInteraction = onCall(async (request) => {
       transaction.set(interactionRef, {
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
+
+      // Check if opposite interaction exists
+      const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
+      const oppositeRef = firestore
+        .collection(oppositeCollection)
+        .doc(postId)
+        .collection('userInteractions')
+        .doc(userId);
+
+      const oppositeInteraction = await transaction.get(oppositeRef);
+
+      if (oppositeInteraction.exists) {
+        transaction.delete(oppositeRef);
+        transaction.update(postRef, {
+          [config.decrementField]: admin.firestore.FieldValue.increment(-1)
+        });
+      }
     }
 
-    // Recompute hot score immediately
-    const netVotes = (postData.likeCount || 0) - (postData.dislikeCount || 0);
+    // Calculate updated hot score (will be propagated to feeds via the updatePostInFeeds trigger)
+    const updatedLikeCount = postData.likeCount + (isCurrentlyInteracted ? -1 : 1);
+    const updatedDislikeCount = postData.dislikeCount; // Simplified for this example
+    const netVotes = updatedLikeCount - updatedDislikeCount;
     const updatedHotScore = hotAlgorithm.calculateHotScore(
       netVotes,
       postData.createdAt.toDate()
@@ -742,600 +382,497 @@ exports.handlePostInteraction = onCall(async (request) => {
 
     transaction.update(postRef, { hotScore: updatedHotScore });
 
+    // If not the author, update user points
+    if (postData.authorId !== userId) {
+      const pointChange = isCurrentlyInteracted ? -1 : 1;
+      const authorRef = firestore.collection('users').doc(postData.authorId);
+      transaction.update(authorRef, {
+        userPoints: admin.firestore.FieldValue.increment(pointChange)
+      });
+    }
+
     return {
       success: true,
-      hotScore: updatedHotScore
+      hotScore: updatedHotScore,
+      isLiked: interactionType === 'like' && !isCurrentlyInteracted,
+      isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
     };
   });
 });
 
 /**
- * Updates hot scores for posts in a single collection
+ * Get feed for a user with filtering options
  */
-async function updateCollectionHotScores(collectionName, timeThreshold) {
-  // Query for recent posts
-  const snapshot = await firestore.collection(collectionName)
-    .where('createdAt', '>', timeThreshold)
-    .get();
+exports.getFeed = onCall(async (request) => {
+  const {
+    feedType = 'public', // 'public', 'alt', or 'all'
+    herdId = null,       // Optional herd filter
+    limit = 20,
+    lastHotScore = null,
+    lastPostId = null
+  } = request.data;
 
-  if (snapshot.empty) {
-    logger.log(`No recent posts found in ${collectionName}`);
-    return 0;
+  // Validate authentication
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be logged in');
   }
 
-  logger.log(`Processing ${snapshot.size} posts in ${collectionName}`);
+  const userId = request.auth.uid;
 
-  // Use batched writes for efficiency - Firestore limits to 500 ops per batch
-  const MAX_BATCH_SIZE = 500;
-  let batch = firestore.batch();
-  let operationCount = 0;
-  let totalUpdated = 0;
+  try {
+    // Base query on user's feed
+    let feedQuery = firestore
+      .collection('userFeeds')
+      .doc(userId)
+      .collection('feed');
 
-  for (const doc of snapshot.docs) {
-    const postData = doc.data();
-
-    // Calculate hot score using your existing hotAlgorithm
-    const hotScore = hotAlgorithm.calculateHotScore(
-      (postData.likeCount || 0) - (postData.dislikeCount || 0),
-      postData.createdAt ? postData.createdAt.toDate() : new Date()
-    );
-
-    // Only update if score changed significantly or doesn't exist
-    if (!postData.hotScore || Math.abs(postData.hotScore - hotScore) > 0.001) {
-      batch.update(doc.ref, { hotScore: hotScore });
-      operationCount++;
-      totalUpdated++;
-
-      // Commit batch if we've reached the limit
-      if (operationCount >= MAX_BATCH_SIZE) {
-        await batch.commit();
-        logger.log(`Committed batch of ${operationCount} operations`);
-        batch = firestore.batch();
-        operationCount = 0;
-      }
+    // Apply feed type filter
+    if (feedType === 'public') {
+      feedQuery = feedQuery.where('feedType', '==', 'public');
+    } else if (feedType === 'alt') {
+      feedQuery = feedQuery.where('feedType', 'in', ['alt', 'herd']);
     }
-  }
 
-  // Commit any remaining operations
-  if (operationCount > 0) {
-    await batch.commit();
-    logger.log(`Committed final batch of ${operationCount} operations`);
-  }
+    // Add optional herd filter
+    if (herdId) {
+      feedQuery = feedQuery.where('herdId', '==', herdId);
+    }
 
-  logger.log(`Updated ${totalUpdated} posts in ${collectionName}`);
-  return totalUpdated;
-}
+    // Sort by hot score descending
+    feedQuery = feedQuery.orderBy('hotScore', 'desc');
+
+    // Add pagination
+    if (lastHotScore && lastPostId) {
+      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+    }
+
+    // Apply limit
+    feedQuery = feedQuery.limit(limit);
+
+    // Execute query
+    const snapshot = await feedQuery.get();
+
+    const posts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return {
+      posts,
+      lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+    };
+  } catch (error) {
+    logger.error(`Error getting feed for user ${userId}:`, error);
+    throw new HttpsError('internal', `Failed to get feed: ${error.message}`);
+  }
+});
 
 /**
- * Updates hot scores for all herd posts using a collection group query
+ * Scheduled job to update hot scores for recent posts
+ * Runs every hour to keep scores current
  */
-async function updateHerdPostsHotScores(timeThreshold) {
-  // Use collection group query to get all herd posts
-  const herdPostsSnapshot = await firestore.collectionGroup('posts')
-    .where('createdAt', '>', timeThreshold)
-    .get();
+exports.updateHotScores = onSchedule(
+  "every 60 minutes",
+  async (event) => {
+    // Only process posts from the last 7 days
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-  if (herdPostsSnapshot.empty) {
-    logger.log(`No recent herd posts found`);
-    return 0;
-  }
+    try {
+      // Query for posts with significant engagement
+      const postsQuery = firestore
+        .collection('posts')
+        .where('createdAt', '>', oneWeekAgo)
+        .where('likeCount', '>', 0) // Only posts with some engagement
+        .limit(500); // Process in chunks
 
-  logger.log(`Processing ${herdPostsSnapshot.size} herd posts`);
+      const postsSnapshot = await postsQuery.get();
 
-  const MAX_BATCH_SIZE = 500;
-  let batch = firestore.batch();
-  let operationCount = 0;
-  let totalUpdated = 0;
-
-  for (const doc of herdPostsSnapshot.docs) {
-    const postData = doc.data();
-
-    // Calculate hot score
-    const hotScore = hotAlgorithm.calculateHotScore(
-      (postData.likeCount || 0) - (postData.dislikeCount || 0),
-      postData.createdAt ? postData.createdAt.toDate() : new Date()
-    );
-
-    // Only update if score changed significantly or doesn't exist
-    if (!postData.hotScore || Math.abs(postData.hotScore - hotScore) > 0.001) {
-      batch.update(doc.ref, { hotScore: hotScore });
-      operationCount++;
-      totalUpdated++;
-
-      // Commit batch if we've reached the limit
-      if (operationCount >= MAX_BATCH_SIZE) {
-        await batch.commit();
-        logger.log(`Committed batch of ${operationCount} herd post operations`);
-        batch = firestore.batch();
-        operationCount = 0;
+      if (postsSnapshot.empty) {
+        logger.info('No posts found for hot score update');
+        return null;
       }
+
+      logger.info(`Updating hot scores for ${postsSnapshot.size} posts`);
+
+      // Batch update
+      const batch = firestore.batch();
+
+      for (const doc of postsSnapshot.docs) {
+        const postData = doc.data();
+        const netVotes = postData.likeCount - (postData.dislikeCount || 0);
+
+        const updatedHotScore = hotAlgorithm.calculateHotScore(
+          netVotes,
+          postData.createdAt.toDate()
+        );
+
+        // Only update if score has changed significantly
+        if (!postData.hotScore || Math.abs(postData.hotScore - updatedHotScore) > 0.001) {
+          batch.update(doc.ref, { hotScore: updatedHotScore });
+        }
+      }
+
+      await batch.commit();
+      logger.info('Hot score update completed successfully');
+      return null;
+    } catch (error) {
+      logger.error('Error updating hot scores:', error);
+      throw error;
     }
   }
-
-  // Commit any remaining operations
-  if (operationCount > 0) {
-    await batch.commit();
-    logger.log(`Committed final batch of ${operationCount} herd post operations`);
-  }
-
-  logger.log(`Updated ${totalUpdated} herd posts`);
-  return totalUpdated;
-}
-
-/**
- * Cloud Function to calculate and update comment hotness score
- */
-exports.updateCommentHotnessScore = onDocumentUpdated(
-    "comments/{postId}/postComments/{commentId}",
-    async (event) => {
-        // Get the new and previous document data
-        const newData = event.data.after.data();
-        const oldData = event.data.before.data();
-
-        // Only proceed if relevant fields have changed
-        if (newData.likeCount === oldData.likeCount &&
-            newData.dislikeCount === oldData.dislikeCount) {
-            return null;
-        }
-
-        try {
-            // Calculate hotness score
-            const hotnessScore = calculateHotnessScore(newData);
-
-            // Update the document with the new hotness score
-            await event.data.after.ref.update({
-                hotnessScore: hotnessScore
-            });
-
-            console.log(`Updated hotness score for comment ${event.params.commentId}: ${hotnessScore}`);
-            return null;
-        } catch (error) {
-            console.error('Error updating comment hotness score:', error);
-            return null;
-        }
-    }
 );
 
 /**
- * Calculate hotness score similar to Reddit's algorithm
- * @param {Object} commentData - Firestore comment document data
- * @returns {number} Calculated hotness score
+ * Update user feed when a follow/unfollow action occurs
  */
-function calculateHotnessScore(commentData) {
-    const likeCount = commentData.likeCount || 0;
-    const dislikeCount = commentData.dislikeCount || 0;
-    const timestamp = commentData.timestamp ? new Date(commentData.timestamp._seconds * 1000) : new Date();
-
-    // Calculate net votes (likes minus dislikes)
-    const netVotes = likeCount - dislikeCount;
-
-    // Use log of absolute net votes to dampen extreme values
-    const order = netVotes > 0
-        ? Math.log(netVotes)
-        : netVotes < 0
-        ? -Math.log(-netVotes)
-        : 0;
-
-    // Calculate time decay
-    const secondsSinceCreation = (new Date() - timestamp) / 1000;
-    const decay = 45000; // Tune this value based on your needs
-
-    // Combine order and time decay
-    return order + secondsSinceCreation / decay;
-}
-
-/**
- * Cloud Function to handle comment likes
- */
-exports.handleCommentLike = onCall(async (request) => {
-    const userId = request.auth.uid;
-    const commentId = request.data.commentId;
-    const postId = request.data.postId;
-    const isAlt = request.data.isAlt || false;
-
-    if (!commentId) {
-        throw new HttpsError('invalid-argument', 'Comment ID is required');
-    }
+exports.handleFollowAction = onDocumentCreated(
+  "followers/{followedId}/userFollowers/{followerId}",
+  async (event) => {
+    const followedId = event.params.followedId;
+    const followerId = event.params.followerId;
 
     try {
-        return await admin.firestore().runTransaction(async (transaction) => {
-        const postId = request.data.postId;
-        if (!postId) {
-            throw new HttpsError('invalid-argument', 'Post ID is required');
-        }
-        const commentRef = admin.firestore()
-            .collection(isAlt ? 'altComments' : 'comments')
-            .doc(postId)
-            .collection('postComments')
-            .doc(commentId);
-
-            const commentDoc = await transaction.get(commentRef);
-            if (!commentDoc.exists) {
-                throw new HttpsError('not-found', 'Comment not found');
-            }
-
-            const commentData = commentDoc.data();
-            const authorId = commentData.authorId;
-
-            // References to like and dislike collections
-            const likeRef = admin.firestore()
-                .collection('commentLikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId);
-            const dislikeRef = admin.firestore()
-                .collection('commentDislikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId);
-
-            // Get current like/dislike state
-            const likeDoc = await transaction.get(likeRef);
-            const dislikeDoc = await transaction.get(dislikeRef);
-
-            const isLiked = likeDoc.exists;
-            const isDisliked = dislikeDoc.exists;
-
-            // Determine update operations
-            let likeChange = 0;
-            let dislikeChange = 0;
-            let pointChange = 0;
-
-            // Handle like toggle
-            if (isLiked) {
-                // Unlike: remove like
-                transaction.delete(likeRef);
-                likeChange = -1;
-                pointChange = -1;
-            } else {
-                // Like: add like
-                transaction.set(likeRef, { timestamp: admin.firestore.FieldValue.serverTimestamp() });
-                likeChange = 1;
-                pointChange = 1;
-
-                // If was disliked, remove dislike
-                if (isDisliked) {
-                    transaction.delete(dislikeRef);
-                    dislikeChange = -1;
-                    pointChange += 1;
-                }
-            }
-
-            // Update comment like/dislike counts
-            transaction.update(commentRef, {
-                likeCount: admin.firestore.FieldValue.increment(likeChange),
-                dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-            });
-
-            // Update author's points (only if not toggling own comment)
-            if (authorId !== userId && pointChange !== 0) {
-                const authorRef = admin.firestore().collection('users').doc(authorId);
-                transaction.update(authorRef, {
-                    userPoints: admin.firestore.FieldValue.increment(pointChange)
-                });
-            }
-
-            // Return the state for client sync
-            return {
-                isLiked: !isLiked,
-                isDisliked: false,
-                likeCount: (commentData.likeCount || 0) + likeChange,
-                dislikeCount: (commentData.dislikeCount || 0) + dislikeChange,
-                successful: true
-            };
-        });
-    } catch (error) {
-        console.error('Error handling comment like:', error);
-        throw new HttpsError('internal', 'Failed to process comment like');
-    }
-});
-
-/**
- * Cloud Function to handle comment dislikes
- */
-exports.handleCommentDislike = onCall(async (request) => {
-    const userId = request.auth.uid;
-    const commentId = request.data.commentId;
-    const postId = request.data.postId;
-    const isAlt = request.data.isAlt || false;
-
-    if (!commentId) {
-        throw new HttpsError('invalid-argument', 'Comment ID is required');
-    }
-
-    try {
-        return await admin.firestore().runTransaction(async (transaction) => {
-            // Determine which collection to use based on privacy
-            const postId = request.data.postId;
-            if (!postId) {
-                throw new HttpsError('invalid-argument', 'Post ID is required');
-            }
-            const commentRef = admin.firestore()
-                .collection(isAlt ? 'altComments' : 'comments')
-                .doc(postId)
-                .collection('postComments')
-                .doc(commentId);
-            const commentDoc = await transaction.get(commentRef);
-            if (!commentDoc.exists) {
-                throw new HttpsError('not-found', 'Comment not found');
-            }
-
-            const commentData = commentDoc.data();
-            const authorId = commentData.authorId;
-
-            // References to like and dislike collections
-            const likeRef = admin.firestore()
-                .collection('commentLikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId);
-            const dislikeRef = admin.firestore()
-                .collection('commentDislikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId);
-
-            // Get current like/dislike state
-            const likeDoc = await transaction.get(likeRef);
-            const dislikeDoc = await transaction.get(dislikeRef);
-
-            const isLiked = likeDoc.exists;
-            const isDisliked = dislikeDoc.exists;
-
-            // Determine update operations
-            let likeChange = 0;
-            let dislikeChange = 0;
-            let pointChange = 0;
-
-            // Handle dislike toggle
-            if (isDisliked) {
-                // Undislike: remove dislike
-                transaction.delete(dislikeRef);
-                dislikeChange = -1;
-                pointChange = 1;
-            } else {
-                // Dislike: add dislike
-                transaction.set(dislikeRef, { timestamp: admin.firestore.FieldValue.serverTimestamp() });
-                dislikeChange = 1;
-                pointChange = -1;
-
-                // If was liked, remove like
-                if (isLiked) {
-                    transaction.delete(likeRef);
-                    likeChange = -1;
-                    pointChange -= 1;
-                }
-            }
-
-            // Update comment like/dislike counts
-            transaction.update(commentRef, {
-                likeCount: admin.firestore.FieldValue.increment(likeChange),
-                dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-            });
-
-            // Update author's points (only if not toggling own comment)
-            if (authorId !== userId && pointChange !== 0) {
-                const authorRef = admin.firestore().collection('users').doc(authorId);
-                transaction.update(authorRef, {
-                    userPoints: admin.firestore.FieldValue.increment(pointChange)
-                });
-            }
-
-            // Return the state for client sync
-            return {
-                isLiked: false,
-                isDisliked: !isDisliked,
-                likeCount: (commentData.likeCount || 0) + likeChange,
-                dislikeCount: (commentData.dislikeCount || 0) + dislikeChange,
-                successful: true
-            };
-        });
-    } catch (error) {
-        console.error('Error handling comment dislike:', error);
-        throw new HttpsError('internal', 'Failed to process comment dislike');
-    }
-});
-
-// Hot algorithm implementation for post ranking
-const hotAlgorithm = {
-  /**
-   * Calculate a hot score for a post based on votes and time
-   * @param {number} netVotes - The net votes (likes - dislikes)
-   * @param {Date} createdAt - When the post was created
-   * @param {number} decayFactor - Controls how quickly posts decay (default: 1.0)
-   * @returns {number} The calculated hot score
-   */
-  calculateHotScore: (netVotes, createdAt, decayFactor = 1.0) => {
-    // Handle edge cases
-    if (!createdAt) {
-      createdAt = new Date();
-    }
-
-    // Calculate the sign and magnitude components
-    const sign = Math.sign(netVotes);
-    const magnitude = Math.log10(Math.max(1, Math.abs(netVotes)));
-
-    // Calculate seconds since a reference date (epoch)
-    const epochSeconds = Math.floor(createdAt.getTime() / 1000);
-    const secondsOffset = epochSeconds - 1600000000; // Relative to a point in time
-
-    // Apply decay factor - higher values make time more important
-    const timeComponent = secondsOffset / (45000 * decayFactor);
-
-    // Combine components into final score
-    return sign * magnitude + timeComponent;
-  },
-
-  /**
-   * Sort an array of posts using the hot algorithm
-   * @param {Array} posts - Array of post objects
-   * @param {number} decayFactor - How quickly posts decay with time
-   * @returns {Array} Sorted posts array
-   */
-  sortByHotScore: (posts, decayFactor = 1.0) => {
-    return [...posts].sort((a, b) => {
-      const aScore = hotAlgorithm.calculateHotScore(
-        a.likeCount - a.dislikeCount,
-        a.createdAt ? a.createdAt.toDate() : new Date(),
-        decayFactor
-      );
-
-      const bScore = hotAlgorithm.calculateHotScore(
-        b.likeCount - b.dislikeCount,
-        b.createdAt ? b.createdAt.toDate() : new Date(),
-        decayFactor
-      );
-
-      return bScore - aScore; // Descending order
-    });
-  }
-};
-
-// Apply hot algorithm to public feed
-exports.getPublicFeedPosts = functions.https.onCall(async (data, context) => {
-  try {
-    // Check authentication if needed
-    if (!context.auth && requireAuth) {
-      throw new functions.https.HttpsError(
-        'unauthenticated',
-        'You must be logged in to access the public feed.'
-      );
-    }
-
-    const userId = data.userId;
-    const limit = data.limit || 20;
-    const lastPostId = data.lastPostId || null;
-    const decayFactor = data.decayFactor || 1.0;
-
-    // Get feed posts from Firestore
-    let feedQuery = db.collection('feeds')
-      .doc(userId)
-      .collection('userFeed')
-      .orderBy('createdAt', 'desc')
-      .limit(limit * 2); // Get more posts to allow for sorting
-
-    // Apply pagination if provided
-    if (lastPostId) {
-      const lastPostDoc = await db.collection('posts').doc(lastPostId).get();
-      if (lastPostDoc.exists) {
-        feedQuery = feedQuery.startAfter(lastPostDoc);
-      }
-    }
-
-    const feedSnapshot = await feedQuery.get();
-    let feedPosts = [];
-
-    // If user has a personalized feed, use it
-    if (!feedSnapshot.empty) {
-      feedPosts = feedSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-    } else {
-      // Otherwise get general public posts
-      let postsQuery = db.collection('posts')
-        .where('isAlt', '==', false)
+      // When someone follows a user, add the followed user's recent public posts to follower's feed
+      const recentPostsQuery = firestore
+        .collection('posts')
+        .where('authorId', '==', followedId)
+        .where('isAlt', '==', false) // Only public posts
         .orderBy('createdAt', 'desc')
-        .limit(limit * 2);
+        .limit(20); // Limit to recent posts
 
-      if (lastPostId) {
-        const lastPostDoc = await db.collection('posts').doc(lastPostId).get();
-        if (lastPostDoc.exists) {
-          postsQuery = postsQuery.startAfter(lastPostDoc);
-        }
+      const postsSnapshot = await recentPostsQuery.get();
+
+      if (postsSnapshot.empty) {
+        logger.info(`No public posts found for user ${followedId}`);
+        return null;
       }
 
-      const postsSnapshot = await postsQuery.get();
-      feedPosts = postsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Batch add posts to follower's feed
+      const batch = firestore.batch();
+
+      for (const doc of postsSnapshot.docs) {
+        const postData = doc.data();
+
+        // Add feedType metadata
+        const enhancedPostData = {
+          ...postData,
+          feedType: 'public',
+          hotScore: postData.hotScore || hotAlgorithm.calculateHotScore(
+            postData.likeCount - (postData.dislikeCount || 0),
+            postData.createdAt.toDate()
+          )
+        };
+
+        const feedRef = firestore
+          .collection('userFeeds')
+          .doc(followerId)
+          .collection('feed')
+          .doc(doc.id);
+
+        batch.set(feedRef, enhancedPostData);
+      }
+
+      await batch.commit();
+      logger.info(`Added ${postsSnapshot.size} posts to feed of user ${followerId}`);
+      return null;
+    } catch (error) {
+      logger.error(`Error handling follow action (${followerId} → ${followedId}):`, error);
+      throw error;
     }
-
-    // Apply hot algorithm to sort posts
-    const sortedPosts = hotAlgorithm.sortByHotScore(feedPosts, decayFactor);
-
-    // Return limited number of posts
-    return { posts: sortedPosts.slice(0, limit) };
-  } catch (error) {
-    console.error('Error getting public feed:', error);
-    throw new functions.https.HttpsError('internal', error.message);
   }
-});
+);
 
-// Apply hot algorithm to alt feed
-exports.getAltFeedPosts = functions.https.onCall(async (data, context) => {
+/**
+ * Clean up user's feed when they unfollow someone
+ */
+exports.handleUnfollowAction = onDocumentDeleted(
+  "followers/{followedId}/userFollowers/{followerId}",
+  async (event) => {
+    const followedId = event.params.followedId;
+    const followerId = event.params.followerId;
+
+    try {
+      // Query for the unfollowed user's posts in follower's feed
+      const feedQuery = firestore
+        .collection('userFeeds')
+        .doc(followerId)
+        .collection('feed')
+        .where('authorId', '==', followedId)
+        .where('feedType', '==', 'public');
+
+      const feedSnapshot = await feedQuery.get();
+
+      if (feedSnapshot.empty) {
+        logger.info(`No posts from ${followedId} found in ${followerId}'s feed`);
+        return null;
+      }
+
+      // Batch delete posts
+      const batch = firestore.batch();
+
+      for (const doc of feedSnapshot.docs) {
+        batch.delete(doc.ref);
+      }
+
+      await batch.commit();
+      logger.info(`Removed ${feedSnapshot.size} posts from ${followerId}'s feed`);
+      return null;
+    } catch (error) {
+      logger.error(`Error handling unfollow action (${followerId} → ${followedId}):`, error);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Handle alt connection creation - add alt posts to new connection's feed
+ */
+exports.handleAltConnection = onDocumentCreated(
+  "altConnections/{userId}/userConnections/{connectionId}",
+  async (event) => {
+    const userId = event.params.userId;
+    const connectionId = event.params.connectionId;
+
+    try {
+      // Add recent alt posts to the connection's feed
+      const recentAltPostsQuery = firestore
+        .collection('posts')
+        .where('authorId', '==', userId)
+        .where('isAlt', '==', true)
+        .orderBy('createdAt', 'desc')
+        .limit(20);
+
+      const postsSnapshot = await recentAltPostsQuery.get();
+
+      if (postsSnapshot.empty) {
+        logger.info(`No alt posts found for user ${userId}`);
+        return null;
+      }
+
+      // Batch add posts to connection's feed
+      const batch = firestore.batch();
+
+      for (const doc of postsSnapshot.docs) {
+        const postData = doc.data();
+
+        const enhancedPostData = {
+          ...postData,
+          feedType: 'alt',
+          hotScore: postData.hotScore || hotAlgorithm.calculateHotScore(
+            postData.likeCount - (postData.dislikeCount || 0),
+            postData.createdAt.toDate()
+          )
+        };
+
+        const feedRef = firestore
+          .collection('userFeeds')
+          .doc(connectionId)
+          .collection('feed')
+          .doc(doc.id);
+
+        batch.set(feedRef, enhancedPostData);
+      }
+
+      await batch.commit();
+      logger.info(`Added ${postsSnapshot.size} alt posts to feed of user ${connectionId}`);
+      return null;
+    } catch (error) {
+      logger.error(`Error handling alt connection (${userId} → ${connectionId}):`, error);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Handle alt connection removal - remove alt posts from feed
+ */
+exports.handleAltConnectionRemoval = onDocumentDeleted(
+  "altConnections/{userId}/userConnections/{connectionId}",
+  async (event) => {
+    const userId = event.params.userId;
+    const connectionId = event.params.connectionId;
+
+    try {
+      // Remove alt posts from the connection's feed
+      const feedQuery = firestore
+        .collection('userFeeds')
+        .doc(connectionId)
+        .collection('feed')
+        .where('authorId', '==', userId)
+        .where('feedType', '==', 'alt');
+
+      const feedSnapshot = await feedQuery.get();
+
+      if (feedSnapshot.empty) {
+        logger.info(`No alt posts from ${userId} found in ${connectionId}'s feed`);
+        return null;
+      }
+
+      // Batch delete posts
+      const batch = firestore.batch();
+
+      for (const doc of feedSnapshot.docs) {
+        batch.delete(doc.ref);
+      }
+
+      await batch.commit();
+      logger.info(`Removed ${feedSnapshot.size} alt posts from ${connectionId}'s feed`);
+      return null;
+    } catch (error) {
+      logger.error(`Error handling alt connection removal (${userId} → ${connectionId}):`, error);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Add/remove user from herd feed when joining/leaving a herd
+ */
+exports.handleHerdMembership = onDocumentCreated(
+  "herdMembers/{herdId}/members/{userId}",
+  async (event) => {
+    const herdId = event.params.herdId;
+    const userId = event.params.userId;
+
+    try {
+      // Query recent herd posts
+      const herdPostsQuery = firestore
+        .collection('posts')
+        .where('herdId', '==', herdId)
+        .orderBy('createdAt', 'desc')
+        .limit(50);
+
+      const postsSnapshot = await herdPostsQuery.get();
+
+      if (postsSnapshot.empty) {
+        logger.info(`No posts found for herd ${herdId}`);
+        return null;
+      }
+
+      // Add herd posts to user's feed
+      const batch = firestore.batch();
+
+      for (const doc of postsSnapshot.docs) {
+        const postData = doc.data();
+
+        const enhancedPostData = {
+          ...postData,
+          feedType: 'herd',
+          hotScore: postData.hotScore || hotAlgorithm.calculateHotScore(
+            postData.likeCount - (postData.dislikeCount || 0),
+            postData.createdAt.toDate()
+          )
+        };
+
+        const feedRef = firestore
+          .collection('userFeeds')
+          .doc(userId)
+          .collection('feed')
+          .doc(doc.id);
+
+        batch.set(feedRef, enhancedPostData);
+      }
+
+      await batch.commit();
+      logger.info(`Added ${postsSnapshot.size} herd posts to feed of user ${userId}`);
+      return null;
+    } catch (error) {
+      logger.error(`Error handling herd membership (${userId} joins ${herdId}):`, error);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Clean up herd posts from user's feed when leaving a herd
+ */
+exports.handleHerdLeave = onDocumentDeleted(
+  "herdMembers/{herdId}/members/{userId}",
+  async (event) => {
+    const herdId = event.params.herdId;
+    const userId = event.params.userId;
+
+    try {
+      // Query for herd posts in user's feed
+      const feedQuery = firestore
+        .collection('userFeeds')
+        .doc(userId)
+        .collection('feed')
+        .where('herdId', '==', herdId);
+
+      const feedSnapshot = await feedQuery.get();
+
+      if (feedSnapshot.empty) {
+        logger.info(`No posts from herd ${herdId} found in ${userId}'s feed`);
+        return null;
+      }
+
+      // Batch delete posts
+      const batch = firestore.batch();
+
+      for (const doc of feedSnapshot.docs) {
+        batch.delete(doc.ref);
+      }
+
+      await batch.commit();
+      logger.info(`Removed ${feedSnapshot.size} herd posts from ${userId}'s feed`);
+      return null;
+    } catch (error) {
+      logger.error(`Error handling herd leave (${userId} leaves ${herdId}):`, error);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Get trending posts for discovery
+ */
+exports.getTrendingPosts = onCall(async (request) => {
+  const {
+    limit = 10,
+    postType = 'all' // 'all', 'public', 'alt'
+  } = request.data;
+
   try {
-    // Check authentication
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        'unauthenticated',
-        'You must be logged in to access the alt feed.'
-      );
+    // Get posts from the last 3 days with high engagement
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    let postsQuery = firestore.collection('posts')
+      .where('createdAt', '>', threeDaysAgo)
+      .orderBy('createdAt', 'desc'); // Recent first
+
+    // Apply post type filter if specified
+    if (postType === 'public') {
+      postsQuery = postsQuery.where('isAlt', '==', false);
+    } else if (postType === 'alt') {
+      postsQuery = postsQuery.where('isAlt', '==', true);
     }
 
-    const limit = data.limit || 15;
-    const lastPostId = data.lastPostId || null;
-    const decayFactor = data.decayFactor || 1.0;
-
-    // Query globalAltPosts collection
-    let postsQuery = db.collection('globalAltPosts')
-      .orderBy('createdAt', 'desc')
-      .limit(limit * 2); // Get more to allow for sorting
-
-    if (lastPostId && data.lastCreatedAt) {
-      // Use timestamp for pagination with orderBy
-      const lastTimestamp = new admin.firestore.Timestamp(
-        data.lastCreatedAt._seconds,
-        data.lastCreatedAt._nanoseconds
-      );
-      postsQuery = postsQuery.startAfter(lastTimestamp);
-    }
+    // Get more posts than needed to allow for sorting
+    postsQuery = postsQuery.limit(limit * 3);
 
     const postsSnapshot = await postsQuery.get();
-    const altPosts = postsSnapshot.docs.map(doc => ({
+
+    if (postsSnapshot.empty) {
+      return { posts: [] };
+    }
+
+    // Convert to array and sort by hot algorithm
+    let posts = postsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
 
-    // Apply hot algorithm to sort posts
-    const sortedPosts = hotAlgorithm.sortByHotScore(altPosts, decayFactor);
+    // Sort using a more aggressive decay factor to prioritize recent content
+    posts = hotAlgorithm.sortPosts(posts, 0.5);
 
-    // Return limited number of posts
-    return { posts: sortedPosts.slice(0, limit) };
+    // Return top posts
+    return { posts: posts.slice(0, limit) };
   } catch (error) {
-    console.error('Error getting alt feed:', error);
-    throw new functions.https.HttpsError('internal', error.message);
-  }
-});
-
-// Get trending posts for public feed
-exports.getTrendingPosts = functions.https.onCall(async (data, context) => {
-  try {
-    const limit = data.limit || 10;
-
-    // Get recent posts with high engagement (last 24 hours)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const postsSnapshot = await db.collection('posts')
-      .where('isAlt', '==', false)
-      .where('createdAt', '>', yesterday)
-      .orderBy('createdAt', 'desc')
-      .limit(limit * 3) // Get more posts to allow for sorting
-      .get();
-
-    const posts = postsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    // Apply hot algorithm with more aggressive decay factor
-    const trendingPosts = hotAlgorithm.sortByHotScore(posts, 0.5);
-
-    return { posts: trendingPosts.slice(0, limit) };
-  } catch (error) {
-    console.error('Error getting trending posts:', error);
-    throw new functions.https.HttpsError('internal', error.message);
+    logger.error('Error getting trending posts:', error);
+    throw new HttpsError('internal', `Failed to get trending posts: ${error.message}`);
   }
 });

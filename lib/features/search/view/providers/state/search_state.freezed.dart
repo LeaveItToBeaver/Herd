@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,87 +10,63 @@ part of 'search_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$SearchState {
-  List<UserModel> get users => throw _privateConstructorUsedError;
-  List<HerdModel> get herds =>
-      throw _privateConstructorUsedError; // Add herds list
-  SearchStatus get status => throw _privateConstructorUsedError;
-  SearchType get type => throw _privateConstructorUsedError;
+mixin _$SearchState implements DiagnosticableTreeMixin {
+  List<UserModel> get users;
+  List<HerdModel> get herds; // Add herds list
+  SearchStatus get status;
+  SearchType get type;
 
   /// Create a copy of SearchState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $SearchStateCopyWith<SearchState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $SearchStateCopyWith<$Res> {
-  factory $SearchStateCopyWith(
-          SearchState value, $Res Function(SearchState) then) =
-      _$SearchStateCopyWithImpl<$Res, SearchState>;
-  @useResult
-  $Res call(
-      {List<UserModel> users,
-      List<HerdModel> herds,
-      SearchStatus status,
-      SearchType type});
-}
-
-/// @nodoc
-class _$SearchStateCopyWithImpl<$Res, $Val extends SearchState>
-    implements $SearchStateCopyWith<$Res> {
-  _$SearchStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of SearchState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $SearchStateCopyWith<SearchState> get copyWith =>
+      _$SearchStateCopyWithImpl<SearchState>(this as SearchState, _$identity);
+
   @override
-  $Res call({
-    Object? users = null,
-    Object? herds = null,
-    Object? status = null,
-    Object? type = null,
-  }) {
-    return _then(_value.copyWith(
-      users: null == users
-          ? _value.users
-          : users // ignore: cast_nullable_to_non_nullable
-              as List<UserModel>,
-      herds: null == herds
-          ? _value.herds
-          : herds // ignore: cast_nullable_to_non_nullable
-              as List<HerdModel>,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as SearchStatus,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as SearchType,
-    ) as $Val);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'SearchState'))
+      ..add(DiagnosticsProperty('users', users))
+      ..add(DiagnosticsProperty('herds', herds))
+      ..add(DiagnosticsProperty('status', status))
+      ..add(DiagnosticsProperty('type', type));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is SearchState &&
+            const DeepCollectionEquality().equals(other.users, users) &&
+            const DeepCollectionEquality().equals(other.herds, herds) &&
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.type, type) || other.type == type));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(users),
+      const DeepCollectionEquality().hash(herds),
+      status,
+      type);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'SearchState(users: $users, herds: $herds, status: $status, type: $type)';
   }
 }
 
 /// @nodoc
-abstract class _$$SearchStateImplCopyWith<$Res>
-    implements $SearchStateCopyWith<$Res> {
-  factory _$$SearchStateImplCopyWith(
-          _$SearchStateImpl value, $Res Function(_$SearchStateImpl) then) =
-      __$$SearchStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $SearchStateCopyWith<$Res> {
+  factory $SearchStateCopyWith(
+          SearchState value, $Res Function(SearchState) _then) =
+      _$SearchStateCopyWithImpl;
   @useResult
   $Res call(
       {List<UserModel> users,
@@ -99,12 +76,11 @@ abstract class _$$SearchStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$SearchStateImplCopyWithImpl<$Res>
-    extends _$SearchStateCopyWithImpl<$Res, _$SearchStateImpl>
-    implements _$$SearchStateImplCopyWith<$Res> {
-  __$$SearchStateImplCopyWithImpl(
-      _$SearchStateImpl _value, $Res Function(_$SearchStateImpl) _then)
-      : super(_value, _then);
+class _$SearchStateCopyWithImpl<$Res> implements $SearchStateCopyWith<$Res> {
+  _$SearchStateCopyWithImpl(this._self, this._then);
+
+  final SearchState _self;
+  final $Res Function(SearchState) _then;
 
   /// Create a copy of SearchState
   /// with the given fields replaced by the non-null parameter values.
@@ -116,21 +92,21 @@ class __$$SearchStateImplCopyWithImpl<$Res>
     Object? status = null,
     Object? type = null,
   }) {
-    return _then(_$SearchStateImpl(
+    return _then(_self.copyWith(
       users: null == users
-          ? _value._users
+          ? _self.users
           : users // ignore: cast_nullable_to_non_nullable
               as List<UserModel>,
       herds: null == herds
-          ? _value._herds
+          ? _self.herds
           : herds // ignore: cast_nullable_to_non_nullable
               as List<HerdModel>,
       status: null == status
-          ? _value.status
+          ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
               as SearchStatus,
       type: null == type
-          ? _value.type
+          ? _self.type
           : type // ignore: cast_nullable_to_non_nullable
               as SearchType,
     ));
@@ -139,8 +115,8 @@ class __$$SearchStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$SearchStateImpl implements _SearchState {
-  const _$SearchStateImpl(
+class _SearchState with DiagnosticableTreeMixin implements SearchState {
+  const _SearchState(
       {final List<UserModel> users = const [],
       final List<HerdModel> herds = const [],
       this.status = SearchStatus.initial,
@@ -174,16 +150,29 @@ class _$SearchStateImpl implements _SearchState {
   @JsonKey()
   final SearchType type;
 
+  /// Create a copy of SearchState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'SearchState(users: $users, herds: $herds, status: $status, type: $type)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$SearchStateCopyWith<_SearchState> get copyWith =>
+      __$SearchStateCopyWithImpl<_SearchState>(this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'SearchState'))
+      ..add(DiagnosticsProperty('users', users))
+      ..add(DiagnosticsProperty('herds', herds))
+      ..add(DiagnosticsProperty('status', status))
+      ..add(DiagnosticsProperty('type', type));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$SearchStateImpl &&
+            other is _SearchState &&
             const DeepCollectionEquality().equals(other._users, _users) &&
             const DeepCollectionEquality().equals(other._herds, _herds) &&
             (identical(other.status, status) || other.status == status) &&
@@ -198,35 +187,63 @@ class _$SearchStateImpl implements _SearchState {
       status,
       type);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'SearchState(users: $users, herds: $herds, status: $status, type: $type)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$SearchStateCopyWith<$Res>
+    implements $SearchStateCopyWith<$Res> {
+  factory _$SearchStateCopyWith(
+          _SearchState value, $Res Function(_SearchState) _then) =
+      __$SearchStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {List<UserModel> users,
+      List<HerdModel> herds,
+      SearchStatus status,
+      SearchType type});
+}
+
+/// @nodoc
+class __$SearchStateCopyWithImpl<$Res> implements _$SearchStateCopyWith<$Res> {
+  __$SearchStateCopyWithImpl(this._self, this._then);
+
+  final _SearchState _self;
+  final $Res Function(_SearchState) _then;
+
   /// Create a copy of SearchState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$SearchStateImplCopyWith<_$SearchStateImpl> get copyWith =>
-      __$$SearchStateImplCopyWithImpl<_$SearchStateImpl>(this, _$identity);
+  $Res call({
+    Object? users = null,
+    Object? herds = null,
+    Object? status = null,
+    Object? type = null,
+  }) {
+    return _then(_SearchState(
+      users: null == users
+          ? _self._users
+          : users // ignore: cast_nullable_to_non_nullable
+              as List<UserModel>,
+      herds: null == herds
+          ? _self._herds
+          : herds // ignore: cast_nullable_to_non_nullable
+              as List<HerdModel>,
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as SearchStatus,
+      type: null == type
+          ? _self.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as SearchType,
+    ));
+  }
 }
 
-abstract class _SearchState implements SearchState {
-  const factory _SearchState(
-      {final List<UserModel> users,
-      final List<HerdModel> herds,
-      final SearchStatus status,
-      final SearchType type}) = _$SearchStateImpl;
-
-  @override
-  List<UserModel> get users;
-  @override
-  List<HerdModel> get herds; // Add herds list
-  @override
-  SearchStatus get status;
-  @override
-  SearchType get type;
-
-  /// Create a copy of SearchState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$SearchStateImplCopyWith<_$SearchStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+// dart format on

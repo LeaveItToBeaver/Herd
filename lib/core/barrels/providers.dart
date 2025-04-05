@@ -13,9 +13,9 @@ export 'package:herdapp/features/user/view/providers/state/profile_state.dart';
 export 'package:herdapp/features/user/view/providers/state/user_state.dart';
 
 //Feed
-export 'package:herdapp/features/feed/providers/feed_provider.dart';
+export 'package:herdapp/features/feed/providers/unified_feed_provider.dart';
 export 'package:herdapp/features/feed/providers/feed_type_provider.dart';
-export 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_state.dart';
+export 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
 export 'package:herdapp/features/feed/public_feed/view/providers/state/public_feed_state.dart';
 
 //Post
@@ -42,5 +42,3 @@ export 'package:herdapp/features/search/view/providers/state/search_state.dart';
 export 'package:herdapp/features/user/data/repositories/user_repository.dart';
 export 'package:herdapp/features/post/data/repositories/post_repository.dart';
 export 'package:herdapp/features/comment/data/repositories/comment_repository.dart';
-export 'package:herdapp/features/feed/alt_feed/data/repositories/alt_feed_repository.dart';
-export 'package:herdapp/features/feed/public_feed/data/repositories/public_feed_repository.dart';
