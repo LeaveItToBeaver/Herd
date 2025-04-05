@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/foundation.dart';
 
 part 'comment_model.freezed.dart';
 part 'comment_model.g.dart';
 
 @freezed
-class CommentModel with _$CommentModel {
+abstract class CommentModel with _$CommentModel {
   const CommentModel._(); // For custom methods
 
   const factory CommentModel({

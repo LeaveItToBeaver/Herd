@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,33 +10,76 @@ part of 'profile_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$ProfileState {
-  UserModel? get user =>
-      throw _privateConstructorUsedError; // Make user nullable
-  List<PostModel> get posts => throw _privateConstructorUsedError;
-  bool get isCurrentUser => throw _privateConstructorUsedError;
-  bool get isFollowing => throw _privateConstructorUsedError;
-  bool get isAltView => throw _privateConstructorUsedError;
-  bool get hasAltProfile => throw _privateConstructorUsedError;
+mixin _$ProfileState implements DiagnosticableTreeMixin {
+  UserModel? get user; // Make user nullable
+  List<PostModel> get posts;
+  bool get isCurrentUser;
+  bool get isFollowing;
+  bool get isAltView;
+  bool get hasAltProfile;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
   $ProfileStateCopyWith<ProfileState> get copyWith =>
-      throw _privateConstructorUsedError;
+      _$ProfileStateCopyWithImpl<ProfileState>(
+          this as ProfileState, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'ProfileState'))
+      ..add(DiagnosticsProperty('user', user))
+      ..add(DiagnosticsProperty('posts', posts))
+      ..add(DiagnosticsProperty('isCurrentUser', isCurrentUser))
+      ..add(DiagnosticsProperty('isFollowing', isFollowing))
+      ..add(DiagnosticsProperty('isAltView', isAltView))
+      ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is ProfileState &&
+            (identical(other.user, user) || other.user == user) &&
+            const DeepCollectionEquality().equals(other.posts, posts) &&
+            (identical(other.isCurrentUser, isCurrentUser) ||
+                other.isCurrentUser == isCurrentUser) &&
+            (identical(other.isFollowing, isFollowing) ||
+                other.isFollowing == isFollowing) &&
+            (identical(other.isAltView, isAltView) ||
+                other.isAltView == isAltView) &&
+            (identical(other.hasAltProfile, hasAltProfile) ||
+                other.hasAltProfile == hasAltProfile));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      user,
+      const DeepCollectionEquality().hash(posts),
+      isCurrentUser,
+      isFollowing,
+      isAltView,
+      hasAltProfile);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile)';
+  }
 }
 
 /// @nodoc
-abstract class $ProfileStateCopyWith<$Res> {
+abstract mixin class $ProfileStateCopyWith<$Res> {
   factory $ProfileStateCopyWith(
-          ProfileState value, $Res Function(ProfileState) then) =
-      _$ProfileStateCopyWithImpl<$Res, ProfileState>;
+          ProfileState value, $Res Function(ProfileState) _then) =
+      _$ProfileStateCopyWithImpl;
   @useResult
   $Res call(
       {UserModel? user,
@@ -49,14 +93,11 @@ abstract class $ProfileStateCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$ProfileStateCopyWithImpl<$Res, $Val extends ProfileState>
-    implements $ProfileStateCopyWith<$Res> {
-  _$ProfileStateCopyWithImpl(this._value, this._then);
+class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
+  _$ProfileStateCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProfileState _self;
+  final $Res Function(ProfileState) _then;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -70,32 +111,32 @@ class _$ProfileStateCopyWithImpl<$Res, $Val extends ProfileState>
     Object? isAltView = null,
     Object? hasAltProfile = null,
   }) {
-    return _then(_value.copyWith(
+    return _then(_self.copyWith(
       user: freezed == user
-          ? _value.user
+          ? _self.user
           : user // ignore: cast_nullable_to_non_nullable
               as UserModel?,
       posts: null == posts
-          ? _value.posts
+          ? _self.posts
           : posts // ignore: cast_nullable_to_non_nullable
               as List<PostModel>,
       isCurrentUser: null == isCurrentUser
-          ? _value.isCurrentUser
+          ? _self.isCurrentUser
           : isCurrentUser // ignore: cast_nullable_to_non_nullable
               as bool,
       isFollowing: null == isFollowing
-          ? _value.isFollowing
+          ? _self.isFollowing
           : isFollowing // ignore: cast_nullable_to_non_nullable
               as bool,
       isAltView: null == isAltView
-          ? _value.isAltView
+          ? _self.isAltView
           : isAltView // ignore: cast_nullable_to_non_nullable
               as bool,
       hasAltProfile: null == hasAltProfile
-          ? _value.hasAltProfile
+          ? _self.hasAltProfile
           : hasAltProfile // ignore: cast_nullable_to_non_nullable
               as bool,
-    ) as $Val);
+    ));
   }
 
   /// Create a copy of ProfileState
@@ -103,89 +144,20 @@ class _$ProfileStateCopyWithImpl<$Res, $Val extends ProfileState>
   @override
   @pragma('vm:prefer-inline')
   $UserModelCopyWith<$Res>? get user {
-    if (_value.user == null) {
+    if (_self.user == null) {
       return null;
     }
 
-    return $UserModelCopyWith<$Res>(_value.user!, (value) {
-      return _then(_value.copyWith(user: value) as $Val);
+    return $UserModelCopyWith<$Res>(_self.user!, (value) {
+      return _then(_self.copyWith(user: value));
     });
   }
 }
 
 /// @nodoc
-abstract class _$$ProfileStateImplCopyWith<$Res>
-    implements $ProfileStateCopyWith<$Res> {
-  factory _$$ProfileStateImplCopyWith(
-          _$ProfileStateImpl value, $Res Function(_$ProfileStateImpl) then) =
-      __$$ProfileStateImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {UserModel? user,
-      List<PostModel> posts,
-      bool isCurrentUser,
-      bool isFollowing,
-      bool isAltView,
-      bool hasAltProfile});
 
-  @override
-  $UserModelCopyWith<$Res>? get user;
-}
-
-/// @nodoc
-class __$$ProfileStateImplCopyWithImpl<$Res>
-    extends _$ProfileStateCopyWithImpl<$Res, _$ProfileStateImpl>
-    implements _$$ProfileStateImplCopyWith<$Res> {
-  __$$ProfileStateImplCopyWithImpl(
-      _$ProfileStateImpl _value, $Res Function(_$ProfileStateImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProfileState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? user = freezed,
-    Object? posts = null,
-    Object? isCurrentUser = null,
-    Object? isFollowing = null,
-    Object? isAltView = null,
-    Object? hasAltProfile = null,
-  }) {
-    return _then(_$ProfileStateImpl(
-      user: freezed == user
-          ? _value.user
-          : user // ignore: cast_nullable_to_non_nullable
-              as UserModel?,
-      posts: null == posts
-          ? _value._posts
-          : posts // ignore: cast_nullable_to_non_nullable
-              as List<PostModel>,
-      isCurrentUser: null == isCurrentUser
-          ? _value.isCurrentUser
-          : isCurrentUser // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isFollowing: null == isFollowing
-          ? _value.isFollowing
-          : isFollowing // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isAltView: null == isAltView
-          ? _value.isAltView
-          : isAltView // ignore: cast_nullable_to_non_nullable
-              as bool,
-      hasAltProfile: null == hasAltProfile
-          ? _value.hasAltProfile
-          : hasAltProfile // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$ProfileStateImpl implements _ProfileState {
-  const _$ProfileStateImpl(
+class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
+  const _ProfileState(
       {required this.user,
       required final List<PostModel> posts,
       required this.isCurrentUser,
@@ -215,16 +187,31 @@ class _$ProfileStateImpl implements _ProfileState {
   @override
   final bool hasAltProfile;
 
+  /// Create a copy of ProfileState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$ProfileStateCopyWith<_ProfileState> get copyWith =>
+      __$ProfileStateCopyWithImpl<_ProfileState>(this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'ProfileState'))
+      ..add(DiagnosticsProperty('user', user))
+      ..add(DiagnosticsProperty('posts', posts))
+      ..add(DiagnosticsProperty('isCurrentUser', isCurrentUser))
+      ..add(DiagnosticsProperty('isFollowing', isFollowing))
+      ..add(DiagnosticsProperty('isAltView', isAltView))
+      ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ProfileStateImpl &&
+            other is _ProfileState &&
             (identical(other.user, user) || other.user == user) &&
             const DeepCollectionEquality().equals(other._posts, _posts) &&
             (identical(other.isCurrentUser, isCurrentUser) ||
@@ -247,41 +234,93 @@ class _$ProfileStateImpl implements _ProfileState {
       isAltView,
       hasAltProfile);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$ProfileStateCopyWith<$Res>
+    implements $ProfileStateCopyWith<$Res> {
+  factory _$ProfileStateCopyWith(
+          _ProfileState value, $Res Function(_ProfileState) _then) =
+      __$ProfileStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {UserModel? user,
+      List<PostModel> posts,
+      bool isCurrentUser,
+      bool isFollowing,
+      bool isAltView,
+      bool hasAltProfile});
+
+  @override
+  $UserModelCopyWith<$Res>? get user;
+}
+
+/// @nodoc
+class __$ProfileStateCopyWithImpl<$Res>
+    implements _$ProfileStateCopyWith<$Res> {
+  __$ProfileStateCopyWithImpl(this._self, this._then);
+
+  final _ProfileState _self;
+  final $Res Function(_ProfileState) _then;
+
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$ProfileStateImplCopyWith<_$ProfileStateImpl> get copyWith =>
-      __$$ProfileStateImplCopyWithImpl<_$ProfileStateImpl>(this, _$identity);
-}
-
-abstract class _ProfileState implements ProfileState {
-  const factory _ProfileState(
-      {required final UserModel? user,
-      required final List<PostModel> posts,
-      required final bool isCurrentUser,
-      required final bool isFollowing,
-      required final bool isAltView,
-      required final bool hasAltProfile}) = _$ProfileStateImpl;
-
-  @override
-  UserModel? get user; // Make user nullable
-  @override
-  List<PostModel> get posts;
-  @override
-  bool get isCurrentUser;
-  @override
-  bool get isFollowing;
-  @override
-  bool get isAltView;
-  @override
-  bool get hasAltProfile;
+  $Res call({
+    Object? user = freezed,
+    Object? posts = null,
+    Object? isCurrentUser = null,
+    Object? isFollowing = null,
+    Object? isAltView = null,
+    Object? hasAltProfile = null,
+  }) {
+    return _then(_ProfileState(
+      user: freezed == user
+          ? _self.user
+          : user // ignore: cast_nullable_to_non_nullable
+              as UserModel?,
+      posts: null == posts
+          ? _self._posts
+          : posts // ignore: cast_nullable_to_non_nullable
+              as List<PostModel>,
+      isCurrentUser: null == isCurrentUser
+          ? _self.isCurrentUser
+          : isCurrentUser // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isFollowing: null == isFollowing
+          ? _self.isFollowing
+          : isFollowing // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isAltView: null == isAltView
+          ? _self.isAltView
+          : isAltView // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hasAltProfile: null == hasAltProfile
+          ? _self.hasAltProfile
+          : hasAltProfile // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProfileStateImplCopyWith<_$ProfileStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  @pragma('vm:prefer-inline')
+  $UserModelCopyWith<$Res>? get user {
+    if (_self.user == null) {
+      return null;
+    }
+
+    return $UserModelCopyWith<$Res>(_self.user!, (value) {
+      return _then(_self.copyWith(user: value));
+    });
+  }
 }
+
+// dart format on

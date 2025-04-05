@@ -67,16 +67,17 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       final post = PostModel(
         id: postId,
         authorId: user.id,
-        username: user.username ?? 'Anonymous',
+        authorUsername: user.username ?? 'Anonymous',
+        authorName: (user.firstName + user.lastName) ?? 'Anonymous',
         // Use appropriate profile image based on privacy setting
-        profileImageURL: isAlt
+        authorProfileImageURL: isAlt
             ? (user.altProfileImageURL ?? user.profileImageURL)
             : user.profileImageURL,
         content: content,
         herdId: herdId.isNotEmpty ? herdId : null, // Add this line
         title: title,
-        imageUrl: imageUrl,
-        thumbnailUrl: thumbnailUrl,
+        mediaURL: imageUrl,
+        mediaThumbnailURL: thumbnailUrl,
         mediaType: mediaType,
         likeCount: 0,
         dislikeCount: 0,

@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,100 +10,71 @@ part of 'edit_alt_profile_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$EditAltProfileState {
-  String get username => throw _privateConstructorUsedError;
-  String get bio => throw _privateConstructorUsedError;
-  File? get coverImage => throw _privateConstructorUsedError;
-  File? get profileImage => throw _privateConstructorUsedError;
-  bool get isSubmitting => throw _privateConstructorUsedError;
-  String? get errorMessage => throw _privateConstructorUsedError;
+mixin _$EditAltProfileState implements DiagnosticableTreeMixin {
+  String get username;
+  String get bio;
+  File? get coverImage;
+  File? get profileImage;
+  bool get isSubmitting;
+  String? get errorMessage;
 
   /// Create a copy of EditAltProfileState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $EditAltProfileStateCopyWith<EditAltProfileState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $EditAltProfileStateCopyWith<$Res> {
-  factory $EditAltProfileStateCopyWith(
-          EditAltProfileState value, $Res Function(EditAltProfileState) then) =
-      _$EditAltProfileStateCopyWithImpl<$Res, EditAltProfileState>;
-  @useResult
-  $Res call(
-      {String username,
-      String bio,
-      File? coverImage,
-      File? profileImage,
-      bool isSubmitting,
-      String? errorMessage});
-}
-
-/// @nodoc
-class _$EditAltProfileStateCopyWithImpl<$Res, $Val extends EditAltProfileState>
-    implements $EditAltProfileStateCopyWith<$Res> {
-  _$EditAltProfileStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of EditAltProfileState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $EditAltProfileStateCopyWith<EditAltProfileState> get copyWith =>
+      _$EditAltProfileStateCopyWithImpl<EditAltProfileState>(
+          this as EditAltProfileState, _$identity);
+
   @override
-  $Res call({
-    Object? username = null,
-    Object? bio = null,
-    Object? coverImage = freezed,
-    Object? profileImage = freezed,
-    Object? isSubmitting = null,
-    Object? errorMessage = freezed,
-  }) {
-    return _then(_value.copyWith(
-      username: null == username
-          ? _value.username
-          : username // ignore: cast_nullable_to_non_nullable
-              as String,
-      bio: null == bio
-          ? _value.bio
-          : bio // ignore: cast_nullable_to_non_nullable
-              as String,
-      coverImage: freezed == coverImage
-          ? _value.coverImage
-          : coverImage // ignore: cast_nullable_to_non_nullable
-              as File?,
-      profileImage: freezed == profileImage
-          ? _value.profileImage
-          : profileImage // ignore: cast_nullable_to_non_nullable
-              as File?,
-      isSubmitting: null == isSubmitting
-          ? _value.isSubmitting
-          : isSubmitting // ignore: cast_nullable_to_non_nullable
-              as bool,
-      errorMessage: freezed == errorMessage
-          ? _value.errorMessage
-          : errorMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'EditAltProfileState'))
+      ..add(DiagnosticsProperty('username', username))
+      ..add(DiagnosticsProperty('bio', bio))
+      ..add(DiagnosticsProperty('coverImage', coverImage))
+      ..add(DiagnosticsProperty('profileImage', profileImage))
+      ..add(DiagnosticsProperty('isSubmitting', isSubmitting))
+      ..add(DiagnosticsProperty('errorMessage', errorMessage));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is EditAltProfileState &&
+            (identical(other.username, username) ||
+                other.username == username) &&
+            (identical(other.bio, bio) || other.bio == bio) &&
+            (identical(other.coverImage, coverImage) ||
+                other.coverImage == coverImage) &&
+            (identical(other.profileImage, profileImage) ||
+                other.profileImage == profileImage) &&
+            (identical(other.isSubmitting, isSubmitting) ||
+                other.isSubmitting == isSubmitting) &&
+            (identical(other.errorMessage, errorMessage) ||
+                other.errorMessage == errorMessage));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, username, bio, coverImage,
+      profileImage, isSubmitting, errorMessage);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'EditAltProfileState(username: $username, bio: $bio, coverImage: $coverImage, profileImage: $profileImage, isSubmitting: $isSubmitting, errorMessage: $errorMessage)';
   }
 }
 
 /// @nodoc
-abstract class _$$EditAltProfileStateImplCopyWith<$Res>
-    implements $EditAltProfileStateCopyWith<$Res> {
-  factory _$$EditAltProfileStateImplCopyWith(_$EditAltProfileStateImpl value,
-          $Res Function(_$EditAltProfileStateImpl) then) =
-      __$$EditAltProfileStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $EditAltProfileStateCopyWith<$Res> {
+  factory $EditAltProfileStateCopyWith(
+          EditAltProfileState value, $Res Function(EditAltProfileState) _then) =
+      _$EditAltProfileStateCopyWithImpl;
   @useResult
   $Res call(
       {String username,
@@ -114,12 +86,12 @@ abstract class _$$EditAltProfileStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$EditAltProfileStateImplCopyWithImpl<$Res>
-    extends _$EditAltProfileStateCopyWithImpl<$Res, _$EditAltProfileStateImpl>
-    implements _$$EditAltProfileStateImplCopyWith<$Res> {
-  __$$EditAltProfileStateImplCopyWithImpl(_$EditAltProfileStateImpl _value,
-      $Res Function(_$EditAltProfileStateImpl) _then)
-      : super(_value, _then);
+class _$EditAltProfileStateCopyWithImpl<$Res>
+    implements $EditAltProfileStateCopyWith<$Res> {
+  _$EditAltProfileStateCopyWithImpl(this._self, this._then);
+
+  final EditAltProfileState _self;
+  final $Res Function(EditAltProfileState) _then;
 
   /// Create a copy of EditAltProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -133,29 +105,29 @@ class __$$EditAltProfileStateImplCopyWithImpl<$Res>
     Object? isSubmitting = null,
     Object? errorMessage = freezed,
   }) {
-    return _then(_$EditAltProfileStateImpl(
+    return _then(_self.copyWith(
       username: null == username
-          ? _value.username
+          ? _self.username
           : username // ignore: cast_nullable_to_non_nullable
               as String,
       bio: null == bio
-          ? _value.bio
+          ? _self.bio
           : bio // ignore: cast_nullable_to_non_nullable
               as String,
       coverImage: freezed == coverImage
-          ? _value.coverImage
+          ? _self.coverImage
           : coverImage // ignore: cast_nullable_to_non_nullable
               as File?,
       profileImage: freezed == profileImage
-          ? _value.profileImage
+          ? _self.profileImage
           : profileImage // ignore: cast_nullable_to_non_nullable
               as File?,
       isSubmitting: null == isSubmitting
-          ? _value.isSubmitting
+          ? _self.isSubmitting
           : isSubmitting // ignore: cast_nullable_to_non_nullable
               as bool,
       errorMessage: freezed == errorMessage
-          ? _value.errorMessage
+          ? _self.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
@@ -164,8 +136,10 @@ class __$$EditAltProfileStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$EditAltProfileStateImpl implements _EditAltProfileState {
-  const _$EditAltProfileStateImpl(
+class _EditAltProfileState
+    with DiagnosticableTreeMixin
+    implements EditAltProfileState {
+  const _EditAltProfileState(
       {this.username = '',
       this.bio = '',
       this.coverImage,
@@ -189,16 +163,32 @@ class _$EditAltProfileStateImpl implements _EditAltProfileState {
   @override
   final String? errorMessage;
 
+  /// Create a copy of EditAltProfileState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'EditAltProfileState(username: $username, bio: $bio, coverImage: $coverImage, profileImage: $profileImage, isSubmitting: $isSubmitting, errorMessage: $errorMessage)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$EditAltProfileStateCopyWith<_EditAltProfileState> get copyWith =>
+      __$EditAltProfileStateCopyWithImpl<_EditAltProfileState>(
+          this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'EditAltProfileState'))
+      ..add(DiagnosticsProperty('username', username))
+      ..add(DiagnosticsProperty('bio', bio))
+      ..add(DiagnosticsProperty('coverImage', coverImage))
+      ..add(DiagnosticsProperty('profileImage', profileImage))
+      ..add(DiagnosticsProperty('isSubmitting', isSubmitting))
+      ..add(DiagnosticsProperty('errorMessage', errorMessage));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$EditAltProfileStateImpl &&
+            other is _EditAltProfileState &&
             (identical(other.username, username) ||
                 other.username == username) &&
             (identical(other.bio, bio) || other.bio == bio) &&
@@ -216,42 +206,76 @@ class _$EditAltProfileStateImpl implements _EditAltProfileState {
   int get hashCode => Object.hash(runtimeType, username, bio, coverImage,
       profileImage, isSubmitting, errorMessage);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'EditAltProfileState(username: $username, bio: $bio, coverImage: $coverImage, profileImage: $profileImage, isSubmitting: $isSubmitting, errorMessage: $errorMessage)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$EditAltProfileStateCopyWith<$Res>
+    implements $EditAltProfileStateCopyWith<$Res> {
+  factory _$EditAltProfileStateCopyWith(_EditAltProfileState value,
+          $Res Function(_EditAltProfileState) _then) =
+      __$EditAltProfileStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {String username,
+      String bio,
+      File? coverImage,
+      File? profileImage,
+      bool isSubmitting,
+      String? errorMessage});
+}
+
+/// @nodoc
+class __$EditAltProfileStateCopyWithImpl<$Res>
+    implements _$EditAltProfileStateCopyWith<$Res> {
+  __$EditAltProfileStateCopyWithImpl(this._self, this._then);
+
+  final _EditAltProfileState _self;
+  final $Res Function(_EditAltProfileState) _then;
+
   /// Create a copy of EditAltProfileState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$EditAltProfileStateImplCopyWith<_$EditAltProfileStateImpl> get copyWith =>
-      __$$EditAltProfileStateImplCopyWithImpl<_$EditAltProfileStateImpl>(
-          this, _$identity);
+  $Res call({
+    Object? username = null,
+    Object? bio = null,
+    Object? coverImage = freezed,
+    Object? profileImage = freezed,
+    Object? isSubmitting = null,
+    Object? errorMessage = freezed,
+  }) {
+    return _then(_EditAltProfileState(
+      username: null == username
+          ? _self.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String,
+      bio: null == bio
+          ? _self.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String,
+      coverImage: freezed == coverImage
+          ? _self.coverImage
+          : coverImage // ignore: cast_nullable_to_non_nullable
+              as File?,
+      profileImage: freezed == profileImage
+          ? _self.profileImage
+          : profileImage // ignore: cast_nullable_to_non_nullable
+              as File?,
+      isSubmitting: null == isSubmitting
+          ? _self.isSubmitting
+          : isSubmitting // ignore: cast_nullable_to_non_nullable
+              as bool,
+      errorMessage: freezed == errorMessage
+          ? _self.errorMessage
+          : errorMessage // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
 }
 
-abstract class _EditAltProfileState implements EditAltProfileState {
-  const factory _EditAltProfileState(
-      {final String username,
-      final String bio,
-      final File? coverImage,
-      final File? profileImage,
-      final bool isSubmitting,
-      final String? errorMessage}) = _$EditAltProfileStateImpl;
-
-  @override
-  String get username;
-  @override
-  String get bio;
-  @override
-  File? get coverImage;
-  @override
-  File? get profileImage;
-  @override
-  bool get isSubmitting;
-  @override
-  String? get errorMessage;
-
-  /// Create a copy of EditAltProfileState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$EditAltProfileStateImplCopyWith<_$EditAltProfileStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+// dart format on

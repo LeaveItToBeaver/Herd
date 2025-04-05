@@ -1,10 +1,11 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../data/models/post_model.dart';
+import 'package:flutter/foundation.dart';
 
 part 'post_interaction_state.freezed.dart';
 
 @freezed
-class PostInteractionState with _$PostInteractionState {
+abstract class PostInteractionState with _$PostInteractionState {
   const factory PostInteractionState({
     @Default(0) int totalLikes,       // Net likes (likes - dislikes)
     @Default(0) int totalRawLikes,    // Raw like count

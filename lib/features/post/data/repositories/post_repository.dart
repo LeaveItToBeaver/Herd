@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
@@ -13,6 +14,7 @@ import '../models/post_model.dart';
 class PostRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   // Collection references
   CollectionReference<Map<String, dynamic>> get _posts => _firestore.collection('posts');
@@ -29,41 +31,24 @@ class PostRepository {
       // First determine which collection to use based on privacy setting
       final targetCollection = post.isAlt ? _globalAltPosts : _posts;
 
+      // Set the feed type based on post attributes
+      final feedType = post.feedType ?? (post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public'));
+
+      // Create a post with the feed type
+      final postWithFeedType = post.copyWith(feedType: feedType);
+
       // Create the post document in the appropriate collection
-      final docRef = await targetCollection.add(post.toMap());
+      final docRef = await targetCollection.add(postWithFeedType.toMap());
 
       // Update the id field with the auto-generated ID
       await docRef.update({'id': docRef.id});
 
-      // Add to the post creator's own feed (this is still allowed by security rules)
-      if (post.isAlt) {
-        // Add to user's own alt feed
-        await _altFeeds
-            .doc(post.authorId)
-            .collection('altFeed')
-            .doc(docRef.id)
-            .set({
-          ...post.toMap(),
-          'id': docRef.id,
-        });
-      } else {
-        // Add to user's own public feed
-        await _feeds
-            .doc(post.authorId)
-            .collection('userFeed')
-            .doc(docRef.id)
-            .set({
-          ...post.toMap(),
-          'id': docRef.id,
-        });
-      }
-
-      // The Cloud Function will handle distribution to other users' feeds
+      // The Cloud Function will handle distribution to feeds
       debugPrint('Post created with ID: ${docRef.id}');
-      debugPrint('Distribution to followers will be handled by Cloud Function');
+      debugPrint('Distribution to feeds will be handled by Cloud Function');
     } catch (e) {
       debugPrint('Error creating post: $e');
-      throw e; // Rethrow to allow proper error handling upstream
+      throw e;
     }
   }
 
@@ -326,13 +311,13 @@ class PostRepository {
         posts.add(PostModel(
           id: post.id,
           authorId: post.authorId,
-          username: authorData['username'] ?? 'Unknown',
-          profileImageURL: post.isAlt
+          authorUsername: authorData['username'] ?? 'Unknown',
+          authorProfileImageURL: post.isAlt
               ? authorData['altProfileImageURL'] ?? authorData['profileImageURL']
               : authorData['profileImageURL'],
           title: post.title,
           content: post.content,
-          imageUrl: post.imageUrl,
+          mediaURL: post.mediaURL,
           isAlt: post.isAlt,
           likeCount: post.likeCount,
           dislikeCount: post.dislikeCount,
@@ -567,8 +552,51 @@ class PostRepository {
   }
 
   /// Liking and Disliking Posts ///
-
   Future<void> likePost({required String postId, required String userId}) async {
+    try {
+      // Call the Cloud Function to handle like/unlike
+      final HttpsCallableResult result = await _functions
+          .httpsCallable('handlePostInteraction')
+          .call({
+        'postId': postId,
+        'interactionType': 'like',
+      });
+
+      // Process result if needed
+      debugPrint('Like operation completed via Cloud Function');
+    } on FirebaseFunctionsException catch (error) {
+      debugPrint('Error in Cloud Function: ${error.message}');
+      // Fall back to direct implementation if needed
+      await _directLikePost(postId: postId, userId: userId);
+    } catch (e) {
+      debugPrint('Error liking post: $e');
+      throw e;
+    }
+  }
+
+  Future<void> dislikePost({required String postId, required String userId}) async {
+    try {
+      // Call the Cloud Function to handle like/unlike
+      final HttpsCallableResult result = await _functions
+          .httpsCallable('handlePostInteraction')
+          .call({
+        'postId': postId,
+        'interactionType': 'dislike',
+      });
+
+      // Process result if needed
+      debugPrint('Like operation completed via Cloud Function');
+    } on FirebaseFunctionsException catch (error) {
+      debugPrint('Error in Cloud Function: ${error.message}');
+      // Fall back to direct implementation if needed
+      await _directDislikePost(postId: postId, userId: userId);
+    } catch (e) {
+      debugPrint('Error liking post: $e');
+      throw e;
+    }
+  }
+
+  Future<void> _directLikePost({required String postId, required String userId}) async {
     final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
     final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
     final postRef = _posts.doc(postId);
@@ -622,7 +650,7 @@ class PostRepository {
   }
 
   // Dislike Post
-  Future<void> dislikePost({required String postId, required String userId}) async {
+  Future<void> _directDislikePost({required String postId, required String userId}) async {
     final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
     final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
     final postRef = _posts.doc(postId);

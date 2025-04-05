@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,118 +10,90 @@ part of 'comment_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$CommentState {
-  List<CommentModel> get comments => throw _privateConstructorUsedError;
-  bool get isLoading => throw _privateConstructorUsedError;
-  bool get hasMore => throw _privateConstructorUsedError;
-  String get sortBy => throw _privateConstructorUsedError;
-  DocumentSnapshot<Object?>? get lastDocument =>
-      throw _privateConstructorUsedError;
-  String? get error => throw _privateConstructorUsedError;
+mixin _$CommentState implements DiagnosticableTreeMixin {
+  List<CommentModel> get comments;
+  bool get isLoading;
+  bool get hasMore;
+  String get sortBy;
+  DocumentSnapshot? get lastDocument;
+  String? get error;
 
   /// Create a copy of CommentState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $CommentStateCopyWith<CommentState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $CommentStateCopyWith<$Res> {
-  factory $CommentStateCopyWith(
-          CommentState value, $Res Function(CommentState) then) =
-      _$CommentStateCopyWithImpl<$Res, CommentState>;
-  @useResult
-  $Res call(
-      {List<CommentModel> comments,
-      bool isLoading,
-      bool hasMore,
-      String sortBy,
-      DocumentSnapshot<Object?>? lastDocument,
-      String? error});
-}
-
-/// @nodoc
-class _$CommentStateCopyWithImpl<$Res, $Val extends CommentState>
-    implements $CommentStateCopyWith<$Res> {
-  _$CommentStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of CommentState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $CommentStateCopyWith<CommentState> get copyWith =>
+      _$CommentStateCopyWithImpl<CommentState>(
+          this as CommentState, _$identity);
+
   @override
-  $Res call({
-    Object? comments = null,
-    Object? isLoading = null,
-    Object? hasMore = null,
-    Object? sortBy = null,
-    Object? lastDocument = freezed,
-    Object? error = freezed,
-  }) {
-    return _then(_value.copyWith(
-      comments: null == comments
-          ? _value.comments
-          : comments // ignore: cast_nullable_to_non_nullable
-              as List<CommentModel>,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      hasMore: null == hasMore
-          ? _value.hasMore
-          : hasMore // ignore: cast_nullable_to_non_nullable
-              as bool,
-      sortBy: null == sortBy
-          ? _value.sortBy
-          : sortBy // ignore: cast_nullable_to_non_nullable
-              as String,
-      lastDocument: freezed == lastDocument
-          ? _value.lastDocument
-          : lastDocument // ignore: cast_nullable_to_non_nullable
-              as DocumentSnapshot<Object?>?,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'CommentState'))
+      ..add(DiagnosticsProperty('comments', comments))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('hasMore', hasMore))
+      ..add(DiagnosticsProperty('sortBy', sortBy))
+      ..add(DiagnosticsProperty('lastDocument', lastDocument))
+      ..add(DiagnosticsProperty('error', error));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is CommentState &&
+            const DeepCollectionEquality().equals(other.comments, comments) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.hasMore, hasMore) || other.hasMore == hasMore) &&
+            (identical(other.sortBy, sortBy) || other.sortBy == sortBy) &&
+            (identical(other.lastDocument, lastDocument) ||
+                other.lastDocument == lastDocument) &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(comments),
+      isLoading,
+      hasMore,
+      sortBy,
+      lastDocument,
+      error);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'CommentState(comments: $comments, isLoading: $isLoading, hasMore: $hasMore, sortBy: $sortBy, lastDocument: $lastDocument, error: $error)';
   }
 }
 
 /// @nodoc
-abstract class _$$CommentStateImplCopyWith<$Res>
-    implements $CommentStateCopyWith<$Res> {
-  factory _$$CommentStateImplCopyWith(
-          _$CommentStateImpl value, $Res Function(_$CommentStateImpl) then) =
-      __$$CommentStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $CommentStateCopyWith<$Res> {
+  factory $CommentStateCopyWith(
+          CommentState value, $Res Function(CommentState) _then) =
+      _$CommentStateCopyWithImpl;
   @useResult
   $Res call(
       {List<CommentModel> comments,
       bool isLoading,
       bool hasMore,
       String sortBy,
-      DocumentSnapshot<Object?>? lastDocument,
+      DocumentSnapshot? lastDocument,
       String? error});
 }
 
 /// @nodoc
-class __$$CommentStateImplCopyWithImpl<$Res>
-    extends _$CommentStateCopyWithImpl<$Res, _$CommentStateImpl>
-    implements _$$CommentStateImplCopyWith<$Res> {
-  __$$CommentStateImplCopyWithImpl(
-      _$CommentStateImpl _value, $Res Function(_$CommentStateImpl) _then)
-      : super(_value, _then);
+class _$CommentStateCopyWithImpl<$Res> implements $CommentStateCopyWith<$Res> {
+  _$CommentStateCopyWithImpl(this._self, this._then);
+
+  final CommentState _self;
+  final $Res Function(CommentState) _then;
 
   /// Create a copy of CommentState
   /// with the given fields replaced by the non-null parameter values.
@@ -134,29 +107,29 @@ class __$$CommentStateImplCopyWithImpl<$Res>
     Object? lastDocument = freezed,
     Object? error = freezed,
   }) {
-    return _then(_$CommentStateImpl(
+    return _then(_self.copyWith(
       comments: null == comments
-          ? _value._comments
+          ? _self.comments
           : comments // ignore: cast_nullable_to_non_nullable
               as List<CommentModel>,
       isLoading: null == isLoading
-          ? _value.isLoading
+          ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       hasMore: null == hasMore
-          ? _value.hasMore
+          ? _self.hasMore
           : hasMore // ignore: cast_nullable_to_non_nullable
               as bool,
       sortBy: null == sortBy
-          ? _value.sortBy
+          ? _self.sortBy
           : sortBy // ignore: cast_nullable_to_non_nullable
               as String,
       lastDocument: freezed == lastDocument
-          ? _value.lastDocument
+          ? _self.lastDocument
           : lastDocument // ignore: cast_nullable_to_non_nullable
-              as DocumentSnapshot<Object?>?,
+              as DocumentSnapshot?,
       error: freezed == error
-          ? _value.error
+          ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
@@ -165,8 +138,8 @@ class __$$CommentStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$CommentStateImpl implements _CommentState {
-  const _$CommentStateImpl(
+class _CommentState with DiagnosticableTreeMixin implements CommentState {
+  const _CommentState(
       {required final List<CommentModel> comments,
       this.isLoading = false,
       this.hasMore = true,
@@ -193,20 +166,35 @@ class _$CommentStateImpl implements _CommentState {
   @JsonKey()
   final String sortBy;
   @override
-  final DocumentSnapshot<Object?>? lastDocument;
+  final DocumentSnapshot? lastDocument;
   @override
   final String? error;
 
+  /// Create a copy of CommentState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'CommentState(comments: $comments, isLoading: $isLoading, hasMore: $hasMore, sortBy: $sortBy, lastDocument: $lastDocument, error: $error)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$CommentStateCopyWith<_CommentState> get copyWith =>
+      __$CommentStateCopyWithImpl<_CommentState>(this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'CommentState'))
+      ..add(DiagnosticsProperty('comments', comments))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('hasMore', hasMore))
+      ..add(DiagnosticsProperty('sortBy', sortBy))
+      ..add(DiagnosticsProperty('lastDocument', lastDocument))
+      ..add(DiagnosticsProperty('error', error));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CommentStateImpl &&
+            other is _CommentState &&
             const DeepCollectionEquality().equals(other._comments, _comments) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
@@ -227,203 +215,72 @@ class _$CommentStateImpl implements _CommentState {
       lastDocument,
       error);
 
-  /// Create a copy of CommentState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$CommentStateImplCopyWith<_$CommentStateImpl> get copyWith =>
-      __$$CommentStateImplCopyWithImpl<_$CommentStateImpl>(this, _$identity);
-}
-
-abstract class _CommentState implements CommentState {
-  const factory _CommentState(
-      {required final List<CommentModel> comments,
-      final bool isLoading,
-      final bool hasMore,
-      final String sortBy,
-      final DocumentSnapshot<Object?>? lastDocument,
-      final String? error}) = _$CommentStateImpl;
-
-  @override
-  List<CommentModel> get comments;
-  @override
-  bool get isLoading;
-  @override
-  bool get hasMore;
-  @override
-  String get sortBy;
-  @override
-  DocumentSnapshot<Object?>? get lastDocument;
-  @override
-  String? get error;
-
-  /// Create a copy of CommentState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CommentStateImplCopyWith<_$CommentStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$CommentThreadState {
-  CommentModel get parentComment => throw _privateConstructorUsedError;
-  List<CommentModel> get replies => throw _privateConstructorUsedError;
-  bool get isLoading => throw _privateConstructorUsedError;
-  bool get hasMore => throw _privateConstructorUsedError;
-  DocumentSnapshot<Object?>? get lastDocument =>
-      throw _privateConstructorUsedError;
-  String? get error => throw _privateConstructorUsedError;
-
-  /// Create a copy of CommentThreadState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $CommentThreadStateCopyWith<CommentThreadState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $CommentThreadStateCopyWith<$Res> {
-  factory $CommentThreadStateCopyWith(
-          CommentThreadState value, $Res Function(CommentThreadState) then) =
-      _$CommentThreadStateCopyWithImpl<$Res, CommentThreadState>;
-  @useResult
-  $Res call(
-      {CommentModel parentComment,
-      List<CommentModel> replies,
-      bool isLoading,
-      bool hasMore,
-      DocumentSnapshot<Object?>? lastDocument,
-      String? error});
-
-  $CommentModelCopyWith<$Res> get parentComment;
-}
-
-/// @nodoc
-class _$CommentThreadStateCopyWithImpl<$Res, $Val extends CommentThreadState>
-    implements $CommentThreadStateCopyWith<$Res> {
-  _$CommentThreadStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of CommentThreadState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? parentComment = null,
-    Object? replies = null,
-    Object? isLoading = null,
-    Object? hasMore = null,
-    Object? lastDocument = freezed,
-    Object? error = freezed,
-  }) {
-    return _then(_value.copyWith(
-      parentComment: null == parentComment
-          ? _value.parentComment
-          : parentComment // ignore: cast_nullable_to_non_nullable
-              as CommentModel,
-      replies: null == replies
-          ? _value.replies
-          : replies // ignore: cast_nullable_to_non_nullable
-              as List<CommentModel>,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      hasMore: null == hasMore
-          ? _value.hasMore
-          : hasMore // ignore: cast_nullable_to_non_nullable
-              as bool,
-      lastDocument: freezed == lastDocument
-          ? _value.lastDocument
-          : lastDocument // ignore: cast_nullable_to_non_nullable
-              as DocumentSnapshot<Object?>?,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
-  }
-
-  /// Create a copy of CommentThreadState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $CommentModelCopyWith<$Res> get parentComment {
-    return $CommentModelCopyWith<$Res>(_value.parentComment, (value) {
-      return _then(_value.copyWith(parentComment: value) as $Val);
-    });
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'CommentState(comments: $comments, isLoading: $isLoading, hasMore: $hasMore, sortBy: $sortBy, lastDocument: $lastDocument, error: $error)';
   }
 }
 
 /// @nodoc
-abstract class _$$CommentThreadStateImplCopyWith<$Res>
-    implements $CommentThreadStateCopyWith<$Res> {
-  factory _$$CommentThreadStateImplCopyWith(_$CommentThreadStateImpl value,
-          $Res Function(_$CommentThreadStateImpl) then) =
-      __$$CommentThreadStateImplCopyWithImpl<$Res>;
+abstract mixin class _$CommentStateCopyWith<$Res>
+    implements $CommentStateCopyWith<$Res> {
+  factory _$CommentStateCopyWith(
+          _CommentState value, $Res Function(_CommentState) _then) =
+      __$CommentStateCopyWithImpl;
   @override
   @useResult
   $Res call(
-      {CommentModel parentComment,
-      List<CommentModel> replies,
+      {List<CommentModel> comments,
       bool isLoading,
       bool hasMore,
-      DocumentSnapshot<Object?>? lastDocument,
+      String sortBy,
+      DocumentSnapshot? lastDocument,
       String? error});
-
-  @override
-  $CommentModelCopyWith<$Res> get parentComment;
 }
 
 /// @nodoc
-class __$$CommentThreadStateImplCopyWithImpl<$Res>
-    extends _$CommentThreadStateCopyWithImpl<$Res, _$CommentThreadStateImpl>
-    implements _$$CommentThreadStateImplCopyWith<$Res> {
-  __$$CommentThreadStateImplCopyWithImpl(_$CommentThreadStateImpl _value,
-      $Res Function(_$CommentThreadStateImpl) _then)
-      : super(_value, _then);
+class __$CommentStateCopyWithImpl<$Res>
+    implements _$CommentStateCopyWith<$Res> {
+  __$CommentStateCopyWithImpl(this._self, this._then);
 
-  /// Create a copy of CommentThreadState
+  final _CommentState _self;
+  final $Res Function(_CommentState) _then;
+
+  /// Create a copy of CommentState
   /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
   @override
+  @pragma('vm:prefer-inline')
   $Res call({
-    Object? parentComment = null,
-    Object? replies = null,
+    Object? comments = null,
     Object? isLoading = null,
     Object? hasMore = null,
+    Object? sortBy = null,
     Object? lastDocument = freezed,
     Object? error = freezed,
   }) {
-    return _then(_$CommentThreadStateImpl(
-      parentComment: null == parentComment
-          ? _value.parentComment
-          : parentComment // ignore: cast_nullable_to_non_nullable
-              as CommentModel,
-      replies: null == replies
-          ? _value._replies
-          : replies // ignore: cast_nullable_to_non_nullable
+    return _then(_CommentState(
+      comments: null == comments
+          ? _self._comments
+          : comments // ignore: cast_nullable_to_non_nullable
               as List<CommentModel>,
       isLoading: null == isLoading
-          ? _value.isLoading
+          ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       hasMore: null == hasMore
-          ? _value.hasMore
+          ? _self.hasMore
           : hasMore // ignore: cast_nullable_to_non_nullable
               as bool,
+      sortBy: null == sortBy
+          ? _self.sortBy
+          : sortBy // ignore: cast_nullable_to_non_nullable
+              as String,
       lastDocument: freezed == lastDocument
-          ? _value.lastDocument
+          ? _self.lastDocument
           : lastDocument // ignore: cast_nullable_to_non_nullable
-              as DocumentSnapshot<Object?>?,
+              as DocumentSnapshot?,
       error: freezed == error
-          ? _value.error
+          ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
@@ -431,9 +288,148 @@ class __$$CommentThreadStateImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
+mixin _$CommentThreadState implements DiagnosticableTreeMixin {
+  CommentModel get parentComment;
+  List<CommentModel> get replies;
+  bool get isLoading;
+  bool get hasMore;
+  DocumentSnapshot? get lastDocument;
+  String? get error;
 
-class _$CommentThreadStateImpl implements _CommentThreadState {
-  const _$CommentThreadStateImpl(
+  /// Create a copy of CommentThreadState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $CommentThreadStateCopyWith<CommentThreadState> get copyWith =>
+      _$CommentThreadStateCopyWithImpl<CommentThreadState>(
+          this as CommentThreadState, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'CommentThreadState'))
+      ..add(DiagnosticsProperty('parentComment', parentComment))
+      ..add(DiagnosticsProperty('replies', replies))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('hasMore', hasMore))
+      ..add(DiagnosticsProperty('lastDocument', lastDocument))
+      ..add(DiagnosticsProperty('error', error));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is CommentThreadState &&
+            (identical(other.parentComment, parentComment) ||
+                other.parentComment == parentComment) &&
+            const DeepCollectionEquality().equals(other.replies, replies) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.hasMore, hasMore) || other.hasMore == hasMore) &&
+            (identical(other.lastDocument, lastDocument) ||
+                other.lastDocument == lastDocument) &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      parentComment,
+      const DeepCollectionEquality().hash(replies),
+      isLoading,
+      hasMore,
+      lastDocument,
+      error);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'CommentThreadState(parentComment: $parentComment, replies: $replies, isLoading: $isLoading, hasMore: $hasMore, lastDocument: $lastDocument, error: $error)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $CommentThreadStateCopyWith<$Res> {
+  factory $CommentThreadStateCopyWith(
+          CommentThreadState value, $Res Function(CommentThreadState) _then) =
+      _$CommentThreadStateCopyWithImpl;
+  @useResult
+  $Res call(
+      {CommentModel parentComment,
+      List<CommentModel> replies,
+      bool isLoading,
+      bool hasMore,
+      DocumentSnapshot? lastDocument,
+      String? error});
+
+  $CommentModelCopyWith<$Res> get parentComment;
+}
+
+/// @nodoc
+class _$CommentThreadStateCopyWithImpl<$Res>
+    implements $CommentThreadStateCopyWith<$Res> {
+  _$CommentThreadStateCopyWithImpl(this._self, this._then);
+
+  final CommentThreadState _self;
+  final $Res Function(CommentThreadState) _then;
+
+  /// Create a copy of CommentThreadState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? parentComment = null,
+    Object? replies = null,
+    Object? isLoading = null,
+    Object? hasMore = null,
+    Object? lastDocument = freezed,
+    Object? error = freezed,
+  }) {
+    return _then(_self.copyWith(
+      parentComment: null == parentComment
+          ? _self.parentComment
+          : parentComment // ignore: cast_nullable_to_non_nullable
+              as CommentModel,
+      replies: null == replies
+          ? _self.replies
+          : replies // ignore: cast_nullable_to_non_nullable
+              as List<CommentModel>,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hasMore: null == hasMore
+          ? _self.hasMore
+          : hasMore // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastDocument: freezed == lastDocument
+          ? _self.lastDocument
+          : lastDocument // ignore: cast_nullable_to_non_nullable
+              as DocumentSnapshot?,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+
+  /// Create a copy of CommentThreadState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $CommentModelCopyWith<$Res> get parentComment {
+    return $CommentModelCopyWith<$Res>(_self.parentComment, (value) {
+      return _then(_self.copyWith(parentComment: value));
+    });
+  }
+}
+
+/// @nodoc
+
+class _CommentThreadState
+    with DiagnosticableTreeMixin
+    implements CommentThreadState {
+  const _CommentThreadState(
       {required this.parentComment,
       required final List<CommentModel> replies,
       this.isLoading = false,
@@ -459,20 +455,35 @@ class _$CommentThreadStateImpl implements _CommentThreadState {
   @JsonKey()
   final bool hasMore;
   @override
-  final DocumentSnapshot<Object?>? lastDocument;
+  final DocumentSnapshot? lastDocument;
   @override
   final String? error;
 
+  /// Create a copy of CommentThreadState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'CommentThreadState(parentComment: $parentComment, replies: $replies, isLoading: $isLoading, hasMore: $hasMore, lastDocument: $lastDocument, error: $error)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$CommentThreadStateCopyWith<_CommentThreadState> get copyWith =>
+      __$CommentThreadStateCopyWithImpl<_CommentThreadState>(this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'CommentThreadState'))
+      ..add(DiagnosticsProperty('parentComment', parentComment))
+      ..add(DiagnosticsProperty('replies', replies))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('hasMore', hasMore))
+      ..add(DiagnosticsProperty('lastDocument', lastDocument))
+      ..add(DiagnosticsProperty('error', error));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CommentThreadStateImpl &&
+            other is _CommentThreadState &&
             (identical(other.parentComment, parentComment) ||
                 other.parentComment == parentComment) &&
             const DeepCollectionEquality().equals(other._replies, _replies) &&
@@ -494,113 +505,145 @@ class _$CommentThreadStateImpl implements _CommentThreadState {
       lastDocument,
       error);
 
-  /// Create a copy of CommentThreadState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$CommentThreadStateImplCopyWith<_$CommentThreadStateImpl> get copyWith =>
-      __$$CommentThreadStateImplCopyWithImpl<_$CommentThreadStateImpl>(
-          this, _$identity);
-}
-
-abstract class _CommentThreadState implements CommentThreadState {
-  const factory _CommentThreadState(
-      {required final CommentModel parentComment,
-      required final List<CommentModel> replies,
-      final bool isLoading,
-      final bool hasMore,
-      final DocumentSnapshot<Object?>? lastDocument,
-      final String? error}) = _$CommentThreadStateImpl;
-
-  @override
-  CommentModel get parentComment;
-  @override
-  List<CommentModel> get replies;
-  @override
-  bool get isLoading;
-  @override
-  bool get hasMore;
-  @override
-  DocumentSnapshot<Object?>? get lastDocument;
-  @override
-  String? get error;
-
-  /// Create a copy of CommentThreadState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CommentThreadStateImplCopyWith<_$CommentThreadStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$ExpandedCommentsState {
-  Set<String> get expandedCommentIds => throw _privateConstructorUsedError;
-
-  /// Create a copy of ExpandedCommentsState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ExpandedCommentsStateCopyWith<ExpandedCommentsState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ExpandedCommentsStateCopyWith<$Res> {
-  factory $ExpandedCommentsStateCopyWith(ExpandedCommentsState value,
-          $Res Function(ExpandedCommentsState) then) =
-      _$ExpandedCommentsStateCopyWithImpl<$Res, ExpandedCommentsState>;
-  @useResult
-  $Res call({Set<String> expandedCommentIds});
-}
-
-/// @nodoc
-class _$ExpandedCommentsStateCopyWithImpl<$Res,
-        $Val extends ExpandedCommentsState>
-    implements $ExpandedCommentsStateCopyWith<$Res> {
-  _$ExpandedCommentsStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of ExpandedCommentsState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? expandedCommentIds = null,
-  }) {
-    return _then(_value.copyWith(
-      expandedCommentIds: null == expandedCommentIds
-          ? _value.expandedCommentIds
-          : expandedCommentIds // ignore: cast_nullable_to_non_nullable
-              as Set<String>,
-    ) as $Val);
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'CommentThreadState(parentComment: $parentComment, replies: $replies, isLoading: $isLoading, hasMore: $hasMore, lastDocument: $lastDocument, error: $error)';
   }
 }
 
 /// @nodoc
-abstract class _$$ExpandedCommentsStateImplCopyWith<$Res>
-    implements $ExpandedCommentsStateCopyWith<$Res> {
-  factory _$$ExpandedCommentsStateImplCopyWith(
-          _$ExpandedCommentsStateImpl value,
-          $Res Function(_$ExpandedCommentsStateImpl) then) =
-      __$$ExpandedCommentsStateImplCopyWithImpl<$Res>;
+abstract mixin class _$CommentThreadStateCopyWith<$Res>
+    implements $CommentThreadStateCopyWith<$Res> {
+  factory _$CommentThreadStateCopyWith(
+          _CommentThreadState value, $Res Function(_CommentThreadState) _then) =
+      __$CommentThreadStateCopyWithImpl;
   @override
+  @useResult
+  $Res call(
+      {CommentModel parentComment,
+      List<CommentModel> replies,
+      bool isLoading,
+      bool hasMore,
+      DocumentSnapshot? lastDocument,
+      String? error});
+
+  @override
+  $CommentModelCopyWith<$Res> get parentComment;
+}
+
+/// @nodoc
+class __$CommentThreadStateCopyWithImpl<$Res>
+    implements _$CommentThreadStateCopyWith<$Res> {
+  __$CommentThreadStateCopyWithImpl(this._self, this._then);
+
+  final _CommentThreadState _self;
+  final $Res Function(_CommentThreadState) _then;
+
+  /// Create a copy of CommentThreadState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? parentComment = null,
+    Object? replies = null,
+    Object? isLoading = null,
+    Object? hasMore = null,
+    Object? lastDocument = freezed,
+    Object? error = freezed,
+  }) {
+    return _then(_CommentThreadState(
+      parentComment: null == parentComment
+          ? _self.parentComment
+          : parentComment // ignore: cast_nullable_to_non_nullable
+              as CommentModel,
+      replies: null == replies
+          ? _self._replies
+          : replies // ignore: cast_nullable_to_non_nullable
+              as List<CommentModel>,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hasMore: null == hasMore
+          ? _self.hasMore
+          : hasMore // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastDocument: freezed == lastDocument
+          ? _self.lastDocument
+          : lastDocument // ignore: cast_nullable_to_non_nullable
+              as DocumentSnapshot?,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+
+  /// Create a copy of CommentThreadState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $CommentModelCopyWith<$Res> get parentComment {
+    return $CommentModelCopyWith<$Res>(_self.parentComment, (value) {
+      return _then(_self.copyWith(parentComment: value));
+    });
+  }
+}
+
+/// @nodoc
+mixin _$ExpandedCommentsState implements DiagnosticableTreeMixin {
+  Set<String> get expandedCommentIds;
+
+  /// Create a copy of ExpandedCommentsState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $ExpandedCommentsStateCopyWith<ExpandedCommentsState> get copyWith =>
+      _$ExpandedCommentsStateCopyWithImpl<ExpandedCommentsState>(
+          this as ExpandedCommentsState, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'ExpandedCommentsState'))
+      ..add(DiagnosticsProperty('expandedCommentIds', expandedCommentIds));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is ExpandedCommentsState &&
+            const DeepCollectionEquality()
+                .equals(other.expandedCommentIds, expandedCommentIds));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, const DeepCollectionEquality().hash(expandedCommentIds));
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ExpandedCommentsState(expandedCommentIds: $expandedCommentIds)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $ExpandedCommentsStateCopyWith<$Res> {
+  factory $ExpandedCommentsStateCopyWith(ExpandedCommentsState value,
+          $Res Function(ExpandedCommentsState) _then) =
+      _$ExpandedCommentsStateCopyWithImpl;
   @useResult
   $Res call({Set<String> expandedCommentIds});
 }
 
 /// @nodoc
-class __$$ExpandedCommentsStateImplCopyWithImpl<$Res>
-    extends _$ExpandedCommentsStateCopyWithImpl<$Res,
-        _$ExpandedCommentsStateImpl>
-    implements _$$ExpandedCommentsStateImplCopyWith<$Res> {
-  __$$ExpandedCommentsStateImplCopyWithImpl(_$ExpandedCommentsStateImpl _value,
-      $Res Function(_$ExpandedCommentsStateImpl) _then)
-      : super(_value, _then);
+class _$ExpandedCommentsStateCopyWithImpl<$Res>
+    implements $ExpandedCommentsStateCopyWith<$Res> {
+  _$ExpandedCommentsStateCopyWithImpl(this._self, this._then);
+
+  final ExpandedCommentsState _self;
+  final $Res Function(ExpandedCommentsState) _then;
 
   /// Create a copy of ExpandedCommentsState
   /// with the given fields replaced by the non-null parameter values.
@@ -609,9 +652,9 @@ class __$$ExpandedCommentsStateImplCopyWithImpl<$Res>
   $Res call({
     Object? expandedCommentIds = null,
   }) {
-    return _then(_$ExpandedCommentsStateImpl(
+    return _then(_self.copyWith(
       expandedCommentIds: null == expandedCommentIds
-          ? _value._expandedCommentIds
+          ? _self.expandedCommentIds
           : expandedCommentIds // ignore: cast_nullable_to_non_nullable
               as Set<String>,
     ));
@@ -620,9 +663,10 @@ class __$$ExpandedCommentsStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$ExpandedCommentsStateImpl implements _ExpandedCommentsState {
-  const _$ExpandedCommentsStateImpl(
-      {required final Set<String> expandedCommentIds})
+class _ExpandedCommentsState
+    with DiagnosticableTreeMixin
+    implements ExpandedCommentsState {
+  const _ExpandedCommentsState({required final Set<String> expandedCommentIds})
       : _expandedCommentIds = expandedCommentIds;
 
   final Set<String> _expandedCommentIds;
@@ -634,16 +678,27 @@ class _$ExpandedCommentsStateImpl implements _ExpandedCommentsState {
     return EqualUnmodifiableSetView(_expandedCommentIds);
   }
 
+  /// Create a copy of ExpandedCommentsState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'ExpandedCommentsState(expandedCommentIds: $expandedCommentIds)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$ExpandedCommentsStateCopyWith<_ExpandedCommentsState> get copyWith =>
+      __$ExpandedCommentsStateCopyWithImpl<_ExpandedCommentsState>(
+          this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'ExpandedCommentsState'))
+      ..add(DiagnosticsProperty('expandedCommentIds', expandedCommentIds));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ExpandedCommentsStateImpl &&
+            other is _ExpandedCommentsState &&
             const DeepCollectionEquality()
                 .equals(other._expandedCommentIds, _expandedCommentIds));
   }
@@ -652,116 +707,105 @@ class _$ExpandedCommentsStateImpl implements _ExpandedCommentsState {
   int get hashCode => Object.hash(
       runtimeType, const DeepCollectionEquality().hash(_expandedCommentIds));
 
-  /// Create a copy of ExpandedCommentsState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$ExpandedCommentsStateImplCopyWith<_$ExpandedCommentsStateImpl>
-      get copyWith => __$$ExpandedCommentsStateImplCopyWithImpl<
-          _$ExpandedCommentsStateImpl>(this, _$identity);
-}
-
-abstract class _ExpandedCommentsState implements ExpandedCommentsState {
-  const factory _ExpandedCommentsState(
-          {required final Set<String> expandedCommentIds}) =
-      _$ExpandedCommentsStateImpl;
-
-  @override
-  Set<String> get expandedCommentIds;
-
-  /// Create a copy of ExpandedCommentsState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ExpandedCommentsStateImplCopyWith<_$ExpandedCommentsStateImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$CommentInteractionState {
-  bool get isLiked => throw _privateConstructorUsedError;
-  bool get isDisliked => throw _privateConstructorUsedError;
-  int get likeCount => throw _privateConstructorUsedError;
-  int get dislikeCount => throw _privateConstructorUsedError;
-  bool get isLoading => throw _privateConstructorUsedError;
-
-  /// Create a copy of CommentInteractionState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $CommentInteractionStateCopyWith<CommentInteractionState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $CommentInteractionStateCopyWith<$Res> {
-  factory $CommentInteractionStateCopyWith(CommentInteractionState value,
-          $Res Function(CommentInteractionState) then) =
-      _$CommentInteractionStateCopyWithImpl<$Res, CommentInteractionState>;
-  @useResult
-  $Res call(
-      {bool isLiked,
-      bool isDisliked,
-      int likeCount,
-      int dislikeCount,
-      bool isLoading});
-}
-
-/// @nodoc
-class _$CommentInteractionStateCopyWithImpl<$Res,
-        $Val extends CommentInteractionState>
-    implements $CommentInteractionStateCopyWith<$Res> {
-  _$CommentInteractionStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of CommentInteractionState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? isLiked = null,
-    Object? isDisliked = null,
-    Object? likeCount = null,
-    Object? dislikeCount = null,
-    Object? isLoading = null,
-  }) {
-    return _then(_value.copyWith(
-      isLiked: null == isLiked
-          ? _value.isLiked
-          : isLiked // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isDisliked: null == isDisliked
-          ? _value.isDisliked
-          : isDisliked // ignore: cast_nullable_to_non_nullable
-              as bool,
-      likeCount: null == likeCount
-          ? _value.likeCount
-          : likeCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      dislikeCount: null == dislikeCount
-          ? _value.dislikeCount
-          : dislikeCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ExpandedCommentsState(expandedCommentIds: $expandedCommentIds)';
   }
 }
 
 /// @nodoc
-abstract class _$$CommentInteractionStateImplCopyWith<$Res>
-    implements $CommentInteractionStateCopyWith<$Res> {
-  factory _$$CommentInteractionStateImplCopyWith(
-          _$CommentInteractionStateImpl value,
-          $Res Function(_$CommentInteractionStateImpl) then) =
-      __$$CommentInteractionStateImplCopyWithImpl<$Res>;
+abstract mixin class _$ExpandedCommentsStateCopyWith<$Res>
+    implements $ExpandedCommentsStateCopyWith<$Res> {
+  factory _$ExpandedCommentsStateCopyWith(_ExpandedCommentsState value,
+          $Res Function(_ExpandedCommentsState) _then) =
+      __$ExpandedCommentsStateCopyWithImpl;
   @override
+  @useResult
+  $Res call({Set<String> expandedCommentIds});
+}
+
+/// @nodoc
+class __$ExpandedCommentsStateCopyWithImpl<$Res>
+    implements _$ExpandedCommentsStateCopyWith<$Res> {
+  __$ExpandedCommentsStateCopyWithImpl(this._self, this._then);
+
+  final _ExpandedCommentsState _self;
+  final $Res Function(_ExpandedCommentsState) _then;
+
+  /// Create a copy of ExpandedCommentsState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? expandedCommentIds = null,
+  }) {
+    return _then(_ExpandedCommentsState(
+      expandedCommentIds: null == expandedCommentIds
+          ? _self._expandedCommentIds
+          : expandedCommentIds // ignore: cast_nullable_to_non_nullable
+              as Set<String>,
+    ));
+  }
+}
+
+/// @nodoc
+mixin _$CommentInteractionState implements DiagnosticableTreeMixin {
+  bool get isLiked;
+  bool get isDisliked;
+  int get likeCount;
+  int get dislikeCount;
+  bool get isLoading;
+
+  /// Create a copy of CommentInteractionState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $CommentInteractionStateCopyWith<CommentInteractionState> get copyWith =>
+      _$CommentInteractionStateCopyWithImpl<CommentInteractionState>(
+          this as CommentInteractionState, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'CommentInteractionState'))
+      ..add(DiagnosticsProperty('isLiked', isLiked))
+      ..add(DiagnosticsProperty('isDisliked', isDisliked))
+      ..add(DiagnosticsProperty('likeCount', likeCount))
+      ..add(DiagnosticsProperty('dislikeCount', dislikeCount))
+      ..add(DiagnosticsProperty('isLoading', isLoading));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is CommentInteractionState &&
+            (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
+            (identical(other.isDisliked, isDisliked) ||
+                other.isDisliked == isDisliked) &&
+            (identical(other.likeCount, likeCount) ||
+                other.likeCount == likeCount) &&
+            (identical(other.dislikeCount, dislikeCount) ||
+                other.dislikeCount == dislikeCount) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, isLiked, isDisliked, likeCount, dislikeCount, isLoading);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'CommentInteractionState(isLiked: $isLiked, isDisliked: $isDisliked, likeCount: $likeCount, dislikeCount: $dislikeCount, isLoading: $isLoading)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $CommentInteractionStateCopyWith<$Res> {
+  factory $CommentInteractionStateCopyWith(CommentInteractionState value,
+          $Res Function(CommentInteractionState) _then) =
+      _$CommentInteractionStateCopyWithImpl;
   @useResult
   $Res call(
       {bool isLiked,
@@ -772,14 +816,12 @@ abstract class _$$CommentInteractionStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$CommentInteractionStateImplCopyWithImpl<$Res>
-    extends _$CommentInteractionStateCopyWithImpl<$Res,
-        _$CommentInteractionStateImpl>
-    implements _$$CommentInteractionStateImplCopyWith<$Res> {
-  __$$CommentInteractionStateImplCopyWithImpl(
-      _$CommentInteractionStateImpl _value,
-      $Res Function(_$CommentInteractionStateImpl) _then)
-      : super(_value, _then);
+class _$CommentInteractionStateCopyWithImpl<$Res>
+    implements $CommentInteractionStateCopyWith<$Res> {
+  _$CommentInteractionStateCopyWithImpl(this._self, this._then);
+
+  final CommentInteractionState _self;
+  final $Res Function(CommentInteractionState) _then;
 
   /// Create a copy of CommentInteractionState
   /// with the given fields replaced by the non-null parameter values.
@@ -792,25 +834,25 @@ class __$$CommentInteractionStateImplCopyWithImpl<$Res>
     Object? dislikeCount = null,
     Object? isLoading = null,
   }) {
-    return _then(_$CommentInteractionStateImpl(
+    return _then(_self.copyWith(
       isLiked: null == isLiked
-          ? _value.isLiked
+          ? _self.isLiked
           : isLiked // ignore: cast_nullable_to_non_nullable
               as bool,
       isDisliked: null == isDisliked
-          ? _value.isDisliked
+          ? _self.isDisliked
           : isDisliked // ignore: cast_nullable_to_non_nullable
               as bool,
       likeCount: null == likeCount
-          ? _value.likeCount
+          ? _self.likeCount
           : likeCount // ignore: cast_nullable_to_non_nullable
               as int,
       dislikeCount: null == dislikeCount
-          ? _value.dislikeCount
+          ? _self.dislikeCount
           : dislikeCount // ignore: cast_nullable_to_non_nullable
               as int,
       isLoading: null == isLoading
-          ? _value.isLoading
+          ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
@@ -819,8 +861,10 @@ class __$$CommentInteractionStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$CommentInteractionStateImpl implements _CommentInteractionState {
-  const _$CommentInteractionStateImpl(
+class _CommentInteractionState
+    with DiagnosticableTreeMixin
+    implements CommentInteractionState {
+  const _CommentInteractionState(
       {this.isLiked = false,
       this.isDisliked = false,
       this.likeCount = 0,
@@ -843,16 +887,31 @@ class _$CommentInteractionStateImpl implements _CommentInteractionState {
   @JsonKey()
   final bool isLoading;
 
+  /// Create a copy of CommentInteractionState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'CommentInteractionState(isLiked: $isLiked, isDisliked: $isDisliked, likeCount: $likeCount, dislikeCount: $dislikeCount, isLoading: $isLoading)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$CommentInteractionStateCopyWith<_CommentInteractionState> get copyWith =>
+      __$CommentInteractionStateCopyWithImpl<_CommentInteractionState>(
+          this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'CommentInteractionState'))
+      ..add(DiagnosticsProperty('isLiked', isLiked))
+      ..add(DiagnosticsProperty('isDisliked', isDisliked))
+      ..add(DiagnosticsProperty('likeCount', likeCount))
+      ..add(DiagnosticsProperty('dislikeCount', dislikeCount))
+      ..add(DiagnosticsProperty('isLoading', isLoading));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CommentInteractionStateImpl &&
+            other is _CommentInteractionState &&
             (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
             (identical(other.isDisliked, isDisliked) ||
                 other.isDisliked == isDisliked) &&
@@ -868,39 +927,70 @@ class _$CommentInteractionStateImpl implements _CommentInteractionState {
   int get hashCode => Object.hash(
       runtimeType, isLiked, isDisliked, likeCount, dislikeCount, isLoading);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'CommentInteractionState(isLiked: $isLiked, isDisliked: $isDisliked, likeCount: $likeCount, dislikeCount: $dislikeCount, isLoading: $isLoading)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$CommentInteractionStateCopyWith<$Res>
+    implements $CommentInteractionStateCopyWith<$Res> {
+  factory _$CommentInteractionStateCopyWith(_CommentInteractionState value,
+          $Res Function(_CommentInteractionState) _then) =
+      __$CommentInteractionStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {bool isLiked,
+      bool isDisliked,
+      int likeCount,
+      int dislikeCount,
+      bool isLoading});
+}
+
+/// @nodoc
+class __$CommentInteractionStateCopyWithImpl<$Res>
+    implements _$CommentInteractionStateCopyWith<$Res> {
+  __$CommentInteractionStateCopyWithImpl(this._self, this._then);
+
+  final _CommentInteractionState _self;
+  final $Res Function(_CommentInteractionState) _then;
+
   /// Create a copy of CommentInteractionState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$CommentInteractionStateImplCopyWith<_$CommentInteractionStateImpl>
-      get copyWith => __$$CommentInteractionStateImplCopyWithImpl<
-          _$CommentInteractionStateImpl>(this, _$identity);
+  $Res call({
+    Object? isLiked = null,
+    Object? isDisliked = null,
+    Object? likeCount = null,
+    Object? dislikeCount = null,
+    Object? isLoading = null,
+  }) {
+    return _then(_CommentInteractionState(
+      isLiked: null == isLiked
+          ? _self.isLiked
+          : isLiked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isDisliked: null == isDisliked
+          ? _self.isDisliked
+          : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      likeCount: null == likeCount
+          ? _self.likeCount
+          : likeCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      dislikeCount: null == dislikeCount
+          ? _self.dislikeCount
+          : dislikeCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
 }
 
-abstract class _CommentInteractionState implements CommentInteractionState {
-  const factory _CommentInteractionState(
-      {final bool isLiked,
-      final bool isDisliked,
-      final int likeCount,
-      final int dislikeCount,
-      final bool isLoading}) = _$CommentInteractionStateImpl;
-
-  @override
-  bool get isLiked;
-  @override
-  bool get isDisliked;
-  @override
-  int get likeCount;
-  @override
-  int get dislikeCount;
-  @override
-  bool get isLoading;
-
-  /// Create a copy of CommentInteractionState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CommentInteractionStateImplCopyWith<_$CommentInteractionStateImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
+// dart format on

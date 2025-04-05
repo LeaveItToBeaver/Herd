@@ -1,11 +1,12 @@
 // edit_public_profile_state.dart
 import 'dart:io';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/foundation.dart';
 
 part 'edit_public_profile_state.freezed.dart';
 
 @freezed
-class EditPublicProfileState with _$EditPublicProfileState {
+abstract class EditPublicProfileState with _$EditPublicProfileState {
   const factory EditPublicProfileState({
     @Default('') String firstName,
     @Default('') String lastName,

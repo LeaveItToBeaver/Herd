@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,110 +10,78 @@ part of 'post_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$PostState {
-  List<PostModel> get posts =>
-      throw _privateConstructorUsedError; // Default to empty list
-  bool get isLoading =>
-      throw _privateConstructorUsedError; // Default to not loading
-  String? get error =>
-      throw _privateConstructorUsedError; // Nullable error message
-  Map<String, bool> get likedPosts => throw _privateConstructorUsedError;
-  bool get isLiked =>
-      throw _privateConstructorUsedError; // Default to empty map
-  Map<String, bool> get dislikedPosts => throw _privateConstructorUsedError;
-  bool get isDisliked => throw _privateConstructorUsedError;
+mixin _$PostState implements DiagnosticableTreeMixin {
+  List<PostModel> get posts; // Default to empty list
+  bool get isLoading; // Default to not loading
+  String? get error; // Nullable error message
+  Map<String, bool> get likedPosts;
+  bool get isLiked; // Default to empty map
+  Map<String, bool> get dislikedPosts;
+  bool get isDisliked;
 
   /// Create a copy of PostState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $PostStateCopyWith<PostState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $PostStateCopyWith<$Res> {
-  factory $PostStateCopyWith(PostState value, $Res Function(PostState) then) =
-      _$PostStateCopyWithImpl<$Res, PostState>;
-  @useResult
-  $Res call(
-      {List<PostModel> posts,
-      bool isLoading,
-      String? error,
-      Map<String, bool> likedPosts,
-      bool isLiked,
-      Map<String, bool> dislikedPosts,
-      bool isDisliked});
-}
-
-/// @nodoc
-class _$PostStateCopyWithImpl<$Res, $Val extends PostState>
-    implements $PostStateCopyWith<$Res> {
-  _$PostStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of PostState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $PostStateCopyWith<PostState> get copyWith =>
+      _$PostStateCopyWithImpl<PostState>(this as PostState, _$identity);
+
   @override
-  $Res call({
-    Object? posts = null,
-    Object? isLoading = null,
-    Object? error = freezed,
-    Object? likedPosts = null,
-    Object? isLiked = null,
-    Object? dislikedPosts = null,
-    Object? isDisliked = null,
-  }) {
-    return _then(_value.copyWith(
-      posts: null == posts
-          ? _value.posts
-          : posts // ignore: cast_nullable_to_non_nullable
-              as List<PostModel>,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-      likedPosts: null == likedPosts
-          ? _value.likedPosts
-          : likedPosts // ignore: cast_nullable_to_non_nullable
-              as Map<String, bool>,
-      isLiked: null == isLiked
-          ? _value.isLiked
-          : isLiked // ignore: cast_nullable_to_non_nullable
-              as bool,
-      dislikedPosts: null == dislikedPosts
-          ? _value.dislikedPosts
-          : dislikedPosts // ignore: cast_nullable_to_non_nullable
-              as Map<String, bool>,
-      isDisliked: null == isDisliked
-          ? _value.isDisliked
-          : isDisliked // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'PostState'))
+      ..add(DiagnosticsProperty('posts', posts))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('error', error))
+      ..add(DiagnosticsProperty('likedPosts', likedPosts))
+      ..add(DiagnosticsProperty('isLiked', isLiked))
+      ..add(DiagnosticsProperty('dislikedPosts', dislikedPosts))
+      ..add(DiagnosticsProperty('isDisliked', isDisliked));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PostState &&
+            const DeepCollectionEquality().equals(other.posts, posts) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.error, error) || other.error == error) &&
+            const DeepCollectionEquality()
+                .equals(other.likedPosts, likedPosts) &&
+            (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
+            const DeepCollectionEquality()
+                .equals(other.dislikedPosts, dislikedPosts) &&
+            (identical(other.isDisliked, isDisliked) ||
+                other.isDisliked == isDisliked));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(posts),
+      isLoading,
+      error,
+      const DeepCollectionEquality().hash(likedPosts),
+      isLiked,
+      const DeepCollectionEquality().hash(dislikedPosts),
+      isDisliked);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'PostState(posts: $posts, isLoading: $isLoading, error: $error, likedPosts: $likedPosts, isLiked: $isLiked, dislikedPosts: $dislikedPosts, isDisliked: $isDisliked)';
   }
 }
 
 /// @nodoc
-abstract class _$$PostStateImplCopyWith<$Res>
-    implements $PostStateCopyWith<$Res> {
-  factory _$$PostStateImplCopyWith(
-          _$PostStateImpl value, $Res Function(_$PostStateImpl) then) =
-      __$$PostStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $PostStateCopyWith<$Res> {
+  factory $PostStateCopyWith(PostState value, $Res Function(PostState) _then) =
+      _$PostStateCopyWithImpl;
   @useResult
   $Res call(
       {List<PostModel> posts,
@@ -125,12 +94,11 @@ abstract class _$$PostStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$PostStateImplCopyWithImpl<$Res>
-    extends _$PostStateCopyWithImpl<$Res, _$PostStateImpl>
-    implements _$$PostStateImplCopyWith<$Res> {
-  __$$PostStateImplCopyWithImpl(
-      _$PostStateImpl _value, $Res Function(_$PostStateImpl) _then)
-      : super(_value, _then);
+class _$PostStateCopyWithImpl<$Res> implements $PostStateCopyWith<$Res> {
+  _$PostStateCopyWithImpl(this._self, this._then);
+
+  final PostState _self;
+  final $Res Function(PostState) _then;
 
   /// Create a copy of PostState
   /// with the given fields replaced by the non-null parameter values.
@@ -145,33 +113,33 @@ class __$$PostStateImplCopyWithImpl<$Res>
     Object? dislikedPosts = null,
     Object? isDisliked = null,
   }) {
-    return _then(_$PostStateImpl(
+    return _then(_self.copyWith(
       posts: null == posts
-          ? _value._posts
+          ? _self.posts
           : posts // ignore: cast_nullable_to_non_nullable
               as List<PostModel>,
       isLoading: null == isLoading
-          ? _value.isLoading
+          ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       error: freezed == error
-          ? _value.error
+          ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
       likedPosts: null == likedPosts
-          ? _value._likedPosts
+          ? _self.likedPosts
           : likedPosts // ignore: cast_nullable_to_non_nullable
               as Map<String, bool>,
       isLiked: null == isLiked
-          ? _value.isLiked
+          ? _self.isLiked
           : isLiked // ignore: cast_nullable_to_non_nullable
               as bool,
       dislikedPosts: null == dislikedPosts
-          ? _value._dislikedPosts
+          ? _self.dislikedPosts
           : dislikedPosts // ignore: cast_nullable_to_non_nullable
               as Map<String, bool>,
       isDisliked: null == isDisliked
-          ? _value.isDisliked
+          ? _self.isDisliked
           : isDisliked // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
@@ -180,8 +148,8 @@ class __$$PostStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$PostStateImpl implements _PostState {
-  const _$PostStateImpl(
+class _PostState with DiagnosticableTreeMixin implements PostState {
+  const _PostState(
       {final List<PostModel> posts = const [],
       this.isLoading = false,
       this.error,
@@ -238,16 +206,32 @@ class _$PostStateImpl implements _PostState {
   @JsonKey()
   final bool isDisliked;
 
+  /// Create a copy of PostState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'PostState(posts: $posts, isLoading: $isLoading, error: $error, likedPosts: $likedPosts, isLiked: $isLiked, dislikedPosts: $dislikedPosts, isDisliked: $isDisliked)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$PostStateCopyWith<_PostState> get copyWith =>
+      __$PostStateCopyWithImpl<_PostState>(this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'PostState'))
+      ..add(DiagnosticsProperty('posts', posts))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('error', error))
+      ..add(DiagnosticsProperty('likedPosts', likedPosts))
+      ..add(DiagnosticsProperty('isLiked', isLiked))
+      ..add(DiagnosticsProperty('dislikedPosts', dislikedPosts))
+      ..add(DiagnosticsProperty('isDisliked', isDisliked));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$PostStateImpl &&
+            other is _PostState &&
             const DeepCollectionEquality().equals(other._posts, _posts) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
@@ -272,44 +256,81 @@ class _$PostStateImpl implements _PostState {
       const DeepCollectionEquality().hash(_dislikedPosts),
       isDisliked);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'PostState(posts: $posts, isLoading: $isLoading, error: $error, likedPosts: $likedPosts, isLiked: $isLiked, dislikedPosts: $dislikedPosts, isDisliked: $isDisliked)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$PostStateCopyWith<$Res>
+    implements $PostStateCopyWith<$Res> {
+  factory _$PostStateCopyWith(
+          _PostState value, $Res Function(_PostState) _then) =
+      __$PostStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {List<PostModel> posts,
+      bool isLoading,
+      String? error,
+      Map<String, bool> likedPosts,
+      bool isLiked,
+      Map<String, bool> dislikedPosts,
+      bool isDisliked});
+}
+
+/// @nodoc
+class __$PostStateCopyWithImpl<$Res> implements _$PostStateCopyWith<$Res> {
+  __$PostStateCopyWithImpl(this._self, this._then);
+
+  final _PostState _self;
+  final $Res Function(_PostState) _then;
+
   /// Create a copy of PostState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$PostStateImplCopyWith<_$PostStateImpl> get copyWith =>
-      __$$PostStateImplCopyWithImpl<_$PostStateImpl>(this, _$identity);
+  $Res call({
+    Object? posts = null,
+    Object? isLoading = null,
+    Object? error = freezed,
+    Object? likedPosts = null,
+    Object? isLiked = null,
+    Object? dislikedPosts = null,
+    Object? isDisliked = null,
+  }) {
+    return _then(_PostState(
+      posts: null == posts
+          ? _self._posts
+          : posts // ignore: cast_nullable_to_non_nullable
+              as List<PostModel>,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+      likedPosts: null == likedPosts
+          ? _self._likedPosts
+          : likedPosts // ignore: cast_nullable_to_non_nullable
+              as Map<String, bool>,
+      isLiked: null == isLiked
+          ? _self.isLiked
+          : isLiked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      dislikedPosts: null == dislikedPosts
+          ? _self._dislikedPosts
+          : dislikedPosts // ignore: cast_nullable_to_non_nullable
+              as Map<String, bool>,
+      isDisliked: null == isDisliked
+          ? _self.isDisliked
+          : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
 }
 
-abstract class _PostState implements PostState {
-  const factory _PostState(
-      {final List<PostModel> posts,
-      final bool isLoading,
-      final String? error,
-      final Map<String, bool> likedPosts,
-      final bool isLiked,
-      final Map<String, bool> dislikedPosts,
-      final bool isDisliked}) = _$PostStateImpl;
-
-  @override
-  List<PostModel> get posts; // Default to empty list
-  @override
-  bool get isLoading; // Default to not loading
-  @override
-  String? get error; // Nullable error message
-  @override
-  Map<String, bool> get likedPosts;
-  @override
-  bool get isLiked; // Default to empty map
-  @override
-  Map<String, bool> get dislikedPosts;
-  @override
-  bool get isDisliked;
-
-  /// Create a copy of PostState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PostStateImplCopyWith<_$PostStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+// dart format on

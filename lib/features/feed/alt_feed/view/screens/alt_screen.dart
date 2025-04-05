@@ -5,8 +5,8 @@ import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 import '../../../../auth/view/providers/auth_provider.dart';
 import '../../../../herds/view/providers/herd_providers.dart';
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
-import '../../../providers/feed_provider.dart';
-import '../providers/state/alt_feed_state.dart';
+import '../../../providers/unified_feed_provider.dart';
+import '../providers/state/alt_feed_states.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
