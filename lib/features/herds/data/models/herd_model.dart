@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/foundation.dart';
 
 part 'herd_model.freezed.dart';
 
 @freezed
-class HerdModel with _$HerdModel {
+abstract class HerdModel with _$HerdModel {
   const HerdModel._(); // Add this to allow custom methods within the class
 
   const factory HerdModel({

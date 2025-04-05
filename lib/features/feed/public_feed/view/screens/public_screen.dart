@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
+import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
+
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
-import '../../../providers/feed_provider.dart';
+import '../../../providers/unified_feed_provider.dart';
 
 class PublicFeedScreen extends ConsumerWidget {
   const PublicFeedScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsyncValue = ref.watch(publicFeedProvider);
+    final publicFeedState = ref.watch(publicFeedControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -21,7 +23,7 @@ class PublicFeedScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.refresh(publicFeedProvider);
+              ref.read(publicFeedControllerProvider.notifier).refreshFeed();
             },
           ),
           // Optional trending button
@@ -31,31 +33,30 @@ class PublicFeedScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: postsAsyncValue.when(
-        data: (posts) {
-          if (posts.isEmpty) {
-            return _buildEmptyFeed(context);
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.refresh(publicFeedProvider);
-            },
-            child: ListView.builder(
-              itemCount: posts.length + 1, // +1 for bottom padding
-              itemBuilder: (context, index) {
-                if (index == posts.length) {
-                  return const BottomNavPadding();
-                }
-                return PostWidget(post: posts[index]);
-              },
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildErrorWidget(context, error, () {
-          ref.refresh(publicFeedProvider);
-        }),
-      ),
+      body: publicFeedState.isLoading && publicFeedState.posts.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : publicFeedState.error != null
+              ? _buildErrorWidget(context, publicFeedState.error!, () {
+                  ref.read(publicFeedControllerProvider.notifier).refreshFeed();
+                })
+              : publicFeedState.posts.isEmpty
+                  ? _buildEmptyFeed(context)
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        ref
+                            .read(publicFeedControllerProvider.notifier)
+                            .refreshFeed();
+                      },
+                      child: ListView.builder(
+                        itemCount: publicFeedState.posts.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == publicFeedState.posts.length) {
+                            return const BottomNavPadding();
+                          }
+                          return PostWidget(post: publicFeedState.posts[index]);
+                        },
+                      ),
+                    ),
     );
   }
 
@@ -93,7 +94,8 @@ class PublicFeedScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorWidget(BuildContext context, Object error, VoidCallback onRetry) {
+  Widget _buildErrorWidget(
+      BuildContext context, Object error, VoidCallback onRetry) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -177,7 +179,7 @@ class PublicFeedScreen extends ConsumerWidget {
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, child) {
-                      final trendingPosts = ref.watch(trendingPostsProvider);
+                      final trendingPosts = ref.watch(trendingPublicPostsProvider);
 
                       return trendingPosts.when(
                         data: (posts) {

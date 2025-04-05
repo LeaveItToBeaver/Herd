@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,118 +10,78 @@ part of 'post_interaction_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
 
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
-mixin _$PostInteractionState {
-  int get totalLikes =>
-      throw _privateConstructorUsedError; // Net likes (likes - dislikes)
-  int get totalRawLikes => throw _privateConstructorUsedError; // Raw like count
-  int get totalComments => throw _privateConstructorUsedError; // Total comments
-  int get totalRawDislikes =>
-      throw _privateConstructorUsedError; // Raw dislike count
-  bool get isLoading => throw _privateConstructorUsedError; // Loading state
-  String? get error => throw _privateConstructorUsedError; // Error message
-  bool get isLiked =>
-      throw _privateConstructorUsedError; // Whether user has liked
-  bool get isDisliked => throw _privateConstructorUsedError;
+mixin _$PostInteractionState implements DiagnosticableTreeMixin {
+  int get totalLikes; // Net likes (likes - dislikes)
+  int get totalRawLikes; // Raw like count
+  int get totalComments; // Total comments
+  int get totalRawDislikes; // Raw dislike count
+  bool get isLoading; // Loading state
+  String? get error; // Error message
+  bool get isLiked; // Whether user has liked
+  bool get isDisliked;
 
   /// Create a copy of PostInteractionState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $PostInteractionStateCopyWith<PostInteractionState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $PostInteractionStateCopyWith<$Res> {
-  factory $PostInteractionStateCopyWith(PostInteractionState value,
-          $Res Function(PostInteractionState) then) =
-      _$PostInteractionStateCopyWithImpl<$Res, PostInteractionState>;
-  @useResult
-  $Res call(
-      {int totalLikes,
-      int totalRawLikes,
-      int totalComments,
-      int totalRawDislikes,
-      bool isLoading,
-      String? error,
-      bool isLiked,
-      bool isDisliked});
-}
-
-/// @nodoc
-class _$PostInteractionStateCopyWithImpl<$Res,
-        $Val extends PostInteractionState>
-    implements $PostInteractionStateCopyWith<$Res> {
-  _$PostInteractionStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of PostInteractionState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $PostInteractionStateCopyWith<PostInteractionState> get copyWith =>
+      _$PostInteractionStateCopyWithImpl<PostInteractionState>(
+          this as PostInteractionState, _$identity);
+
   @override
-  $Res call({
-    Object? totalLikes = null,
-    Object? totalRawLikes = null,
-    Object? totalComments = null,
-    Object? totalRawDislikes = null,
-    Object? isLoading = null,
-    Object? error = freezed,
-    Object? isLiked = null,
-    Object? isDisliked = null,
-  }) {
-    return _then(_value.copyWith(
-      totalLikes: null == totalLikes
-          ? _value.totalLikes
-          : totalLikes // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalRawLikes: null == totalRawLikes
-          ? _value.totalRawLikes
-          : totalRawLikes // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalComments: null == totalComments
-          ? _value.totalComments
-          : totalComments // ignore: cast_nullable_to_non_nullable
-              as int,
-      totalRawDislikes: null == totalRawDislikes
-          ? _value.totalRawDislikes
-          : totalRawDislikes // ignore: cast_nullable_to_non_nullable
-              as int,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isLiked: null == isLiked
-          ? _value.isLiked
-          : isLiked // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isDisliked: null == isDisliked
-          ? _value.isDisliked
-          : isDisliked // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'PostInteractionState'))
+      ..add(DiagnosticsProperty('totalLikes', totalLikes))
+      ..add(DiagnosticsProperty('totalRawLikes', totalRawLikes))
+      ..add(DiagnosticsProperty('totalComments', totalComments))
+      ..add(DiagnosticsProperty('totalRawDislikes', totalRawDislikes))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('error', error))
+      ..add(DiagnosticsProperty('isLiked', isLiked))
+      ..add(DiagnosticsProperty('isDisliked', isDisliked));
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PostInteractionState &&
+            (identical(other.totalLikes, totalLikes) ||
+                other.totalLikes == totalLikes) &&
+            (identical(other.totalRawLikes, totalRawLikes) ||
+                other.totalRawLikes == totalRawLikes) &&
+            (identical(other.totalComments, totalComments) ||
+                other.totalComments == totalComments) &&
+            (identical(other.totalRawDislikes, totalRawDislikes) ||
+                other.totalRawDislikes == totalRawDislikes) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.error, error) || other.error == error) &&
+            (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
+            (identical(other.isDisliked, isDisliked) ||
+                other.isDisliked == isDisliked));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, totalLikes, totalRawLikes,
+      totalComments, totalRawDislikes, isLoading, error, isLiked, isDisliked);
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked)';
   }
 }
 
 /// @nodoc
-abstract class _$$PostInteractionStateImplCopyWith<$Res>
-    implements $PostInteractionStateCopyWith<$Res> {
-  factory _$$PostInteractionStateImplCopyWith(_$PostInteractionStateImpl value,
-          $Res Function(_$PostInteractionStateImpl) then) =
-      __$$PostInteractionStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $PostInteractionStateCopyWith<$Res> {
+  factory $PostInteractionStateCopyWith(PostInteractionState value,
+          $Res Function(PostInteractionState) _then) =
+      _$PostInteractionStateCopyWithImpl;
   @useResult
   $Res call(
       {int totalLikes,
@@ -134,12 +95,12 @@ abstract class _$$PostInteractionStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$PostInteractionStateImplCopyWithImpl<$Res>
-    extends _$PostInteractionStateCopyWithImpl<$Res, _$PostInteractionStateImpl>
-    implements _$$PostInteractionStateImplCopyWith<$Res> {
-  __$$PostInteractionStateImplCopyWithImpl(_$PostInteractionStateImpl _value,
-      $Res Function(_$PostInteractionStateImpl) _then)
-      : super(_value, _then);
+class _$PostInteractionStateCopyWithImpl<$Res>
+    implements $PostInteractionStateCopyWith<$Res> {
+  _$PostInteractionStateCopyWithImpl(this._self, this._then);
+
+  final PostInteractionState _self;
+  final $Res Function(PostInteractionState) _then;
 
   /// Create a copy of PostInteractionState
   /// with the given fields replaced by the non-null parameter values.
@@ -155,37 +116,37 @@ class __$$PostInteractionStateImplCopyWithImpl<$Res>
     Object? isLiked = null,
     Object? isDisliked = null,
   }) {
-    return _then(_$PostInteractionStateImpl(
+    return _then(_self.copyWith(
       totalLikes: null == totalLikes
-          ? _value.totalLikes
+          ? _self.totalLikes
           : totalLikes // ignore: cast_nullable_to_non_nullable
               as int,
       totalRawLikes: null == totalRawLikes
-          ? _value.totalRawLikes
+          ? _self.totalRawLikes
           : totalRawLikes // ignore: cast_nullable_to_non_nullable
               as int,
       totalComments: null == totalComments
-          ? _value.totalComments
+          ? _self.totalComments
           : totalComments // ignore: cast_nullable_to_non_nullable
               as int,
       totalRawDislikes: null == totalRawDislikes
-          ? _value.totalRawDislikes
+          ? _self.totalRawDislikes
           : totalRawDislikes // ignore: cast_nullable_to_non_nullable
               as int,
       isLoading: null == isLoading
-          ? _value.isLoading
+          ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       error: freezed == error
-          ? _value.error
+          ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
       isLiked: null == isLiked
-          ? _value.isLiked
+          ? _self.isLiked
           : isLiked // ignore: cast_nullable_to_non_nullable
               as bool,
       isDisliked: null == isDisliked
-          ? _value.isDisliked
+          ? _self.isDisliked
           : isDisliked // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
@@ -194,8 +155,10 @@ class __$$PostInteractionStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$PostInteractionStateImpl implements _PostInteractionState {
-  const _$PostInteractionStateImpl(
+class _PostInteractionState
+    with DiagnosticableTreeMixin
+    implements PostInteractionState {
+  const _PostInteractionState(
       {this.totalLikes = 0,
       this.totalRawLikes = 0,
       this.totalComments = 0,
@@ -236,16 +199,34 @@ class _$PostInteractionStateImpl implements _PostInteractionState {
   @JsonKey()
   final bool isDisliked;
 
+  /// Create a copy of PostInteractionState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked)';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$PostInteractionStateCopyWith<_PostInteractionState> get copyWith =>
+      __$PostInteractionStateCopyWithImpl<_PostInteractionState>(
+          this, _$identity);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    properties
+      ..add(DiagnosticsProperty('type', 'PostInteractionState'))
+      ..add(DiagnosticsProperty('totalLikes', totalLikes))
+      ..add(DiagnosticsProperty('totalRawLikes', totalRawLikes))
+      ..add(DiagnosticsProperty('totalComments', totalComments))
+      ..add(DiagnosticsProperty('totalRawDislikes', totalRawDislikes))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('error', error))
+      ..add(DiagnosticsProperty('isLiked', isLiked))
+      ..add(DiagnosticsProperty('isDisliked', isDisliked));
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$PostInteractionStateImpl &&
+            other is _PostInteractionState &&
             (identical(other.totalLikes, totalLikes) ||
                 other.totalLikes == totalLikes) &&
             (identical(other.totalRawLikes, totalRawLikes) ||
@@ -266,49 +247,88 @@ class _$PostInteractionStateImpl implements _PostInteractionState {
   int get hashCode => Object.hash(runtimeType, totalLikes, totalRawLikes,
       totalComments, totalRawDislikes, isLoading, error, isLiked, isDisliked);
 
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$PostInteractionStateCopyWith<$Res>
+    implements $PostInteractionStateCopyWith<$Res> {
+  factory _$PostInteractionStateCopyWith(_PostInteractionState value,
+          $Res Function(_PostInteractionState) _then) =
+      __$PostInteractionStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {int totalLikes,
+      int totalRawLikes,
+      int totalComments,
+      int totalRawDislikes,
+      bool isLoading,
+      String? error,
+      bool isLiked,
+      bool isDisliked});
+}
+
+/// @nodoc
+class __$PostInteractionStateCopyWithImpl<$Res>
+    implements _$PostInteractionStateCopyWith<$Res> {
+  __$PostInteractionStateCopyWithImpl(this._self, this._then);
+
+  final _PostInteractionState _self;
+  final $Res Function(_PostInteractionState) _then;
+
   /// Create a copy of PostInteractionState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$PostInteractionStateImplCopyWith<_$PostInteractionStateImpl>
-      get copyWith =>
-          __$$PostInteractionStateImplCopyWithImpl<_$PostInteractionStateImpl>(
-              this, _$identity);
+  $Res call({
+    Object? totalLikes = null,
+    Object? totalRawLikes = null,
+    Object? totalComments = null,
+    Object? totalRawDislikes = null,
+    Object? isLoading = null,
+    Object? error = freezed,
+    Object? isLiked = null,
+    Object? isDisliked = null,
+  }) {
+    return _then(_PostInteractionState(
+      totalLikes: null == totalLikes
+          ? _self.totalLikes
+          : totalLikes // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalRawLikes: null == totalRawLikes
+          ? _self.totalRawLikes
+          : totalRawLikes // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalComments: null == totalComments
+          ? _self.totalComments
+          : totalComments // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalRawDislikes: null == totalRawDislikes
+          ? _self.totalRawDislikes
+          : totalRawDislikes // ignore: cast_nullable_to_non_nullable
+              as int,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isLiked: null == isLiked
+          ? _self.isLiked
+          : isLiked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isDisliked: null == isDisliked
+          ? _self.isDisliked
+          : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
 }
 
-abstract class _PostInteractionState implements PostInteractionState {
-  const factory _PostInteractionState(
-      {final int totalLikes,
-      final int totalRawLikes,
-      final int totalComments,
-      final int totalRawDislikes,
-      final bool isLoading,
-      final String? error,
-      final bool isLiked,
-      final bool isDisliked}) = _$PostInteractionStateImpl;
-
-  @override
-  int get totalLikes; // Net likes (likes - dislikes)
-  @override
-  int get totalRawLikes; // Raw like count
-  @override
-  int get totalComments; // Total comments
-  @override
-  int get totalRawDislikes; // Raw dislike count
-  @override
-  bool get isLoading; // Loading state
-  @override
-  String? get error; // Error message
-  @override
-  bool get isLiked; // Whether user has liked
-  @override
-  bool get isDisliked;
-
-  /// Create a copy of PostInteractionState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PostInteractionStateImplCopyWith<_$PostInteractionStateImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
+// dart format on

@@ -49,6 +49,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '756626341076',
     projectId: 'herdapp-54e26',
     authDomain: 'herdapp-54e26.firebaseapp.com',
+    databaseURL: 'https://herdapp-54e26-default-rtdb.firebaseio.com',
     storageBucket: 'herdapp-54e26.firebasestorage.app',
     measurementId: 'G-1C91GCWSY9',
   );
@@ -58,6 +59,7 @@ class DefaultFirebaseOptions {
     appId: '1:756626341076:android:c99d77cd05e082a1008f41',
     messagingSenderId: '756626341076',
     projectId: 'herdapp-54e26',
+    databaseURL: 'https://herdapp-54e26-default-rtdb.firebaseio.com',
     storageBucket: 'herdapp-54e26.firebasestorage.app',
   );
 
@@ -66,7 +68,10 @@ class DefaultFirebaseOptions {
     appId: '1:756626341076:ios:210c584e514c5658008f41',
     messagingSenderId: '756626341076',
     projectId: 'herdapp-54e26',
+    databaseURL: 'https://herdapp-54e26-default-rtdb.firebaseio.com',
     storageBucket: 'herdapp-54e26.firebasestorage.app',
+    androidClientId: '756626341076-kc0t97l6spt0icpbag2s5nj3375spa97.apps.googleusercontent.com',
+    iosClientId: '756626341076-62b4fai9c7950ju4vj35dtngs8qs7pti.apps.googleusercontent.com',
     iosBundleId: 'com.herdco.herdapp',
   );
 
@@ -76,7 +81,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '756626341076',
     projectId: 'herdapp-54e26',
     authDomain: 'herdapp-54e26.firebaseapp.com',
+    databaseURL: 'https://herdapp-54e26-default-rtdb.firebaseio.com',
     storageBucket: 'herdapp-54e26.firebasestorage.app',
     measurementId: 'G-Q2RSJCND55',
   );
+
 }

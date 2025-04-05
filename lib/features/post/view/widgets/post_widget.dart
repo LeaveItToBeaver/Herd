@@ -119,9 +119,9 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
 
                   const SizedBox(height: 12),
 
-                  if (widget.post.title.isNotEmpty)
+                  if (widget.post.title!.isNotEmpty)
                     Text(
-                      widget.post.title,
+                      widget.post.title!,
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
 
@@ -152,13 +152,13 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
 
   bool _shouldShowMedia() {
     return
-      (widget.post.thumbnailUrl != null && widget.post.thumbnailUrl!.isNotEmpty) ||
-          (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty);
+      (widget.post.mediaThumbnailURL != null && widget.post.mediaThumbnailURL!.isNotEmpty) ||
+          (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty);
   }
 
   Widget _buildMediaPreview() {
     // Use thumbnail in feed view if available, otherwise fall back to full image
-    final String imageUrl = widget.post.thumbnailUrl ?? widget.post.imageUrl ?? '';
+    final String imageUrl = widget.post.mediaThumbnailURL ?? widget.post.mediaURL ?? '';
 
     // For GIFs, show a GIF indicator
     final bool isGif = widget.post.mediaType == 'gif';

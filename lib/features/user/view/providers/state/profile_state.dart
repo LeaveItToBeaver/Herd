@@ -1,11 +1,12 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
+import 'package:flutter/foundation.dart';
 
 part 'profile_state.freezed.dart';
 
 @freezed
-class ProfileState with _$ProfileState {
+abstract class ProfileState with _$ProfileState {
   const factory ProfileState({
     required UserModel? user, // Make user nullable
     required List<PostModel> posts,
