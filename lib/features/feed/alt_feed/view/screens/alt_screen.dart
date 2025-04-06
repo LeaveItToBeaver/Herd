@@ -30,7 +30,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
       // Your existing feed initialization code
       final currentUser = ref.read(authProvider);
       ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
-        userId: currentUser?.uid,
+        overrideUserId: currentUser?.uid,
       );
     });
 
