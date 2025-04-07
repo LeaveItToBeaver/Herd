@@ -508,12 +508,12 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   }
 
   bool _hasMedia(dynamic post) {
-    return post.imageUrl != null && post.imageUrl.isNotEmpty;
+    return post.mediaURL != null && post.mediaURL.isNotEmpty;
   }
 
   Widget _buildMedia(dynamic post) {
     // Always use the full resolution imageUrl for post detail view
-    final String imageUrl = post.imageUrl ?? '';
+    final String imageUrl = post.mediaURL ?? '';
     final String mediaType = post.mediaType ?? 'image';
 
     if (mediaType == 'video') {
