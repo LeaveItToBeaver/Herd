@@ -32,11 +32,17 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
   int get commentCount;
   DateTime? get createdAt;
   DateTime? get updatedAt;
-  double? get hotScore;
+  double? get hotScore; // Herd-related fields
   String? get herdId;
   String? get herdName;
+  String? get herdProfileImageURL;
+  bool get isPrivateHerd;
+  bool get isHerdMember;
+  bool get isHerdModerator;
+  bool get isHerdBanned;
+  bool get isHerdBlocked;
   bool get isAlt;
-  String? get feedType; // New field: 'public', 'alt', or 'herd'
+  String? get feedType; // 'public', 'alt', or 'herd'
   bool get isLiked;
   bool get isDisliked;
   bool get isBookmarked;
@@ -72,6 +78,12 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('hotScore', hotScore))
       ..add(DiagnosticsProperty('herdId', herdId))
       ..add(DiagnosticsProperty('herdName', herdName))
+      ..add(DiagnosticsProperty('herdProfileImageURL', herdProfileImageURL))
+      ..add(DiagnosticsProperty('isPrivateHerd', isPrivateHerd))
+      ..add(DiagnosticsProperty('isHerdMember', isHerdMember))
+      ..add(DiagnosticsProperty('isHerdModerator', isHerdModerator))
+      ..add(DiagnosticsProperty('isHerdBanned', isHerdBanned))
+      ..add(DiagnosticsProperty('isHerdBlocked', isHerdBlocked))
       ..add(DiagnosticsProperty('isAlt', isAlt))
       ..add(DiagnosticsProperty('feedType', feedType))
       ..add(DiagnosticsProperty('isLiked', isLiked))
@@ -118,6 +130,18 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
             (identical(other.herdName, herdName) ||
                 other.herdName == herdName) &&
+            (identical(other.herdProfileImageURL, herdProfileImageURL) ||
+                other.herdProfileImageURL == herdProfileImageURL) &&
+            (identical(other.isPrivateHerd, isPrivateHerd) ||
+                other.isPrivateHerd == isPrivateHerd) &&
+            (identical(other.isHerdMember, isHerdMember) ||
+                other.isHerdMember == isHerdMember) &&
+            (identical(other.isHerdModerator, isHerdModerator) ||
+                other.isHerdModerator == isHerdModerator) &&
+            (identical(other.isHerdBanned, isHerdBanned) ||
+                other.isHerdBanned == isHerdBanned) &&
+            (identical(other.isHerdBlocked, isHerdBlocked) ||
+                other.isHerdBlocked == isHerdBlocked) &&
             (identical(other.isAlt, isAlt) || other.isAlt == isAlt) &&
             (identical(other.feedType, feedType) ||
                 other.feedType == feedType) &&
@@ -151,6 +175,12 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
         hotScore,
         herdId,
         herdName,
+        herdProfileImageURL,
+        isPrivateHerd,
+        isHerdMember,
+        isHerdModerator,
+        isHerdBanned,
+        isHerdBlocked,
         isAlt,
         feedType,
         isLiked,
@@ -160,7 +190,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
   }
 }
 
@@ -190,6 +220,12 @@ abstract mixin class $PostModelCopyWith<$Res> {
       double? hotScore,
       String? herdId,
       String? herdName,
+      String? herdProfileImageURL,
+      bool isPrivateHerd,
+      bool isHerdMember,
+      bool isHerdModerator,
+      bool isHerdBanned,
+      bool isHerdBlocked,
       bool isAlt,
       String? feedType,
       bool isLiked,
@@ -229,6 +265,12 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
     Object? hotScore = freezed,
     Object? herdId = freezed,
     Object? herdName = freezed,
+    Object? herdProfileImageURL = freezed,
+    Object? isPrivateHerd = null,
+    Object? isHerdMember = null,
+    Object? isHerdModerator = null,
+    Object? isHerdBanned = null,
+    Object? isHerdBlocked = null,
     Object? isAlt = null,
     Object? feedType = freezed,
     Object? isLiked = null,
@@ -316,6 +358,30 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
           ? _self.herdName
           : herdName // ignore: cast_nullable_to_non_nullable
               as String?,
+      herdProfileImageURL: freezed == herdProfileImageURL
+          ? _self.herdProfileImageURL
+          : herdProfileImageURL // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isPrivateHerd: null == isPrivateHerd
+          ? _self.isPrivateHerd
+          : isPrivateHerd // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdMember: null == isHerdMember
+          ? _self.isHerdMember
+          : isHerdMember // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdModerator: null == isHerdModerator
+          ? _self.isHerdModerator
+          : isHerdModerator // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdBanned: null == isHerdBanned
+          ? _self.isHerdBanned
+          : isHerdBanned // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdBlocked: null == isHerdBlocked
+          ? _self.isHerdBlocked
+          : isHerdBlocked // ignore: cast_nullable_to_non_nullable
+              as bool,
       isAlt: null == isAlt
           ? _self.isAlt
           : isAlt // ignore: cast_nullable_to_non_nullable
@@ -364,6 +430,12 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.hotScore,
       this.herdId,
       this.herdName,
+      this.herdProfileImageURL,
+      this.isPrivateHerd = false,
+      this.isHerdMember = false,
+      this.isHerdModerator = false,
+      this.isHerdBanned = false,
+      this.isHerdBlocked = false,
       this.isAlt = false,
       this.feedType,
       this.isLiked = false,
@@ -427,16 +499,34 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
   final DateTime? updatedAt;
   @override
   final double? hotScore;
+// Herd-related fields
   @override
   final String? herdId;
   @override
   final String? herdName;
   @override
+  final String? herdProfileImageURL;
+  @override
+  @JsonKey()
+  final bool isPrivateHerd;
+  @override
+  @JsonKey()
+  final bool isHerdMember;
+  @override
+  @JsonKey()
+  final bool isHerdModerator;
+  @override
+  @JsonKey()
+  final bool isHerdBanned;
+  @override
+  @JsonKey()
+  final bool isHerdBlocked;
+  @override
   @JsonKey()
   final bool isAlt;
   @override
   final String? feedType;
-// New field: 'public', 'alt', or 'herd'
+// 'public', 'alt', or 'herd'
   @override
   @JsonKey()
   final bool isLiked;
@@ -479,6 +569,12 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('hotScore', hotScore))
       ..add(DiagnosticsProperty('herdId', herdId))
       ..add(DiagnosticsProperty('herdName', herdName))
+      ..add(DiagnosticsProperty('herdProfileImageURL', herdProfileImageURL))
+      ..add(DiagnosticsProperty('isPrivateHerd', isPrivateHerd))
+      ..add(DiagnosticsProperty('isHerdMember', isHerdMember))
+      ..add(DiagnosticsProperty('isHerdModerator', isHerdModerator))
+      ..add(DiagnosticsProperty('isHerdBanned', isHerdBanned))
+      ..add(DiagnosticsProperty('isHerdBlocked', isHerdBlocked))
       ..add(DiagnosticsProperty('isAlt', isAlt))
       ..add(DiagnosticsProperty('feedType', feedType))
       ..add(DiagnosticsProperty('isLiked', isLiked))
@@ -525,6 +621,18 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
             (identical(other.herdName, herdName) ||
                 other.herdName == herdName) &&
+            (identical(other.herdProfileImageURL, herdProfileImageURL) ||
+                other.herdProfileImageURL == herdProfileImageURL) &&
+            (identical(other.isPrivateHerd, isPrivateHerd) ||
+                other.isPrivateHerd == isPrivateHerd) &&
+            (identical(other.isHerdMember, isHerdMember) ||
+                other.isHerdMember == isHerdMember) &&
+            (identical(other.isHerdModerator, isHerdModerator) ||
+                other.isHerdModerator == isHerdModerator) &&
+            (identical(other.isHerdBanned, isHerdBanned) ||
+                other.isHerdBanned == isHerdBanned) &&
+            (identical(other.isHerdBlocked, isHerdBlocked) ||
+                other.isHerdBlocked == isHerdBlocked) &&
             (identical(other.isAlt, isAlt) || other.isAlt == isAlt) &&
             (identical(other.feedType, feedType) ||
                 other.feedType == feedType) &&
@@ -558,6 +666,12 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
         hotScore,
         herdId,
         herdName,
+        herdProfileImageURL,
+        isPrivateHerd,
+        isHerdMember,
+        isHerdModerator,
+        isHerdBanned,
+        isHerdBlocked,
         isAlt,
         feedType,
         isLiked,
@@ -567,7 +681,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
   }
 }
 
@@ -600,6 +714,12 @@ abstract mixin class _$PostModelCopyWith<$Res>
       double? hotScore,
       String? herdId,
       String? herdName,
+      String? herdProfileImageURL,
+      bool isPrivateHerd,
+      bool isHerdMember,
+      bool isHerdModerator,
+      bool isHerdBanned,
+      bool isHerdBlocked,
       bool isAlt,
       String? feedType,
       bool isLiked,
@@ -639,6 +759,12 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
     Object? hotScore = freezed,
     Object? herdId = freezed,
     Object? herdName = freezed,
+    Object? herdProfileImageURL = freezed,
+    Object? isPrivateHerd = null,
+    Object? isHerdMember = null,
+    Object? isHerdModerator = null,
+    Object? isHerdBanned = null,
+    Object? isHerdBlocked = null,
     Object? isAlt = null,
     Object? feedType = freezed,
     Object? isLiked = null,
@@ -726,6 +852,30 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
           ? _self.herdName
           : herdName // ignore: cast_nullable_to_non_nullable
               as String?,
+      herdProfileImageURL: freezed == herdProfileImageURL
+          ? _self.herdProfileImageURL
+          : herdProfileImageURL // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isPrivateHerd: null == isPrivateHerd
+          ? _self.isPrivateHerd
+          : isPrivateHerd // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdMember: null == isHerdMember
+          ? _self.isHerdMember
+          : isHerdMember // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdModerator: null == isHerdModerator
+          ? _self.isHerdModerator
+          : isHerdModerator // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdBanned: null == isHerdBanned
+          ? _self.isHerdBanned
+          : isHerdBanned // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isHerdBlocked: null == isHerdBlocked
+          ? _self.isHerdBlocked
+          : isHerdBlocked // ignore: cast_nullable_to_non_nullable
+              as bool,
       isAlt: null == isAlt
           ? _self.isAlt
           : isAlt // ignore: cast_nullable_to_non_nullable

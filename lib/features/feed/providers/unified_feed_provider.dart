@@ -344,10 +344,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         print('Falling back to direct Firestore query: $e');
       }
 
-      final posts = await repository.getAltFeed(
-        userId: effectiveUserId,
-        limit: pageSize,
-        includeHerdPosts: _showHerdPosts,
+      final posts = await repository.getGlobalAltFeed(
+        lastHotScore: state.lastPost?.hotScore,
+        lastPostId: state.lastPost?.id,
       );
 
       state = state.copyWith(
@@ -414,12 +413,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         print('Falling back to direct Firestore query: $e');
       }
 
-      final morePosts = await repository.getAltFeed(
-        userId: userId!,
-        limit: pageSize,
-        lastHotScore: lastPost.hotScore,
-        lastPostId: lastPost.id,
-        includeHerdPosts: _showHerdPosts,
+      final morePosts = await repository.getGlobalAltFeed(
+        lastHotScore: state.lastPost?.hotScore,
+        lastPostId: state.lastPost?.id,
       );
 
       if (morePosts.isEmpty) {
@@ -475,10 +471,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         print('Falling back to direct Firestore query: $e');
       }
 
-      final posts = await repository.getAltFeed(
-        userId: userId!,
-        limit: pageSize,
-        includeHerdPosts: _showHerdPosts,
+      final posts = await repository.getGlobalAltFeed(
+        lastHotScore: state.lastPost?.hotScore,
+        lastPostId: state.lastPost?.id,
       );
 
       state = state.copyWith(

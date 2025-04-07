@@ -27,14 +27,25 @@ abstract class PostModel with _$PostModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     double? hotScore,
+
+
+    // Herd-related fields
     String? herdId,
     String? herdName,
+    String? herdProfileImageURL,
+    @Default(false) bool isPrivateHerd,
+    @Default(false) bool isHerdMember,
+    @Default(false) bool isHerdModerator,
+    @Default(false) bool isHerdBanned,
+    @Default(false) bool isHerdBlocked,
+
     @Default(false) bool isAlt,
-    String? feedType, // New field: 'public', 'alt', or 'herd'
+    String? feedType, // 'public', 'alt', or 'herd'
     @Default(false) bool isLiked,
     @Default(false) bool isDisliked,
     @Default(false) bool isBookmarked,
   }) = _PostModel;
+
 
   // Factory constructor to convert from Firestore snapshot
   factory PostModel.fromMap(String id, Map<String, dynamic> map) {
@@ -58,6 +69,12 @@ abstract class PostModel with _$PostModel {
       hotScore: map['hotScore']?.toDouble(),
       herdId: map['herdId'],
       herdName: map['herdName'],
+      herdProfileImageURL: map['herdProfileImageURL'],
+      isPrivateHerd: map['isPrivateHerd'] ?? false,
+      isHerdMember: map['isHerdMember'] ?? false,
+      isHerdModerator: map['isHerdModerator'] ?? false,
+      isHerdBanned: map['isHerdBanned'] ?? false,
+      isHerdBlocked: map['isHerdBlocked'] ?? false,
       isAlt: map['isAlt'] ?? false,
       feedType: map['feedType'],
       isLiked: map['isLiked'] ?? false,
@@ -72,7 +89,7 @@ abstract class PostModel with _$PostModel {
       id: '',
       authorId: '',
       title: '',
-      content: '',
+      content: ''
     );
   }
 
@@ -108,6 +125,12 @@ abstract class PostModel with _$PostModel {
       'hotScore': hotScore,
       'herdId': herdId,
       'herdName': herdName,
+      'herdProfileImageURL': herdProfileImageURL,
+      'isPrivateHerd': isPrivateHerd,
+      'isHerdMember': isHerdMember,
+      'isHerdModerator': isHerdModerator,
+      'isHerdBanned': isHerdBanned,
+      'isHerdBlocked': isHerdBlocked,
       'isAlt': isAlt,
       'feedType': feedType ?? (isAlt ? 'alt' : (herdId != null ? 'herd' : 'public')),
     };

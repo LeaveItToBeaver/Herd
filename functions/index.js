@@ -65,25 +65,26 @@ exports.distributePost = onDocumentCreated(
     const enhancedPostData = {
       ...postData,
       hotScore: initialHotScore,
-      // Keep original isAlt flag for filtering
-      // Add feedType based on post attributes
-      feedType: postData.isAlt ? 'alt' : 'public'
+      feedType: postData.herdId ? 'herd' : (postData.isAlt ? 'alt' : 'public')
     };
 
     try {
-      // Determine distribution targets based on post type
-      let targetUserIds = [];
-
+      // Handle distribution based on post type
       if (postData.isAlt) {
-        // For alt posts - distribute to alt connections
-        const connectionsSnapshot = await firestore
-          .collection("altConnections")
-          .doc(postData.authorId)
-          .collection("userConnections")
-          .get();
+        // For alt posts - add to global alt feed collection
+        await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
 
-        targetUserIds = connectionsSnapshot.docs.map(doc => doc.id);
-      } else {
+        // Also add to author's feed so they can see their own post
+        await firestore
+          .collection("userFeeds")
+          .doc(postData.authorId)
+          .collection("feed")
+          .doc(postId)
+          .set(enhancedPostData);
+
+        logger.info(`Added alt post ${postId} to global feed and author's feed`);
+      }
+      else if (postData.feedType === 'public') {
         // For public posts - distribute to followers
         const followersSnapshot = await firestore
           .collection("followers")
@@ -91,19 +92,34 @@ exports.distributePost = onDocumentCreated(
           .collection("userFollowers")
           .get();
 
-        targetUserIds = followersSnapshot.docs.map(doc => doc.id);
+        const targetUserIds = followersSnapshot.docs.map(doc => doc.id);
+
+        // Add author to recipient list (they see their own posts)
+        if (!targetUserIds.includes(postData.authorId)) {
+          targetUserIds.push(postData.authorId);
+        }
+
+        // Fan out to followers' feeds
+        await fanOutToUserFeeds(postId, enhancedPostData, targetUserIds);
+        logger.info(`Distributed public post ${postId} to ${targetUserIds.length} followers`);
       }
 
-      // Add author to recipient list (they see their own posts)
-      if (!targetUserIds.includes(postData.authorId)) {
-        targetUserIds.push(postData.authorId);
-      }
-
-      // If post belongs to a herd, add herd members to targets
+      // If post belongs to a herd, handle herd-specific distribution
       if (postData.herdId) {
-        // Update feedType for herd posts
-        enhancedPostData.feedType = 'herd';
+        // Add to herd collection
+        await firestore
+          .collection("herdPosts")
+          .doc(postData.herdId)
+          .collection("posts")
+          .doc(postId)
+          .set(enhancedPostData);
 
+        // Get herd details to check if private
+        const herdDoc = await firestore.collection("herds").doc(postData.herdId).get();
+        const herdData = herdDoc.data();
+        const isPrivateHerd = herdData?.isPrivate || false;
+
+        // Fan out to herd members
         const herdMembersSnapshot = await firestore
           .collection("herdMembers")
           .doc(postData.herdId)
@@ -111,42 +127,17 @@ exports.distributePost = onDocumentCreated(
           .get();
 
         const herdMemberIds = herdMembersSnapshot.docs.map(doc => doc.id);
+        await fanOutToUserFeeds(postId, enhancedPostData, herdMemberIds);
 
-        // Merge with existing targets (using Set for uniqueness)
-        targetUserIds = [...new Set([...targetUserIds, ...herdMemberIds])];
-      }
-
-      // Fan out to user feeds (batch processing)
-      const MAX_BATCH_SIZE = 500; // Firestore limit
-      let batch = firestore.batch();
-      let operationCount = 0;
-
-      for (const userId of targetUserIds) {
-        const userFeedRef = firestore
-          .collection("userFeeds")
-          .doc(userId)
-          .collection("feed")
-          .doc(postId);
-
-        batch.set(userFeedRef, enhancedPostData);
-        operationCount++;
-
-        // If batch is full, commit and reset
-        if (operationCount >= MAX_BATCH_SIZE) {
-          await batch.commit();
-          batch = firestore.batch();
-          operationCount = 0;
-          logger.info(`Committed batch of ${MAX_BATCH_SIZE} operations`);
+        // For public herds, add to the global alt feed for discovery
+        if (!isPrivateHerd) {
+          await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
+          logger.info(`Added herd post ${postId} to global alt feed (public herd)`);
         }
+
+        logger.info(`Distributed herd post ${postId} to ${herdMemberIds.length} members`);
       }
 
-      // Commit any remaining operations
-      if (operationCount > 0) {
-        await batch.commit();
-        logger.info(`Committed final batch of ${operationCount} operations`);
-      }
-
-      logger.info(`Successfully distributed post ${postId} to ${targetUserIds.length} feeds`);
       return null;
     } catch (error) {
       logger.error(`Error distributing post ${postId}:`, error);
@@ -155,6 +146,38 @@ exports.distributePost = onDocumentCreated(
   }
 );
 
+// Helper function for fan-out operations
+async function fanOutToUserFeeds(postId, postData, userIds) {
+  if (userIds.length === 0) return;
+
+  // Batch processing
+  const MAX_BATCH_SIZE = 500; // Firestore limit
+  let batch = firestore.batch();
+  let operationCount = 0;
+
+  for (const userId of userIds) {
+    const userFeedRef = firestore
+      .collection("userFeeds")
+      .doc(userId)
+      .collection("feed")
+      .doc(postId);
+
+    batch.set(userFeedRef, postData);
+    operationCount++;
+
+    // If batch is full, commit and reset
+    if (operationCount >= MAX_BATCH_SIZE) {
+      await batch.commit();
+      batch = firestore.batch();
+      operationCount = 0;
+    }
+  }
+
+  // Commit any remaining operations
+  if (operationCount > 0) {
+    await batch.commit();
+  }
+}
 /**
  * Remove post from all feeds when the post is deleted
  */
@@ -420,53 +443,117 @@ exports.getFeed = onCall(async (request) => {
   const userId = request.auth.uid;
 
   try {
-    // Base query on user's feed
-    let feedQuery = firestore
-      .collection('userFeeds')
-      .doc(userId)
-      .collection('feed');
-
-    // Apply feed type filter
+    // Different query strategy based on feed type
     if (feedType === 'public') {
-      feedQuery = feedQuery.where('feedType', '==', 'public');
-    } else if (feedType === 'alt') {
-      feedQuery = feedQuery.where('feedType', 'in', ['alt', 'herd']);
+      // Public feed - query user's personalized feed collection
+      return await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+    }
+    else if (feedType === 'alt') {
+      // Alt feed - query global alt feed collection
+      return await getAltFeed(limit, lastHotScore, lastPostId);
+    }
+    else if (herdId) {
+      // Herd-specific feed
+      return await getHerdFeed(herdId, limit, lastHotScore, lastPostId);
     }
 
-    // Add optional herd filter
-    if (herdId) {
-      feedQuery = feedQuery.where('herdId', '==', herdId);
-    }
-
-    // Sort by hot score descending
-    feedQuery = feedQuery.orderBy('hotScore', 'desc');
-
-    // Add pagination
-    if (lastHotScore && lastPostId) {
-      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
-    }
-
-    // Apply limit
-    feedQuery = feedQuery.limit(limit);
-
-    // Execute query
-    const snapshot = await feedQuery.get();
-
-    const posts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    return {
-      posts,
-      lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
-      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
-    };
+    // Default - return public feed
+    return await getPublicFeed(userId, limit, lastHotScore, lastPostId);
   } catch (error) {
     logger.error(`Error getting feed for user ${userId}:`, error);
     throw new HttpsError('internal', `Failed to get feed: ${error.message}`);
   }
 });
+
+// Get public feed (personalized for each user)
+async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
+  let feedQuery = firestore
+    .collection('userFeeds')
+    .doc(userId)
+    .collection('feed')
+    .where('feedType', '==', 'public')
+    .orderBy('hotScore', 'desc');
+
+  // Apply pagination
+  if (lastHotScore !== null && lastPostId !== null) {
+    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+  }
+
+  // Apply limit
+  feedQuery = feedQuery.limit(limit);
+
+  // Execute query
+  const snapshot = await feedQuery.get();
+  const posts = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  return {
+    posts,
+    lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+  };
+}
+
+// Get alt feed (global, like Reddit's r/All)
+async function getAltFeed(limit, lastHotScore, lastPostId) {
+  // Query the global alt posts collection
+  let feedQuery = firestore
+    .collection('altPosts')
+    .orderBy('hotScore', 'desc');
+
+  // Apply pagination
+  if (lastHotScore !== null && lastPostId !== null) {
+    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+  }
+
+  // Apply limit
+  feedQuery = feedQuery.limit(limit);
+
+  // Execute query
+  const snapshot = await feedQuery.get();
+  const posts = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  return {
+    posts,
+    lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+  };
+}
+
+// Get herd-specific feed
+async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
+  let feedQuery = firestore
+    .collection('herdPosts')
+    .doc(herdId)
+    .collection('posts')
+    .orderBy('hotScore', 'desc');
+
+  // Apply pagination
+  if (lastHotScore !== null && lastPostId !== null) {
+    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+  }
+
+  // Apply limit
+  feedQuery = feedQuery.limit(limit);
+
+  // Execute query
+  const snapshot = await feedQuery.get();
+  const posts = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  return {
+    posts,
+    lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+  };
+}
 
 /**
  * Scheduled job to update hot scores for recent posts
