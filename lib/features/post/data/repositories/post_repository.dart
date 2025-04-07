@@ -18,7 +18,7 @@ class PostRepository {
 
   // Collection references
   CollectionReference<Map<String, dynamic>> get _posts => _firestore.collection('posts');
-  CollectionReference<Map<String, dynamic>> get _globalAltPosts => _firestore.collection('globalAltPosts');
+  CollectionReference<Map<String, dynamic>> get _globalAltPosts => _firestore.collection('altPosts');
   CollectionReference<Map<String, dynamic>> get _comments => _firestore.collection('comments');
   CollectionReference<Map<String, dynamic>> get _likes => _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes => _firestore.collection('dislikes');
@@ -341,6 +341,7 @@ class PostRepository {
   }
 
   // Get post by ID
+  /// Get post by ID
   Future<PostModel?> getPostById(String postId, {bool? isAlt, String? herdId, bool forceRefresh = false}) async {
     try {
       // Set the correct fetch option based on forceRefresh
@@ -348,6 +349,7 @@ class PostRepository {
           ? GetOptions(source: Source.server)
           : GetOptions(source: Source.serverAndCache);
 
+      // If we know it's a herd post and have the herdId, check there first
       if (herdId != null && herdId.isNotEmpty) {
         final doc = await _firestore
             .collection('herdPosts')
@@ -361,59 +363,70 @@ class PostRepository {
         }
       }
 
-      final herdPostQuery = await _firestore
-      .collectionGroup('posts')
-      .where(FieldPath.documentId, isEqualTo: postId)
-      .limit(1)
-      .get(fetchOptions);
-
-      if (herdPostQuery.docs.isNotEmpty) {
-        return PostModel.fromMap(postId, herdPostQuery.docs.first.data()); // Check for the postId directly
-      }
-
-      final publicDoc = await _posts.doc(postId).get();
-      if (publicDoc.exists) {
-        return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
-      }
-
-
+      // If we know it's an alt post, check the alt posts collection
       if (isAlt == true) {
         final doc = await _firestore
-            .collection('globalAltPosts')
+            .collection('altPosts')
             .doc(postId)
             .get(fetchOptions);
+
         if (doc.exists) {
           return PostModel.fromMap(doc.id, doc.data()!);
         }
-        return null;
       }
 
-      // If we know it's public, check only in public collection
+      // If we know it's a public post, check the public posts collection
       if (isAlt == false) {
         final doc = await _firestore
             .collection('posts')
             .doc(postId)
             .get(fetchOptions);
+
         if (doc.exists) {
           return PostModel.fromMap(doc.id, doc.data()!);
         }
-        return null;
       }
 
-      // Then try the alt posts collection
-      final altDoc = await _globalAltPosts.doc(postId).get();
+      // If we don't know the post type or haven't found it yet, check all collections
+
+      // Check public posts first (most common)
+      final publicDoc = await _firestore
+          .collection('posts')
+          .doc(postId)
+          .get(fetchOptions);
+
+      if (publicDoc.exists) {
+        return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
+      }
+
+      // Check alt posts collection
+      final altDoc = await _firestore
+          .collection('altPosts')
+          .doc(postId)
+          .get(fetchOptions);
+
       if (altDoc.exists) {
         return PostModel.fromMap(altDoc.id, altDoc.data()!);
       }
 
+      // As a last resort, check for herd posts using a collection group query
+      final herdPostQuery = await _firestore
+          .collectionGroup('posts')
+          .where(FieldPath.documentId, isEqualTo: postId)
+          .limit(1)
+          .get(fetchOptions);
 
+      if (herdPostQuery.docs.isNotEmpty) {
+        return PostModel.fromMap(postId, herdPostQuery.docs.first.data());
+      }
+
+      // Post not found in any collection
       return null;
     } catch (e) {
       debugPrint('Error fetching post $postId: $e');
       rethrow;
     }
   }
-
   // Stream specific post
   Stream<PostModel?> streamPost(String postId, {bool? isAlt}) {
     try {
