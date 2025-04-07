@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
-import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../providers/post_provider.dart';
 
 class PostListWidget extends ConsumerWidget {

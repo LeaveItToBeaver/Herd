@@ -16,4 +16,6 @@ abstract class PostInteractionState with _$PostInteractionState {
     @Default(false) bool isLiked,     // Whether user has liked
     @Default(false) bool isDisliked   // Whether user has disliked
   }) = _PostInteractionState;
+
+  factory PostInteractionState.initial() => const PostInteractionState();
 }

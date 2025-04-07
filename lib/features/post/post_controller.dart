@@ -217,7 +217,6 @@ final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNo
     final repository = ref.watch(postRepositoryProvider);
     return PostInteractionsNotifier(
       repository: repository,
-      ref: ref,
       postId: postId,
     );
   },
