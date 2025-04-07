@@ -324,7 +324,28 @@ exports.handlePostInteraction = onCall(async (request) => {
   // Reference to the source-of-truth post
   const postRef = firestore.collection('posts').doc(postId);
 
+  // Define interaction configurations here - make sure it's defined before use
+  const interactions = {
+    like: {
+      incrementField: 'likeCount',
+      decrementField: 'dislikeCount',
+      collection: 'likes'
+    },
+    dislike: {
+      incrementField: 'dislikeCount',
+      decrementField: 'likeCount',
+      collection: 'dislikes'
+    }
+  };
+
+  // Validate interaction type early
+  const config = interactions[interactionType];
+  if (!config) {
+    throw new HttpsError('invalid-argument', 'Invalid interaction type');
+  }
+
   return firestore.runTransaction(async (transaction) => {
+    // Get all document references first before any writes
     const postDoc = await transaction.get(postRef);
 
     if (!postDoc.exists) {
@@ -332,23 +353,6 @@ exports.handlePostInteraction = onCall(async (request) => {
     }
 
     const postData = postDoc.data();
-    const interactions = {
-      like: {
-        incrementField: 'likeCount',
-        decrementField: 'dislikeCount',
-        collection: 'likes'
-      },
-      dislike: {
-        incrementField: 'dislikeCount',
-        decrementField: 'likeCount',
-        collection: 'dislikes'
-      }
-    };
-
-    const config = interactions[interactionType];
-    if (!config) {
-      throw new HttpsError('invalid-argument', 'Invalid interaction type');
-    }
 
     const interactionRef = firestore
       .collection(config.collection)
@@ -360,43 +364,54 @@ exports.handlePostInteraction = onCall(async (request) => {
     const currentInteraction = await transaction.get(interactionRef);
     const isCurrentlyInteracted = currentInteraction.exists;
 
-    // Update interaction counts
+    // Check if opposite interaction exists - do this read before any writes
+    const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
+    const oppositeRef = firestore
+      .collection(oppositeCollection)
+      .doc(postId)
+      .collection('userInteractions')
+      .doc(userId);
+
+    const oppositeInteraction = await transaction.get(oppositeRef);
+    const hasOppositeInteraction = oppositeInteraction.exists;
+
+    // NOW DO ALL WRITES AFTER ALL READS
+
+    // Calculate the changes based on current state
+    let likeChange = 0;
+    let dislikeChange = 0;
+
+    if (interactionType === 'like') {
+      likeChange = isCurrentlyInteracted ? -1 : 1;
+      dislikeChange = hasOppositeInteraction ? -1 : 0;
+    } else { // dislike
+      dislikeChange = isCurrentlyInteracted ? -1 : 1;
+      likeChange = hasOppositeInteraction ? -1 : 0;
+    }
+
+    // Update post counts
     transaction.update(postRef, {
-      [config.incrementField]:
-        admin.firestore.FieldValue.increment(isCurrentlyInteracted ? -1 : 1),
-      [config.decrementField]:
-        admin.firestore.FieldValue.increment(0) // Placeholder, updated later if needed
+      likeCount: admin.firestore.FieldValue.increment(likeChange),
+      dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
     });
 
-    // Toggle interaction document
+    // Toggle user's interaction
     if (isCurrentlyInteracted) {
       transaction.delete(interactionRef);
     } else {
       transaction.set(interactionRef, {
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
-
-      // Check if opposite interaction exists
-      const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
-      const oppositeRef = firestore
-        .collection(oppositeCollection)
-        .doc(postId)
-        .collection('userInteractions')
-        .doc(userId);
-
-      const oppositeInteraction = await transaction.get(oppositeRef);
-
-      if (oppositeInteraction.exists) {
-        transaction.delete(oppositeRef);
-        transaction.update(postRef, {
-          [config.decrementField]: admin.firestore.FieldValue.increment(-1)
-        });
-      }
     }
 
-    // Calculate updated hot score (will be propagated to feeds via the updatePostInFeeds trigger)
-    const updatedLikeCount = postData.likeCount + (isCurrentlyInteracted ? -1 : 1);
-    const updatedDislikeCount = postData.dislikeCount; // Simplified for this example
+    // Remove opposite interaction if it exists
+    if (hasOppositeInteraction) {
+      transaction.delete(oppositeRef);
+    }
+
+    // Calculate updated hot score with new values
+    const updatedLikeCount = postData.likeCount + likeChange;
+    const updatedDislikeCount = postData.dislikeCount + dislikeChange;
     const netVotes = updatedLikeCount - updatedDislikeCount;
     const updatedHotScore = hotAlgorithm.calculateHotScore(
       netVotes,
@@ -422,6 +437,7 @@ exports.handlePostInteraction = onCall(async (request) => {
     };
   });
 });
+
 
 /**
  * Get feed for a user with filtering options

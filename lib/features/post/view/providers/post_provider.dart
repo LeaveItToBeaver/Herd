@@ -90,9 +90,7 @@ final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNo
   final repository = ref.watch(postRepositoryProvider);
   return PostInteractionsNotifier(
     repository: repository,
-    ref: ref,
     postId: postId,
-    isAlt: null, // No privacy info specified
   );
 });
 
@@ -108,9 +106,7 @@ final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
   final repository = ref.watch(postRepositoryProvider);
   return PostInteractionsNotifier(
     repository: repository,
-    ref: ref,
     postId: params.id,
-    isAlt: params.isAlt,
   );
 });
 
