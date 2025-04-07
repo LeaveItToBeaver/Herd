@@ -87,17 +87,15 @@ class FeedRepository {
   }
 
   /// Get alt feed posts
-  Future<List<PostModel>> getAltFeed({
-    required String userId,
+  Future<List<PostModel>> getGlobalAltFeed({
     int limit = 15,
     double? lastHotScore,
     String? lastPostId,
-    bool includeHerdPosts = true,
   }) async {
     try {
       // Base query for alt posts
-      Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
-          .where('feedType', isEqualTo: 'alt')
+      Query<Map<String, dynamic>> feedQuery = firestore
+          .collection('altPosts')
           .orderBy('hotScore', descending: true);
 
       // Apply pagination if last post info is provided
@@ -105,42 +103,16 @@ class FeedRepository {
         feedQuery = feedQuery.startAfter([lastHotScore, lastPostId]);
       }
 
-      // Execute query for alt posts
-      final altSnapshot = await feedQuery.get();
-      List<PostModel> posts = altSnapshot.docs
+      // Apply limit
+      feedQuery = feedQuery.limit(limit);
+
+      // Execute query
+      final snapshot = await feedQuery.get();
+
+      // Convert to PostModel objects
+      List<PostModel> posts = snapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
-
-      // If including herd posts, get those too
-      if (includeHerdPosts) {
-        // Query for herd posts
-        Query<Map<String, dynamic>> herdQuery = userFeedCollection(userId)
-            .where('feedType', isEqualTo: 'herd')
-            .orderBy('hotScore', descending: true)
-            .limit(limit);
-
-        // Apply pagination for herd posts if needed
-        if (lastHotScore != null && lastPostId != null) {
-          herdQuery = herdQuery.startAfter([lastHotScore, lastPostId]);
-        }
-
-        // Execute query for herd posts
-        final herdSnapshot = await herdQuery.get();
-        List<PostModel> herdPosts = herdSnapshot.docs
-            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-            .toList();
-
-        // Combine alt and herd posts
-        posts.addAll(herdPosts);
-
-        // Sort by hot score
-        posts.sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
-      }
-
-      // Apply limit to final combined list
-      if (posts.length > limit) {
-        posts = posts.sublist(0, limit);
-      }
 
       return posts;
     } catch (e, stackTrace) {
