@@ -11,39 +11,108 @@ const firestore = admin.firestore();
 // Hot algorithm implementation for post ranking - this stays mostly the same
 const hotAlgorithm = {
   calculateHotScore: (netVotes, createdAt, decayFactor = 1.0) => {
-    // Logarithmic scoring that accounts for recency and engagement
-    const sign = Math.sign(netVotes);
-    const magnitude = Math.log10(Math.max(1, Math.abs(netVotes)));
+    try {
+      // Ensure createdAt is a valid Date
+      if (createdAt?.toDate) createdAt = createdAt.toDate();
+      if (!(createdAt instanceof Date)) createdAt = new Date();
 
-    // Time component with adjustable decay
-    const timeSinceCreation = (Date.now() - createdAt.getTime()) / 1000;
-    const timeDecay = Math.pow(timeSinceCreation, -0.5) * decayFactor;
+      // Sanitize inputs to be valid numbers
+      const sanitizedNetVotes = Number(netVotes) || 0;
+      const sanitizedDecayFactor = Number(decayFactor) || 1.0;
 
-    return sign * magnitude * timeDecay;
+      // Calculate components
+      const sign = Math.sign(sanitizedNetVotes);
+      const magnitude = Math.log10(Math.max(1, Math.abs(sanitizedNetVotes)));
+      const timeSinceCreation = Math.max(1, (Date.now() - createdAt.getTime()) / 1000);
+      const timeDecay = Math.pow(timeSinceCreation, -0.5) * sanitizedDecayFactor;
+
+      // Calculate final score and check for NaN
+      const score = sign * magnitude * timeDecay;
+
+      // Debug logging (before return)
+      logger.info(`Hot score calculation: netVotes=${sanitizedNetVotes}, timeDecay=${timeDecay}, score=${score}`);
+
+      return isNaN(score) ? 0 : score;
+    } catch (error) {
+      logger.error('Error calculating hot score:', error);
+      return 0; // Default safe value
+    }
   },
 
   sortPosts: (posts, decayFactor = 1.0) => {
-    return posts.sort((a, b) => {
-      const aScore = hotAlgorithm.calculateHotScore(
-        a.likeCount - a.dislikeCount,
-        a.createdAt,
-        decayFactor
-      );
-      const bScore = hotAlgorithm.calculateHotScore(
-        b.likeCount - b.dislikeCount,
-        b.createdAt,
-        decayFactor
-      );
-      return bScore - aScore;
-    });
+    try {
+      return posts.sort((a, b) => {
+        const aScore = hotAlgorithm.calculateHotScore(
+          (a.likeCount || 0) - (a.dislikeCount || 0),
+          a.createdAt,
+          decayFactor
+        );
+        const bScore = hotAlgorithm.calculateHotScore(
+          (b.likeCount || 0) - (b.dislikeCount || 0),
+          b.createdAt,
+          decayFactor
+        );
+        return bScore - aScore;
+      });
+    } catch (error) {
+      logger.error('Error sorting posts:', error);
+      return posts; // Return unsorted posts as fallback
+    }
   }
 };
 
+
 /**
- * Fan-out post to followers' feeds when a new post is created
- * This is the core function for the write-time fan-out pattern
+ * Deep sanitize function to recursively clean objects of NaN values
  */
-exports.distributePost = onDocumentCreated(
+function sanitizeData(obj) {
+  // Handle primitive values
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (typeof obj !== 'object') {
+    // If it's a NaN number, return 0
+    if (typeof obj === 'number' && isNaN(obj)) {
+      return 0;
+    }
+    // Otherwise return the value unchanged
+    return obj;
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeData(item));
+  }
+
+  // Handle objects
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    // Handle Firestore timestamps
+    if (value && typeof value.toDate === 'function') {
+      result[key] = value.toDate().getTime();
+    }
+    // Handle Date objects
+    else if (value instanceof Date) {
+      result[key] = value.getTime();
+    }
+    // Handle NaN values
+    else if (typeof value === 'number' && isNaN(value)) {
+      result[key] = 0;
+    }
+    // Recursively sanitize nested objects
+    else if (typeof value === 'object' && value !== null) {
+      result[key] = sanitizeData(value);
+    }
+    // Pass through other values
+    else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+// 1. Trigger for public posts
+exports.distributePublicPost = onDocumentCreated(
   "posts/{postId}",
   async (event) => {
     const postId = event.params.postId;
@@ -55,92 +124,149 @@ exports.distributePost = onDocumentCreated(
       return null;
     }
 
-    // Compute initial hot score
+    // Calculate initial hot score
     const initialHotScore = hotAlgorithm.calculateHotScore(
       0, // New posts start with 0 net votes
       postData.createdAt ? postData.createdAt.toDate() : new Date()
     );
 
-    // Enhanced post data with feed metadata
+    // Add feedType and hotScore
     const enhancedPostData = {
       ...postData,
       hotScore: initialHotScore,
-      feedType: postData.herdId ? 'herd' : (postData.isAlt ? 'alt' : 'public')
+      feedType: 'public'
     };
 
     try {
-      // Handle distribution based on post type
-      if (postData.isAlt) {
-        // For alt posts - add to global alt feed collection
-        await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
+      // Get followers
+      const followersSnapshot = await firestore
+        .collection("followers")
+        .doc(postData.authorId)
+        .collection("userFollowers")
+        .get();
 
-        // Also add to author's feed so they can see their own post
-        await firestore
-          .collection("userFeeds")
-          .doc(postData.authorId)
-          .collection("feed")
-          .doc(postId)
-          .set(enhancedPostData);
+      const targetUserIds = followersSnapshot.docs.map(doc => doc.id);
 
-        logger.info(`Added alt post ${postId} to global feed and author's feed`);
-      }
-      else if (postData.feedType === 'public') {
-        // For public posts - distribute to followers
-        const followersSnapshot = await firestore
-          .collection("followers")
-          .doc(postData.authorId)
-          .collection("userFollowers")
-          .get();
-
-        const targetUserIds = followersSnapshot.docs.map(doc => doc.id);
-
-        // Add author to recipient list (they see their own posts)
-        if (!targetUserIds.includes(postData.authorId)) {
-          targetUserIds.push(postData.authorId);
-        }
-
-        // Fan out to followers' feeds
-        await fanOutToUserFeeds(postId, enhancedPostData, targetUserIds);
-        logger.info(`Distributed public post ${postId} to ${targetUserIds.length} followers`);
+      // Add author to recipient list (they see their own posts)
+      if (!targetUserIds.includes(postData.authorId)) {
+        targetUserIds.push(postData.authorId);
       }
 
-      // If post belongs to a herd, handle herd-specific distribution
-      if (postData.herdId) {
-        // Add to herd collection
-        await firestore
-          .collection("herdPosts")
-          .doc(postData.herdId)
-          .collection("posts")
-          .doc(postId)
-          .set(enhancedPostData);
-
-        // Get herd details to check if private
-        const herdDoc = await firestore.collection("herds").doc(postData.herdId).get();
-        const herdData = herdDoc.data();
-        const isPrivateHerd = herdData?.isPrivate || false;
-
-        // Fan out to herd members
-        const herdMembersSnapshot = await firestore
-          .collection("herdMembers")
-          .doc(postData.herdId)
-          .collection("members")
-          .get();
-
-        const herdMemberIds = herdMembersSnapshot.docs.map(doc => doc.id);
-        await fanOutToUserFeeds(postId, enhancedPostData, herdMemberIds);
-
-        // For public herds, add to the global alt feed for discovery
-        if (!isPrivateHerd) {
-          await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
-          logger.info(`Added herd post ${postId} to global alt feed (public herd)`);
-        }
-
-        logger.info(`Distributed herd post ${postId} to ${herdMemberIds.length} members`);
-      }
+      // Fan out to followers' feeds
+      await fanOutToUserFeeds(postId, enhancedPostData, targetUserIds);
+      logger.info(`Distributed public post ${postId} to ${targetUserIds.length} users`);
 
       return null;
     } catch (error) {
-      logger.error(`Error distributing post ${postId}:`, error);
+      logger.error(`Error distributing public post ${postId}:`, error);
+      throw error;
+    }
+  }
+);
+
+// 2. Trigger for alt posts
+exports.distributeAltPost = onDocumentCreated(
+  "altPosts/{postId}",
+  async (event) => {
+    const postId = event.params.postId;
+    const postData = event.data.data();
+
+    // Validate post data
+    if (!postData || !postData.authorId) {
+      logger.error(`Invalid alt post data for ID: ${postId}`);
+      return null;
+    }
+
+    // Calculate initial hot score
+    const initialHotScore = hotAlgorithm.calculateHotScore(
+      0,
+      postData.createdAt ? postData.createdAt.toDate() : new Date()
+    );
+
+    // Add feedType and hotScore
+    const enhancedPostData = {
+      ...postData,
+      hotScore: initialHotScore,
+      feedType: 'alt'
+    };
+
+    try {
+      // For alt posts, add to global alt feed (which already happened via direct write)
+      // Just need to add to author's personal feed
+      await firestore
+        .collection("userFeeds")
+        .doc(postData.authorId)
+        .collection("feed")
+        .doc(postId)
+        .set(enhancedPostData);
+
+      logger.info(`Added alt post ${postId} to author's feed`);
+      return null;
+    } catch (error) {
+      logger.error(`Error distributing alt post ${postId}:`, error);
+      throw error;
+    }
+  }
+);
+
+// 3. Trigger for herd posts
+exports.distributeHerdPost = onDocumentCreated(
+  "herdPosts/{herdId}/posts/{postId}",
+  async (event) => {
+    const herdId = event.params.herdId;
+    const postId = event.params.postId;
+    const postData = event.data.data();
+
+    // Validate post data
+    if (!postData || !postData.authorId) {
+      logger.error(`Invalid herd post data for ID: ${postId}`);
+      return null;
+    }
+
+    // Calculate initial hot score
+    const initialHotScore = hotAlgorithm.calculateHotScore(
+      0,
+      postData.createdAt ? postData.createdAt.toDate() : new Date()
+    );
+
+    // Add feedType and hotScore
+    const enhancedPostData = {
+      ...postData,
+      hotScore: initialHotScore,
+      feedType: 'herd',
+      herdId: herdId  // Ensure herdId is always set
+    };
+
+    try {
+      // Get herd details to check if private
+      const herdDoc = await firestore.collection("herds").doc(herdId).get();
+      const herdData = herdDoc.data();
+      const isPrivateHerd = herdData?.isPrivate || false;
+
+      // Add herd name and image to post data for easier rendering
+      enhancedPostData.herdName = herdData?.name || '';
+      enhancedPostData.herdProfileImageURL = herdData?.profileImageURL || '';
+
+      // Fan out to herd members
+      const herdMembersSnapshot = await firestore
+        .collection("herdMembers")
+        .doc(herdId)
+        .collection("members")
+        .get();
+
+      const herdMemberIds = herdMembersSnapshot.docs.map(doc => doc.id);
+      await fanOutToUserFeeds(postId, enhancedPostData, herdMemberIds);
+
+      // For public herds, add to the global alt feed for discovery
+      if (!isPrivateHerd) {
+        await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
+        logger.info(`Added herd post ${postId} to global alt feed (public herd)`);
+      }
+
+      logger.info(`Distributed herd post ${postId} to ${herdMemberIds.length} members`);
+      return null;
+    } catch (error) {
+      logger.error(`Error distributing herd post ${postId}:`, error);
       throw error;
     }
   }
@@ -444,37 +570,50 @@ exports.handlePostInteraction = onCall(async (request) => {
  */
 exports.getFeed = onCall(async (request) => {
   const {
-    feedType = 'public', // 'public', 'alt', or 'all'
-    herdId = null,       // Optional herd filter
+    feedType = 'public',
+    herdId = null,
     limit = 20,
     lastHotScore = null,
     lastPostId = null
   } = request.data;
 
-  // Validate authentication
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be logged in');
+  // Validate required userId
+  const userId = request.data.userId;
+  if (!userId) {
+    throw new HttpsError('invalid-argument', 'User ID is required');
   }
-
-  const userId = request.auth.uid;
 
   try {
     // Different query strategy based on feed type
+    let postsResult = {};
+
     if (feedType === 'public') {
-      // Public feed - query user's personalized feed collection
-      return await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+      postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
     }
     else if (feedType === 'alt') {
-      // Alt feed - query global alt feed collection
-      return await getAltFeed(limit, lastHotScore, lastPostId);
+      postsResult = await getAltFeed(limit, lastHotScore, lastPostId);
     }
     else if (herdId) {
-      // Herd-specific feed
-      return await getHerdFeed(herdId, limit, lastHotScore, lastPostId);
+      postsResult = await getHerdFeed(herdId, limit, lastHotScore, lastPostId);
+    } else {
+      postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
     }
 
-    // Default - return public feed
-    return await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+    // Deep sanitize the entire response to remove any NaN values
+    const sanitizedResult = sanitizeData({
+      posts: postsResult.posts,
+      lastHotScore: postsResult.lastHotScore,
+      lastPostId: postsResult.lastPostId
+    });
+
+    // Additional validation as a last resort
+    if (sanitizedResult.lastHotScore !== undefined &&
+        typeof sanitizedResult.lastHotScore === 'number' &&
+        isNaN(sanitizedResult.lastHotScore)) {
+      sanitizedResult.lastHotScore = 0;
+    }
+
+    return sanitizedResult;
   } catch (error) {
     logger.error(`Error getting feed for user ${userId}:`, error);
     throw new HttpsError('internal', `Failed to get feed: ${error.message}`);
@@ -490,8 +629,8 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
     .where('feedType', '==', 'public')
     .orderBy('hotScore', 'desc');
 
-  // Apply pagination
-  if (lastHotScore !== null && lastPostId !== null) {
+  // Apply pagination with validation
+  if (lastHotScore !== null && lastPostId !== null && !isNaN(lastHotScore)) {
     feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
   }
 
@@ -500,14 +639,27 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
 
   // Execute query
   const snapshot = await feedQuery.get();
-  const posts = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  const posts = snapshot.docs.map(doc => {
+    const data = doc.data();
+    // Ensure hotScore is valid here
+    if (data.hotScore === undefined || isNaN(data.hotScore)) {
+      data.hotScore = 0;
+    }
+    return {
+      id: doc.id,
+      ...data
+    };
+  });
+
+  // Make sure lastHotScore isn't NaN
+  let finalLastHotScore = posts.length > 0 ? posts[posts.length - 1].hotScore : null;
+  if (finalLastHotScore !== null && isNaN(finalLastHotScore)) {
+    finalLastHotScore = 0;
+  }
 
   return {
     posts,
-    lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+    lastHotScore: finalLastHotScore,
     lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
   };
 }
@@ -933,10 +1085,7 @@ exports.handleHerdLeave = onDocumentDeleted(
  * Get trending posts for discovery
  */
 exports.getTrendingPosts = onCall(async (request) => {
-  const {
-    limit = 10,
-    postType = 'all' // 'all', 'public', 'alt'
-  } = request.data;
+  const { limit = 10, postType = 'all' } = request.data;
 
   try {
     // Get posts from the last 3 days with high engagement
@@ -945,7 +1094,7 @@ exports.getTrendingPosts = onCall(async (request) => {
 
     let postsQuery = firestore.collection('posts')
       .where('createdAt', '>', threeDaysAgo)
-      .orderBy('createdAt', 'desc'); // Recent first
+      .orderBy('createdAt', 'desc');
 
     // Apply post type filter if specified
     if (postType === 'public') {
@@ -963,13 +1112,26 @@ exports.getTrendingPosts = onCall(async (request) => {
       return { posts: [] };
     }
 
-    // Convert to array and sort by hot algorithm
-    let posts = postsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Convert to array and ensure date objects are properly converted
+    let posts = postsSnapshot.docs.map(doc => {
+      const data = doc.data();
 
-    // Sort using a more aggressive decay factor to prioritize recent content
+      // Important: Convert Firestore timestamp to Date
+      let createdAt = data.createdAt;
+      if (createdAt && typeof createdAt.toDate === 'function') {
+        createdAt = createdAt.toDate();
+      } else if (!(createdAt instanceof Date)) {
+        createdAt = new Date(); // Default fallback
+      }
+
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: createdAt // Replace with properly converted date
+      };
+    });
+
+    // Now sort using the properly converted dates
     posts = hotAlgorithm.sortPosts(posts, 0.5);
 
     // Return top posts
@@ -977,5 +1139,42 @@ exports.getTrendingPosts = onCall(async (request) => {
   } catch (error) {
     logger.error('Error getting trending posts:', error);
     throw new HttpsError('internal', `Failed to get trending posts: ${error.message}`);
+  }
+});
+
+// Debug function to find documents with NaN hotScores
+exports.findNaNHotScores = onCall(async (request) => {
+  if (!request.auth || !request.auth.token.admin) {
+    throw new HttpsError('permission-denied', 'Admin only function');
+  }
+
+  try {
+    const collections = ['posts', 'altPosts'];
+    const problematicDocs = [];
+
+    for (const collectionName of collections) {
+      const snapshot = await firestore.collection(collectionName).get();
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if ('hotScore' in data && (isNaN(data.hotScore) || data.hotScore === undefined)) {
+          problematicDocs.push({
+            collection: collectionName,
+            id: doc.id,
+            hotScore: data.hotScore,
+            data: {
+              likeCount: data.likeCount,
+              dislikeCount: data.dislikeCount,
+              createdAt: data.createdAt ? 'valid date' : 'invalid date'
+            }
+          });
+        }
+      });
+    }
+
+    return { problematicDocs };
+  } catch (error) {
+    logger.error('Error finding NaN hotScores:', error);
+    throw new HttpsError('internal', `Error: ${error.message}`);
   }
 });
