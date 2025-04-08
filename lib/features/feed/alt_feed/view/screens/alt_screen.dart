@@ -5,11 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
-import '../../../../auth/view/providers/auth_provider.dart';
 import '../../../../herds/view/providers/herd_providers.dart';
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
-import '../../../providers/trending_posts_provider.dart';
-import '../providers/state/alt_feed_states.dart';
+import '../../../../post/view/widgets/post_list_widget.dart';
 import '../providers/alt_feed_provider.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
@@ -31,28 +29,32 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
   void _refreshVisiblePostInteractions() {
     // Later, we must implement a central interaction store
     // to avoid multiple calls to the same post
+    if (!mounted) return;
 
-    final currentUser = ref.read(currentUserProvider);
-    final state = ref.read(altFeedControllerProvider);
+    Future.microtask(() {
+      final currentUser = ref.read(currentUserProvider);
+      final state = ref.read(altFeedControllerProvider);
 
-    if (currentUser?.id == null || state.posts.isEmpty) return;
+      if (currentUser?.id == null || state.posts.isEmpty) return;
 
-    // Only refresh posts that are likely visible
-    final visibleStartIndex = 0;
-    // Estimate how many items might be visible (typical screen shows 3-5 posts)
-    final visibleEndIndex = math.min(5, state.posts.length - 1);
+      // Only refresh posts that are likely visible
+      final visibleStartIndex = 0;
+      // Estimate how many items might be visible (typical screen shows 3-5 posts)
+      final visibleEndIndex = math.min(5, state.posts.length - 1);
 
-    // Only update those posts that are likely visible
-    for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
-      if (i < state.posts.length) {
-        final post = state.posts[i];
-        ref.read(postInteractionsWithPrivacyProvider(
-            PostParams(id: post.id, isAlt: post.isAlt)
-        ).notifier).loadInteractionStatus(currentUser!.id);
+      // Only update those posts that are likely visible
+      for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
+        if (i < state.posts.length) {
+          final post = state.posts[i];
+          ref
+              .read(postInteractionsWithPrivacyProvider(
+                      PostParams(id: post.id, isAlt: post.isAlt))
+                  .notifier)
+              .initializeState(currentUser!.id);
+        }
       }
-    }
+    });
   }
-
 
   @override
   void initState() {
@@ -68,8 +70,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
       // Your existing feed initialization code
       final currentUser = ref.read(authProvider);
       ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
-        overrideUserId: currentUser?.uid,
-      );
+            overrideUserId: currentUser?.uid,
+          );
     });
 
     // Add scroll listener for pagination
@@ -105,16 +107,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
   @override
   Widget build(BuildContext context) {
     final altFeedState = ref.watch(altFeedControllerProvider);
-    final showHerdPosts = ref.watch(altFeedControllerProvider.notifier).showHerdPosts;
-
-    print("DEBUG UI: Posts count in state: ${altFeedState.posts.length}");
-
-    // In the rendering code, verify what's happening
-    if (altFeedState.posts.isEmpty && !altFeedState.isLoading) {
-      // Check if this branch is being hit incorrectly
-      print("DEBUG UI: Empty feed branch triggered");
-      return _buildEmptyFeed();
-    }
+    final showHerdPosts =
+        ref.watch(altFeedControllerProvider.notifier).showHerdPosts;
 
     return Scaffold(
       appBar: AppBar(
@@ -133,6 +127,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
             onPressed: () => _showHighlightedPosts(context),
           ),
 
+          // Filter menu
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list),
             onOpened: null,
@@ -143,7 +138,9 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   children: [
                     Icon(
                       Icons.check,
-                      color: showHerdPosts ? Colors.blue : Colors.grey,
+                      color: showHerdPosts
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -151,7 +148,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   ],
                 ),
                 onTap: () {
-                  final controller = ref.read(altFeedControllerProvider.notifier);
+                  final controller =
+                      ref.read(altFeedControllerProvider.notifier);
                   controller.toggleHerdPostsFilter(!showHerdPosts);
                 },
               ),
@@ -159,7 +157,32 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
           ),
         ],
       ),
-      body: _buildBody(altFeedState),
+      // Use PostListWidget instead of direct ListView.builder
+      body: altFeedState.error != null
+          ? _buildErrorWidget(altFeedState.error!, () {
+              ref.read(altFeedControllerProvider.notifier).refreshFeed();
+            })
+          : altFeedState.posts.isEmpty && !altFeedState.isLoading
+              ? _buildEmptyFeed()
+              : PostListWidget(
+                  posts: altFeedState.posts,
+                  isLoading: altFeedState.isLoading,
+                  hasError: false,
+                  hasMorePosts: altFeedState.hasMorePosts,
+                  scrollController: _scrollController,
+                  onRefresh: () => ref
+                      .read(altFeedControllerProvider.notifier)
+                      .refreshFeed(),
+                  onLoadMore: () => ref
+                      .read(altFeedControllerProvider.notifier)
+                      .loadMorePosts(),
+                  type: PostListType.feed,
+                  emptyMessage: 'No alt posts yet',
+                  emptyActionLabel: 'Create a alt post',
+                  onEmptyAction: () {
+                    // Navigate to create post screen with isAlt=true
+                  },
+                ),
     );
   }
 
@@ -184,7 +207,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
 
     // Show posts with pull-to-refresh
     return RefreshIndicator(
-      onRefresh: () => ref.read(altFeedControllerProvider.notifier).refreshFeed(),
+      onRefresh: () =>
+          ref.read(altFeedControllerProvider.notifier).refreshFeed(),
       child: ListView.builder(
         controller: _scrollController,
         itemCount: state.posts.length + (state.isLoading ? 2 : 1),
@@ -336,7 +360,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, child) {
-                      final highlightedPosts = ref.watch(highlightedAltPostsProvider);
+                      final highlightedPosts =
+                          ref.watch(highlightedAltPostsProvider);
 
                       return highlightedPosts.when(
                         data: (posts) {
@@ -386,7 +411,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                           child: CircularProgressIndicator(),
                         ),
                         error: (error, stack) => Center(
-                          child: Text("Error loading highlighted posts: $error"),
+                          child:
+                              Text("Error loading highlighted posts: $error"),
                         ),
                       );
                     },
