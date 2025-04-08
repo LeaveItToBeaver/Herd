@@ -86,13 +86,13 @@ final isPostDislikedByUserProvider = FutureProvider.family<bool, String>((ref, p
 });
 
 // Post interactions provider (original)
-final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, String>((ref, postId) {
-  final repository = ref.watch(postRepositoryProvider);
-  return PostInteractionsNotifier(
-    repository: repository,
-    postId: postId,
-  );
-});
+// final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, String>((ref, postId) {
+//   final repository = ref.watch(postRepositoryProvider);
+//   return PostInteractionsNotifier(
+//     repository: repository,
+//     postId: postId,
+//   );
+// });
 
 final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentState, String>((ref, postId) {
   final repository = ref.watch(commentRepositoryProvider);
@@ -101,44 +101,10 @@ final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentS
 });
 
 // Post interactions provider with privacy setting
-final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
-    PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
+final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
   return PostInteractionsNotifier(
     repository: repository,
     postId: params.id,
   );
-});
-
-final userPostsWithHerdsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) async* {
-  final postRepository = ref.watch(postRepositoryProvider);
-  final herdRepository = ref.watch(herdRepositoryProvider);
-
-  // Get regular user posts
-  Stream<List<PostModel>> regularPosts = postRepository.getUserPosts(userId);
-
-  // Stream combined results
-  await for (final posts in regularPosts) {
-    // Get user's herds
-    final userHerds = await herdRepository.getUserHerds(userId);
-    List<PostModel> allPosts = List.from(posts);
-
-    // For each herd, get posts by this user
-    for (final herd in userHerds) {
-      final herdPosts = await herdRepository.getHerdPosts(
-          herdId: herd.id,
-          limit: 50
-      );
-
-      // Filter for posts by this user
-      final userHerdPosts = herdPosts.where((post) => post.authorId == userId).toList();
-      allPosts.addAll(userHerdPosts);
-    }
-
-    // Sort all posts by date
-    allPosts.sort((a, b) => (b.createdAt ?? DateTime.now())
-        .compareTo(a.createdAt ?? DateTime.now()));
-
-    yield allPosts;
-  }
 });

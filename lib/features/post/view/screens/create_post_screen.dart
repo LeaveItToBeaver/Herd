@@ -36,6 +36,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   bool _isVideo = false;
   String? _selectedHerdId;
   String? _selectedHerdName;
+  String? _selectHerdProfileImageUrl;
   bool _isHerdPost = false;
 
   @override
@@ -53,17 +54,18 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     // If we have a herdId, fetch the herd name
     if (_selectedHerdId != null) {
-      _fetchHerdName();
+      _fetchHerdInfo();
     }
   }
 
 // Add this method to fetch the herd name when a herdId is provided
-  void _fetchHerdName() async {
+  void _fetchHerdInfo() async {
     try {
       final herd = await ref.read(herdProvider(_selectedHerdId!).future);
       if (mounted && herd != null) {
         setState(() {
           _selectedHerdName = herd.name;
+          _selectHerdProfileImageUrl = herd.profileImageURL;
           if (kDebugMode) {
             print('Fetched herd name: $_selectedHerdName');
           }
@@ -444,7 +446,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         imageFile: _postMedia,
         userId: currentUser.id,
         isAlt: _isAlt,
-        herdId: _selectedHerdId ?? '', // Use empty string if null
+        herdId: _selectedHerdId ?? '',
+        herdName: _selectedHerdName ?? '',
+        herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
       );
 
       if (mounted) {
