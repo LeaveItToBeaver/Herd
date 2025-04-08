@@ -1,18 +1,99 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
-import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
+import 'package:herdapp/features/feed/public_feed/view/providers/public_feed_provider.dart';
 
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
-import '../../../providers/unified_feed_provider.dart';
 
-class PublicFeedScreen extends ConsumerWidget {
+class PublicFeedScreen extends ConsumerStatefulWidget {
   const PublicFeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PublicFeedScreen> createState() => _PublicFeedScreenState();
+}
+
+class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshVisiblePostInteractions();
+  }
+
+  void _refreshVisiblePostInteractions() {
+    // Later, we must implement a central interaction store
+    // to avoid multiple calls to the same post
+
+    final currentUser = ref.read(currentUserProvider);
+    final state = ref.read(publicFeedControllerProvider);
+
+    if (currentUser?.id == null || state.posts.isEmpty) return;
+
+    // Only refresh posts that are likely visible
+    final visibleStartIndex = 0;
+    // Estimate how many items might be visible (typical screen shows 3-5 posts)
+    final visibleEndIndex = math.min(5, state.posts.length - 1);
+
+    // Only update those posts that are likely visible
+    for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
+      if (i < state.posts.length) {
+        final post = state.posts[i];
+        ref.read(postInteractionsWithPrivacyProvider(
+            PostParams(id: post.id, isAlt: post.isAlt)
+        ).notifier).loadInteractionStatus(currentUser!.id);
+      }
+    }
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final currentUser = ref.read(authProvider);
+      // Trigger the initial fetch of posts
+      ref.read(publicFeedControllerProvider.notifier).loadInitialPosts();
+    });
+
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    // Get the current state
+    final state = ref.read(publicFeedControllerProvider);
+
+    // If already loading or no more posts, do nothing
+    if (state.isLoading || !state.hasMorePosts) return;
+
+    // Check if we've scrolled near the bottom (reaching 2nd to last post)
+    final triggerFetchMoreSize = 0.8;
+    final reachedTriggerPosition = _scrollController.position.pixels >=
+        (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
+
+    if (reachedTriggerPosition) {
+      // Load more posts
+      ref.read(publicFeedControllerProvider.notifier).loadMorePosts();
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
 
     return Scaffold(

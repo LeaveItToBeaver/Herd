@@ -1,12 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../../auth/view/providers/auth_provider.dart';
 import '../../../../herds/view/providers/herd_providers.dart';
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
-import '../../../providers/unified_feed_provider.dart';
+import '../../../providers/trending_posts_provider.dart';
 import '../providers/state/alt_feed_states.dart';
+import '../providers/alt_feed_provider.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
@@ -19,11 +23,45 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshVisiblePostInteractions();
+  }
+
+  void _refreshVisiblePostInteractions() {
+    // Later, we must implement a central interaction store
+    // to avoid multiple calls to the same post
+
+    final currentUser = ref.read(currentUserProvider);
+    final state = ref.read(altFeedControllerProvider);
+
+    if (currentUser?.id == null || state.posts.isEmpty) return;
+
+    // Only refresh posts that are likely visible
+    final visibleStartIndex = 0;
+    // Estimate how many items might be visible (typical screen shows 3-5 posts)
+    final visibleEndIndex = math.min(5, state.posts.length - 1);
+
+    // Only update those posts that are likely visible
+    for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
+      if (i < state.posts.length) {
+        final post = state.posts[i];
+        ref.read(postInteractionsWithPrivacyProvider(
+            PostParams(id: post.id, isAlt: post.isAlt)
+        ).notifier).loadInteractionStatus(currentUser!.id);
+      }
+    }
+  }
+
+
+  @override
   void initState() {
     super.initState();
 
     // Initialize feed on first load
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
       // Clear any current herd ID
       ref.read(currentHerdIdProvider.notifier).state = null;
 
