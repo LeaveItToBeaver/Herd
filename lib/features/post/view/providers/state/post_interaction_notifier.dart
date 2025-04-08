@@ -18,6 +18,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     try {
       state = state.copyWith(isLoading: true);
 
+      final post = await repository.getPostById(postId);
+
       final isLiked = await repository.isPostLikedByUser(
           postId: postId,
           userId: userId
@@ -31,6 +33,10 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       state = state.copyWith(
         isLiked: isLiked,
         isDisliked: isDisliked,
+        totalRawLikes: post?.likeCount ?? 0,
+        totalRawDislikes: post?.dislikeCount ?? 0,
+        totalLikes: (post?.likeCount ?? 0) - (post?.dislikeCount ?? 0), // Net likes
+        totalComments: post?.commentCount ?? 0,
         isLoading: false,
       );
     } catch (e) {
@@ -40,15 +46,26 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
     }
   }
+
   Future<void> likePost(String userId) async {
     try {
       // Track the previous state to revert if needed
       final previousState = state;
 
+      final wasLiked = state.isLiked;
+      final wasDisliked = state.isDisliked;
+
       // Update state optimistically
+      final newLikeCount = wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
+      final newDislikeCount = wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes;
+      final netLikes = newLikeCount - newDislikeCount;
+
       state = state.copyWith(
-        isLiked: !state.isLiked,
+        isLiked: !wasLiked,
         isDisliked: false, // Remove dislike if present
+        totalRawLikes: newLikeCount,
+        totalRawDislikes: newDislikeCount,
+        totalLikes: netLikes,
         isLoading: true,
       );
 
@@ -68,20 +85,29 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
   Future<void> dislikePost(String userId) async {
     try {
-      // Track the previous state
       final previousState = state;
 
+      final wasLiked = state.isLiked;
+      final wasDisliked = state.isDisliked;
+
       // Update state optimistically
+      final newDislikeCount = wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes + 1;
+      final newLikeCount = wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes;
+      final netLikes = newLikeCount - newDislikeCount;
+
       state = state.copyWith(
-        isDisliked: !state.isDisliked,
+        isDisliked: !wasDisliked,
         isLiked: false, // Remove like if present
+        totalRawDislikes: newDislikeCount,
+        totalRawLikes: newLikeCount,
+        totalLikes: netLikes,
         isLoading: true,
       );
 
       // Call the cloud function via repository
       await repository.dislikePost(postId: postId, userId: userId);
 
-      // Update state
+      // Update state based on new state (already updated optimistically)
       state = state.copyWith(isLoading: false);
     } catch (e) {
       // If error, revert to previous state

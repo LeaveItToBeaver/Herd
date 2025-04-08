@@ -26,6 +26,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     File? imageFile,
     bool isAlt = false,
     String herdId = '',
+    String herdName = '',
+    String herdProfileImageURL = '',
   }) async {
     String? postId;
     String? imageUrl;
@@ -75,6 +77,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
             : user.profileImageURL,
         content: content,
         herdId: herdId.isNotEmpty ? herdId : null, // Add this line
+        herdName: herdId.isNotEmpty ? herdName : null,
+        herdProfileImageURL: herdId.isNotEmpty ? herdProfileImageURL : null,
         title: title,
         mediaURL: imageUrl,
         mediaThumbnailURL: thumbnailUrl,
