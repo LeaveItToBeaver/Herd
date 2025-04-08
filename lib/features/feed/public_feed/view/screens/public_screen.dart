@@ -3,9 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/public_feed_provider.dart';
-
+import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
 
@@ -28,28 +27,32 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   void _refreshVisiblePostInteractions() {
     // Later, we must implement a central interaction store
     // to avoid multiple calls to the same post
+    if (!mounted) return;
 
-    final currentUser = ref.read(currentUserProvider);
-    final state = ref.read(publicFeedControllerProvider);
+    Future.microtask(() {
+      final currentUser = ref.read(currentUserProvider);
+      final state = ref.read(publicFeedControllerProvider);
 
-    if (currentUser?.id == null || state.posts.isEmpty) return;
+      if (currentUser?.id == null || state.posts.isEmpty) return;
 
-    // Only refresh posts that are likely visible
-    final visibleStartIndex = 0;
-    // Estimate how many items might be visible (typical screen shows 3-5 posts)
-    final visibleEndIndex = math.min(5, state.posts.length - 1);
+      // Only refresh posts that are likely visible
+      final visibleStartIndex = 0;
+      // Estimate how many items might be visible (typical screen shows 3-5 posts)
+      final visibleEndIndex = math.min(5, state.posts.length - 1);
 
-    // Only update those posts that are likely visible
-    for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
-      if (i < state.posts.length) {
-        final post = state.posts[i];
-        ref.read(postInteractionsWithPrivacyProvider(
-            PostParams(id: post.id, isAlt: post.isAlt)
-        ).notifier).loadInteractionStatus(currentUser!.id);
+      // Only update those posts that are likely visible
+      for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
+        if (i < state.posts.length) {
+          final post = state.posts[i];
+          ref
+              .read(postInteractionsWithPrivacyProvider(
+                      PostParams(id: post.id, isAlt: post.isAlt))
+                  .notifier)
+              .initializeState(currentUser!.id);
+        }
       }
-    }
+    });
   }
-
 
   @override
   void initState() {
@@ -91,7 +94,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
@@ -114,6 +116,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
           ),
         ],
       ),
+      // Use PostListWidget if possible
       body: publicFeedState.isLoading && publicFeedState.posts.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : publicFeedState.error != null
@@ -129,12 +132,18 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                             .refreshFeed();
                       },
                       child: ListView.builder(
+                        controller:
+                            _scrollController, // Ensure you have this controller
                         itemCount: publicFeedState.posts.length + 1,
                         itemBuilder: (context, index) {
                           if (index == publicFeedState.posts.length) {
                             return const BottomNavPadding();
                           }
-                          return PostWidget(post: publicFeedState.posts[index]);
+                          // Use the new PostWidget with consistent props
+                          return PostWidget(
+                            post: publicFeedState.posts[index],
+                            isCompact: false, // Set this consistently
+                          );
                         },
                       ),
                     ),
@@ -260,7 +269,8 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, child) {
-                      final trendingPosts = ref.watch(trendingPublicPostsProvider);
+                      final trendingPosts =
+                          ref.watch(trendingPublicPostsProvider);
 
                       return trendingPosts.when(
                         data: (posts) {

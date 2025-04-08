@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
+
 import '../../../comment/view/providers/comment_providers.dart';
 import '../../../comment/view/providers/reply_providers.dart';
 import '../../../comment/view/widgets/comment_list_widget.dart';
@@ -11,6 +12,7 @@ import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
 import '../providers/post_provider.dart' hide commentsProvider;
+import '../widgets/post_video_player.dart';
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -40,12 +42,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       final userId = user?.id;
       if (userId != null) {
         // Use the updated provider with PostParams
-        ref.read(postInteractionsWithPrivacyProvider(
-            PostParams(
-                id: widget.postId,
-                isAlt: widget.isAlt
-            )
-        ).notifier).initializeState(userId);
+        ref
+            .read(postInteractionsWithPrivacyProvider(
+                    PostParams(id: widget.postId, isAlt: widget.isAlt))
+                .notifier)
+            .initializeState(userId);
       }
     });
   }
@@ -110,51 +111,48 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 // In your PostScreen widget
   @override
   Widget build(BuildContext context) {
-    final postAsyncValue = ref.watch(
-        widget.isAlt
-            ? postProviderWithPrivacy(PostParams(id: widget.postId, isAlt: widget.isAlt))
-            : postProvider(widget.postId)
-    );
+    final postAsyncValue = ref.watch(widget.isAlt
+        ? postProviderWithPrivacy(
+            PostParams(id: widget.postId, isAlt: widget.isAlt))
+        : postProvider(widget.postId));
     final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: widget.isAlt ? Colors.blue : Colors.white,
-        title: LayoutBuilder(
-            builder: (context, constraints) {
-              return Row(
-                children: [
-                  if (widget.isAlt)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8.0),
-                      child: Icon(Icons.lock, size: 20),
-                    ),
-                  Expanded(
-                    child: postAsyncValue.when(
-                      data: (post) => Text(
-                        post?.title ?? 'Post',
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        softWrap: false,
-                      ),
-                      loading: () => const Text('Loading...'),
-                      error: (error, stack) => const Text('Error'),
-                    ),
+        title: LayoutBuilder(builder: (context, constraints) {
+          return Row(
+            children: [
+              if (widget.isAlt)
+                const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(Icons.lock, size: 20),
+                ),
+              Expanded(
+                child: postAsyncValue.when(
+                  data: (post) => Text(
+                    post?.title ?? 'Post',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    softWrap: false,
                   ),
-                ],
-              );
-            }
-        ),
+                  loading: () => const Text('Loading...'),
+                  error: (error, stack) => const Text('Error'),
+                ),
+              ),
+            ],
+          );
+        }),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: widget.isAlt
                 ? null
                 : () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sharing post...')),
-              );
-            },
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Sharing post...')),
+                    );
+                  },
             color: widget.isAlt ? Colors.grey : Colors.white,
           ),
         ],
@@ -182,7 +180,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                   if (post.isAlt)
                     Container(
                       color: Colors.blue.withOpacity(0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 16),
                       child: Row(
                         children: [
                           const Icon(Icons.lock, size: 16, color: Colors.blue),
@@ -238,13 +237,14 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   Future<void> _refreshPost() async {
     try {
       // Show a loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Refreshing...'), duration: Duration(milliseconds: 800))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Refreshing...'),
+          duration: Duration(milliseconds: 800)));
 
       // Force invalidate all related providers
       if (widget.isAlt) {
-        ref.refresh(postProviderWithPrivacy(PostParams(id: widget.postId, isAlt: true)));
+        ref.refresh(postProviderWithPrivacy(
+            PostParams(id: widget.postId, isAlt: true)));
       } else {
         ref.refresh(postProvider(widget.postId));
       }
@@ -258,13 +258,14 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       if (userId != null) {
         // Use the existing interaction provider
         ref.invalidate(postInteractionsWithPrivacyProvider(
-            PostParams(id: widget.postId, isAlt: widget.isAlt)
-        ));
+            PostParams(id: widget.postId, isAlt: widget.isAlt)));
 
         // Initialize the interaction state
-        await ref.read(postInteractionsWithPrivacyProvider(
-            PostParams(id: widget.postId, isAlt: widget.isAlt)
-        ).notifier).initializeState(userId);
+        await ref
+            .read(postInteractionsWithPrivacyProvider(
+                    PostParams(id: widget.postId, isAlt: widget.isAlt))
+                .notifier)
+            .initializeState(userId);
       }
 
       // Force UI update
@@ -273,14 +274,14 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error refreshing: $e'))
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error refreshing: $e')));
       }
     }
   }
 
-  Widget _buildPostContent(AsyncValue<dynamic> postAsyncValue, UserModel? currentUser) {
+  Widget _buildPostContent(
+      AsyncValue<dynamic> postAsyncValue, UserModel? currentUser) {
     return postAsyncValue.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text('Error: $error')),
@@ -303,205 +304,211 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-              userAsyncValue.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, stack) => Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Text('Error: $error'),
-                ),
-                data: (user) {
-                  if (user == null) {
-                    return const Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Text('User not found'),
-                    );
-                  }
+            userAsyncValue.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stack) => Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text('Error: $error'),
+              ),
+              data: (user) {
+                if (user == null) {
+                  return const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: Text('User not found'),
+                  );
+                }
 
-                  // Determine which profile image to use based on privacy
-                  final profileImageUrl = post.isAlt
-                      ? user.altProfileImageURL ?? user.profileImageURL
-                      : user.profileImageURL;
+                // Determine which profile image to use based on privacy
+                final profileImageUrl = post.isAlt
+                    ? user.altProfileImageURL ?? user.profileImageURL
+                    : user.profileImageURL;
 
-                  return Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            // Navigate to appropriate profile
-                            if (post.isAlt) {
-                              context.pushNamed(
-                                'altProfile',
-                                pathParameters: {'id': user.id},
+                return Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          // Navigate to appropriate profile
+                          if (post.isAlt) {
+                            context.pushNamed(
+                              'altProfile',
+                              pathParameters: {'id': user.id},
+                            );
+                          } else {
+                            context.pushNamed(
+                              'publicProfile',
+                              pathParameters: {'id': user.id},
+                            );
+                          }
+                        },
+                        child: CircleAvatar(
+                          radius: 25,
+                          backgroundImage: profileImageUrl != null
+                              ? NetworkImage(profileImageUrl)
+                              : const AssetImage(
+                                      'assets/images/default_avatar.png')
+                                  as ImageProvider,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                // Navigate to appropriate profile
+                                if (post.isAlt) {
+                                  context.pushNamed(
+                                    'altProfile',
+                                    pathParameters: {'id': user.id},
+                                  );
+                                } else {
+                                  context.pushNamed(
+                                    'publicProfile',
+                                    pathParameters: {'id': user.id},
+                                  );
+                                }
+                              },
+                              child: Text(
+                                user.username ?? 'Anonymous',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Text(
+                              _formatTimestamp(post.createdAt),
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Edit/delete menu for post owner
+                      if (currentUser?.id == post.authorId)
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert),
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              // TODO: Implement edit post
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Edit post not implemented yet')),
                               );
-                            } else {
-                              context.pushNamed(
-                                'publicProfile',
-                                pathParameters: {'id': user.id},
-                              );
+                            } else if (value == 'delete') {
+                              _showDeleteConfirmation(context, post.id);
                             }
                           },
-                          child: CircleAvatar(
-                            radius: 25,
-                            backgroundImage: profileImageUrl != null
-                                ? NetworkImage(profileImageUrl)
-                                : const AssetImage('assets/images/default_avatar.png')
-                            as ImageProvider,
-                          ),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String>(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit),
+                                  SizedBox(width: 8),
+                                  Text('Edit Post'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete Post',
+                                      style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  // Navigate to appropriate profile
-                                  if (post.isAlt) {
-                                    context.pushNamed(
-                                      'altProfile',
-                                      pathParameters: {'id': user.id},
-                                    );
-                                  } else {
-                                    context.pushNamed(
-                                      'publicProfile',
-                                      pathParameters: {'id': user.id},
-                                    );
-                                  }
-                                },
-                                child: Text(
-                                  user.username ?? 'Anonymous',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              Text(
-                                _formatTimestamp(post.createdAt),
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Edit/delete menu for post owner
-                        if (currentUser?.id == post.authorId)
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                // TODO: Implement edit post
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Edit post not implemented yet')),
-                                );
-                              } else if (value == 'delete') {
-                                _showDeleteConfirmation(context, post.id);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem<String>(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit),
-                                    SizedBox(width: 8),
-                                    Text('Edit Post'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem<String>(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete Post', style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Post content
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Post title
-                    Text(
-                      post.title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Post content text
-                    Text(
-                      post.content,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Media content (if any)
-                    if (_hasMedia(post)) ...[
-                      _buildMedia(post),
                     ],
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Reaction buttons
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
-                    bottom: BorderSide(color: Colors.grey.shade200),
                   ),
-                ),
-                width: MediaQuery.of(context).size.width,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildActionButton(
-                      icon: Icons.share_rounded,
-                      label: 'Share',
-                      onPressed: post.isAlt ? null : () {}, // Disable for alt posts
-                      enabled: !post.isAlt,
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Post content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Post title
+                  Text(
+                    post.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    _buildActionButton(
-                      icon: Icons.comment_rounded,
-                      label: commentCount.toString(),
-                      onPressed: () {
-                        // TODO: Implement opening comments section
-                      },
-                    ),
-                    _buildLikeDislikeButtons(
-                      context: context,
-                      ref: ref,
-                      postId: widget.postId,
-                      isAlt: widget.isAlt,
-                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Post content text
+                  Text(
+                    post.content,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Media content (if any)
+                  if (_hasMedia(post)) ...[
+                    _buildMedia(post),
                   ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Reaction buttons
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200),
+                  bottom: BorderSide(color: Colors.grey.shade200),
                 ),
               ),
-            ],
+              width: MediaQuery.of(context).size.width,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildActionButton(
+                    icon: Icons.share_rounded,
+                    label: 'Share',
+                    onPressed:
+                        post.isAlt ? null : () {}, // Disable for alt posts
+                    enabled: !post.isAlt,
+                  ),
+                  _buildActionButton(
+                    icon: Icons.comment_rounded,
+                    label: commentCount.toString(),
+                    onPressed: () {
+                      // TODO: Implement opening comments section
+                    },
+                  ),
+                  _buildLikeDislikeButtons(
+                    context: context,
+                    ref: ref,
+                    postId: widget.postId,
+                    isAlt: widget.isAlt,
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
@@ -516,29 +523,13 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     final String imageUrl = post.mediaURL ?? '';
     final String mediaType = post.mediaType ?? 'image';
 
-    if (mediaType == 'video') {
-      // Video player
-      if (_isVideoInitialized && _chewieController != null) {
-        return AspectRatio(
-          aspectRatio: _videoController!.value.aspectRatio,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Chewie(controller: _chewieController!),
-          ),
-        );
-      } else {
-        // Show loading placeholder
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: AspectRatio(
-            aspectRatio: 16/9, // Default aspect ratio until video loads
-            child: Container(
-              color: Colors.black,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-          ),
-        );
-      }
+    if (post.mediaType == 'video' && post.mediaURL != null) {
+      return PostVideoPlayer(
+        url: post.mediaURL!,
+        autoPlay: false,
+        showControls: true,
+        looping: false,
+      );
     } else if (mediaType == 'gif') {
       // GIF - use CachedNetworkImage
       return ClipRRect(
@@ -576,7 +567,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 children: [
                   const Icon(Icons.error, color: Colors.red, size: 40),
                   const SizedBox(height: 8),
-                  Text('Error loading image: $error', textAlign: TextAlign.center),
+                  Text('Error loading image: $error',
+                      textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -612,7 +604,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this post? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -696,8 +689,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     required bool isAlt,
   }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: postId, isAlt: isAlt)
-    ));
+        PostParams(id: postId, isAlt: isAlt)));
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -707,9 +699,10 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         children: [
           IconButton(
             icon: Icon(
-                interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                color: interactionState.isLiked ? Colors.green : Colors.grey
-            ),
+                interactionState.isLiked
+                    ? Icons.thumb_up
+                    : Icons.thumb_up_outlined,
+                color: interactionState.isLiked ? Colors.green : Colors.grey),
             onPressed: interactionState.isLoading
                 ? null
                 : () => _handleLikePost(context, ref, postId),
@@ -724,9 +717,10 @@ class _PostScreenState extends ConsumerState<PostScreen> {
           ),
           IconButton(
             icon: Icon(
-                interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-                color: interactionState.isDisliked ? Colors.red : Colors.grey
-            ),
+                interactionState.isDisliked
+                    ? Icons.thumb_down
+                    : Icons.thumb_down_outlined,
+                color: interactionState.isDisliked ? Colors.red : Colors.grey),
             onPressed: interactionState.isLoading
                 ? null
                 : () => _handleDislikePost(context, ref, postId),
@@ -741,9 +735,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     final userId = user?.id;
 
     if (userId != null) {
-      ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isAlt: widget.isAlt)
-      ).notifier).likePost(userId);
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: postId, isAlt: widget.isAlt))
+              .notifier)
+          .likePost(userId, isAlt: widget.isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to like posts.')),
@@ -756,12 +752,15 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     final userId = user?.id;
 
     if (userId != null) {
-      ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isAlt: widget.isAlt)
-      ).notifier).dislikePost(userId);
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: postId, isAlt: widget.isAlt))
+              .notifier)
+          .dislikePost(userId, isAlt: widget.isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to dislike posts.')),
+        const SnackBar(
+            content: Text('You must be logged in to dislike posts.')),
       );
     }
   }

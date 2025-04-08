@@ -198,8 +198,23 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                 children: [
                   // Public posts tab - only showing public posts
                   PostListWidget(
-                    posts: profile.posts.where((post) => !post.isAlt).toList(),
-                    userId: profile.user?.id ?? (throw Exception("User ID is null")),
+                    posts: profile.posts.where((post) => post.isAlt).toList(),
+                    isLoading: false, // Set based on your loading state
+                    hasError: false, // Set based on error state
+                    type: PostListType.profile, // Use profile layout for more compact display
+                    scrollController: ScrollController(), // Or pass an existing controller
+                    onRefresh: () async {
+                      // Reload posts
+                      await ref.read(profileControllerProvider.notifier).loadProfile(
+                          widget.userId,
+                          isAltView: true
+                      );
+                    },
+                    emptyMessage: 'No alt posts yet',
+                    emptyActionLabel: profile.isCurrentUser ? 'Create Post' : null,
+                    onEmptyAction: profile.isCurrentUser ? () {
+                      context.pushNamed('create', queryParameters: {'isAlt': 'true'});
+                    } : null,
                   ),
                   // About tab - show public profile info
                   _buildAboutSection(profile),

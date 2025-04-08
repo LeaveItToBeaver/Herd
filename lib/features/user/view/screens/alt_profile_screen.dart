@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
+
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../providers/state/profile_state.dart';
-import '../widgets/alt_connection_request_button.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -33,9 +33,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.userId.isNotEmpty) {
         ref.read(profileControllerProvider.notifier).loadProfile(
-          widget.userId,
-          isAltView: true, // Force alt view
-        );
+              widget.userId,
+              isAltView: true, // Force alt view
+            );
       }
     });
   }
@@ -84,10 +84,10 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                     children: <Widget>[
                       Positioned.fill(
                           child: UserCoverImage(
-                            isSelected: false,
-                            coverImageUrl: profile.user?.altCoverImageURL ?? profile.user?.coverImageURL,
-                          )
-                      )
+                        isSelected: false,
+                        coverImageUrl: profile.user?.altCoverImageURL ??
+                            profile.user?.coverImageURL,
+                      ))
                     ],
                   ),
                   actions: [
@@ -115,9 +115,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       ),
                       IconButton(
                         icon: const Icon(Icons.exit_to_app),
-                        onPressed: () => ref.read(authProvider.notifier).signOut(),
+                        onPressed: () =>
+                            ref.read(authProvider.notifier).signOut(),
                       ),
-
                     ],
                   ],
                 ),
@@ -129,7 +129,10 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withOpacity(0.1),
                         ),
                       ),
                       child: Padding(
@@ -141,16 +144,21 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               children: [
                                 UserProfileImage(
                                   radius: 40.0,
-                                  profileImageUrl: profile.user?.altProfileImageURL ?? profile.user?.profileImageURL,
+                                  profileImageUrl:
+                                      profile.user?.altProfileImageURL ??
+                                          profile.user?.profileImageURL,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         profile.user?.username ?? '',
-                                        style: Theme.of(context).textTheme.titleLarge,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
@@ -159,7 +167,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               ],
                             ),
                             const SizedBox(height: 16),
-                            if (profile.user?.altBio != null && profile.user!.altBio!.isNotEmpty)
+                            if (profile.user?.altBio != null &&
+                                profile.user!.altBio!.isNotEmpty)
                               Text(
                                 profile.user!.altBio!,
                                 style: Theme.of(context).textTheme.bodyMedium,
@@ -168,8 +177,14 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _buildStatColumn('Alt Posts', profile.posts.where((post) => post.isAlt).length.toString()),
-                                _buildStatColumn('Connections', profile.user?.friends?.toString() ?? '0'),
+                                _buildStatColumn(
+                                    'Alt Posts',
+                                    profile.posts
+                                        .where((post) => post.isAlt)
+                                        .length
+                                        .toString()),
+                                _buildStatColumn('Connections',
+                                    profile.user?.friends?.toString() ?? '0'),
                                 _buildStatColumn('Herds', '0'),
                               ],
                             ),
@@ -177,7 +192,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                             if (!profile.isCurrentUser)
                               SizedBox(
                                 width: double.infinity,
-                                child: AltConnectionButton(targetUserId: profile.user!.id),
+                                child: AltConnectionButton(
+                                    targetUserId: profile.user!.id),
                               ),
                           ],
                         ),
@@ -189,7 +205,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   child: TabBar(
                     controller: _tabController,
                     labelColor: Theme.of(context).colorScheme.primary,
-                    unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                    unselectedLabelColor:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: const [
                       Tab(text: 'Alt Posts'),
@@ -205,7 +222,27 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   // Alt posts tab - filter only alt posts
                   PostListWidget(
                     posts: profile.posts.where((post) => post.isAlt).toList(),
-                    userId: profile.user?.id ?? (throw Exception("User ID is null")),
+                    isLoading: false, // Set based on your loading state
+                    hasError: false, // Set based on error state
+                    type: PostListType
+                        .profile, // Use profile layout for more compact display
+                    scrollController:
+                        ScrollController(), // Or pass an existing controller
+                    onRefresh: () async {
+                      // Reload posts
+                      await ref
+                          .read(profileControllerProvider.notifier)
+                          .loadProfile(widget.userId, isAltView: true);
+                    },
+                    emptyMessage: 'No alt posts yet',
+                    emptyActionLabel:
+                        profile.isCurrentUser ? 'Create Post' : null,
+                    onEmptyAction: profile.isCurrentUser
+                        ? () {
+                            context.pushNamed('create',
+                                queryParameters: {'isAlt': 'true'});
+                          }
+                        : null,
                   ),
                   // Groups tab - show user's groups
                   _buildGroupsSection(profile),
@@ -215,8 +252,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
               ),
             ),
           );
-        }
-    );
+        });
   }
 
   // Build the view for when a user needs to create their alt profile
@@ -236,8 +272,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
             Text(
               'Welcome to Your Alt Space',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -259,7 +295,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 textStyle: const TextStyle(fontSize: 16),
               ),
               child: const Text('Set Up Your Alt Profile'),
@@ -286,8 +323,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         Text(
           count,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+                fontWeight: FontWeight.bold,
+              ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -391,18 +428,19 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   children: [
                     _buildInfoRow('Username', '@${profile.user?.username}'),
                     const SizedBox(height: 8),
-                    if (profile.user?.altBio != null && profile.user!.altBio!.isNotEmpty) ...[
+                    if (profile.user?.altBio != null &&
+                        profile.user!.altBio!.isNotEmpty) ...[
                       _buildInfoRow('Bio', profile.user!.altBio!),
                       const SizedBox(height: 8),
                     ],
                     _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Alt Posts', '${profile.posts.where((post) => post.isAlt).length}'),
+                    _buildInfoRow('Alt Posts',
+                        '${profile.posts.where((post) => post.isAlt).length}'),
                   ],
                 ),
               ),
             ),
-
             if (profile.isCurrentUser) ...[
               const SizedBox(height: 24),
               const Text(
@@ -418,7 +456,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       _buildSwitchRow(
                         'Show Public Profile in Alt Feed',
                         true, // Default value
-                            (value) {
+                        (value) {
                           // Update setting
                         },
                       ),
@@ -426,7 +464,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       _buildSwitchRow(
                         'Allow Connection Requests',
                         true, // Default value
-                            (value) {
+                        (value) {
                           // Update setting
                         },
                       ),
@@ -434,7 +472,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       _buildSwitchRow(
                         'Show Activity Status',
                         false, // Default value
-                            (value) {
+                        (value) {
                           // Update setting
                         },
                       ),
@@ -470,7 +508,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     );
   }
 
-  Widget _buildSwitchRow(String label, bool initialValue, Function(bool) onChanged) {
+  Widget _buildSwitchRow(
+      String label, bool initialValue, Function(bool) onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -503,7 +542,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () {
-              ref.read(profileControllerProvider.notifier).loadProfile(widget.userId);
+              ref
+                  .read(profileControllerProvider.notifier)
+                  .loadProfile(widget.userId);
             },
             child: const Text('Retry'),
           ),

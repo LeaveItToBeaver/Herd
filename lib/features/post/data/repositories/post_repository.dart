@@ -6,8 +6,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
+
 import '../../../../core/services/image_helper.dart';
-import '../../../comment/data/models/comment_model.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../models/post_model.dart';
 
@@ -17,23 +17,32 @@ class PostRepository {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   // Collection references
-  CollectionReference<Map<String, dynamic>> get _posts => _firestore.collection('posts');
-  CollectionReference<Map<String, dynamic>> get _globalAltPosts => _firestore.collection('altPosts');
-  CollectionReference<Map<String, dynamic>> get _comments => _firestore.collection('comments');
-  CollectionReference<Map<String, dynamic>> get _likes => _firestore.collection('likes');
-  CollectionReference<Map<String, dynamic>> get _dislikes => _firestore.collection('dislikes');
-  CollectionReference<Map<String, dynamic>> get _feeds => _firestore.collection('feeds');
-  CollectionReference<Map<String, dynamic>> get _altFeeds => _firestore.collection('altFeeds');
+  CollectionReference<Map<String, dynamic>> get _posts =>
+      _firestore.collection('posts');
+  CollectionReference<Map<String, dynamic>> get _globalAltPosts =>
+      _firestore.collection('altPosts');
+  CollectionReference<Map<String, dynamic>> get _comments =>
+      _firestore.collection('comments');
+  CollectionReference<Map<String, dynamic>> get _likes =>
+      _firestore.collection('likes');
+  CollectionReference<Map<String, dynamic>> get _dislikes =>
+      _firestore.collection('dislikes');
+  CollectionReference<Map<String, dynamic>> get _feeds =>
+      _firestore.collection('feeds');
+  CollectionReference<Map<String, dynamic>> get _altFeeds =>
+      _firestore.collection('altFeeds');
 
   /// Creating a post ///
   Future<void> createPost(PostModel post) async {
     try {
       // Determine the correct collection based on post type
       CollectionReference<Map<String, dynamic>> targetCollection;
-      String postId = post.id.isEmpty ? _firestore.collection('posts').doc().id : post.id;
+      String postId =
+          post.id.isEmpty ? _firestore.collection('posts').doc().id : post.id;
 
       // Set the feedType based on post attributes
-      final feedType = post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
+      final feedType =
+          post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
 
       // Create a post with the feed type and ID
       final postWithTypeAndId = post.copyWith(
@@ -44,7 +53,10 @@ class PostRepository {
       // Determine where to save the post
       if (post.isAlt) {
         // Save to altPosts collection
-        await _firestore.collection('altPosts').doc(postId).set(postWithTypeAndId.toMap());
+        await _firestore
+            .collection('altPosts')
+            .doc(postId)
+            .set(postWithTypeAndId.toMap());
         debugPrint('Alt post created with ID: ${postId}');
       } else if (post.herdId != null && post.herdId!.isNotEmpty) {
         // Save to herdPosts collection
@@ -54,10 +66,14 @@ class PostRepository {
             .collection('posts')
             .doc(postId)
             .set(postWithTypeAndId.toMap());
-        debugPrint('Herd post created with ID: ${postId} in herd: ${post.herdId}');
+        debugPrint(
+            'Herd post created with ID: ${postId} in herd: ${post.herdId}');
       } else {
         // Save to regular posts collection
-        await _firestore.collection('posts').doc(postId).set(postWithTypeAndId.toMap());
+        await _firestore
+            .collection('posts')
+            .doc(postId)
+            .set(postWithTypeAndId.toMap());
         debugPrint('Public post created with ID: ${postId}');
       }
 
@@ -116,7 +132,8 @@ class PostRepository {
 
         // Add upload monitoring and error handling
         uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          debugPrint('Video upload progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%');
+          debugPrint(
+              'Video upload progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%');
         }, onError: (e) {
           debugPrint('Video upload error: $e');
         });
@@ -150,7 +167,8 @@ class PostRepository {
       // For regular images, upload both versions
       else if (mediaType == 'image') {
         // 1. Upload full resolution image
-        final fullResRef = _storage.ref().child('$baseStoragePath/fullres$extension');
+        final fullResRef =
+            _storage.ref().child('$baseStoragePath/fullres$extension');
 
         final fullResMetadata = SettableMetadata(
           contentType: contentType,
@@ -161,14 +179,17 @@ class PostRepository {
           },
         );
 
-        final fullResUploadTask = fullResRef.putFile(mediaFile, fullResMetadata);
+        final fullResUploadTask =
+            fullResRef.putFile(mediaFile, fullResMetadata);
         final fullResSnapshot = await fullResUploadTask;
         fullResUrl = await fullResSnapshot.ref.getDownloadURL();
 
         // 2. Create and upload compressed version
-        final compressedImage = await ImageHelper.compressImage(mediaFile, quality: 70);
+        final compressedImage =
+            await ImageHelper.compressImage(mediaFile, quality: 70);
         if (compressedImage != null) {
-          final thumbnailRef = _storage.ref().child('$baseStoragePath/thumbnail$extension');
+          final thumbnailRef =
+              _storage.ref().child('$baseStoragePath/thumbnail$extension');
 
           final thumbnailMetadata = SettableMetadata(
             contentType: contentType,
@@ -179,7 +200,8 @@ class PostRepository {
             },
           );
 
-          final thumbnailUploadTask = thumbnailRef.putFile(compressedImage, thumbnailMetadata);
+          final thumbnailUploadTask =
+              thumbnailRef.putFile(compressedImage, thumbnailMetadata);
           final thumbnailSnapshot = await thumbnailUploadTask;
           thumbnailUrl = await thumbnailSnapshot.ref.getDownloadURL();
         } else {
@@ -200,7 +222,8 @@ class PostRepository {
   }
 
   // Legacy method for compatibility, redirects to the new uploadMedia method
-  Future<String?> uploadImage(File imageFile, {
+  Future<String?> uploadImage(
+    File imageFile, {
     required String postId,
     required String userId,
     File? file, // Optional
@@ -219,12 +242,12 @@ class PostRepository {
         isAlt: isAlt,
       );
 
-      return result['imageUrl']; // Return the full resolution URL for backward compatibility
+      return result[
+          'imageUrl']; // Return the full resolution URL for backward compatibility
     } catch (e) {
       throw Exception("Failed to upload media: $e");
     }
   }
-
 
   // Helper method to determine content type based on file extension
   String _getContentType(String extension) {
@@ -278,9 +301,10 @@ class PostRepository {
     }
 
     final postsSnap = await query.get();
-    return postsSnap.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList();
+    return postsSnap.docs
+        .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+        .toList();
   }
-
 
   // Get alt user feed with pagination
   Future<List<PostModel>> getAltUserFeed({
@@ -302,10 +326,13 @@ class PostRepository {
     }
 
     final postsSnap = await query.get();
-    return postsSnap.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList();
+    return postsSnap.docs
+        .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+        .toList();
   }
 
-  Future<List<PostModel>> getPostsWithAuthorDetails({bool altOnly = false}) async {
+  Future<List<PostModel>> getPostsWithAuthorDetails(
+      {bool altOnly = false}) async {
     var query = _posts.orderBy('createdAt', descending: true);
 
     if (altOnly) {
@@ -321,7 +348,8 @@ class PostRepository {
       final post = PostModel.fromMap(doc.id, doc.data());
 
       // Fetch author details
-      final authorDoc = await _firestore.collection('users').doc(post.authorId).get();
+      final authorDoc =
+          await _firestore.collection('users').doc(post.authorId).get();
       final authorData = authorDoc.data();
 
       if (authorData != null) {
@@ -330,7 +358,8 @@ class PostRepository {
           authorId: post.authorId,
           authorUsername: authorData['username'] ?? 'Unknown',
           authorProfileImageURL: post.isAlt
-              ? authorData['altProfileImageURL'] ?? authorData['profileImageURL']
+              ? authorData['altProfileImageURL'] ??
+                  authorData['profileImageURL']
               : authorData['profileImageURL'],
           title: post.title,
           content: post.content,
@@ -354,12 +383,15 @@ class PostRepository {
         .where('herdId', isEqualTo: herdId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+            .toList());
   }
 
   // Get post by ID
   /// Get post by ID
-  Future<PostModel?> getPostById(String postId, {bool? isAlt, String? herdId, bool forceRefresh = false}) async {
+  Future<PostModel?> getPostById(String postId,
+      {bool? isAlt, String? herdId, bool forceRefresh = false}) async {
     try {
       // Set the correct fetch option based on forceRefresh
       final fetchOptions = forceRefresh
@@ -394,10 +426,8 @@ class PostRepository {
 
       // If we know it's a public post, check the public posts collection
       if (isAlt == false) {
-        final doc = await _firestore
-            .collection('posts')
-            .doc(postId)
-            .get(fetchOptions);
+        final doc =
+            await _firestore.collection('posts').doc(postId).get(fetchOptions);
 
         if (doc.exists) {
           return PostModel.fromMap(doc.id, doc.data()!);
@@ -407,20 +437,16 @@ class PostRepository {
       // If we don't know the post type or haven't found it yet, check all collections
 
       // Check public posts first (most common)
-      final publicDoc = await _firestore
-          .collection('posts')
-          .doc(postId)
-          .get(fetchOptions);
+      final publicDoc =
+          await _firestore.collection('posts').doc(postId).get(fetchOptions);
 
       if (publicDoc.exists) {
         return PostModel.fromMap(publicDoc.id, publicDoc.data()!);
       }
 
       // Check alt posts collection
-      final altDoc = await _firestore
-          .collection('altPosts')
-          .doc(postId)
-          .get(fetchOptions);
+      final altDoc =
+          await _firestore.collection('altPosts').doc(postId).get(fetchOptions);
 
       if (altDoc.exists) {
         return PostModel.fromMap(altDoc.id, altDoc.data()!);
@@ -444,6 +470,7 @@ class PostRepository {
       rethrow;
     }
   }
+
   // Stream specific post
   Stream<PostModel?> streamPost(String postId, {bool? isAlt}) {
     try {
@@ -518,26 +545,31 @@ class PostRepository {
     if (postDoc.exists) {
       await _posts.doc(postId).delete();
       debugPrint('Public post deleted with ID: $postId');
-      debugPrint('Removal from followers\' feeds will be handled by Cloud Function');
+      debugPrint(
+          'Removal from followers\' feeds will be handled by Cloud Function');
     } else if (altPostDoc.exists) {
       await _globalAltPosts.doc(postId).delete();
       debugPrint('Alt post deleted with ID: $postId');
-      debugPrint('Removal from alt connections\' feeds will be handled by Cloud Function');
+      debugPrint(
+          'Removal from alt connections\' feeds will be handled by Cloud Function');
     } else {
       throw Exception("Post not found");
     }
 
     // Delete associated documents (comments, likes, dislikes)
-    await _deleteSubCollection(_comments.doc(postId).collection('postComments'));
+    await _deleteSubCollection(
+        _comments.doc(postId).collection('postComments'));
     await _deleteSubCollection(_likes.doc(postId).collection('postLikes'));
-    await _deleteSubCollection(_dislikes.doc(postId).collection('postDislikes'));
+    await _deleteSubCollection(
+        _dislikes.doc(postId).collection('postDislikes'));
 
     // Remove from the author's feed (the Cloud Function will handle distribution)
     // You'd need the authorId from the post data here
   }
 
   // Utility: Delete all documents in a subcollection
-  Future<void> _deleteSubCollection(CollectionReference<Map<String, dynamic>> collection) async {
+  Future<void> _deleteSubCollection(
+      CollectionReference<Map<String, dynamic>> collection) async {
     final snapshot = await collection.get();
     for (final doc in snapshot.docs) {
       await doc.reference.delete();
@@ -551,9 +583,9 @@ class PostRepository {
         .where('herdId', isNull: true) // Exclude herd posts
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-          snapshot.docs.map((doc) =>
-              PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+            .toList());
   }
 
   // Get only user's public posts
@@ -564,9 +596,9 @@ class PostRepository {
         .where('isAlt', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-          snapshot.docs.map((doc) =>
-              PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+            .toList());
   }
 
   // Get only user's alt posts
@@ -576,21 +608,33 @@ class PostRepository {
         .where('herdId', isNull: true) // Exclude herd posts
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-          snapshot.docs.map((doc) =>
-              PostModel.fromMap(doc.id, doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+            .toList());
   }
 
   /// Liking and Disliking Posts ///
-  Future<void> likePost({required String postId, required String userId}) async {
+  Future<void> likePost(
+      {required String postId,
+      required String userId,
+      required bool isAlt}) async {
     try {
       // Call the Cloud Function to handle like/unlike
-      final HttpsCallableResult result = await _functions
-          .httpsCallable('handlePostInteraction')
-          .call({
-        'postId': postId,
-        'interactionType': 'like',
-      });
+      if (isAlt) {
+        // For alt posts, use the alt-specific Cloud Function
+        await _functions.httpsCallable('handlePostInteraction').call({
+          'postId': postId,
+          'interactionType': 'like',
+          'feedType': 'alt',
+        });
+      } else {
+        // For public posts, use the regular Cloud Function
+        await _functions.httpsCallable('handlePostInteraction').call({
+          'postId': postId,
+          'interactionType': 'like',
+          'feedType': 'public',
+        });
+      }
 
       // Process result if needed
       debugPrint('Like operation completed via Cloud Function');
@@ -604,16 +648,26 @@ class PostRepository {
     }
   }
 
-  Future<void> dislikePost({required String postId, required String userId}) async {
+  Future<void> dislikePost(
+      {required String postId,
+      required String userId,
+      required bool isAlt}) async {
     try {
-      // Call the Cloud Function to handle like/unlike
-      final HttpsCallableResult result = await _functions
-          .httpsCallable('handlePostInteraction')
-          .call({
-        'postId': postId,
-        'interactionType': 'dislike',
-      });
-
+      if (isAlt) {
+        // For alt posts, use the alt-specific Cloud Function
+        await _functions.httpsCallable('handlePostInteraction').call({
+          'postId': postId,
+          'interactionType': 'dislike',
+          'feedType': 'alt',
+        });
+      } else {
+        // For public posts, use the regular Cloud Function
+        await _functions.httpsCallable('handlePostInteraction').call({
+          'postId': postId,
+          'interactionType': 'dislike',
+          'feedType': 'public',
+        });
+      }
       // Process result if needed
       debugPrint('Like operation completed via Cloud Function');
     } on FirebaseFunctionsException catch (error) {
@@ -626,14 +680,17 @@ class PostRepository {
     }
   }
 
-  Future<void> _directLikePost({required String postId, required String userId}) async {
+  Future<void> _directLikePost(
+      {required String postId, required String userId}) async {
     final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
-    final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
+    final postDislikeRef =
+        _dislikes.doc(postId).collection('postDislikes').doc(userId);
     final postRef = _posts.doc(postId);
 
     try {
       // First transaction: Handle the like/unlike operation
-      final transactionResult = await _firestore.runTransaction((transaction) async {
+      final transactionResult =
+          await _firestore.runTransaction((transaction) async {
         // Pre-fetch data
         final postSnapshot = await transaction.get(postRef);
         final postLikeSnapshot = await transaction.get(postLikeRef);
@@ -650,7 +707,8 @@ class PostRepository {
         // Handle dislikes
         if (hasDisliked) {
           transaction.delete(postDislikeRef);
-          transaction.update(postRef, {'dislikeCount': FieldValue.increment(-1)});
+          transaction
+              .update(postRef, {'dislikeCount': FieldValue.increment(-1)});
         }
 
         // Handle likes
@@ -661,7 +719,8 @@ class PostRepository {
           return {'postAuthorId': postAuthorId, 'isNewLike': false};
         } else {
           // Like the post
-          transaction.set(postLikeRef, {'createdAt': FieldValue.serverTimestamp()});
+          transaction
+              .set(postLikeRef, {'createdAt': FieldValue.serverTimestamp()});
           transaction.update(postRef, {'likeCount': FieldValue.increment(1)});
           return {'postAuthorId': postAuthorId, 'isNewLike': true};
         }
@@ -680,9 +739,11 @@ class PostRepository {
   }
 
   // Dislike Post
-  Future<void> _directDislikePost({required String postId, required String userId}) async {
+  Future<void> _directDislikePost(
+      {required String postId, required String userId}) async {
     final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
-    final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
+    final postDislikeRef =
+        _dislikes.doc(postId).collection('postDislikes').doc(userId);
     final postRef = _posts.doc(postId);
 
     await _firestore.runTransaction((transaction) async {
@@ -698,7 +759,6 @@ class PostRepository {
       final hasLiked = postLikeSnapshot.exists;
       final hasDisliked = postDislikeSnapshot.exists;
 
-
       // *** NOW PERFORM LOGIC AND WRITES BASED ON PRE-FETCHED DATA ***
 
       if (hasLiked) {
@@ -712,22 +772,27 @@ class PostRepository {
         transaction.update(postRef, {'dislikeCount': FieldValue.increment(-1)});
       } else {
         // Dislike the post
-        transaction.set(postDislikeRef, {'createdAt': FieldValue.serverTimestamp()});
+        transaction
+            .set(postDislikeRef, {'createdAt': FieldValue.serverTimestamp()});
         transaction.update(postRef, {'dislikeCount': FieldValue.increment(1)});
       }
     });
   }
 
   // Check if post is liked by user
-  Future<bool> isPostLikedByUser({required String postId, required String userId}) async {
-    final postLikeRef = _likes.doc(postId).collection('userInteractions').doc(userId);
+  Future<bool> isPostLikedByUser(
+      {required String postId, required String userId}) async {
+    final postLikeRef =
+        _likes.doc(postId).collection('userInteractions').doc(userId);
     final snapshot = await postLikeRef.get();
     return snapshot.exists;
   }
 
   // Check if post is disliked by user
-  Future<bool> isPostDislikedByUser({required String postId, required String userId}) async {
-    final postDislikeRef = _dislikes.doc(postId).collection('userInteractions').doc(userId);
+  Future<bool> isPostDislikedByUser(
+      {required String postId, required String userId}) async {
+    final postDislikeRef =
+        _dislikes.doc(postId).collection('userInteractions').doc(userId);
     final snapshot = await postDislikeRef.get();
     return snapshot.exists;
   }
