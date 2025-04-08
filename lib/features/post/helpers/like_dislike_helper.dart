@@ -16,9 +16,11 @@ class LikeDislikeHelper {
     final userId = user?.id;
 
     if (userId != null) {
-      ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isAlt: isAlt)
-      ).notifier).likePost(userId);
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: postId, isAlt: isAlt))
+              .notifier)
+          .likePost(userId, isAlt: isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to like posts.')),
@@ -36,12 +38,15 @@ class LikeDislikeHelper {
     final userId = user?.id;
 
     if (userId != null) {
-      ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isAlt: isAlt)
-      ).notifier).dislikePost(userId);
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: postId, isAlt: isAlt))
+              .notifier)
+          .dislikePost(userId, isAlt: isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to dislike posts.')),
+        const SnackBar(
+            content: Text('You must be logged in to dislike posts.')),
       );
     }
   }
@@ -55,8 +60,7 @@ class LikeDislikeHelper {
     required bool isAlt,
   }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: postId, isAlt: isAlt)
-    ));
+        PostParams(id: postId, isAlt: isAlt)));
 
     // Always use the state-provided totalLikes value
     final displayLikes = interactionState.totalLikes;
@@ -69,9 +73,10 @@ class LikeDislikeHelper {
         children: [
           IconButton(
             icon: Icon(
-                interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                color: interactionState.isLiked ? Colors.green : Colors.grey
-            ),
+                interactionState.isLiked
+                    ? Icons.thumb_up
+                    : Icons.thumb_up_outlined,
+                color: interactionState.isLiked ? Colors.green : Colors.grey),
             onPressed: () => handleLikePost(
               context: context,
               ref: ref,
@@ -82,9 +87,10 @@ class LikeDislikeHelper {
           Text(displayLikes.toString()),
           IconButton(
             icon: Icon(
-                interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-                color: interactionState.isDisliked ? Colors.red : Colors.grey
-            ),
+                interactionState.isDisliked
+                    ? Icons.thumb_down
+                    : Icons.thumb_down_outlined,
+                color: interactionState.isDisliked ? Colors.red : Colors.grey),
             onPressed: () => handleDislikePost(
               context: context,
               ref: ref,

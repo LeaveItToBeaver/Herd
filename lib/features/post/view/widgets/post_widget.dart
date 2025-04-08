@@ -1,57 +1,68 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
-import 'package:herdapp/features/user/view/providers/user_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
-import '../../../herds/data/models/herd_model.dart';
 import '../../../herds/view/providers/herd_providers.dart';
-import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
+import '../../../user/view/providers/user_provider.dart';
+import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../providers/state/post_interaction_state.dart';
 
 class PostWidget extends ConsumerStatefulWidget {
   final PostModel post;
+  final bool isCompact; // Optional flag for more compact display in lists
 
-  const PostWidget({super.key, required this.post});
+  const PostWidget({
+    super.key,
+    required this.post,
+    this.isCompact = false,
+  });
 
   @override
   ConsumerState<PostWidget> createState() => _PostWidgetState();
 }
 
-class _PostWidgetState extends ConsumerState<PostWidget> {
+class _PostWidgetState extends ConsumerState<PostWidget>
+    with AutomaticKeepAliveClientMixin {
   bool _hasInitializedInteraction = false;
+  bool _isExpanded = false;
+
+  @override
+  bool get wantKeepAlive => true; // Keep widget state when scrolling
 
   @override
   void initState() {
     super.initState();
-    _initializePostInteraction();
-    // We can also use a flag to ensure we only initialize once
-    // _hasInitializedInteraction = false;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _initializePostInteraction();
+    // Schedule the initialization outside of the build method
+    // This uses a microtask to ensure it happens after the current build
+    Future.microtask(() {
+      _initializePostInteraction();
+    });
   }
 
   void _initializePostInteraction() {
     // Only initialize once to avoid repeated calls
-    if (!_hasInitializedInteraction) {
+    if (!_hasInitializedInteraction && mounted) {
       final userId = ref.read(currentUserProvider)?.id;
       if (userId != null) {
-        // Initialize post interaction state immediately (safely)
-        // We use Future.microtask to ensure this doesn't happen during build
+        // Use a Future to avoid modifying state during build
         Future.microtask(() {
           if (mounted) {
-            ref.read(postInteractionsWithPrivacyProvider(
-                PostParams(id: widget.post.id, isAlt: widget.post.isAlt
-                )
-            ).notifier).initializeState(userId);
-            _hasInitializedInteraction = true;
+            ref
+                .read(postInteractionsWithPrivacyProvider(PostParams(
+                        id: widget.post.id, isAlt: widget.post.isAlt))
+                    .notifier)
+                .initializeState(userId);
+
+            // Now we can mark it as initialized
+            if (mounted) {
+              setState(() {
+                _hasInitializedInteraction = true;
+              });
+            }
           }
         });
       }
@@ -60,12 +71,14 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
-    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: widget.post.id, isAlt: widget.post.isAlt)
-    ));
-    final currentUser = ref.watch(currentUserProvider);
+    super.build(context);
 
+    final theme = Theme.of(context);
+    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
+        PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
+
+    // Format the timestamp here, so it's always available
+    final formattedTimestamp = _formatTimestamp(widget.post.createdAt);
 
     return GestureDetector(
       onTap: () => context.pushNamed(
@@ -73,295 +86,674 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
         pathParameters: {'id': widget.post.id},
         queryParameters: {'isAlt': widget.post.isAlt.toString()},
       ),
-      child: Card(
-        elevation: 5,
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: widget.post.isAlt
-              ? BorderSide(color: Colors.blue.shade300, width: 2)
-              : BorderSide.none,
+      child: Container(
+        margin: EdgeInsets.symmetric(
+            vertical: 8, horizontal: widget.isCompact ? 8 : 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: widget.post.isAlt
+              ? Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.2), width: 1)
+              : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Privacy indicator bar
-            if (widget.post.isAlt)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(15),
-                    topRight: Radius.circular(15),
-                  ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Post Type Indicator
+              if (widget.post.isAlt)
+                _buildTypeIndicator(
+                  icon: Icons.lock_outline,
+                  label: 'Alt Post',
+                  color: theme.colorScheme.primary,
                 ),
-                child: Row(
+
+              if (widget.post.herdId != null &&
+                  widget.post.herdId!.isNotEmpty &&
+                  !widget.post.isAlt)
+                _buildTypeIndicator(
+                  icon: Icons.group_outlined,
+                  label: 'Herd Post',
+                  color: theme.colorScheme.secondary,
+                ),
+
+              // Post Content
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lock, size: 14, color: Colors.blue),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Alt Post',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
+                    // Header
+                    widget.post.herdId != null && widget.post.herdId!.isNotEmpty
+                        ? _buildHerdHeader(formattedTimestamp)
+                        : _buildAuthorHeader(formattedTimestamp),
+
+                    // Title and Content
+                    if (widget.post.title != null &&
+                        widget.post.title!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.post.title!,
+                        style: TextStyle(
+                          fontSize: widget.isCompact ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                    ],
+
+                    // Either media or text content
+                    const SizedBox(height: 12),
+                    _shouldShowMedia()
+                        ? _buildMediaPreview()
+                        : _buildContentText(theme),
+
+                    const SizedBox(height: 16),
+
+                    // Action row
+                    _buildActionBar(interactionState, theme),
                   ],
                 ),
               ),
-
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  userAsyncValue.when(
-                    loading: () => _buildLoadingHeader(),
-                    error: (error, stack) => Text('Error: $error'),
-                    data: (user) => _buildUserHeader(context, user, widget.post.authorId, widget.post.isAlt),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  if (widget.post.title!.isNotEmpty)
-                    Text(
-                      widget.post.title!,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-
-                  const SizedBox(height: 6),
-
-                  // Use the thumbnailUrl if available, otherwise fall back to imageUrl
-                  if (_shouldShowMedia())
-                    _buildMediaPreview()
-                  else
-                    Text(
-                      widget.post.content,
-                      style: const TextStyle(fontSize: 16),
-                      maxLines: 5,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                  const SizedBox(height: 12),
-
-                  _buildActionButtons(widget.post, interactionState),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  bool _shouldShowMedia() {
-    return
-      (widget.post.mediaThumbnailURL != null && widget.post.mediaThumbnailURL!.isNotEmpty) ||
-          (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty);
-  }
-
-  Widget _buildMediaPreview() {
-    // Use thumbnail in feed view if available, otherwise fall back to full image
-    final String imageUrl = widget.post.mediaThumbnailURL ?? widget.post.mediaURL ?? '';
-
-    // For GIFs, show a GIF indicator
-    final bool isGif = widget.post.mediaType == 'gif';
-
-    // For videos, show a video placeholder with play icon
-    final bool isVideo = widget.post.mediaType == 'video';
-
-    if (isVideo) {
-      return Stack(
-        alignment: Alignment.center,
+  Widget _buildTypeIndicator({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Row(
         children: [
-          Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(10),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-            child: const Center(
-              child: Text(
-                'Video',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-          ),
-          Icon(
-            Icons.play_circle_fill,
-            size: 64,
-            color: Colors.white.withOpacity(0.7),
           ),
         ],
-      );
-    }
+      ),
+    );
+  }
 
-    // For images and GIFs
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            height: 200, // Fixed height for consistency in the feed
-            width: double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              height: 200,
-              color: Colors.grey[200],
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 200,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Icon(Icons.error_outline, color: Colors.red),
-              ),
-            ),
-          ),
-        ),
+  Widget _buildAuthorHeader(String formattedTimestamp) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
 
-        // Show GIF indicator if needed
-        if (isGif)
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'GIF',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+        return userAsyncValue.when(
+          loading: () => _buildLoadingHeader(),
+          error: (error, stack) => Text('Error loading user',
+              style: TextStyle(color: Colors.red.shade300)),
+          data: (user) {
+            if (user == null) return const Text('User not found');
+
+            // Use appropriate profile image based on post privacy
+            final profileImageUrl = widget.post.isAlt
+                ? (user.altProfileImageURL ?? user.profileImageURL)
+                : user.profileImageURL;
+
+            // Use appropriate name based on post privacy
+            final displayName = widget.post.isAlt
+                ? (user.username ?? 'Anonymous')
+                : '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim();
+
+            return Row(
+              children: [
+                // Profile image
+                GestureDetector(
+                  onTap: () => _navigateToProfile(user.id),
+                  child: CircleAvatar(
+                    radius: widget.isCompact ? 16 : 20,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage:
+                        profileImageUrl != null && profileImageUrl.isNotEmpty
+                            ? NetworkImage(profileImageUrl)
+                            : null,
+                    child: profileImageUrl == null || profileImageUrl.isEmpty
+                        ? Icon(
+                            Icons.person,
+                            color: Colors.grey.shade400,
+                            size: widget.isCompact ? 16 : 20,
+                          )
+                        : null,
+                  ),
                 ),
-              ),
+
+                const SizedBox(width: 12),
+
+                // User info
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _navigateToProfile(user.id),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Username
+                        Row(
+                          children: [
+                            Text(
+                              displayName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: widget.isCompact ? 13 : 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (widget.post.isAlt) ...[
+                              const SizedBox(width: 4),
+                              Icon(Icons.lock,
+                                  size: 12, color: Colors.blue.shade400),
+                            ],
+                          ],
+                        ),
+
+                        // Timestamp - always show
+                        Text(
+                          formattedTimestamp,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: widget.isCompact ? 11 : 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Post options menu
+                _buildPostMenu(),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHerdHeader(String formattedTimestamp) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final herdId = widget.post.herdId!;
+        final herdAsyncValue = ref.watch(herdProvider(herdId));
+        final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Herd name row
+            herdAsyncValue.when(
+              loading: () => _buildShimmerText(width: 150, height: 18),
+              error: (_, __) => const Text('Unknown herd',
+                  style: TextStyle(fontStyle: FontStyle.italic)),
+              data: (herd) {
+                if (herd == null) return const Text('Unknown herd');
+
+                return GestureDetector(
+                  onTap: () =>
+                      context.pushNamed('herd', pathParameters: {'id': herdId}),
+                  child: Row(
+                    children: [
+                      // Herd avatar
+                      CircleAvatar(
+                        radius: widget.isCompact ? 16 : 20,
+                        backgroundColor: Colors.blue.shade50,
+                        backgroundImage: herd.profileImageURL != null
+                            ? NetworkImage(herd.profileImageURL!)
+                            : null,
+                        child: herd.profileImageURL == null
+                            ? Icon(Icons.group, color: Colors.blue.shade300)
+                            : null,
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Herd name
+                      Expanded(
+                        child: Text(
+                          'h/${herd.name}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                            fontSize: widget.isCompact ? 14 : 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                      // Post menu
+                      _buildPostMenu(),
+                    ],
+                  ),
+                );
+              },
             ),
-          ),
-      ],
-    );
-  }
 
-  Widget _buildLoadingHeader() {
-    return const Row(
-      children: [
-        CircleAvatar(
-          radius: 25,
-          backgroundImage: AssetImage('assets/images/default_avatar.png'),
-        ),
-        SizedBox(width: 10),
-        Text('Loading...', style: TextStyle(fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-
-  Widget _buildUserHeader(BuildContext context, UserModel? user, String authorId, bool isAlt) {
-    if (user == null) {
-      return const Text('User not found');
-    }
-
-    // Use appropriate profile image based on post privacy
-    final profileImageUrl = isAlt
-        ? (user.altProfileImageURL ?? user.profileImageURL)
-        : user.profileImageURL;
-
-    // In post_widget.dart, add this near the username display
-    if (widget.post.herdId != null && widget.post.herdId!.isNotEmpty) {
-      FutureBuilder<HerdModel?>(
-        future: ref.read(herdProvider(widget.post.herdId!).future),
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data != null) {
-            return GestureDetector(
-              onTap: () => context.pushNamed(
-                'herd',
-                pathParameters: {'id': widget.post.herdId!},
-              ),
+            // Author and timestamp row - always show
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.group, size: 14, color: Colors.blue),
+                  userAsyncValue.when(
+                    loading: () => _buildShimmerText(width: 100, height: 12),
+                    error: (_, __) => const Text('Unknown user',
+                        style: TextStyle(
+                            fontStyle: FontStyle.italic, fontSize: 12)),
+                    data: (user) {
+                      final displayName = user != null
+                          ? (widget.post.isAlt
+                              ? (user.username ?? 'Anonymous')
+                              : '${user.firstName ?? ''} ${user.lastName ?? ''}'
+                                  .trim())
+                          : 'Anonymous';
+
+                      return GestureDetector(
+                        onTap: () =>
+                            user != null ? _navigateToProfile(user.id) : null,
+                        child: Text(
+                          'Posted by $displayName',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: widget.isCompact ? 11 : 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(width: 4),
                   Text(
-                    'h/${snapshot.data!.name}',
+                    '· $formattedTimestamp',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontSize: widget.isCompact ? 11 : 12,
                     ),
                   ),
                 ],
               ),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      );
-    }
+            ),
+          ],
+        );
+      },
+    );
+  }
 
+  Widget _buildLoadingHeader() {
     return Row(
       children: [
-        GestureDetector(
-          onTap: () => context.pushNamed(
-            isAlt ? 'altProfile' : 'publicProfile',
-            pathParameters: {'id': authorId},
-          ),
-          child: CircleAvatar(
-            radius: 22.0,
-            backgroundColor: Colors.grey[200],
-            // Only use NetworkImage if the URL exists and isn't empty
-            backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
-                ? NetworkImage(profileImageUrl)
-                : null,
-            // Show placeholder icon if no image URL
-            child: profileImageUrl == null || profileImageUrl.isEmpty
-                ? Icon(
-              Icons.account_circle,
-              color: Colors.grey[400],
-              size: 22.0 * 2,
-            )
-                : null,
-          ),
+        _buildShimmerCircle(radius: widget.isCompact ? 16 : 20),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildShimmerText(width: 120, height: 14),
+            const SizedBox(height: 4),
+            _buildShimmerText(width: 80, height: 12),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => context.pushNamed(
-              isAlt ? 'altProfile' : 'publicProfile',
-              pathParameters: {'id': authorId},
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        const Spacer(),
+        const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+      ],
+    );
+  }
+
+  Widget _buildPostMenu() {
+    final currentUserId = ref.read(currentUserProvider)?.id;
+    final isCurrentUserAuthor = currentUserId == widget.post.authorId;
+
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
+      offset: const Offset(0, 36),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (value) {
+        switch (value) {
+          case 'report':
+            _showReportDialog();
+            break;
+          case 'delete':
+            _showDeleteConfirmation();
+            break;
+          case 'save':
+            _savePost();
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        if (isCurrentUserAuthor)
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Text(
-                      isAlt
-                          ? (user.username ?? '')
-                          : '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    if (isAlt) ...[
-                      const SizedBox(width: 6),
-                      const Icon(Icons.lock, size: 14, color: Colors.blue),
-                    ],
-                  ],
-                ),
-                Text(
-                  _formatTimestamp(widget.post.createdAt),
-                  style: const TextStyle(color: Colors.grey),
-                ),
+                Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                SizedBox(width: 8),
+                Text('Delete post', style: TextStyle(color: Colors.red)),
               ],
             ),
           ),
+        const PopupMenuItem(
+          value: 'save',
+          child: Row(
+            children: [
+              Icon(Icons.bookmark_border, size: 20),
+              SizedBox(width: 8),
+              Text('Save post'),
+            ],
+          ),
         ),
+        if (!isCurrentUserAuthor)
+          const PopupMenuItem(
+            value: 'report',
+            child: Row(
+              children: [
+                Icon(Icons.flag_outlined, size: 20),
+                SizedBox(width: 8),
+                Text('Report post'),
+              ],
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildShimmerCircle({required double radius}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: Colors.grey.shade300,
+      ),
+    );
+  }
+
+  Widget _buildShimmerText({required double width, required double height}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentText(ThemeData theme) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.post.content,
+            style: TextStyle(
+              fontSize: widget.isCompact ? 14 : 15,
+              color: theme.colorScheme.onSurface.withOpacity(0.9),
+              height: 1.4,
+            ),
+            maxLines: _isExpanded ? null : (widget.isCompact ? 3 : 4),
+            overflow: _isExpanded ? null : TextOverflow.ellipsis,
+          ),
+          if (widget.post.content.length > 200 && !_isExpanded)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Read more',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _shouldShowMedia() {
+    return (widget.post.mediaThumbnailURL != null &&
+            widget.post.mediaThumbnailURL!.isNotEmpty) ||
+        (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty);
+  }
+
+  Widget _buildMediaPreview() {
+    // Use thumbnail in feed view if available
+    final String imageUrl =
+        widget.post.mediaThumbnailURL ?? widget.post.mediaURL ?? '';
+    final mediaType = widget.post.mediaType ?? 'image';
+
+    // For videos, show a video placeholder with play icon
+    if (mediaType == 'video') {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(
+                width: double.infinity,
+                color: Colors.black87,
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(
+                          child: Icon(Icons.videocam,
+                              color: Colors.white70, size: 40),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.videocam,
+                            color: Colors.white70, size: 40),
+                      ),
+              ),
+            ),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // For GIFs and images
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        children: [
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            height: widget.isCompact ? 150 : 200,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              height: widget.isCompact ? 150 : 200,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              height: widget.isCompact ? 150 : 200,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline,
+                      color: Colors.grey.shade400, size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Failed to load image',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Show GIF indicator if needed
+          if (mediaType == 'gif')
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'GIF',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionBar(
+      PostInteractionState interactionState, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: theme.dividerColor.withOpacity(0.1), width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Like button - always show
+          _buildActionButton(
+            interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+            interactionState.totalLikes.toString(),
+            color: interactionState.isLiked ? Colors.green : null,
+            onPressed:
+                interactionState.isLoading ? null : () => _handleLikePost(),
+          ),
+
+          // Dislike button - always show for consistency
+          _buildActionButton(
+            interactionState.isDisliked
+                ? Icons.thumb_down
+                : Icons.thumb_down_outlined,
+            '',
+            color: interactionState.isDisliked ? Colors.red : null,
+            onPressed:
+                interactionState.isLoading ? null : () => _handleDislikePost(),
+          ),
+
+          // Comment button - always show
+          _buildActionButton(
+            Icons.chat_bubble_outline,
+            interactionState.totalComments.toString(),
+            onPressed: () => context.pushNamed(
+              'post',
+              pathParameters: {'id': widget.post.id},
+              queryParameters: {'isAlt': widget.post.isAlt.toString()},
+            ),
+          ),
+
+          // Spacer
+          const Spacer(),
+
+          // Share button - always show but disabled for alt posts
+          IconButton(
+            icon: const Icon(Icons.share_outlined, size: 20),
+            onPressed: widget.post.isAlt ? null : () => _sharePost(),
+            tooltip: widget.post.isAlt ? 'Cannot share alt posts' : 'Share',
+            color: widget.post.isAlt ? theme.disabledColor : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    IconData icon,
+    String count, {
+    Color? color,
+    required VoidCallback? onPressed,
+  }) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: Icon(
+        icon,
+        size: 18,
+        color: color ?? Colors.grey.shade700,
+      ),
+      label: Text(
+        count,
+        style: TextStyle(
+          color: color ?? Colors.grey.shade700,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        minimumSize: Size.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 
@@ -386,99 +778,115 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
     }
   }
 
-  // Fixed version without post-frame callbacks in the build method
-  Widget _buildActionButtons(PostModel post, PostInteractionState interactionState) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildIconButton(
-          Icons.share_rounded,
-          onPressed: post.isAlt ? null : () {},
-          enabled: !post.isAlt,
-        ),
-        Row(
-          children: [
-            _buildIconButton(
-              Icons.comment_rounded,
-              onPressed: () {},
-            ),
-            _buildInfoColumn(interactionState.totalComments),
-          ],
-        ),
-        // Like and dislike section with updated interaction state
-        Row(
-          children: [
-            _buildIconButton(
-              interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-              color: interactionState.isLiked ? Colors.green : null,
-              onPressed: interactionState.isLoading ? null : () => _handleLikePost(post.id),
-            ),
-            // Display net likes (which can be negative)
-            _buildInfoColumn(interactionState.totalLikes),
-            _buildIconButton(
-              interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-              color: interactionState.isDisliked ? Colors.red : null,
-              onPressed: interactionState.isLoading ? null : () => _handleDislikePost(post.id),
-            ),
-          ],
-        ),
-      ],
+  void _navigateToProfile(String userId) {
+    context.pushNamed(
+      widget.post.isAlt ? 'altProfile' : 'publicProfile',
+      pathParameters: {'id': userId},
     );
   }
 
-  Widget _buildInfoColumn(int count) => Column(
-    children: [
-      Text(
-        count.toString(),
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: count < 0 ? Colors.red : null, // Red for negative values
-        ),
-      ),
-    ],
-  );
-
-  Widget _buildIconButton(
-      IconData icon, {
-        Color? color,
-        required VoidCallback? onPressed,
-        bool enabled = true,
-      }) =>
-      IconButton(
-        icon: Icon(icon, color: !enabled ? Colors.grey : (color ?? Colors.black)),
-        onPressed: onPressed,
-        enableFeedback: enabled,
-      );
-
-  void _handleLikePost(String postId) {
+  void _handleLikePost() {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
-    final isAlt = widget.post.isAlt;
 
     if (userId != null) {
-      ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isAlt: isAlt)
-      ).notifier).likePost(userId);
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
+              .notifier)
+          .likePost(userId, isAlt: widget.post.isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to like posts.')),
+        const SnackBar(content: Text('You must be logged in to like posts')),
       );
     }
   }
 
-  void _handleDislikePost(String postId) {
+  void _handleDislikePost() {
     final user = ref.read(currentUserProvider);
     final userId = user?.id;
-    final isAlt = widget.post.isAlt;
 
     if (userId != null) {
-      ref.read(postInteractionsWithPrivacyProvider(
-          PostParams(id: postId, isAlt: isAlt)
-      ).notifier).dislikePost(userId);
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
+              .notifier)
+          .dislikePost(userId, isAlt: widget.post.isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to like posts.')),
+        const SnackBar(content: Text('You must be logged in to dislike posts')),
       );
     }
+  }
+
+  void _sharePost() {
+    // Only allow sharing public posts
+    if (widget.post.isAlt) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sharing post...')),
+    );
+    // Implement actual sharing functionality
+  }
+
+  void _savePost() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Post saved')),
+    );
+    // Implement bookmark functionality
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text(
+            'Are you sure you want to delete this post? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Implement post deletion
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Post deleted')),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Post'),
+        content:
+            const Text('Please select the reason for reporting this post:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Post reported')),
+              );
+            },
+            child: const Text('Report'),
+          ),
+        ],
+      ),
+    );
   }
 }

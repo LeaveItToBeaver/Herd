@@ -20,22 +20,19 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
       final post = await repository.getPostById(postId);
 
-      final isLiked = await repository.isPostLikedByUser(
-          postId: postId,
-          userId: userId
-      );
+      final isLiked =
+          await repository.isPostLikedByUser(postId: postId, userId: userId);
 
-      final isDisliked = await repository.isPostDislikedByUser(
-          postId: postId,
-          userId: userId
-      );
+      final isDisliked =
+          await repository.isPostDislikedByUser(postId: postId, userId: userId);
 
       state = state.copyWith(
         isLiked: isLiked,
         isDisliked: isDisliked,
         totalRawLikes: post?.likeCount ?? 0,
         totalRawDislikes: post?.dislikeCount ?? 0,
-        totalLikes: (post?.likeCount ?? 0) - (post?.dislikeCount ?? 0), // Net likes
+        totalLikes:
+            (post?.likeCount ?? 0) - (post?.dislikeCount ?? 0), // Net likes
         totalComments: post?.commentCount ?? 0,
         isLoading: false,
       );
@@ -47,7 +44,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     }
   }
 
-  Future<void> likePost(String userId) async {
+  Future<void> likePost(String userId, {required bool isAlt}) async {
     try {
       // Track the previous state to revert if needed
       final previousState = state;
@@ -56,8 +53,10 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       final wasDisliked = state.isDisliked;
 
       // Update state optimistically
-      final newLikeCount = wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
-      final newDislikeCount = wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes;
+      final newLikeCount =
+          wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
+      final newDislikeCount =
+          wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes;
       final netLikes = newLikeCount - newDislikeCount;
 
       state = state.copyWith(
@@ -70,7 +69,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       // Call the cloud function via repository
-      await repository.likePost(postId: postId, userId: userId);
+      await repository.likePost(postId: postId, userId: userId, isAlt: isAlt);
 
       // Update state based on new state (already updated optimistically)
       state = state.copyWith(isLoading: false);
@@ -83,7 +82,7 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     }
   }
 
-  Future<void> dislikePost(String userId) async {
+  Future<void> dislikePost(String userId, {required bool isAlt}) async {
     try {
       final previousState = state;
 
@@ -91,8 +90,10 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       final wasDisliked = state.isDisliked;
 
       // Update state optimistically
-      final newDislikeCount = wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes + 1;
-      final newLikeCount = wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes;
+      final newDislikeCount =
+          wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes + 1;
+      final newLikeCount =
+          wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes;
       final netLikes = newLikeCount - newDislikeCount;
 
       state = state.copyWith(
@@ -105,7 +106,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
       );
 
       // Call the cloud function via repository
-      await repository.dislikePost(postId: postId, userId: userId);
+      await repository.dislikePost(
+          postId: postId, userId: userId, isAlt: isAlt);
 
       // Update state based on new state (already updated optimistically)
       state = state.copyWith(isLoading: false);

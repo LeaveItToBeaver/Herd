@@ -434,133 +434,146 @@ exports.updatePostInFeeds = onDocumentUpdated(
 /**
  * Handle post interactions (likes/dislikes) with the unified feed approach
  */
-exports.handlePostInteraction = onCall(async (request) => {
-  const {
-    postId,
-    interactionType,
-  } = request.data;
-
-  // Validate authentication
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be logged in');
-  }
-
-  const userId = request.auth.uid;
-
-  // Reference to the source-of-truth post
-  const postRef = firestore.collection('posts').doc(postId);
-
-  // Define interaction configurations here - make sure it's defined before use
-  const interactions = {
-    like: {
-      incrementField: 'likeCount',
-      decrementField: 'dislikeCount',
-      collection: 'likes'
+exports.handlePostInteraction = onCall({
+    enforceAppCheck: false,
     },
-    dislike: {
-      incrementField: 'dislikeCount',
-      decrementField: 'likeCount',
-      collection: 'dislikes'
-    }
-  };
+    async (request) => {
+        const {
+            postId,
+            interactionType,
+            feedType
+        } = request.data;
 
-  // Validate interaction type early
-  const config = interactions[interactionType];
-  if (!config) {
-    throw new HttpsError('invalid-argument', 'Invalid interaction type');
-  }
+        // Validate authentication
+        if (!request.auth) {
+            throw new HttpsError('unauthenticated', 'User must be logged in');
+        }
 
-  return firestore.runTransaction(async (transaction) => {
-    // Get all document references first before any writes
-    const postDoc = await transaction.get(postRef);
+        const userId = request.auth.uid;
 
-    if (!postDoc.exists) {
-      throw new HttpsError('not-found', 'Post not found');
-    }
+        let postRef;
 
-    const postData = postDoc.data();
+        if (feedType === 'public') {
+           postRef = firestore.collection('posts').doc(postId);
+        } else if (feedType === 'alt') {
+            postRef = firestore.collection('altPosts').doc(postId);
+        } else if (feedType === 'herd') {
+            postRef = firestore.collection('herdPosts').doc(herdId).collection('posts').doc(postId);
+        } else {
+            throw new HttpsError('invalid-argument', 'Invalid feed type');
+        }
 
-    const interactionRef = firestore
-      .collection(config.collection)
-      .doc(postId)
-      .collection('userInteractions')
-      .doc(userId);
+          // Define interaction configurations here - make sure it's defined before use
+          const interactions = {
+            like: {
+              incrementField: 'likeCount',
+              decrementField: 'dislikeCount',
+              collection: 'likes'
+            },
+            dislike: {
+              incrementField: 'dislikeCount',
+              decrementField: 'likeCount',
+              collection: 'dislikes'
+            }
+          };
 
-    // Check current interaction state
-    const currentInteraction = await transaction.get(interactionRef);
-    const isCurrentlyInteracted = currentInteraction.exists;
+          // Validate interaction type early
+          const config = interactions[interactionType];
+          if (!config) {
+            throw new HttpsError('invalid-argument', 'Invalid interaction type');
+          }
 
-    // Check if opposite interaction exists - do this read before any writes
-    const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
-    const oppositeRef = firestore
-      .collection(oppositeCollection)
-      .doc(postId)
-      .collection('userInteractions')
-      .doc(userId);
+          return firestore.runTransaction(async (transaction) => {
+            // Get all document references first before any writes
+            const postDoc = await transaction.get(postRef);
 
-    const oppositeInteraction = await transaction.get(oppositeRef);
-    const hasOppositeInteraction = oppositeInteraction.exists;
+            if (!postDoc.exists) {
+              throw new HttpsError('not-found', 'Post not found');
+            }
 
-    // NOW DO ALL WRITES AFTER ALL READS
+            const postData = postDoc.data();
 
-    // Calculate the changes based on current state
-    let likeChange = 0;
-    let dislikeChange = 0;
+            const interactionRef = firestore
+              .collection(config.collection)
+              .doc(postId)
+              .collection('userInteractions')
+              .doc(userId);
 
-    if (interactionType === 'like') {
-      likeChange = isCurrentlyInteracted ? -1 : 1;
-      dislikeChange = hasOppositeInteraction ? -1 : 0;
-    } else { // dislike
-      dislikeChange = isCurrentlyInteracted ? -1 : 1;
-      likeChange = hasOppositeInteraction ? -1 : 0;
-    }
+            // Check current interaction state
+            const currentInteraction = await transaction.get(interactionRef);
+            const isCurrentlyInteracted = currentInteraction.exists;
 
-    // Update post counts
-    transaction.update(postRef, {
-      likeCount: admin.firestore.FieldValue.increment(likeChange),
-      dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-    });
+            // Check if opposite interaction exists - do this read before any writes
+            const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
+            const oppositeRef = firestore
+              .collection(oppositeCollection)
+              .doc(postId)
+              .collection('userInteractions')
+              .doc(userId);
 
-    // Toggle user's interaction
-    if (isCurrentlyInteracted) {
-      transaction.delete(interactionRef);
-    } else {
-      transaction.set(interactionRef, {
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
-      });
-    }
+            const oppositeInteraction = await transaction.get(oppositeRef);
+            const hasOppositeInteraction = oppositeInteraction.exists;
 
-    // Remove opposite interaction if it exists
-    if (hasOppositeInteraction) {
-      transaction.delete(oppositeRef);
-    }
+            // NOW DO ALL WRITES AFTER ALL READS
 
-    // Calculate updated hot score with new values
-    const updatedLikeCount = postData.likeCount + likeChange;
-    const updatedDislikeCount = postData.dislikeCount + dislikeChange;
-    const netVotes = updatedLikeCount - updatedDislikeCount;
-    const updatedHotScore = hotAlgorithm.calculateHotScore(
-      netVotes,
-      postData.createdAt.toDate()
-    );
+            // Calculate the changes based on current state
+            let likeChange = 0;
+            let dislikeChange = 0;
 
-    transaction.update(postRef, { hotScore: updatedHotScore });
+            if (interactionType === 'like') {
+              likeChange = isCurrentlyInteracted ? -1 : 1;
+              dislikeChange = hasOppositeInteraction ? -1 : 0;
+            } else { // dislike
+              dislikeChange = isCurrentlyInteracted ? -1 : 1;
+              likeChange = hasOppositeInteraction ? -1 : 0;
+            }
 
-    // If not the author, update user points
-    if (postData.authorId !== userId) {
-      const pointChange = isCurrentlyInteracted ? -1 : 1;
-      const authorRef = firestore.collection('users').doc(postData.authorId);
-      transaction.update(authorRef, {
-        userPoints: admin.firestore.FieldValue.increment(pointChange)
-      });
-    }
+            // Update post counts
+            transaction.update(postRef, {
+              likeCount: admin.firestore.FieldValue.increment(likeChange),
+              dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
+            });
 
-    return {
-      success: true,
-      hotScore: updatedHotScore,
-      isLiked: interactionType === 'like' && !isCurrentlyInteracted,
-      isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
-    };
+            // Toggle user's interaction
+            if (isCurrentlyInteracted) {
+              transaction.delete(interactionRef);
+            } else {
+              transaction.set(interactionRef, {
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+              });
+            }
+
+            // Remove opposite interaction if it exists
+            if (hasOppositeInteraction) {
+              transaction.delete(oppositeRef);
+            }
+
+            // Calculate updated hot score with new values
+            const updatedLikeCount = postData.likeCount + likeChange;
+            const updatedDislikeCount = postData.dislikeCount + dislikeChange;
+            const netVotes = updatedLikeCount - updatedDislikeCount;
+            const updatedHotScore = hotAlgorithm.calculateHotScore(
+              netVotes,
+              postData.createdAt.toDate()
+            );
+
+            transaction.update(postRef, { hotScore: updatedHotScore });
+
+            // If not the author, update user points
+            if (postData.authorId !== userId) {
+              const pointChange = isCurrentlyInteracted ? -1 : 1;
+              const authorRef = firestore.collection('users').doc(postData.authorId);
+              transaction.update(authorRef, {
+                userPoints: admin.firestore.FieldValue.increment(pointChange)
+              });
+            }
+
+            return {
+              success: true,
+              hotScore: updatedHotScore,
+              isLiked: interactionType === 'like' && !isCurrentlyInteracted,
+              isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
+            };
   });
 });
 
