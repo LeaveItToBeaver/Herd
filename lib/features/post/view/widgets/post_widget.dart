@@ -27,8 +27,9 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   @override
   void initState() {
     super.initState();
-    // We'll initialize in didChangeDependencies instead of here
-    // as ref might not be fully set up in initState
+    _initializePostInteraction();
+    // We can also use a flag to ensure we only initialize once
+    // _hasInitializedInteraction = false;
   }
 
   @override
@@ -45,8 +46,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
         // Initialize post interaction state immediately (safely)
         // We use Future.microtask to ensure this doesn't happen during build
         Future.microtask(() {
-          if (mounted) { // Check if widget is still mounted
-            ref.read(postInteractionsProvider(widget.post.id).notifier).initializeState(userId);
+          if (mounted) {
+            ref.read(postInteractionsWithPrivacyProvider(
+                PostParams(id: widget.post.id, isAlt: widget.post.isAlt
+                )
+            ).notifier).initializeState(userId);
             _hasInitializedInteraction = true;
           }
         });
@@ -57,8 +61,11 @@ class _PostWidgetState extends ConsumerState<PostWidget> {
   @override
   Widget build(BuildContext context) {
     final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
-    final interactionState = ref.watch(postInteractionsProvider(widget.post.id));
+    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
+        PostParams(id: widget.post.id, isAlt: widget.post.isAlt)
+    ));
     final currentUser = ref.watch(currentUserProvider);
+
 
     return GestureDetector(
       onTap: () => context.pushNamed(

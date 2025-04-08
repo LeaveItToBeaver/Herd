@@ -26,7 +26,7 @@ class FeedRepository {
     return (post.likeCount ?? 0) - (post.dislikeCount ?? 0);
   }
 
-  /// Get public feed posts
+  /// Get public feed posts (user-specific)
   Future<List<PostModel>> getPublicFeed({
     required String userId,
     int limit = 20,
@@ -34,14 +34,17 @@ class FeedRepository {
     String? lastPostId,
   }) async {
     try {
+      // Log before querying
+      debugPrint('Fetching public feed for user: $userId with limit: $limit');
+
       // Query the user's feed collection filtering for public posts
       Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
           .where('feedType', isEqualTo: 'public')
           .orderBy('hotScore', descending: true);
 
-      // Apply pagination if last post info is provided
-      if (lastHotScore != null && lastPostId != null) {
-        feedQuery = feedQuery.startAfter([lastHotScore, lastPostId]);
+      // Apply pagination if lastHotScore is provided
+      if (lastHotScore != null) {
+        feedQuery = feedQuery.startAfter([lastHotScore]);
       }
 
       // Apply limit
@@ -49,6 +52,9 @@ class FeedRepository {
 
       // Execute query
       final snapshot = await feedQuery.get();
+
+      // Log result count
+      debugPrint('Found ${snapshot.docs.length} posts in public feed');
 
       // Convert to PostModel objects
       List<PostModel> posts = snapshot.docs
@@ -86,21 +92,21 @@ class FeedRepository {
     }
   }
 
-  /// Get alt feed posts
+  /// Get global alt feed posts (visible to everyone)
   Future<List<PostModel>> getGlobalAltFeed({
     int limit = 15,
     double? lastHotScore,
     String? lastPostId,
   }) async {
     try {
-      // Base query for alt posts
+      // Base query for alt posts from the global collection
       Query<Map<String, dynamic>> feedQuery = firestore
           .collection('altPosts')
           .orderBy('hotScore', descending: true);
 
-      // Apply pagination if last post info is provided
-      if (lastHotScore != null && lastPostId != null) {
-        feedQuery = feedQuery.startAfter([lastHotScore, lastPostId]);
+      // Apply pagination if lastHotScore is provided
+      if (lastHotScore != null) {
+        feedQuery = feedQuery.startAfter([lastHotScore]);
       }
 
       // Apply limit
@@ -116,12 +122,12 @@ class FeedRepository {
 
       return posts;
     } catch (e, stackTrace) {
-      logError('getAltFeed', e, stackTrace);
+      logError('getGlobalAltFeed', e, stackTrace);
       rethrow;
     }
   }
 
-  /// Stream alt feed posts
+  /// Stream alt feed posts (both global alt posts and herd posts)
   Stream<List<PostModel>> streamAltFeed({
     required String userId,
     int limit = 15,
@@ -129,7 +135,7 @@ class FeedRepository {
   }) {
     try {
       if (includeHerdPosts) {
-        // Stream both alt and herd posts
+        // Stream both alt and herd posts from user's feed
         Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
             .where('feedType', whereIn: ['alt', 'herd'])
             .orderBy('hotScore', descending: true)
@@ -174,9 +180,9 @@ class FeedRepository {
           .where('herdId', isEqualTo: herdId)
           .orderBy('hotScore', descending: true);
 
-      // Apply pagination if last post info is provided
-      if (lastHotScore != null && lastPostId != null) {
-        feedQuery = feedQuery.startAfter([lastHotScore, lastPostId]);
+      // Apply pagination if lastHotScore is provided
+      if (lastHotScore != null) {
+        feedQuery = feedQuery.startAfter([lastHotScore]);
       }
 
       // Apply limit
@@ -398,11 +404,15 @@ class FeedRepository {
 
       // Add optional parameters if they're provided
       if (herdId != null) params['herdId'] = herdId;
+
+      // Only add lastHotScore for pagination
       if (lastHotScore != null) params['lastHotScore'] = lastHotScore;
-      if (lastPostId != null) params['lastPostId'] = lastPostId;
+
+      // For debugging
+      debugPrint('getFeedFromFunction params: $params');
 
       // Call the cloud function
-      final HttpsCallableResult result = await functions
+      final result = await functions
           .httpsCallable('getFeed')
           .call(params);
 
@@ -419,16 +429,6 @@ class FeedRepository {
       logError('getFeedFromFunction', e, stackTrace);
       rethrow;
     }
-  }
-
-  /// Sort a list of posts using the hot algorithm
-  List<PostModel> applySortingAlgorithm(List<PostModel> posts, {double decayFactor = 1.0}) {
-    return HotAlgorithm.sortByHotScore(
-        posts,
-            (post) => calculateNetVotes(post),
-            (post) => post.createdAt ?? DateTime.now(),
-        decayFactor: decayFactor
-    );
   }
 
   /// Helper method to log any feed-related errors

@@ -28,23 +28,40 @@ class PostRepository {
   /// Creating a post ///
   Future<void> createPost(PostModel post) async {
     try {
-      // First determine which collection to use based on privacy setting
-      final targetCollection = post.isAlt ? _globalAltPosts : _posts;
+      // Determine the correct collection based on post type
+      CollectionReference<Map<String, dynamic>> targetCollection;
+      String postId = post.id.isEmpty ? _firestore.collection('posts').doc().id : post.id;
 
-      // Set the feed type based on post attributes
-      final feedType = post.feedType ?? (post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public'));
+      // Set the feedType based on post attributes
+      final feedType = post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
 
-      // Create a post with the feed type
-      final postWithFeedType = post.copyWith(feedType: feedType);
+      // Create a post with the feed type and ID
+      final postWithTypeAndId = post.copyWith(
+        id: postId,
+        feedType: feedType,
+      );
 
-      // Create the post document in the appropriate collection
-      final docRef = await targetCollection.add(postWithFeedType.toMap());
+      // Determine where to save the post
+      if (post.isAlt) {
+        // Save to altPosts collection
+        await _firestore.collection('altPosts').doc(postId).set(postWithTypeAndId.toMap());
+        debugPrint('Alt post created with ID: ${postId}');
+      } else if (post.herdId != null && post.herdId!.isNotEmpty) {
+        // Save to herdPosts collection
+        await _firestore
+            .collection('herdPosts')
+            .doc(post.herdId)
+            .collection('posts')
+            .doc(postId)
+            .set(postWithTypeAndId.toMap());
+        debugPrint('Herd post created with ID: ${postId} in herd: ${post.herdId}');
+      } else {
+        // Save to regular posts collection
+        await _firestore.collection('posts').doc(postId).set(postWithTypeAndId.toMap());
+        debugPrint('Public post created with ID: ${postId}');
+      }
 
-      // Update the id field with the auto-generated ID
-      await docRef.update({'id': docRef.id});
-
-      // The Cloud Function will handle distribution to feeds
-      debugPrint('Post created with ID: ${docRef.id}');
+      // The Cloud Function trigger will handle distribution to feeds
       debugPrint('Distribution to feeds will be handled by Cloud Function');
     } catch (e) {
       debugPrint('Error creating post: $e');
@@ -703,14 +720,14 @@ class PostRepository {
 
   // Check if post is liked by user
   Future<bool> isPostLikedByUser({required String postId, required String userId}) async {
-    final postLikeRef = _likes.doc(postId).collection('postLikes').doc(userId);
+    final postLikeRef = _likes.doc(postId).collection('userInteractions').doc(userId);
     final snapshot = await postLikeRef.get();
     return snapshot.exists;
   }
 
   // Check if post is disliked by user
   Future<bool> isPostDislikedByUser({required String postId, required String userId}) async {
-    final postDislikeRef = _dislikes.doc(postId).collection('postDislikes').doc(userId);
+    final postDislikeRef = _dislikes.doc(postId).collection('userInteractions').doc(userId);
     final snapshot = await postDislikeRef.get();
     return snapshot.exists;
   }

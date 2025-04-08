@@ -132,6 +132,8 @@ abstract class PostModel with _$PostModel {
       'isHerdBanned': isHerdBanned,
       'isHerdBlocked': isHerdBlocked,
       'isAlt': isAlt,
+      'isLiked': isLiked,
+      'isDisliked': isDisliked,
       'feedType': feedType ?? (isAlt ? 'alt' : (herdId != null ? 'herd' : 'public')),
     };
   }
