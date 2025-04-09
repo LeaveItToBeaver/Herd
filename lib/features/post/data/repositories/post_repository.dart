@@ -33,28 +33,31 @@ class PostRepository {
   CollectionReference<Map<String, dynamic>> get _altFeeds =>
       _firestore.collection('altFeeds');
 
-  /// Creating a post ///
+// At the beginning of createPost
   Future<void> createPost(PostModel post, {List<File>? mediaFiles}) async {
     try {
       // Generate post ID if needed
       String postId =
           post.id.isEmpty ? _firestore.collection('posts').doc().id : post.id;
 
-      // Debug the incoming data
+      // Enhanced debugging
       debugPrint(
-          "Creating post with ID: $postId and ${mediaFiles?.length ?? 0} media files");
+          "🔍 CREATE POST START - ID: $postId with ${mediaFiles?.length ?? 0} media files");
 
       List<PostMediaModel> mediaItems = [];
+      debugPrint("🔍 Initialized empty mediaItems array");
 
       // Upload multiple media files if provided
       if (mediaFiles != null && mediaFiles.isNotEmpty) {
+        debugPrint("🔍 Beginning upload of ${mediaFiles.length} media files");
+
         // For each media file, upload it and get the URL
         for (int i = 0; i < mediaFiles.length; i++) {
           final File file = mediaFiles[i];
           final String mediaId = '$i';
           final String individualPostId = '$postId-$mediaId';
 
-          debugPrint("Uploading media file $i/${mediaFiles.length}");
+          debugPrint("🔍 Processing file $i: ${file.path}");
 
           try {
             // Use existing uploadMedia method
@@ -65,69 +68,103 @@ class PostRepository {
               isAlt: post.isAlt,
             );
 
+            debugPrint("🔍 Upload result for file $i: $result");
+
             // Only add if we got a URL back
             if (result['imageUrl'] != null && result['imageUrl']!.isNotEmpty) {
               // Create the media model and add to our list
-              mediaItems.add(PostMediaModel(
+              final mediaItem = PostMediaModel(
                 id: mediaId,
                 url: result['imageUrl']!,
                 thumbnailUrl: result['thumbnailUrl'],
                 mediaType: result['mediaType'] ?? 'image',
-              ));
+              );
 
-              debugPrint(
-                  "Successfully uploaded media $i: ${result['imageUrl']}");
+              mediaItems.add(mediaItem);
+              debugPrint("🔍 Added to mediaItems: ${mediaItem.toMap()}");
+              debugPrint("🔍 mediaItems length now: ${mediaItems.length}");
             }
           } catch (e) {
-            debugPrint("Error uploading media file $i: $e");
+            debugPrint("❌ Error uploading media file $i: $e");
           }
         }
 
-        debugPrint("Total media items created: ${mediaItems.length}");
+        debugPrint(
+            "🔍 All uploads complete. Final mediaItems count: ${mediaItems.length}");
+        if (mediaItems.isNotEmpty) {
+          debugPrint("🔍 Sample first item: ${mediaItems.first.toMap()}");
+        }
       }
 
-      // Set the feedType and single mediaURL for backward compatibility
+      // Set the feedType alt/public/herd
       final feedType =
           post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
 
       // Create a map to update Firestore
       final Map<String, dynamic> postData = post.toMap();
+      debugPrint(
+          "🔍 Initial postData without mediaItems: ${postData.keys.toList()}");
 
       // Important: Make sure mediaItems is explicitly set in the map
       postData['mediaItems'] = mediaItems.map((item) => item.toMap()).toList();
+      debugPrint(
+          "🔍 CRITICAL CHECK: postData['mediaItems'] length: ${(postData['mediaItems'] as List).length}");
+      debugPrint(
+          "🔍 CRITICAL CHECK: postData['mediaItems'] content: ${postData['mediaItems']}");
 
       // For backward compatibility, set the first image URL as the mediaURL
       if (mediaItems.isNotEmpty) {
         postData['mediaURL'] = mediaItems.first.url;
         postData['mediaThumbnailURL'] = mediaItems.first.thumbnailUrl;
         postData['mediaType'] = mediaItems.first.mediaType;
+        debugPrint("🔍 Set legacy mediaURL fields: ${postData['mediaURL']}");
+      } else {
+        debugPrint("⚠️ mediaItems is empty, no legacy mediaURL fields set");
       }
 
       postData['id'] = postId;
       postData['feedType'] = feedType;
 
-      // Debugging
+      // Debug final state before save
       debugPrint(
-          "Final post data has ${(postData['mediaItems'] as List).length} media items");
+          "🔍 FINAL CHECK before save: postData has ${(postData['mediaItems'] as List).length} mediaItems");
+
+      // Create a post with the feed type and ID
+      final postWithTypeAndId = post.copyWith(
+        id: postId,
+        feedType: feedType,
+      );
 
       // Determine where to save the post
       if (post.isAlt) {
-        await _firestore.collection('altPosts').doc(postId).set(postData);
+        // Save to altPosts collection
+        await _firestore
+            .collection('altPosts')
+            .doc(postId)
+            .set(postWithTypeAndId.toMap());
+        debugPrint('Alt post created with ID: ${postId}');
       } else if (post.herdId != null && post.herdId!.isNotEmpty) {
+        // Save to herdPosts collection
         await _firestore
             .collection('herdPosts')
             .doc(post.herdId)
             .collection('posts')
             .doc(postId)
-            .set(postData);
+            .set(postWithTypeAndId.toMap());
+        debugPrint(
+            'Herd post created with ID: ${postId} in herd: ${post.herdId}');
       } else {
-        await _firestore.collection('posts').doc(postId).set(postData);
+        // Save to regular posts collection
+        await _firestore
+            .collection('posts')
+            .doc(postId)
+            .set(postWithTypeAndId.toMap());
+        debugPrint('Public post created with ID: ${postId}');
       }
-
       debugPrint(
-          'Post created successfully with ${mediaItems.length} media items');
+          "✅ Post created successfully with ${mediaItems.length} media items");
     } catch (e) {
-      debugPrint('Error creating post: $e');
+      debugPrint("❌ ERROR creating post: $e");
       throw e;
     }
   }
@@ -556,7 +593,7 @@ class PostRepository {
       // As a last resort, check for herd posts using a collection group query
       final herdPostQuery = await _firestore
           .collectionGroup('posts')
-          .where(FieldPath.documentId, isEqualTo: postId)
+          .where('id', isEqualTo: postId)
           .limit(1)
           .get(fetchOptions);
 
@@ -693,8 +730,7 @@ class PostRepository {
   Stream<List<PostModel>> getUserPublicPosts(String userId) {
     return _posts
         .where('authorId', isEqualTo: userId)
-        .where('herdId', isNull: true) // Exclude herd posts
-        .where('isAlt', isEqualTo: false)
+        .where('herdId', isNull: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -706,7 +742,7 @@ class PostRepository {
   Stream<List<PostModel>> getUserAltPosts(String userId) {
     return _globalAltPosts
         .where('authorId', isEqualTo: userId)
-        .where('herdId', isNull: true) // Exclude herd posts
+        .where('herdId', isNull: false) // Exclude herd posts
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs

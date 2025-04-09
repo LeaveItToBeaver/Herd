@@ -2,9 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/state/public_feed_state.dart';
-import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
 
 import '../../../data/repositories/feed_repository.dart';
 
@@ -225,7 +223,8 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
               likeCount: post.likeCount + 1,
               isLiked: true,
               // If it was disliked before, remove dislike
-              dislikeCount: post.isDisliked ? post.dislikeCount - 1 : post.dislikeCount,
+              dislikeCount:
+                  post.isDisliked ? post.dislikeCount - 1 : post.dislikeCount,
               isDisliked: false,
             );
           }
@@ -277,14 +276,10 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
 }
 
 /// Provider for the public feed controller
-final publicFeedControllerProvider = StateNotifierProvider<PublicFeedController, PublicFeedState>((ref) {
+final publicFeedControllerProvider =
+    StateNotifierProvider<PublicFeedController, PublicFeedState>((ref) {
   final repository = ref.watch(feedRepositoryProvider);
   final user = ref.watch(authProvider);
 
-  if (user == null) {
-    // Return a dummy controller if user is not logged in
-    return PublicFeedController(repository, '');
-  }
-
-  return PublicFeedController(repository, user.uid);
+  return PublicFeedController(repository, user!.uid);
 });
