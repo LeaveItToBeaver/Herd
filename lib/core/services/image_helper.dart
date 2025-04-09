@@ -1,11 +1,12 @@
 import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 class ImageHelper {
   // Maximum file size in bytes (20MB - increased from 10MB)
@@ -20,6 +21,37 @@ class ImageHelper {
     // Animated images
     '.gif', '.webp'
   ];
+
+  static Future<List<File>?> pickMultipleMediaFiles({
+    required BuildContext context,
+    int maxFiles = 10,
+  }) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFiles = await picker.pickMultiImage();
+
+      if (pickedFiles.isNotEmpty) {
+        // Convert XFile to File
+        final files = pickedFiles.map((xFile) => File(xFile.path)).toList();
+
+        if (files.length > maxFiles) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Maximum of $maxFiles files allowed. Only the first $maxFiles will be used.'),
+            ),
+          );
+          return files.sublist(0, maxFiles);
+        }
+
+        return files;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error picking multiple media: $e');
+      rethrow;
+    }
+  }
 
   static Future<File?> pickImageFromGallery({
     required BuildContext context,
@@ -48,8 +80,8 @@ class ImageHelper {
 
         // Validate file extension
         final extension = pickedFile.path.toLowerCase().substring(
-          pickedFile.path.lastIndexOf('.'),
-        );
+              pickedFile.path.lastIndexOf('.'),
+            );
         if (!allowedExtensions.contains(extension)) {
           if (context.mounted) {
             _showErrorDialog(
@@ -136,7 +168,9 @@ class ImageHelper {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: allowedExtensions.map((e) => e.substring(1)).toList(), // Remove the dot
+        allowedExtensions: allowedExtensions
+            .map((e) => e.substring(1))
+            .toList(), // Remove the dot
         allowCompression: false,
       );
 
@@ -154,8 +188,8 @@ class ImageHelper {
 
         // Validate file extension
         final extension = result.files.single.path!.toLowerCase().substring(
-          result.files.single.path!.lastIndexOf('.'),
-        );
+              result.files.single.path!.lastIndexOf('.'),
+            );
         if (!allowedExtensions.contains(extension)) {
           if (context.mounted) {
             _showErrorDialog(
@@ -188,7 +222,8 @@ class ImageHelper {
 
       // Get the temporary directory path
       final dir = await getTemporaryDirectory();
-      final targetPath = '${dir.path}/${path.basenameWithoutExtension(file.path)}_compressed$extension';
+      final targetPath =
+          '${dir.path}/${path.basenameWithoutExtension(file.path)}_compressed$extension';
 
       // Compression parameters based on extension
       var result = await FlutterImageCompress.compressAndGetFile(
@@ -231,7 +266,8 @@ class ImageHelper {
   // Method to check if a file is an image
   static bool isImage(File file) {
     final extension = path.extension(file.path).toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].contains(extension);
+    return ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+        .contains(extension);
   }
 
   // Method to check if a file is a video

@@ -22,6 +22,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
   String? get authorProfileImageURL;
   String? get title;
   String get content;
+  List<PostMediaModel> get mediaItems;
   String? get mediaURL;
   String? get mediaType;
   String? get mediaThumbnailURL;
@@ -65,6 +66,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('authorProfileImageURL', authorProfileImageURL))
       ..add(DiagnosticsProperty('title', title))
       ..add(DiagnosticsProperty('content', content))
+      ..add(DiagnosticsProperty('mediaItems', mediaItems))
       ..add(DiagnosticsProperty('mediaURL', mediaURL))
       ..add(DiagnosticsProperty('mediaType', mediaType))
       ..add(DiagnosticsProperty('mediaThumbnailURL', mediaThumbnailURL))
@@ -107,6 +109,8 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
                 other.authorProfileImageURL == authorProfileImageURL) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.content, content) || other.content == content) &&
+            const DeepCollectionEquality()
+                .equals(other.mediaItems, mediaItems) &&
             (identical(other.mediaURL, mediaURL) ||
                 other.mediaURL == mediaURL) &&
             (identical(other.mediaType, mediaType) ||
@@ -162,6 +166,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
         authorProfileImageURL,
         title,
         content,
+        const DeepCollectionEquality().hash(mediaItems),
         mediaURL,
         mediaType,
         mediaThumbnailURL,
@@ -190,7 +195,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
   }
 }
 
@@ -207,6 +212,7 @@ abstract mixin class $PostModelCopyWith<$Res> {
       String? authorProfileImageURL,
       String? title,
       String content,
+      List<PostMediaModel> mediaItems,
       String? mediaURL,
       String? mediaType,
       String? mediaThumbnailURL,
@@ -252,6 +258,7 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
     Object? authorProfileImageURL = freezed,
     Object? title = freezed,
     Object? content = null,
+    Object? mediaItems = null,
     Object? mediaURL = freezed,
     Object? mediaType = freezed,
     Object? mediaThumbnailURL = freezed,
@@ -306,6 +313,10 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
           ? _self.content
           : content // ignore: cast_nullable_to_non_nullable
               as String,
+      mediaItems: null == mediaItems
+          ? _self.mediaItems
+          : mediaItems // ignore: cast_nullable_to_non_nullable
+              as List<PostMediaModel>,
       mediaURL: freezed == mediaURL
           ? _self.mediaURL
           : mediaURL // ignore: cast_nullable_to_non_nullable
@@ -417,6 +428,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.authorProfileImageURL,
       this.title,
       required this.content,
+      final List<PostMediaModel> mediaItems = const [],
       this.mediaURL,
       this.mediaType,
       this.mediaThumbnailURL = '',
@@ -441,7 +453,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.isLiked = false,
       this.isDisliked = false,
       this.isBookmarked = false})
-      : _hashtags = hashtags,
+      : _mediaItems = mediaItems,
+        _hashtags = hashtags,
         _mentions = mentions,
         super._();
 
@@ -459,6 +472,15 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
   final String? title;
   @override
   final String content;
+  final List<PostMediaModel> _mediaItems;
+  @override
+  @JsonKey()
+  List<PostMediaModel> get mediaItems {
+    if (_mediaItems is EqualUnmodifiableListView) return _mediaItems;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_mediaItems);
+  }
+
   @override
   final String? mediaURL;
   @override
@@ -556,6 +578,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('authorProfileImageURL', authorProfileImageURL))
       ..add(DiagnosticsProperty('title', title))
       ..add(DiagnosticsProperty('content', content))
+      ..add(DiagnosticsProperty('mediaItems', mediaItems))
       ..add(DiagnosticsProperty('mediaURL', mediaURL))
       ..add(DiagnosticsProperty('mediaType', mediaType))
       ..add(DiagnosticsProperty('mediaThumbnailURL', mediaThumbnailURL))
@@ -598,6 +621,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
                 other.authorProfileImageURL == authorProfileImageURL) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.content, content) || other.content == content) &&
+            const DeepCollectionEquality()
+                .equals(other._mediaItems, _mediaItems) &&
             (identical(other.mediaURL, mediaURL) ||
                 other.mediaURL == mediaURL) &&
             (identical(other.mediaType, mediaType) ||
@@ -653,6 +678,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
         authorProfileImageURL,
         title,
         content,
+        const DeepCollectionEquality().hash(_mediaItems),
         mediaURL,
         mediaType,
         mediaThumbnailURL,
@@ -681,7 +707,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, hashtags: $hashtags, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
   }
 }
 
@@ -701,6 +727,7 @@ abstract mixin class _$PostModelCopyWith<$Res>
       String? authorProfileImageURL,
       String? title,
       String content,
+      List<PostMediaModel> mediaItems,
       String? mediaURL,
       String? mediaType,
       String? mediaThumbnailURL,
@@ -746,6 +773,7 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
     Object? authorProfileImageURL = freezed,
     Object? title = freezed,
     Object? content = null,
+    Object? mediaItems = null,
     Object? mediaURL = freezed,
     Object? mediaType = freezed,
     Object? mediaThumbnailURL = freezed,
@@ -800,6 +828,10 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
           ? _self.content
           : content // ignore: cast_nullable_to_non_nullable
               as String,
+      mediaItems: null == mediaItems
+          ? _self._mediaItems
+          : mediaItems // ignore: cast_nullable_to_non_nullable
+              as List<PostMediaModel>,
       mediaURL: freezed == mediaURL
           ? _self.mediaURL
           : mediaURL // ignore: cast_nullable_to_non_nullable

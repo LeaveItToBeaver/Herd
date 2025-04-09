@@ -1,14 +1,15 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
-import 'package:herdapp/features/user/data/models/user_model.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
+import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
+import 'package:herdapp/features/user/data/models/user_model.dart';
+
 import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 
@@ -229,9 +230,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            _selectedHerdId != null ? Icons.group : Icons.person,
+                            _selectedHerdId != null
+                                ? Icons.group
+                                : Icons.person,
                             size: 18,
-                            color: _selectedHerdId != null ? Colors.blue : Colors.grey,
+                            color: _selectedHerdId != null
+                                ? Colors.blue
+                                : Colors.grey,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -240,7 +245,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                   ? 'h/$_selectedHerdName'
                                   : 'Personal post (no herd)',
                               style: TextStyle(
-                                color: _selectedHerdId != null ? Colors.blue : null,
+                                color: _selectedHerdId != null
+                                    ? Colors.blue
+                                    : null,
                               ),
                             ),
                           ),
@@ -299,69 +306,215 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
+  // Media picker widget
+  List<File> _mediaFiles = [];
+  int _currentMediaIndex = 0;
+
   Widget _mediaPicker(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        if (_isSubmitting) return; // Prevent changing media while submitting
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () async {
+            if (_isSubmitting)
+              return; // Prevent changing media while submitting
 
-        try {
-          // Use the new media picker method
-          final pickedFile = await ImageHelper.pickMediaFile(
-            context: context,
-          );
+            try {
+              // Use the image picker to select multiple images
+              final pickedFiles = await ImageHelper.pickMultipleMediaFiles(
+                context: context,
+              );
 
-          if (pickedFile != null) {
-            final extension = pickedFile.path.toLowerCase().substring(
-                  pickedFile.path.lastIndexOf('.'),
-                );
-
-            setState(() {
-              _postMedia = pickedFile;
-              // Check if file is video based on extension
-              _isVideo =
-                  ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
-            });
-          }
-        } catch (e) {
-          if (context.mounted) {
-            _showErrorSnackBar(
-                context, 'Failed to pick media. Please try again.');
-          }
-        }
-      },
-      child: Container(
-        height: MediaQuery.of(context).size.height / 3,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _isAlt ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300,
+              if (pickedFiles != null && pickedFiles.isNotEmpty) {
+                setState(() {
+                  _mediaFiles = pickedFiles;
+                  _currentMediaIndex = 0;
+                  _postMedia = _mediaFiles.first; // For backward compatibility
+                });
+              }
+            } catch (e) {
+              if (context.mounted) {
+                _showErrorSnackBar(
+                    context, 'Failed to pick media. Please try again.');
+              }
+            }
+          },
+          child: Container(
+            height: MediaQuery.of(context).size.height / 3,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _isAlt
+                    ? Colors.blue.withOpacity(0.3)
+                    : Colors.grey.shade300,
+              ),
+            ),
+            child: _mediaFiles.isNotEmpty
+                ? _buildMediaFilesPreview()
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate,
+                        size: 64,
+                        color: _isAlt
+                            ? Colors.blue.withOpacity(0.7)
+                            : Colors.black54,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap to add media (up to 10 images/videos)',
+                        style: TextStyle(
+                          color: _isAlt
+                              ? Colors.blue.withOpacity(0.7)
+                              : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
-        child: _postMedia != null
-            ? _buildMediaPreview()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+
+        // Show carousel controls if there are multiple media files
+        if (_mediaFiles.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios),
+                  onPressed: _currentMediaIndex > 0
+                      ? () {
+                          setState(() {
+                            _currentMediaIndex--;
+                            _postMedia = _mediaFiles[_currentMediaIndex];
+                          });
+                        }
+                      : null,
+                ),
+                Text('${_currentMediaIndex + 1}/${_mediaFiles.length}'),
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios),
+                  onPressed: _currentMediaIndex < _mediaFiles.length - 1
+                      ? () {
+                          setState(() {
+                            _currentMediaIndex++;
+                            _postMedia = _mediaFiles[_currentMediaIndex];
+                          });
+                        }
+                      : null,
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      _mediaFiles.removeAt(_currentMediaIndex);
+                      if (_mediaFiles.isEmpty) {
+                        _currentMediaIndex = 0;
+                        _postMedia = null;
+                      } else if (_currentMediaIndex >= _mediaFiles.length) {
+                        _currentMediaIndex = _mediaFiles.length - 1;
+                        _postMedia = _mediaFiles[_currentMediaIndex];
+                      } else {
+                        _postMedia = _mediaFiles[_currentMediaIndex];
+                      }
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+// Add this method to preview selected media files:
+
+  Widget _buildMediaFilesPreview() {
+    if (_mediaFiles.isEmpty) return const SizedBox.shrink();
+
+    final currentFile = _mediaFiles[_currentMediaIndex];
+    final extension = currentFile.path.toLowerCase().substring(
+          currentFile.path.lastIndexOf('.'),
+        );
+
+    final isVideo =
+        ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
+    final isGif = extension == '.gif';
+
+    if (isVideo) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_photo_alternate,
-                    size: 64,
-                    color:
-                        _isAlt ? Colors.blue.withOpacity(0.7) : Colors.black54,
+                  const Icon(
+                    Icons.videocam,
+                    size: 48,
+                    color: Colors.white70,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Tap to add media (images, GIFs, videos)',
+                  const Text(
+                    'Video',
                     style: TextStyle(
-                      color: _isAlt
-                          ? Colors.blue.withOpacity(0.7)
-                          : Colors.black54,
-                    ),
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    extension.toUpperCase(),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  )
                 ],
               ),
-      ),
+            ),
+          ),
+          Icon(
+            Icons.play_circle_fill,
+            size: 64,
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(
+            currentFile,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        ),
+        if (isGif)
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'GIF',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -440,16 +593,19 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     });
 
     try {
+      debugPrint("Submitting post with ${_mediaFiles.length} media files");
+
       final postId = await ref.read(postControllerProvider.notifier).createPost(
-        title: _title,
-        content: _content,
-        imageFile: _postMedia,
-        userId: currentUser.id,
-        isAlt: _isAlt,
-        herdId: _selectedHerdId ?? '',
-        herdName: _selectedHerdName ?? '',
-        herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
-      );
+            title: _title,
+            content: _content,
+            // Pass the list of media files, not just the first one
+            mediaFiles: _mediaFiles,
+            userId: currentUser.id,
+            isAlt: _isAlt,
+            herdId: _selectedHerdId ?? '',
+            herdName: _selectedHerdName ?? '',
+            herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
+          );
 
       if (mounted) {
         // Show success message
@@ -464,7 +620,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
         // Navigate to the post
         context.pushNamed(
-          'post',  // Use the proper route name from your router
+          'post',
           pathParameters: {'id': postId},
           queryParameters: {'isAlt': _isAlt.toString()},
         );
@@ -473,7 +629,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       if (mounted) {
         _showErrorSnackBar(
           context,
-          'There was an issue creating the post. Try again.',
+          'There was an issue creating the post: $e',
         );
       }
     } finally {

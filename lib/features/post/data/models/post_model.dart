@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter/foundation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:herdapp/features/post/data/models/post_media_model.dart';
 
 part 'post_model.freezed.dart';
 
@@ -16,6 +17,7 @@ abstract class PostModel with _$PostModel {
     String? authorProfileImageURL,
     String? title,
     required String content,
+    @Default([]) List<PostMediaModel> mediaItems,
     String? mediaURL,
     String? mediaType,
     @Default('') String? mediaThumbnailURL,
@@ -28,7 +30,6 @@ abstract class PostModel with _$PostModel {
     DateTime? updatedAt,
     double? hotScore,
 
-
     // Herd-related fields
     String? herdId,
     String? herdName,
@@ -38,7 +39,6 @@ abstract class PostModel with _$PostModel {
     @Default(false) bool isHerdModerator,
     @Default(false) bool isHerdBanned,
     @Default(false) bool isHerdBlocked,
-
     @Default(false) bool isAlt,
     String? feedType, // 'public', 'alt', or 'herd'
     @Default(false) bool isLiked,
@@ -46,9 +46,26 @@ abstract class PostModel with _$PostModel {
     @Default(false) bool isBookmarked,
   }) = _PostModel;
 
-
   // Factory constructor to convert from Firestore snapshot
   factory PostModel.fromMap(String id, Map<String, dynamic> map) {
+    List<PostMediaModel> mediaItems = [];
+    if (map['mediaItems'] != null) {
+      mediaItems = List<PostMediaModel>.from(
+        (map['mediaItems'] as List).map(
+          (item) => PostMediaModel.fromMap(item),
+        ),
+      );
+    } else if (map['mediaURL'] != null && map['mediaURL'].isNotEmpty) {
+      // For backward compatibility - create a media item from the old fields
+      mediaItems = [
+        PostMediaModel(
+          id: '0',
+          url: map['mediaURL'],
+          thumbnailUrl: map['mediaThumbnailURL'],
+          mediaType: map['mediaType'] ?? 'image',
+        )
+      ];
+    }
     return PostModel(
       id: id,
       authorId: map['authorId'] ?? '',
@@ -57,6 +74,7 @@ abstract class PostModel with _$PostModel {
       authorProfileImageURL: map['authorProfileImageURL'],
       title: map['title'],
       content: map['content'] ?? '',
+      mediaItems: mediaItems,
       mediaURL: map['mediaURL'],
       mediaType: map['mediaType'],
       hashtags: List<String>.from(map['hashtags'] ?? []),
@@ -85,12 +103,7 @@ abstract class PostModel with _$PostModel {
 
   // Create a new empty post for the current user
   factory PostModel.empty() {
-    return const PostModel(
-      id: '',
-      authorId: '',
-      title: '',
-      content: ''
-    );
+    return const PostModel(id: '', authorId: '', title: '', content: '');
   }
 
   // Helper for parsing DateTime values from Firestore
@@ -113,6 +126,7 @@ abstract class PostModel with _$PostModel {
       'authorProfileImageURL': authorProfileImageURL,
       'title': title,
       'content': content,
+      'mediaItems': mediaItems.map((item) => item.toMap()).toList(),
       'mediaURL': mediaURL,
       'mediaType': mediaType,
       'hashtags': hashtags,
@@ -120,8 +134,12 @@ abstract class PostModel with _$PostModel {
       'likeCount': likeCount,
       'dislikeCount': dislikeCount,
       'commentCount': commentCount,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'updatedAt': updatedAt != null
+          ? Timestamp.fromDate(updatedAt!)
+          : FieldValue.serverTimestamp(),
       'hotScore': hotScore,
       'herdId': herdId,
       'herdName': herdName,
@@ -134,7 +152,8 @@ abstract class PostModel with _$PostModel {
       'isAlt': isAlt,
       'isLiked': isLiked,
       'isDisliked': isDisliked,
-      'feedType': feedType ?? (isAlt ? 'alt' : (herdId != null ? 'herd' : 'public')),
+      'feedType':
+          feedType ?? (isAlt ? 'alt' : (herdId != null ? 'herd' : 'public')),
     };
   }
 
