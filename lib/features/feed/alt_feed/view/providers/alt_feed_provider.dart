@@ -2,8 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
-import 'package:herdapp/features/feed/public_feed/view/providers/state/public_feed_state.dart';
 import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
 
 import '../../../data/repositories/feed_repository.dart';
@@ -16,10 +14,8 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
   );
 });
 
-
 // ===== ALT FEED CONTROLLERS =====
 
-/// Controller for alt feed with pagination
 /// Controller for alt feed with pagination
 class AltFeedController extends StateNotifier<AltFeedState> {
   final FeedRepository repository;
@@ -98,7 +94,10 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   Future<void> loadMorePosts() async {
     try {
       // Don't load more if already loading or no more posts
-      if (state.isLoading || !state.hasMorePosts || state.posts.isEmpty || userId == null) {
+      if (state.isLoading ||
+          !state.hasMorePosts ||
+          state.posts.isEmpty ||
+          userId == null) {
         return;
       }
 
@@ -243,7 +242,8 @@ class AltFeedController extends StateNotifier<AltFeedState> {
               likeCount: post.likeCount + 1,
               isLiked: true,
               // If it was disliked before, remove dislike
-              dislikeCount: post.isDisliked ? post.dislikeCount - 1 : post.dislikeCount,
+              dislikeCount:
+                  post.isDisliked ? post.dislikeCount - 1 : post.dislikeCount,
               isDisliked: false,
             );
           }
@@ -295,7 +295,8 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 }
 
 /// Provider for the alt feed controller
-final altFeedControllerProvider = StateNotifierProvider<AltFeedController, AltFeedState>((ref) {
+final altFeedControllerProvider =
+    StateNotifierProvider<AltFeedController, AltFeedState>((ref) {
   final repository = ref.watch(feedRepositoryProvider);
   final user = ref.watch(authProvider);
 

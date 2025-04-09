@@ -3,8 +3,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 
-import '../../../../core/utils/hot_algorithm.dart';
-
 /// Base repository for feed functionality
 class FeedRepository {
   final FirebaseFirestore firestore;
@@ -38,7 +36,10 @@ class FeedRepository {
       debugPrint('Fetching public feed for user: $userId with limit: $limit');
 
       // Query the user's feed collection filtering for public posts
-      Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
+      Query<Map<String, dynamic>> feedQuery = firestore
+          .collection('userFeeds')
+          .doc(userId)
+          .collection('feed')
           .where('feedType', isEqualTo: 'public')
           .orderBy('hotScore', descending: true);
 
@@ -75,10 +76,12 @@ class FeedRepository {
   }) {
     try {
       // Query the user's feed collection filtering for public posts
-      Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
+      Query<Map<String, dynamic>> feedQuery = firestore
+          .collection('userFeeds')
+          .doc(userId)
+          .collection('feed')
           .where('feedType', isEqualTo: 'public')
-          .orderBy('hotScore', descending: true)
-          .limit(limit);
+          .orderBy('hotScore', descending: true);
 
       // Return stream
       return feedQuery.snapshots().map((snapshot) {
@@ -99,7 +102,6 @@ class FeedRepository {
     String? lastPostId,
   }) async {
     try {
-      // Base query for alt posts from the global collection
       Query<Map<String, dynamic>> feedQuery = firestore
           .collection('altPosts')
           .orderBy('hotScore', descending: true);
@@ -236,9 +238,8 @@ class FeedRepository {
   }) async {
     try {
       // Using the proper Firebase Functions call pattern
-      final HttpsCallableResult result = await functions
-          .httpsCallable('getTrendingPosts')
-          .call({
+      final HttpsCallableResult result =
+          await functions.httpsCallable('getTrendingPosts').call({
         'limit': limit,
         'postType': isAlt ? 'alt' : 'public',
       });
@@ -248,7 +249,8 @@ class FeedRepository {
 
       // Convert to PostModel objects
       List<PostModel> posts = postsData
-          .map((data) => PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
+          .map((data) =>
+              PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
           .toList();
 
       return posts;
@@ -335,12 +337,11 @@ class FeedRepository {
   Future<String> createPost(PostModel post) async {
     try {
       // Create the post document with auto-generated ID if none provided
-      final postRef = post.id.isEmpty
-          ? posts.doc()
-          : posts.doc(post.id);
+      final postRef = post.id.isEmpty ? posts.doc() : posts.doc(post.id);
 
       // Set the feed type based on post attributes
-      final feedType = post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
+      final feedType =
+          post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
 
       // Ensure the post has an ID and feed type
       final postWithId = post.copyWith(
@@ -364,9 +365,8 @@ class FeedRepository {
     try {
       // Call the cloud function with proper error handling
       try {
-        final HttpsCallableResult result = await functions
-            .httpsCallable('handlePostInteraction')
-            .call({
+        final HttpsCallableResult result =
+            await functions.httpsCallable('handlePostInteraction').call({
           'postId': postId,
           'interactionType': interactionType,
         });
@@ -375,8 +375,10 @@ class FeedRepository {
         return result.data;
       } on FirebaseFunctionsException catch (error) {
         // Handle function-specific errors
-        logError('interactWithPost FirebaseFunctionsException',
-            'Code: ${error.code}, Message: ${error.message}, Details: ${error.details}', null);
+        logError(
+            'interactWithPost FirebaseFunctionsException',
+            'Code: ${error.code}, Message: ${error.message}, Details: ${error.details}',
+            null);
         rethrow;
       }
     } catch (e, stackTrace) {
@@ -412,16 +414,15 @@ class FeedRepository {
       debugPrint('getFeedFromFunction params: $params');
 
       // Call the cloud function
-      final result = await functions
-          .httpsCallable('getFeed')
-          .call(params);
+      final result = await functions.httpsCallable('getFeed').call(params);
 
       // Parse the results
       final List<dynamic> postsData = result.data['posts'] ?? [];
 
       // Convert to PostModel objects
       List<PostModel> posts = postsData
-          .map((data) => PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
+          .map((data) =>
+              PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
           .toList();
 
       return posts;
