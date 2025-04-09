@@ -2,12 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../herds/view/providers/herd_providers.dart';
+import '../../../post/view/widgets/post_widget.dart';
 import '../providers/state/profile_state.dart';
+import '../widgets/alt_connection_request_button.dart';
+import '../widgets/user_cover_image.dart';
+import '../widgets/user_profile_image.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -52,43 +55,44 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     final profileState = ref.watch(profileControllerProvider);
 
     return profileState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => errorWidget(error, stack),
-        data: (profile) {
-          if (profile.user == null) {
-            return const Center(child: Text('User not found'));
-          }
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => errorWidget(error, stack),
+      data: (profile) {
+        if (profile.user == null) {
+          return const Center(child: Text('User not found'));
+        }
 
-          // Check if this is the current user viewing their own profile
-          // AND they don't have a alt profile set up yet
-          if (profile.isCurrentUser && !profile.hasAltProfile) {
-            return _buildCreateAltProfileView(profile);
-          }
+        // Check if this is the current user viewing their own profile
+        // AND they don't have a alt profile set up yet
+        if (profile.isCurrentUser && !profile.hasAltProfile) {
+          return _buildCreateAltProfileView(profile);
+        }
 
-          return RefreshIndicator(
+        // Get alt posts only
+        final altPosts = profile.posts.where((post) => post.isAlt).toList();
+
+        return Scaffold(
+          body: RefreshIndicator(
             onRefresh: () async {
               await ref
                   .read(profileControllerProvider.notifier)
                   .loadProfile(widget.userId, isAltView: true);
             },
-            child: NestedScrollView(
+            child: CustomScrollView(
               controller: _scrollViewController,
-              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // App Bar with cover image
                 SliverAppBar(
                   pinned: true,
-                  snap: false,
-                  floating: true,
                   expandedHeight: 150.0,
                   backgroundColor: Theme.of(context).colorScheme.surface,
-                  flexibleSpace: Stack(
-                    children: <Widget>[
-                      Positioned.fill(
-                          child: UserCoverImage(
-                        isSelected: false,
-                        coverImageUrl: profile.user?.altCoverImageURL ??
-                            profile.user?.coverImageURL,
-                      ))
-                    ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: UserCoverImage(
+                      isSelected: false,
+                      coverImageUrl: profile.user?.altCoverImageURL ??
+                          profile.user?.coverImageURL,
+                    ),
                   ),
                   actions: [
                     if (profile.isCurrentUser) ...[
@@ -102,7 +106,6 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () {
-                          // Navigate to edit profile screen with isPublic = false
                           context.push('/editProfile', extra: {
                             'user': profile.user!,
                             'isPublic': false,
@@ -121,6 +124,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                     ],
                   ],
                 ),
+
+                // Profile card
                 SliverPadding(
                   padding: const EdgeInsets.all(16.0),
                   sliver: SliverToBoxAdapter(
@@ -178,11 +183,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildStatColumn(
-                                    'Alt Posts',
-                                    profile.posts
-                                        .where((post) => post.isAlt)
-                                        .length
-                                        .toString()),
+                                    'Alt Posts', altPosts.length.toString()),
                                 _buildStatColumn('Connections',
                                     profile.user?.friends?.toString() ?? '0'),
                                 _buildStatColumn('Herds', '0'),
@@ -201,58 +202,97 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                     ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: TabBar(
+
+                // Tab Bar (as a sticky header)
+                SliverPersistentHeader(
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: Theme.of(context).colorScheme.primary,
+                      unselectedLabelColor:
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      tabs: const [
+                        Tab(text: 'Alt Posts'),
+                        Tab(text: 'Groups'),
+                        Tab(text: 'About'),
+                      ],
+                    ),
+                  ),
+                  pinned: true,
+                ),
+
+                // Tab Content
+                SliverFillRemaining(
+                  child: TabBarView(
                     controller: _tabController,
-                    labelColor: Theme.of(context).colorScheme.primary,
-                    unselectedLabelColor:
-                        Theme.of(context).colorScheme.onSurfaceVariant,
-                    indicatorColor: Theme.of(context).colorScheme.primary,
-                    tabs: const [
-                      Tab(text: 'Alt Posts'),
-                      Tab(text: 'Groups'),
-                      Tab(text: 'About'),
+                    children: [
+                      // Alt posts tab
+                      altPosts.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.lock,
+                                      size: 64,
+                                      color: Colors.blue.withOpacity(0.5)),
+                                  const SizedBox(height: 16),
+                                  Text('No alt posts yet',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium),
+                                  if (profile.isCurrentUser) ...[
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('Create Alt Post'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        context.pushNamed('create',
+                                            queryParameters: {'isAlt': 'true'});
+                                      },
+                                    )
+                                  ]
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              // Important settings to prevent scroll conflicts
+                              primary: false,
+                              shrinkWrap: true,
+                              // No need for a separate scroll controller
+                              itemCount: altPosts.length,
+                              itemBuilder: (context, index) {
+                                return PostWidget(
+                                  post: altPosts[index],
+                                  isCompact: true,
+                                );
+                              },
+                            ),
+
+                      // Groups tab
+                      _buildGroupsSection(profile),
+
+                      // About tab
+                      ListView(
+                        primary: false,
+                        shrinkWrap: true,
+                        children: [
+                          _buildAboutSection(profile),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ],
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Alt posts tab - filter only alt posts
-                  PostListWidget(
-                    posts: profile.posts.where((post) => post.isAlt).toList(),
-                    isLoading: false, // Set based on your loading state
-                    hasError: false, // Set based on error state
-                    type: PostListType
-                        .profile, // Use profile layout for more compact display
-                    scrollController:
-                        ScrollController(), // Or pass an existing controller
-                    onRefresh: () async {
-                      // Reload posts
-                      await ref
-                          .read(profileControllerProvider.notifier)
-                          .loadProfile(widget.userId, isAltView: true);
-                    },
-                    emptyMessage: 'No alt posts yet',
-                    emptyActionLabel:
-                        profile.isCurrentUser ? 'Create Post' : null,
-                    onEmptyAction: profile.isCurrentUser
-                        ? () {
-                            context.pushNamed('create',
-                                queryParameters: {'isAlt': 'true'});
-                          }
-                        : null,
-                  ),
-                  // Groups tab - show user's groups
-                  _buildGroupsSection(profile),
-                  // About tab - show alt profile info
-                  _buildAboutSection(profile),
-                ],
-              ),
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 
   // Build the view for when a user needs to create their alt profile
@@ -551,5 +591,31 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         ],
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+
+  _SliverAppBarDelegate(this._tabBar);
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }

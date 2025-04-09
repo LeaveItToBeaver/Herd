@@ -51,43 +51,44 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
     final profileState = ref.watch(profileControllerProvider);
 
     return profileState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => errorWidget(error, stack),
-        data: (profile) {
-          if (profile.user == null) {
-            return const Center(child: Text('User not found'));
-          }
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => errorWidget(error, stack),
+      data: (profile) {
+        if (profile.user == null) {
+          return const Center(child: Text('User not found'));
+        }
 
-          return RefreshIndicator(
+        // Get posts filtered for the right view
+        final filteredPosts =
+            profile.posts.where((post) => !post.isAlt).toList();
+
+        return Scaffold(
+          body: RefreshIndicator(
             onRefresh: () async {
               await ref
                   .read(profileControllerProvider.notifier)
                   .loadProfile(widget.userId, isAltView: false);
             },
-            child: NestedScrollView(
+            child: CustomScrollView(
               controller: _scrollViewController,
-              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // App Bar with cover image
                 SliverAppBar(
                   pinned: true,
-                  snap: false,
-                  floating: true,
                   expandedHeight: 150.0,
                   backgroundColor: Theme.of(context).colorScheme.surface,
-                  flexibleSpace: Stack(
-                    children: <Widget>[
-                      Positioned.fill(
-                          child: UserCoverImage(
-                        isSelected: false,
-                        coverImageUrl: profile.user?.coverImageURL,
-                      ))
-                    ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: UserCoverImage(
+                      isSelected: false,
+                      coverImageUrl: profile.user?.coverImageURL,
+                    ),
                   ),
                   actions: [
                     if (profile.isCurrentUser) ...[
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () {
-                          // Navigate to edit profile screen with isPublic = true
                           context.push('/editProfile', extra: {
                             'user': profile.user!,
                             'isPublic': true,
@@ -101,6 +102,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                     ],
                   ],
                 ),
+
+                // Profile card
                 SliverPadding(
                   padding: const EdgeInsets.all(16.0),
                   sliver: SliverToBoxAdapter(
@@ -158,7 +161,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildStatColumn(
-                                    'Posts', profile.posts.length.toString()),
+                                    'Posts', filteredPosts.length.toString()),
                                 _buildStatColumn('Followers',
                                     profile.user?.followers?.toString() ?? '0'),
                                 _buildStatColumn('Following',
@@ -201,55 +204,89 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                     ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: TabBar(
+
+                // Tab Bar (as a sticky header)
+                SliverPersistentHeader(
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: Theme.of(context).colorScheme.primary,
+                      unselectedLabelColor:
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      tabs: const [
+                        Tab(text: 'Posts'),
+                        Tab(text: 'About'),
+                      ],
+                    ),
+                  ),
+                  pinned: true,
+                ),
+
+                // Tab Content
+                SliverFillRemaining(
+                  child: TabBarView(
                     controller: _tabController,
-                    labelColor: Theme.of(context).colorScheme.primary,
-                    unselectedLabelColor:
-                        Theme.of(context).colorScheme.onSurfaceVariant,
-                    indicatorColor: Theme.of(context).colorScheme.primary,
-                    tabs: const [
-                      Tab(text: 'Posts'),
-                      Tab(text: 'About'),
+                    children: [
+                      // Posts tab
+                      filteredPosts.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.post_add,
+                                      size: 64, color: Colors.grey[400]),
+                                  const SizedBox(height: 16),
+                                  Text('No public posts yet',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium),
+                                  if (profile.isCurrentUser) ...[
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        context.pushNamed('create',
+                                            queryParameters: {
+                                              'isAlt': 'false'
+                                            });
+                                      },
+                                      child: const Text('Create Post'),
+                                    )
+                                  ]
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              // Important settings to prevent scroll conflicts
+                              primary: false,
+                              shrinkWrap: true,
+                              // No need for a separate scroll controller
+                              itemCount: filteredPosts.length,
+                              itemBuilder: (context, index) {
+                                return PostWidget(
+                                  post: filteredPosts[index],
+                                  isCompact: true,
+                                );
+                              },
+                            ),
+
+                      // About tab
+                      ListView(
+                        primary: false,
+                        shrinkWrap: true,
+                        children: [
+                          _buildAboutSection(profile),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ],
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Public posts tab - only showing public posts
-                  PostListWidget(
-                    posts: profile.posts.where((post) => post.isAlt).toList(),
-                    isLoading: false, // Set based on your loading state
-                    hasError: false, // Set based on error state
-                    type: PostListType
-                        .profile, // Use profile layout for more compact display
-                    scrollController:
-                        ScrollController(), // Or pass an existing controller
-                    onRefresh: () async {
-                      // Reload posts
-                      await ref
-                          .read(profileControllerProvider.notifier)
-                          .loadProfile(widget.userId, isAltView: true);
-                    },
-                    emptyMessage: 'No public posts yet',
-                    emptyActionLabel:
-                        profile.isCurrentUser ? 'Create Post' : null,
-                    onEmptyAction: profile.isCurrentUser
-                        ? () {
-                            context.pushNamed('create',
-                                queryParameters: {'isAlt': 'true'});
-                          }
-                        : null,
-                  ),
-                  // About tab - show public profile info
-                  _buildAboutSection(profile),
-                ],
-              ),
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildStatColumn(String label, String count) {
@@ -364,5 +401,31 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
         ],
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+
+  _SliverAppBarDelegate(this._tabBar);
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }

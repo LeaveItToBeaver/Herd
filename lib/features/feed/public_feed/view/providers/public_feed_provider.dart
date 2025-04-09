@@ -26,12 +26,21 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
       : super(PublicFeedState.initial());
 
   /// Load initial public feed posts
-  Future<void> loadInitialPosts() async {
+  Future<void> loadInitialPosts({String? overrideUserId}) async {
     try {
       // Don't reload if already loading
       if (state.isLoading) return;
 
       state = state.copyWith(isLoading: true, error: null);
+
+      final effectiveUserId = overrideUserId ?? userId ?? '';
+      if (effectiveUserId.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          error: Exception('User ID is required'),
+        );
+        return;
+      }
 
       // Try to get posts from the cloud function first
       try {
