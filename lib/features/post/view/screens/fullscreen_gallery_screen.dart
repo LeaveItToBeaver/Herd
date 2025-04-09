@@ -139,6 +139,7 @@ class _FullscreenGalleryScreenState
                 ),
               ),
               child: SafeArea(
+                bottom: false,
                 child: Column(
                   children: [
                     // Top controls
