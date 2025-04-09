@@ -1,15 +1,19 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/post/data/repositories/post_repository.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/providers/state/create_post_state.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
-import 'package:herdapp/features/post/data/repositories/post_repository.dart';
+
 import '../herds/data/repositories/herd_repository.dart';
 import '../user/view/providers/current_user_provider.dart';
+import 'data/models/post_media_model.dart';
 import 'data/models/post_model.dart';
 
 class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
@@ -19,20 +23,19 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   CreatePostController(this._userRepository, this._postRepository)
       : super(AsyncValue.data(CreatePostState.initial()));
 
+  // In CreatePostController class, update createPost method:
   Future<String> createPost({
     required String userId,
     required String title,
     required String content,
-    File? imageFile,
+    List<File>? mediaFiles, // Changed to List<File>
     bool isAlt = false,
     String herdId = '',
     String herdName = '',
     String herdProfileImageURL = '',
   }) async {
     String? postId;
-    String? imageUrl;
-    String? thumbnailUrl;
-    String? mediaType;
+    List<PostMediaModel> mediaItems = [];
 
     try {
       state = const AsyncValue.loading();
@@ -44,42 +47,55 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       // 2. Generate post ID
       postId = _postRepository.generatePostId();
 
-      // 3. Try to upload media if present
-      if (imageFile != null) {
+      if (mediaFiles != null && mediaFiles.isNotEmpty) {
+        debugPrint("Creating post with ${mediaFiles.length} media files");
         try {
-          // Use the new uploadMedia method to get both image URLs
-          final mediaUrls = await _postRepository.uploadMedia(
-            mediaFile: imageFile,
+          // Upload multiple media
+          mediaItems = await _postRepository.uploadMultipleMediaFiles(
+            mediaFiles: mediaFiles,
             postId: postId,
             userId: userId,
             isAlt: isAlt,
           );
 
-          imageUrl = mediaUrls['imageUrl'];
-          thumbnailUrl = mediaUrls['thumbnailUrl'];
-          mediaType = mediaUrls['mediaType'];
+          debugPrint("Uploaded ${mediaItems.length} media items");
+          for (var item in mediaItems) {
+            debugPrint(
+                "Media item: id=${item.id}, url=${item.url}, type=${item.mediaType}");
+          }
         } catch (e) {
           // Log error but continue with post creation
           print('Warning: Failed to upload media: $e');
-          // URLs will remain null
         }
       }
 
-      // 4. Create post model with the new fields
+      // Get the first media item for backward compatibility
+      String? imageUrl;
+      String? thumbnailUrl;
+      String? mediaType;
+
+      if (mediaItems.isNotEmpty) {
+        imageUrl = mediaItems[0].url;
+        thumbnailUrl = mediaItems[0].thumbnailUrl;
+        mediaType = mediaItems[0].mediaType;
+      }
+
+      // 4. Create post model with all fields
       final post = PostModel(
         id: postId,
         authorId: user.id,
         authorUsername: user.username ?? 'Anonymous',
         authorName: (user.firstName + user.lastName) ?? 'Anonymous',
-        // Use appropriate profile image based on privacy setting
         authorProfileImageURL: isAlt
             ? (user.altProfileImageURL ?? user.profileImageURL)
             : user.profileImageURL,
         content: content,
-        herdId: herdId.isNotEmpty ? herdId : null, // Add this line
+        herdId: herdId.isNotEmpty ? herdId : null,
         herdName: herdId.isNotEmpty ? herdName : null,
         herdProfileImageURL: herdId.isNotEmpty ? herdProfileImageURL : null,
         title: title,
+        // Include both mediaItems and legacy fields for compatibility
+        mediaItems: mediaItems,
         mediaURL: imageUrl,
         mediaThumbnailURL: thumbnailUrl,
         mediaType: mediaType,
@@ -95,7 +111,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       await _postRepository.createPost(post);
 
       if (herdId.isNotEmpty) {
-        final herdRepository = HerdRepository(FirebaseFirestore.instance); // Or use dependency injection
+        final herdRepository = HerdRepository(FirebaseFirestore.instance);
         await herdRepository.addPostToHerd(herdId, post, userId);
       }
 
@@ -128,7 +144,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     }
   }
 
-  Future<void> _cleanupFailedPost(String postId, String userId, bool isAlt) async {
+  Future<void> _cleanupFailedPost(
+      String postId, String userId, bool isAlt) async {
     try {
       // Try to delete the post document if it was created
       await _postRepository.deletePost(postId);
@@ -170,25 +187,30 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 }
 
 // Provider for post controller
-final postControllerProvider = StateNotifierProvider<CreatePostController, AsyncValue<CreatePostState>>((ref) {
+final postControllerProvider =
+    StateNotifierProvider<CreatePostController, AsyncValue<CreatePostState>>(
+        (ref) {
   final userRepository = ref.watch(userRepositoryProvider);
   final postRepository = ref.watch(postRepositoryProvider);
   return CreatePostController(userRepository, postRepository);
 });
 // Provider for user posts with privacy filter
-final userPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
+final userPostsProvider =
+    StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final postRepository = ref.watch(postRepositoryProvider);
   return postRepository.getUserPosts(userId);
 });
 
 // Provider for user's public posts only
-final userPublicPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
+final userPublicPostsProvider =
+    StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final postRepository = ref.watch(postRepositoryProvider);
   return postRepository.getUserPublicPosts(userId);
 });
 
 // Provider for user's alt posts only
-final userAltPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
+final userAltPostsProvider =
+    StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final postRepository = ref.watch(postRepositoryProvider);
   return postRepository.getUserAltPosts(userId);
 });
@@ -200,7 +222,8 @@ final postProvider = StreamProvider.family<PostModel?, String>((ref, postId) {
 });
 
 // Provider to check if post is liked by current user
-final isPostLikedByUserProvider = FutureProvider.family<bool, String>((ref, postId) async {
+final isPostLikedByUserProvider =
+    FutureProvider.family<bool, String>((ref, postId) async {
   final postRepository = ref.watch(postRepositoryProvider);
   final userId = ref.read(currentUserProvider)?.id;
   if (userId == null) return false;
@@ -208,7 +231,8 @@ final isPostLikedByUserProvider = FutureProvider.family<bool, String>((ref, post
 });
 
 // Provider to check if post is disliked by current user
-final isPostDislikedByUserProvider = FutureProvider.family<bool, String>((ref, postId) async {
+final isPostDislikedByUserProvider =
+    FutureProvider.family<bool, String>((ref, postId) async {
   final postRepository = ref.watch(postRepositoryProvider);
   final userId = ref.read(currentUserProvider)?.id;
   if (userId == null) return false;
@@ -216,8 +240,9 @@ final isPostDislikedByUserProvider = FutureProvider.family<bool, String>((ref, p
 });
 
 // Provider for post interactions
-final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, String>(
-      (ref, postId) {
+final postInteractionsProvider = StateNotifierProvider.family<
+    PostInteractionsNotifier, PostInteractionState, String>(
+  (ref, postId) {
     final repository = ref.watch(postRepositoryProvider);
     return PostInteractionsNotifier(
       repository: repository,
