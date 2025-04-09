@@ -49,12 +49,20 @@ abstract class PostModel with _$PostModel {
   // Factory constructor to convert from Firestore snapshot
   factory PostModel.fromMap(String id, Map<String, dynamic> map) {
     List<PostMediaModel> mediaItems = [];
+
+    debugPrint("mediaItems from Firestore: ${map['mediaItems']}");
+
     if (map['mediaItems'] != null) {
-      mediaItems = List<PostMediaModel>.from(
-        (map['mediaItems'] as List).map(
-          (item) => PostMediaModel.fromMap(item),
-        ),
-      );
+      try {
+        final rawItems = map['mediaItems'] as List;
+        debugPrint("Raw mediaItems type: ${rawItems.runtimeType}");
+        mediaItems = rawItems
+            .map((item) => PostMediaModel.fromMap(
+                item is Map ? item : (item as dynamic).toMap()))
+            .toList();
+      } catch (e) {
+        debugPrint("Error parsing mediaItems: $e");
+      }
     } else if (map['mediaURL'] != null && map['mediaURL'].isNotEmpty) {
       // For backward compatibility - create a media item from the old fields
       mediaItems = [

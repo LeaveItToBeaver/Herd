@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
-import '../../../auth/view/providers/auth_provider.dart';
+
 import '../providers/state/profile_state.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
@@ -13,7 +13,8 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
   const PublicProfileScreen({super.key, required this.userId});
 
   @override
-  ConsumerState<PublicProfileScreen> createState() => _PublicProfileScreenState();
+  ConsumerState<PublicProfileScreen> createState() =>
+      _PublicProfileScreenState();
 }
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
@@ -31,9 +32,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.userId.isNotEmpty) {
         ref.read(profileControllerProvider.notifier).loadProfile(
-          widget.userId,
-          isAltView: false, // Force public view
-        );
+              widget.userId,
+              isAltView: false, // Force public view
+            );
       }
     });
   }
@@ -76,10 +77,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                     children: <Widget>[
                       Positioned.fill(
                           child: UserCoverImage(
-                            isSelected: false,
-                            coverImageUrl: profile.user?.coverImageURL,
-                          )
-                      )
+                        isSelected: false,
+                        coverImageUrl: profile.user?.coverImageURL,
+                      ))
                     ],
                   ),
                   actions: [
@@ -109,7 +109,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withOpacity(0.1),
                         ),
                       ),
                       child: Padding(
@@ -121,26 +124,31 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                               children: [
                                 UserProfileImage(
                                   radius: 40.0,
-                                  profileImageUrl: profile.user?.profileImageURL,
+                                  profileImageUrl:
+                                      profile.user?.profileImageURL,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${profile.user?.firstName ?? ''} ${profile.user?.lastName ?? ''}'.trim(),
-                                        style: Theme.of(context).textTheme.titleLarge,
+                                        '${profile.user?.firstName ?? ''} ${profile.user?.lastName ?? ''}'
+                                            .trim(),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-
                                     ],
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 16),
-                            if (profile.user?.bio != null && profile.user!.bio!.isNotEmpty)
+                            if (profile.user?.bio != null &&
+                                profile.user!.bio!.isNotEmpty)
                               Text(
                                 profile.user!.bio!,
                                 style: Theme.of(context).textTheme.bodyMedium,
@@ -149,9 +157,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _buildStatColumn('Posts', profile.posts.length.toString()),
-                                _buildStatColumn('Followers', profile.user?.followers?.toString() ?? '0'),
-                                _buildStatColumn('Following', profile.user?.following?.toString() ?? '0'),
+                                _buildStatColumn(
+                                    'Posts', profile.posts.length.toString()),
+                                _buildStatColumn('Followers',
+                                    profile.user?.followers?.toString() ?? '0'),
+                                _buildStatColumn('Following',
+                                    profile.user?.following?.toString() ?? '0'),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -160,18 +171,28 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                 width: double.infinity,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    ref.read(profileControllerProvider.notifier)
+                                    ref
+                                        .read(
+                                            profileControllerProvider.notifier)
                                         .toggleFollow(profile.isFollowing);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: profile.isFollowing
-                                        ? Theme.of(context).colorScheme.surfaceVariant
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .surfaceVariant
                                         : Theme.of(context).colorScheme.primary,
                                     foregroundColor: profile.isFollowing
-                                        ? Theme.of(context).colorScheme.onSurfaceVariant
-                                        : Theme.of(context).colorScheme.onPrimary,
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
                                   ),
-                                  child: Text(profile.isFollowing ? 'Unfollow' : 'Follow'),
+                                  child: Text(profile.isFollowing
+                                      ? 'Unfollow'
+                                      : 'Follow'),
                                 ),
                               ),
                           ],
@@ -184,7 +205,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                   child: TabBar(
                     controller: _tabController,
                     labelColor: Theme.of(context).colorScheme.primary,
-                    unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                    unselectedLabelColor:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: const [
                       Tab(text: 'Posts'),
@@ -201,20 +223,25 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                     posts: profile.posts.where((post) => post.isAlt).toList(),
                     isLoading: false, // Set based on your loading state
                     hasError: false, // Set based on error state
-                    type: PostListType.profile, // Use profile layout for more compact display
-                    scrollController: ScrollController(), // Or pass an existing controller
+                    type: PostListType
+                        .profile, // Use profile layout for more compact display
+                    scrollController:
+                        ScrollController(), // Or pass an existing controller
                     onRefresh: () async {
                       // Reload posts
-                      await ref.read(profileControllerProvider.notifier).loadProfile(
-                          widget.userId,
-                          isAltView: true
-                      );
+                      await ref
+                          .read(profileControllerProvider.notifier)
+                          .loadProfile(widget.userId, isAltView: true);
                     },
-                    emptyMessage: 'No alt posts yet',
-                    emptyActionLabel: profile.isCurrentUser ? 'Create Post' : null,
-                    onEmptyAction: profile.isCurrentUser ? () {
-                      context.pushNamed('create', queryParameters: {'isAlt': 'true'});
-                    } : null,
+                    emptyMessage: 'No public posts yet',
+                    emptyActionLabel:
+                        profile.isCurrentUser ? 'Create Post' : null,
+                    onEmptyAction: profile.isCurrentUser
+                        ? () {
+                            context.pushNamed('create',
+                                queryParameters: {'isAlt': 'true'});
+                          }
+                        : null,
                   ),
                   // About tab - show public profile info
                   _buildAboutSection(profile),
@@ -222,8 +249,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
               ),
             ),
           );
-        }
-    );
+        });
   }
 
   Widget _buildStatColumn(String label, String count) {
@@ -234,8 +260,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
         Text(
           count,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+                fontWeight: FontWeight.bold,
+              ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -263,11 +289,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow('Name', '${profile.user?.firstName ?? ''} ${profile.user?.lastName ?? ''}'),
+                  _buildInfoRow('Name',
+                      '${profile.user?.firstName ?? ''} ${profile.user?.lastName ?? ''}'),
                   const SizedBox(height: 8),
                   _buildInfoRow('Username', '@${profile.user?.username ?? ''}'),
                   const SizedBox(height: 8),
-                  if (profile.user?.bio != null && profile.user!.bio!.isNotEmpty) ...[
+                  if (profile.user?.bio != null &&
+                      profile.user!.bio!.isNotEmpty) ...[
                     _buildInfoRow('Bio', profile.user!.bio!),
                     const SizedBox(height: 8),
                   ],
@@ -275,9 +303,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                   const SizedBox(height: 8),
                   _buildInfoRow('Following', '${profile.user?.following ?? 0}'),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Joined', profile.user?.createdAt != null ?
-                  '${profile.user!.createdAt!.day}/${profile.user!.createdAt!.month}/${profile.user!.createdAt!.year}' :
-                  'Unknown'),
+                  _buildInfoRow(
+                      'Joined',
+                      profile.user?.createdAt != null
+                          ? '${profile.user!.createdAt!.day}/${profile.user!.createdAt!.month}/${profile.user!.createdAt!.year}'
+                          : 'Unknown'),
                 ],
               ),
             ),
@@ -325,7 +355,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () {
-              ref.read(profileControllerProvider.notifier).loadProfile(widget.userId, isAltView: false);
+              ref
+                  .read(profileControllerProvider.notifier)
+                  .loadProfile(widget.userId, isAltView: false);
             },
             child: const Text('Retry'),
           ),

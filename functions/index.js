@@ -81,9 +81,12 @@ function sanitizeData(obj) {
 
   // Handle arrays
   if (Array.isArray(obj)) {
+    // Check if this looks like a mediaItems array
+    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && (obj[0].url || obj[0].id)) {
+      return obj.filter(item => item && item.url).map(item => sanitizeData(item));
+    }
     return obj.map(item => sanitizeData(item));
   }
-
   // Handle objects
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -111,6 +114,92 @@ function sanitizeData(obj) {
   return result;
 }
 
+async function findPostMediaItems(postId, userId, isAlt) {
+  try {
+    // Determine the base storage path
+    const baseStoragePath = isAlt
+      ? `users/${userId}/alt/posts/${postId}`
+      : `users/${userId}/posts/${postId}`;
+
+    // List all files in the post's storage directory
+    const [files] = await admin.storage().bucket().getFiles({
+      prefix: baseStoragePath
+    });
+
+    if (files.length === 0) {
+      logger.info(`No files found in storage for post ${postId}`);
+      return [];
+    }
+
+    // Same processing logic you already have
+    const mediaGroups = {};
+
+    for (const file of files) {
+      // Extract the media ID from the path
+      // Format: users/{userId}/[alt/]posts/{postId}-{mediaId}/[fullres|thumbnail].ext
+      const filePath = file.name;
+      const pathSegments = filePath.split('/');
+      const lastSegment = pathSegments[pathSegments.length - 1];
+
+      // Look for the pattern postId-mediaId in the path
+      let mediaId = '0'; // Default if we can't extract
+      const postWithMediaPattern = new RegExp(`${postId}-(\\d+)`);
+
+      for (const segment of pathSegments) {
+        const match = segment.match(postWithMediaPattern);
+        if (match && match[1]) {
+          mediaId = match[1];
+          break;
+        }
+      }
+
+      if (!mediaGroups[mediaId]) {
+        mediaGroups[mediaId] = { id: mediaId };
+      }
+
+      // Determine if this is a fullres or thumbnail and get download URL
+      if (lastSegment.includes('fullres')) {
+        const [url] = await file.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500' // Far future expiration
+        });
+        mediaGroups[mediaId].url = url;
+
+        // Determine media type from extension
+        const extension = lastSegment.split('.').pop().toLowerCase();
+        mediaGroups[mediaId].mediaType = extension === 'gif'
+          ? 'gif'
+          : ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(extension)
+            ? 'image'
+            : ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extension)
+              ? 'video'
+              : 'other';
+      }
+      else if (lastSegment.includes('thumbnail')) {
+        const [url] = await file.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500'
+        });
+        mediaGroups[mediaId].thumbnailUrl = url;
+      }
+    }
+
+    // Create and return mediaItems array
+    return Object.values(mediaGroups)
+      .filter(item => item.url)
+      .map(item => ({
+        id: item.id,
+        url: item.url,
+        thumbnailUrl: item.thumbnailUrl || item.url,
+        mediaType: item.mediaType || 'image'
+      }));
+  } catch (error) {
+    logger.error(`Error finding media items for post ${postId}:`, error);
+    return [];
+  }
+}
+
+
 // 1. Trigger for public posts
 exports.distributePublicPost = onDocumentCreated(
   "posts/{postId}",
@@ -131,13 +220,28 @@ exports.distributePublicPost = onDocumentCreated(
     );
 
     // Add feedType and hotScore
-    const enhancedPostData = {
-      ...postData,
-      hotScore: initialHotScore,
-      feedType: 'public'
-    };
+    //    const enhancedPostData = {
+    //      ...postData,
+    //      hotScore: initialHotScore,
+    //      feedType: 'public'
+    //    };
 
     try {
+      let enhancedPostData = {
+        ...postData,
+        hotScore: initialHotScore,
+        feedType: 'public'
+      };
+
+      const mediaItems = await findPostMediaItems(postId, postData.authorId, false);
+
+      if (mediaItems && mediaItems.length > 0) {
+        logger.info(`Found ${mediaItems.length} media items for post ${postId}`);
+        enhancedPostData.mediaItems = mediaItems;
+        // Update the source post with media items
+        await event.data.ref.update({ mediaItems });
+      }
+
       // Get followers
       const followersSnapshot = await firestore
         .collection("followers")
@@ -184,13 +288,28 @@ exports.distributeAltPost = onDocumentCreated(
     );
 
     // Add feedType and hotScore
-    const enhancedPostData = {
-      ...postData,
-      hotScore: initialHotScore,
-      feedType: 'alt'
-    };
+    //    const enhancedPostData = {
+    //      ...postData,
+    //      hotScore: initialHotScore,
+    //      feedType: 'alt'
+    //    };
 
     try {
+      let enhancedPostData = {
+        ...postData,
+        hotScore: initialHotScore,
+        feedType: 'alt'
+      };
+
+      const mediaItems = await findPostMediaItems(postId, postData.authorId, false);
+
+      if (mediaItems && mediaItems.length > 0) {
+        logger.info(`Found ${mediaItems.length} media items for post ${postId}`);
+        enhancedPostData.mediaItems = mediaItems;
+        // Update the source post with media items
+        await event.data.ref.update({ mediaItems });
+      }
+
       // For alt posts, add to global alt feed (which already happened via direct write)
       // Just need to add to author's personal feed
       await firestore
@@ -230,18 +349,38 @@ exports.distributeHerdPost = onDocumentCreated(
     );
 
     // Add feedType and hotScore
-    const enhancedPostData = {
-      ...postData,
-      hotScore: initialHotScore,
-      feedType: 'herd',
-      herdId: herdId  // Ensure herdId is always set
-    };
+    //    const enhancedPostData = {
+    //      ...postData,
+    //      hotScore: initialHotScore,
+    //      feedType: 'herd',
+    //      herdId: herdId  // Ensure herdId is always set
+    //    };
 
     try {
       // Get herd details to check if private
       const herdDoc = await firestore.collection("herds").doc(herdId).get();
       const herdData = herdDoc.data();
       const isPrivateHerd = herdData?.isPrivate || false;
+
+      let enhancedPostData = {
+        ...postData,
+        hotScore: initialHotScore,
+        feedType: 'herd',
+        herdId: herdId
+      };
+
+      // Find all media items associated with this post
+      const mediaItems = await findPostMediaItems(postId, postData.authorId, false);
+
+      if (mediaItems && mediaItems.length > 0) {
+        logger.info(`Found ${mediaItems.length} media items for post ${postId}`);
+        enhancedPostData.mediaItems = mediaItems;
+
+        // Update the source post with media items
+        await event.data.ref.update({ mediaItems });
+      }
+
+
 
       // Add herd name and image to post data for easier rendering
       enhancedPostData.herdName = herdData?.name || '';
@@ -272,6 +411,293 @@ exports.distributeHerdPost = onDocumentCreated(
   }
 );
 
+///**
+// * Cloud Function to populate mediaItems for all post types
+// * This runs after post creation and scans Storage for related media files
+// */
+//exports.populateMediaItems = functions.firestore
+//  .document('{postCollection}/{postId}')
+//  .onCreate(async (snapshot, context) => {
+//    const postId = context.params.postId;
+//    const collection = context.params.postCollection;
+//
+//    // Skip if this isn't a post collection we care about
+//    if (!['posts', 'altPosts'].includes(collection) && !collection.includes('herdPosts')) {
+//      logger.info(`Skipping non-post collection: ${collection}`);
+//      return null;
+//    }
+//
+//    const postData = snapshot.data();
+//
+//    // If mediaItems array already exists and has items, skip
+//    if (postData.mediaItems && Array.isArray(postData.mediaItems) && postData.mediaItems.length > 0) {
+//      logger.info(`Post ${postId} already has ${postData.mediaItems.length} media items`);
+//      return null;
+//    }
+//
+//    try {
+//      // Identify post type and user
+//      const userId = postData.authorId;
+//      const isAlt = postData.isAlt === true || collection === 'altPosts';
+//      const herdId = postData.herdId || null;
+//
+//      if (!userId) {
+//        logger.error(`Post ${postId} has no authorId`);
+//        return null;
+//      }
+//
+//      logger.info(`Processing media items for ${isAlt ? 'alt' : 'public'} post ${postId} by user ${userId}`);
+//
+//      // Determine the base storage path
+//      const baseStoragePath = isAlt
+//        ? `users/${userId}/alt/posts/${postId}`
+//        : `users/${userId}/posts/${postId}`;
+//
+//      // List all files in the post's storage directory
+//      const storageRef = admin.storage().bucket().getFiles({
+//        prefix: baseStoragePath
+//      });
+//
+//      const [files] = await storageRef;
+//
+//      if (files.length === 0) {
+//        logger.info(`No files found in storage for post ${postId}`);
+//        return null;
+//      }
+//
+//      logger.info(`Found ${files.length} files for post ${postId}`);
+//
+//      // Group files by subdirectory (each media item has fullres and possibly thumbnail)
+//      const mediaGroups = {};
+//
+//      for (const file of files) {
+//        // Extract the media ID from the path
+//        // Format: users/{userId}/[alt/]posts/{postId}-{mediaId}/[fullres|thumbnail].ext
+//        const filePath = file.name;
+//        const pathSegments = filePath.split('/');
+//        const lastSegment = pathSegments[pathSegments.length - 1];
+//
+//        // Look for the pattern postId-mediaId in the path
+//        let mediaId = '0'; // Default if we can't extract
+//        const postWithMediaPattern = new RegExp(`${postId}-(\\d+)`);
+//
+//        for (const segment of pathSegments) {
+//          const match = segment.match(postWithMediaPattern);
+//          if (match && match[1]) {
+//            mediaId = match[1];
+//            break;
+//          }
+//        }
+//
+//        if (!mediaGroups[mediaId]) {
+//          mediaGroups[mediaId] = { id: mediaId };
+//        }
+//
+//        // Determine if this is a fullres or thumbnail and get download URL
+//        if (lastSegment.includes('fullres')) {
+//          const [url] = await file.getSignedUrl({
+//            action: 'read',
+//            expires: '03-01-2500' // Far future expiration
+//          });
+//          mediaGroups[mediaId].url = url;
+//
+//          // Determine media type from extension
+//          const extension = lastSegment.split('.').pop().toLowerCase();
+//          mediaGroups[mediaId].mediaType = extension === 'gif'
+//            ? 'gif'
+//            : ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(extension)
+//              ? 'image'
+//              : ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extension)
+//                ? 'video'
+//                : 'other';
+//        }
+//        else if (lastSegment.includes('thumbnail')) {
+//          const [url] = await file.getSignedUrl({
+//            action: 'read',
+//            expires: '03-01-2500'
+//          });
+//          mediaGroups[mediaId].thumbnailUrl = url;
+//        }
+//      }
+//
+//      // Create mediaItems array from the groups
+//      const mediaItems = Object.values(mediaGroups)
+//        .filter(item => item.url) // Only include items with a URL
+//        .map(item => ({
+//          id: item.id,
+//          url: item.url,
+//          thumbnailUrl: item.thumbnailUrl || item.url, // Use main URL as fallback
+//          mediaType: item.mediaType || 'image'
+//        }));
+//
+//      if (mediaItems.length === 0) {
+//        logger.info(`No valid media items found for post ${postId}`);
+//        return null;
+//      }
+//
+//      logger.info(`Updating post ${postId} with ${mediaItems.length} media items`);
+//
+//      // Update the post with mediaItems array based on collection type
+//      if (collection === 'posts') {
+//        await snapshot.ref.update({ mediaItems });
+//      } else if (collection === 'altPosts') {
+//        await snapshot.ref.update({ mediaItems });
+//      } else if (collection.includes('herdPosts')) {
+//        // Handle herd posts - need to extract herdId from path
+//        const herdId = context.resource.name.split('/').slice(-4, -3)[0];
+//        await admin.firestore()
+//          .collection('herdPosts')
+//          .doc(herdId)
+//          .collection('posts')
+//          .doc(postId)
+//          .update({ mediaItems });
+//      }
+//
+//      logger.info(`Successfully updated post ${postId} with ${mediaItems.length} media items`);
+//      return { success: true, mediaCount: mediaItems.length };
+//
+//    } catch (error) {
+//      logger.error(`Error populating media items for post ${postId}:`, error);
+//      return { success: false, error: error.message };
+//    }
+//  });
+
+exports.populateHerdPostMediaItems = onDocumentCreated(
+  "herdPosts/{herdId}/posts/{postId}",
+  async (event) => {
+    const herdId = context.params.herdId;
+    const postId = context.params.postId;
+
+    // Reuse the same core logic as above, but specifically for herd posts
+    // This is needed because the wildcard pattern in the first function
+    // can't directly match nested collections
+
+    const postData = snapshot.data();
+
+    // If mediaItems array already exists and has items, skip
+    if (postData.mediaItems && Array.isArray(postData.mediaItems) && postData.mediaItems.length > 0) {
+      logger.info(`Herd post ${postId} already has ${postData.mediaItems.length} media items`);
+      return null;
+    }
+
+    try {
+      const userId = postData.authorId;
+      const herdId = postData.herdId || null;
+      const isAlt = postData.isAlt === true;
+
+      if (!userId) {
+        logger.error(`Post ${postId} has no authorId`);
+        return null;
+      }
+
+      logger.info(`Processing media items for herd post ${postId} in herd ${herdId}`);
+
+      if (!userId) {
+        logger.error(`Herd post ${postId} has no authorId`);
+        return null;
+      }
+
+      // Same storage path calculation and file listing logic
+      const baseStoragePath = isAlt
+        ? `users/${userId}/alt/posts/${postId}`
+        : `users/${userId}/posts/${postId}`;
+
+      const storageRef = admin.storage().bucket().getFiles({
+        prefix: baseStoragePath
+      });
+
+      const [files] = await storageRef;
+
+      if (files.length === 0) {
+        logger.info(`No files found in storage for post ${postId}`);
+        return null;
+      }
+
+      logger.info(`Found ${files.length} files for post ${postId}`);
+
+      // Group files by subdirectory (each media item has fullres and possibly thumbnail)
+      const mediaGroups = {};
+
+      for (const file of files) {
+        // Extract the media ID from the path
+        // Format: users/{userId}/[alt/]posts/{postId}-{mediaId}/[fullres|thumbnail].ext
+        const filePath = file.name;
+        const pathSegments = filePath.split('/');
+        const lastSegment = pathSegments[pathSegments.length - 1];
+
+        // Look for the pattern postId-mediaId in the path
+        let mediaId = '0'; // Default if we can't extract
+        const postWithMediaPattern = new RegExp(`${postId}-(\\d+)`);
+
+        for (const segment of pathSegments) {
+          const match = segment.match(postWithMediaPattern);
+          if (match && match[1]) {
+            mediaId = match[1];
+            break;
+          }
+        }
+
+        if (!mediaGroups[mediaId]) {
+          mediaGroups[mediaId] = { id: mediaId };
+        }
+
+        // Determine if this is a fullres or thumbnail and get download URL
+        if (lastSegment.includes('fullres')) {
+          const [url] = await file.getSignedUrl({
+            action: 'read',
+            expires: '03-01-2500' // Far future expiration
+          });
+          mediaGroups[mediaId].url = url;
+
+          // Determine media type from extension
+          const extension = lastSegment.split('.').pop().toLowerCase();
+          mediaGroups[mediaId].mediaType = extension === 'gif'
+            ? 'gif'
+            : ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(extension)
+              ? 'image'
+              : ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extension)
+                ? 'video'
+                : 'other';
+        }
+        else if (lastSegment.includes('thumbnail')) {
+          const [url] = await file.getSignedUrl({
+            action: 'read',
+            expires: '03-01-2500'
+          });
+          mediaGroups[mediaId].thumbnailUrl = url;
+        }
+      }
+
+      // Create mediaItems array from the groups
+      const mediaItems = Object.values(mediaGroups)
+        .filter(item => item.url) // Only include items with a URL
+        .map(item => ({
+          id: item.id,
+          url: item.url,
+          thumbnailUrl: item.thumbnailUrl || item.url, // Use main URL as fallback
+          mediaType: item.mediaType || 'image'
+        }));
+
+      if (mediaItems.length === 0) {
+        logger.info(`No valid media items found for post ${postId}`);
+        return null;
+      }
+
+      logger.info(`Updating post ${postId} with ${mediaItems.length} media items`);
+
+
+      // Update the herd post with mediaItems array
+      await snapshot.ref.update({ mediaItems });
+
+      logger.info(`Successfully updated herd post ${herdId}/${postId} with media items`);
+      return { success: true };
+
+    } catch (error) {
+      logger.error(`Error populating media items for herd post ${herdId}/${postId}:`, error);
+      return { success: false, error: error.message };
+    }
+  });
+
 // Helper function for fan-out operations
 async function fanOutToUserFeeds(postId, postData, userIds) {
   if (userIds.length === 0) return;
@@ -288,7 +714,10 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
       .collection("feed")
       .doc(postId);
 
-    batch.set(userFeedRef, postData);
+    batch.set(userFeedRef, {
+      ...postData,
+      mediaItems: postData.mediaItems || [] // Explicitly set mediaItems
+    });
     operationCount++;
 
     // If batch is full, commit and reset
@@ -435,147 +864,147 @@ exports.updatePostInFeeds = onDocumentUpdated(
  * Handle post interactions (likes/dislikes) with the unified feed approach
  */
 exports.handlePostInteraction = onCall({
-    enforceAppCheck: false,
-    },
-    async (request) => {
-        const {
-            postId,
-            interactionType,
-            feedType
-        } = request.data;
+  enforceAppCheck: false,
+},
+  async (request) => {
+    const {
+      postId,
+      interactionType,
+      feedType
+    } = request.data;
 
-        // Validate authentication
-        if (!request.auth) {
-            throw new HttpsError('unauthenticated', 'User must be logged in');
-        }
+    // Validate authentication
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'User must be logged in');
+    }
 
-        const userId = request.auth.uid;
+    const userId = request.auth.uid;
 
-        let postRef;
+    let postRef;
 
-        if (feedType === 'public') {
-           postRef = firestore.collection('posts').doc(postId);
-        } else if (feedType === 'alt') {
-            postRef = firestore.collection('altPosts').doc(postId);
-        } else if (feedType === 'herd') {
-            postRef = firestore.collection('herdPosts').doc(herdId).collection('posts').doc(postId);
-        } else {
-            throw new HttpsError('invalid-argument', 'Invalid feed type');
-        }
+    if (feedType === 'public') {
+      postRef = firestore.collection('posts').doc(postId);
+    } else if (feedType === 'alt') {
+      postRef = firestore.collection('altPosts').doc(postId);
+    } else if (feedType === 'herd') {
+      postRef = firestore.collection('herdPosts').doc(herdId).collection('posts').doc(postId);
+    } else {
+      throw new HttpsError('invalid-argument', 'Invalid feed type');
+    }
 
-          // Define interaction configurations here - make sure it's defined before use
-          const interactions = {
-            like: {
-              incrementField: 'likeCount',
-              decrementField: 'dislikeCount',
-              collection: 'likes'
-            },
-            dislike: {
-              incrementField: 'dislikeCount',
-              decrementField: 'likeCount',
-              collection: 'dislikes'
-            }
-          };
+    // Define interaction configurations here - make sure it's defined before use
+    const interactions = {
+      like: {
+        incrementField: 'likeCount',
+        decrementField: 'dislikeCount',
+        collection: 'likes'
+      },
+      dislike: {
+        incrementField: 'dislikeCount',
+        decrementField: 'likeCount',
+        collection: 'dislikes'
+      }
+    };
 
-          // Validate interaction type early
-          const config = interactions[interactionType];
-          if (!config) {
-            throw new HttpsError('invalid-argument', 'Invalid interaction type');
-          }
+    // Validate interaction type early
+    const config = interactions[interactionType];
+    if (!config) {
+      throw new HttpsError('invalid-argument', 'Invalid interaction type');
+    }
 
-          return firestore.runTransaction(async (transaction) => {
-            // Get all document references first before any writes
-            const postDoc = await transaction.get(postRef);
+    return firestore.runTransaction(async (transaction) => {
+      // Get all document references first before any writes
+      const postDoc = await transaction.get(postRef);
 
-            if (!postDoc.exists) {
-              throw new HttpsError('not-found', 'Post not found');
-            }
+      if (!postDoc.exists) {
+        throw new HttpsError('not-found', 'Post not found');
+      }
 
-            const postData = postDoc.data();
+      const postData = postDoc.data();
 
-            const interactionRef = firestore
-              .collection(config.collection)
-              .doc(postId)
-              .collection('userInteractions')
-              .doc(userId);
+      const interactionRef = firestore
+        .collection(config.collection)
+        .doc(postId)
+        .collection('userInteractions')
+        .doc(userId);
 
-            // Check current interaction state
-            const currentInteraction = await transaction.get(interactionRef);
-            const isCurrentlyInteracted = currentInteraction.exists;
+      // Check current interaction state
+      const currentInteraction = await transaction.get(interactionRef);
+      const isCurrentlyInteracted = currentInteraction.exists;
 
-            // Check if opposite interaction exists - do this read before any writes
-            const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
-            const oppositeRef = firestore
-              .collection(oppositeCollection)
-              .doc(postId)
-              .collection('userInteractions')
-              .doc(userId);
+      // Check if opposite interaction exists - do this read before any writes
+      const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
+      const oppositeRef = firestore
+        .collection(oppositeCollection)
+        .doc(postId)
+        .collection('userInteractions')
+        .doc(userId);
 
-            const oppositeInteraction = await transaction.get(oppositeRef);
-            const hasOppositeInteraction = oppositeInteraction.exists;
+      const oppositeInteraction = await transaction.get(oppositeRef);
+      const hasOppositeInteraction = oppositeInteraction.exists;
 
-            // NOW DO ALL WRITES AFTER ALL READS
+      // NOW DO ALL WRITES AFTER ALL READS
 
-            // Calculate the changes based on current state
-            let likeChange = 0;
-            let dislikeChange = 0;
+      // Calculate the changes based on current state
+      let likeChange = 0;
+      let dislikeChange = 0;
 
-            if (interactionType === 'like') {
-              likeChange = isCurrentlyInteracted ? -1 : 1;
-              dislikeChange = hasOppositeInteraction ? -1 : 0;
-            } else { // dislike
-              dislikeChange = isCurrentlyInteracted ? -1 : 1;
-              likeChange = hasOppositeInteraction ? -1 : 0;
-            }
+      if (interactionType === 'like') {
+        likeChange = isCurrentlyInteracted ? -1 : 1;
+        dislikeChange = hasOppositeInteraction ? -1 : 0;
+      } else { // dislike
+        dislikeChange = isCurrentlyInteracted ? -1 : 1;
+        likeChange = hasOppositeInteraction ? -1 : 0;
+      }
 
-            // Update post counts
-            transaction.update(postRef, {
-              likeCount: admin.firestore.FieldValue.increment(likeChange),
-              dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-            });
+      // Update post counts
+      transaction.update(postRef, {
+        likeCount: admin.firestore.FieldValue.increment(likeChange),
+        dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
+      });
 
-            // Toggle user's interaction
-            if (isCurrentlyInteracted) {
-              transaction.delete(interactionRef);
-            } else {
-              transaction.set(interactionRef, {
-                timestamp: admin.firestore.FieldValue.serverTimestamp()
-              });
-            }
+      // Toggle user's interaction
+      if (isCurrentlyInteracted) {
+        transaction.delete(interactionRef);
+      } else {
+        transaction.set(interactionRef, {
+          timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
 
-            // Remove opposite interaction if it exists
-            if (hasOppositeInteraction) {
-              transaction.delete(oppositeRef);
-            }
+      // Remove opposite interaction if it exists
+      if (hasOppositeInteraction) {
+        transaction.delete(oppositeRef);
+      }
 
-            // Calculate updated hot score with new values
-            const updatedLikeCount = postData.likeCount + likeChange;
-            const updatedDislikeCount = postData.dislikeCount + dislikeChange;
-            const netVotes = updatedLikeCount - updatedDislikeCount;
-            const updatedHotScore = hotAlgorithm.calculateHotScore(
-              netVotes,
-              postData.createdAt.toDate()
-            );
+      // Calculate updated hot score with new values
+      const updatedLikeCount = postData.likeCount + likeChange;
+      const updatedDislikeCount = postData.dislikeCount + dislikeChange;
+      const netVotes = updatedLikeCount - updatedDislikeCount;
+      const updatedHotScore = hotAlgorithm.calculateHotScore(
+        netVotes,
+        postData.createdAt.toDate()
+      );
 
-            transaction.update(postRef, { hotScore: updatedHotScore });
+      transaction.update(postRef, { hotScore: updatedHotScore });
 
-            // If not the author, update user points
-            if (postData.authorId !== userId) {
-              const pointChange = isCurrentlyInteracted ? -1 : 1;
-              const authorRef = firestore.collection('users').doc(postData.authorId);
-              transaction.update(authorRef, {
-                userPoints: admin.firestore.FieldValue.increment(pointChange)
-              });
-            }
+      // If not the author, update user points
+      if (postData.authorId !== userId) {
+        const pointChange = isCurrentlyInteracted ? -1 : 1;
+        const authorRef = firestore.collection('users').doc(postData.authorId);
+        transaction.update(authorRef, {
+          userPoints: admin.firestore.FieldValue.increment(pointChange)
+        });
+      }
 
-            return {
-              success: true,
-              hotScore: updatedHotScore,
-              isLiked: interactionType === 'like' && !isCurrentlyInteracted,
-              isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
-            };
+      return {
+        success: true,
+        hotScore: updatedHotScore,
+        isLiked: interactionType === 'like' && !isCurrentlyInteracted,
+        isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
+      };
+    });
   });
-});
 
 
 /**
@@ -621,8 +1050,8 @@ exports.getFeed = onCall(async (request) => {
 
     // Additional validation as a last resort
     if (sanitizedResult.lastHotScore !== undefined &&
-        typeof sanitizedResult.lastHotScore === 'number' &&
-        isNaN(sanitizedResult.lastHotScore)) {
+      typeof sanitizedResult.lastHotScore === 'number' &&
+      isNaN(sanitizedResult.lastHotScore)) {
       sanitizedResult.lastHotScore = 0;
     }
 
