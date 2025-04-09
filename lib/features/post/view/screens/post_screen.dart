@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +10,10 @@ import '../../../comment/view/widgets/comment_list_widget.dart';
 import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
+import '../../data/models/post_media_model.dart';
 import '../providers/post_provider.dart' hide commentsProvider;
-import '../widgets/post_video_player.dart';
+import '../widgets/media_carousel_widget.dart';
+import 'fullscreen_gallery_screen.dart';
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -514,68 +515,74 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
+  // In post_widget.dart and post_screen.dart, update the media item conversion:
+
+  List<PostMediaModel> getMediaItemsFromPost(dynamic post) {
+    List<PostMediaModel> mediaItems = [];
+
+    // Check for new media items format first
+    if (post.mediaItems != null && post.mediaItems.isNotEmpty) {
+      mediaItems = post.mediaItems;
+      debugPrint('Found ${mediaItems.length} media items in post');
+    }
+    // Fall back to legacy format
+    else if (post.mediaURL != null && post.mediaURL.toString().isNotEmpty) {
+      final url = post.mediaURL.toString();
+      if (url.isNotEmpty && url.contains('://')) {
+        // Basic URL validation
+        mediaItems.add(PostMediaModel(
+          id: '0',
+          url: url,
+          thumbnailUrl: post.mediaThumbnailURL,
+          mediaType: post.mediaType ?? 'image',
+        ));
+        debugPrint('Using legacy media URL: $url');
+      } else {
+        debugPrint('Invalid legacy URL: $url');
+      }
+    }
+
+    // Validate each media item to ensure it has a valid URL
+    mediaItems = mediaItems
+        .where((item) => item.url.isNotEmpty && item.url.contains('://'))
+        .toList();
+
+    if (mediaItems.isEmpty) {
+      debugPrint('No valid media found for post ${post.id}');
+    }
+
+    return mediaItems;
+  }
+
   bool _hasMedia(dynamic post) {
     return post.mediaURL != null && post.mediaURL.isNotEmpty;
   }
 
   Widget _buildMedia(dynamic post) {
-    // Always use the full resolution imageUrl for post detail view
-    final String imageUrl = post.mediaURL ?? '';
-    final String mediaType = post.mediaType ?? 'image';
+    List<PostMediaModel> mediaItems = getMediaItemsFromPost(post);
 
-    if (post.mediaType == 'video' && post.mediaURL != null) {
-      return PostVideoPlayer(
-        url: post.mediaURL!,
-        autoPlay: false,
-        showControls: true,
-        looping: false,
-      );
-    } else if (mediaType == 'gif') {
-      // GIF - use CachedNetworkImage
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          placeholder: (context, url) => Container(
-            color: Colors.grey[200],
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: Colors.grey[200],
-            child: const Center(
-              child: Icon(Icons.error, color: Colors.red),
-            ),
-          ),
-        ),
-      );
-    } else {
-      // Regular image
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          fit: BoxFit.contain,
-          placeholder: (context, url) => Container(
-            color: Colors.grey[200],
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: Colors.grey[200],
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error, color: Colors.red, size: 40),
-                  const SizedBox(height: 8),
-                  Text('Error loading image: $error',
-                      textAlign: TextAlign.center),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
+    if (mediaItems.isEmpty) {
+      return const SizedBox.shrink();
     }
+
+    // Create a carousel
+    return MediaCarouselWidget(
+      mediaItems: mediaItems,
+      height: 300,
+      autoPlay: false,
+      onMediaTap: (media, index) {
+        // Navigate to fullscreen gallery
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => FullscreenGalleryScreen(
+              mediaItems: mediaItems,
+              initialIndex: index,
+              postId: post.id,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _formatTimestamp(DateTime? timestamp) {

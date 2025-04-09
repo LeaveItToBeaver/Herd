@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,9 +6,12 @@ import 'package:shimmer/shimmer.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
+import '../../data/models/post_media_model.dart';
 import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../providers/state/post_interaction_state.dart';
+import '../screens/fullscreen_gallery_screen.dart';
+import 'media_carousel_widget.dart';
 
 class PostWidget extends ConsumerStatefulWidget {
   final PostModel post;
@@ -557,118 +559,68 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty);
   }
 
-  Widget _buildMediaPreview() {
-    // Use thumbnail in feed view if available
-    final String imageUrl =
-        widget.post.mediaThumbnailURL ?? widget.post.mediaURL ?? '';
-    final mediaType = widget.post.mediaType ?? 'image';
+  // In post_widget.dart and post_screen.dart, update the media item conversion:
 
-    // For videos, show a video placeholder with play icon
-    if (mediaType == 'video') {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Container(
-                width: double.infinity,
-                color: Colors.black87,
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(
-                          child: Icon(Icons.videocam,
-                              color: Colors.white70, size: 40),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.videocam,
-                            color: Colors.white70, size: 40),
-                      ),
-              ),
-            ),
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.play_arrow,
-                color: Colors.white,
-                size: 32,
-              ),
-            ),
-          ],
-        ),
-      );
+  List<PostMediaModel> getMediaItemsFromPost(dynamic post) {
+    List<PostMediaModel> mediaItems = [];
+
+    // Check for new media items format first
+    if (post.mediaItems != null && post.mediaItems.isNotEmpty) {
+      mediaItems = post.mediaItems;
+      debugPrint('Found ${mediaItems.length} media items in post');
+    }
+    // Fall back to legacy format
+    else if (post.mediaURL != null && post.mediaURL.toString().isNotEmpty) {
+      final url = post.mediaURL.toString();
+      if (url.isNotEmpty && url.contains('://')) {
+        // Basic URL validation
+        mediaItems.add(PostMediaModel(
+          id: '0',
+          url: url,
+          thumbnailUrl: post.mediaThumbnailURL,
+          mediaType: post.mediaType ?? 'image',
+        ));
+        debugPrint('Using legacy media URL: $url');
+      } else {
+        debugPrint('Invalid legacy URL: $url');
+      }
     }
 
-    // For GIFs and images
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Stack(
-        children: [
-          CachedNetworkImage(
-            imageUrl: imageUrl,
-            height: widget.isCompact ? 150 : 200,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              height: widget.isCompact ? 150 : 200,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-              ),
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: widget.isCompact ? 150 : 200,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline,
-                      color: Colors.grey.shade400, size: 32),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Failed to load image',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
+    // Validate each media item to ensure it has a valid URL
+    mediaItems = mediaItems
+        .where((item) => item.url.isNotEmpty && item.url.contains('://'))
+        .toList();
+
+    if (mediaItems.isEmpty) {
+      debugPrint('No valid media found for post ${post.id}');
+    }
+
+    return mediaItems;
+  }
+
+  Widget _buildMediaPreview() {
+    List<PostMediaModel> mediaItems = getMediaItemsFromPost(widget.post);
+
+    if (mediaItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Create a carousel
+    return MediaCarouselWidget(
+      mediaItems: mediaItems,
+      height: 200,
+      onMediaTap: (media, index) {
+        // Navigate to full screen gallery
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => FullscreenGalleryScreen(
+              mediaItems: mediaItems,
+              initialIndex: index,
+              postId: widget.post.id,
             ),
           ),
-
-          // Show GIF indicator if needed
-          if (mediaType == 'gif')
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'GIF',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 

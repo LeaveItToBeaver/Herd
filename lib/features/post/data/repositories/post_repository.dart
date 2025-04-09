@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 
 import '../../../../core/services/image_helper.dart';
 import '../../../user/data/repositories/user_repository.dart';
+import '../models/post_media_model.dart';
 import '../models/post_model.dart';
 
 class PostRepository {
@@ -33,52 +34,98 @@ class PostRepository {
       _firestore.collection('altFeeds');
 
   /// Creating a post ///
-  Future<void> createPost(PostModel post) async {
+  Future<void> createPost(PostModel post, {List<File>? mediaFiles}) async {
     try {
-      // Determine the correct collection based on post type
-      CollectionReference<Map<String, dynamic>> targetCollection;
+      // Generate post ID if needed
       String postId =
           post.id.isEmpty ? _firestore.collection('posts').doc().id : post.id;
 
-      // Set the feedType based on post attributes
+      // Debug the incoming data
+      debugPrint(
+          "Creating post with ID: $postId and ${mediaFiles?.length ?? 0} media files");
+
+      List<PostMediaModel> mediaItems = [];
+
+      // Upload multiple media files if provided
+      if (mediaFiles != null && mediaFiles.isNotEmpty) {
+        // For each media file, upload it and get the URL
+        for (int i = 0; i < mediaFiles.length; i++) {
+          final File file = mediaFiles[i];
+          final String mediaId = '$i';
+          final String individualPostId = '$postId-$mediaId';
+
+          debugPrint("Uploading media file $i/${mediaFiles.length}");
+
+          try {
+            // Use existing uploadMedia method
+            final result = await uploadMedia(
+              mediaFile: file,
+              postId: individualPostId,
+              userId: post.authorId,
+              isAlt: post.isAlt,
+            );
+
+            // Only add if we got a URL back
+            if (result['imageUrl'] != null && result['imageUrl']!.isNotEmpty) {
+              // Create the media model and add to our list
+              mediaItems.add(PostMediaModel(
+                id: mediaId,
+                url: result['imageUrl']!,
+                thumbnailUrl: result['thumbnailUrl'],
+                mediaType: result['mediaType'] ?? 'image',
+              ));
+
+              debugPrint(
+                  "Successfully uploaded media $i: ${result['imageUrl']}");
+            }
+          } catch (e) {
+            debugPrint("Error uploading media file $i: $e");
+          }
+        }
+
+        debugPrint("Total media items created: ${mediaItems.length}");
+      }
+
+      // Set the feedType and single mediaURL for backward compatibility
       final feedType =
           post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
 
-      // Create a post with the feed type and ID
-      final postWithTypeAndId = post.copyWith(
-        id: postId,
-        feedType: feedType,
-      );
+      // Create a map to update Firestore
+      final Map<String, dynamic> postData = post.toMap();
+
+      // Important: Make sure mediaItems is explicitly set in the map
+      postData['mediaItems'] = mediaItems.map((item) => item.toMap()).toList();
+
+      // For backward compatibility, set the first image URL as the mediaURL
+      if (mediaItems.isNotEmpty) {
+        postData['mediaURL'] = mediaItems.first.url;
+        postData['mediaThumbnailURL'] = mediaItems.first.thumbnailUrl;
+        postData['mediaType'] = mediaItems.first.mediaType;
+      }
+
+      postData['id'] = postId;
+      postData['feedType'] = feedType;
+
+      // Debugging
+      debugPrint(
+          "Final post data has ${(postData['mediaItems'] as List).length} media items");
 
       // Determine where to save the post
       if (post.isAlt) {
-        // Save to altPosts collection
-        await _firestore
-            .collection('altPosts')
-            .doc(postId)
-            .set(postWithTypeAndId.toMap());
-        debugPrint('Alt post created with ID: ${postId}');
+        await _firestore.collection('altPosts').doc(postId).set(postData);
       } else if (post.herdId != null && post.herdId!.isNotEmpty) {
-        // Save to herdPosts collection
         await _firestore
             .collection('herdPosts')
             .doc(post.herdId)
             .collection('posts')
             .doc(postId)
-            .set(postWithTypeAndId.toMap());
-        debugPrint(
-            'Herd post created with ID: ${postId} in herd: ${post.herdId}');
+            .set(postData);
       } else {
-        // Save to regular posts collection
-        await _firestore
-            .collection('posts')
-            .doc(postId)
-            .set(postWithTypeAndId.toMap());
-        debugPrint('Public post created with ID: ${postId}');
+        await _firestore.collection('posts').doc(postId).set(postData);
       }
 
-      // The Cloud Function trigger will handle distribution to feeds
-      debugPrint('Distribution to feeds will be handled by Cloud Function');
+      debugPrint(
+          'Post created successfully with ${mediaItems.length} media items');
     } catch (e) {
       debugPrint('Error creating post: $e');
       throw e;
@@ -386,6 +433,60 @@ class PostRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) => PostModel.fromMap(doc.id, doc.data()))
             .toList());
+  }
+
+  // In PostRepository class, add this method:
+  Future<List<PostMediaModel>> uploadMultipleMediaFiles({
+    required List<File> mediaFiles,
+    required String postId,
+    required String userId,
+    bool isAlt = false,
+  }) async {
+    final List<PostMediaModel> uploadedMedia = [];
+
+    // Process each file sequentially
+    for (int i = 0; i < mediaFiles.length; i++) {
+      try {
+        final File file = mediaFiles[i];
+        final String mediaId = '$i';
+        final String individualPostId = '$postId-$mediaId';
+
+        // Determine media type
+        final extension = path.extension(file.path).toLowerCase();
+        String mediaType;
+
+        if (ImageHelper.isImage(file)) {
+          mediaType = ImageHelper.isGif(file) ? 'gif' : 'image';
+        } else if (ImageHelper.isVideo(file)) {
+          mediaType = 'video';
+        } else {
+          mediaType = 'other';
+        }
+
+        // Use your existing uploadMedia method
+        final result = await uploadMedia(
+          mediaFile: file,
+          postId: individualPostId,
+          userId: userId,
+          isAlt: isAlt,
+        );
+
+        // Create a PostMediaModel from the upload result
+        if (result['imageUrl'] != null) {
+          uploadedMedia.add(PostMediaModel(
+            id: mediaId,
+            url: result['imageUrl']!,
+            thumbnailUrl: result['thumbnailUrl'],
+            mediaType: result['mediaType'] ?? mediaType,
+          ));
+        }
+      } catch (e) {
+        debugPrint('Error uploading media file ${i + 1}: $e');
+        // Continue with other files even if one fails
+      }
+    }
+
+    return uploadedMedia;
   }
 
   // Get post by ID
