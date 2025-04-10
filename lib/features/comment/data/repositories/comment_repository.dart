@@ -1,11 +1,11 @@
-// lib/features/comment/data/repositories/comment_repository.dart
 import 'dart:io';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math';
-import '../../../user/data/repositories/user_repository.dart';
+
 import '../models/comment_model.dart';
 
 class CommentRepository {
@@ -15,13 +15,16 @@ class CommentRepository {
   CommentRepository({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  }) :
-        _firestore = firestore ?? FirebaseFirestore.instance,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _storage = storage ?? FirebaseStorage.instance;
 
   // Collection reference - changed from a function to a method that returns a collection reference
-  CollectionReference<Map<String, dynamic>> commentsCollectionForPost(String postId) {
-    return _firestore.collection('comments').doc(postId).collection('postComments');
+  CollectionReference<Map<String, dynamic>> commentsCollectionForPost(
+      String postId) {
+    return _firestore
+        .collection('comments')
+        .doc(postId)
+        .collection('postComments');
   }
 
   // Create a new comment
@@ -48,7 +51,8 @@ class CommentRepository {
         depth = 0;
       } else {
         // Get parent comment to determine path
-        final parentDoc = await commentsCollectionForPost(postId).doc(parentId).get();
+        final parentDoc =
+            await commentsCollectionForPost(postId).doc(parentId).get();
         if (!parentDoc.exists) {
           throw Exception('Parent comment not found');
         }
@@ -78,9 +82,10 @@ class CommentRepository {
       final userData = userDoc.data();
 
       // Select appropriate profile image based on post privacy
-      final profileImageUrl = isAltPost && userData?['altProfileImageURL'] != null
-          ? userData!['altProfileImageURL']
-          : userData?['profileImageURL'];
+      final profileImageUrl =
+          isAltPost && userData?['altProfileImageURL'] != null
+              ? userData!['altProfileImageURL']
+              : userData?['profileImageURL'];
 
       // Create comment model
       final comment = CommentModel(
@@ -105,7 +110,8 @@ class CommentRepository {
       await commentRef.set(comment.toFirestore());
 
       // Update comment count on the post
-      await _firestore.collection(isAltPost ? 'globalAltPosts' : 'posts')
+      await _firestore
+          .collection(isAltPost ? 'globalAltPosts' : 'posts')
           .doc(postId)
           .update({
         'commentCount': FieldValue.increment(1),
@@ -126,8 +132,8 @@ class CommentRepository {
   }) async {
     try {
       // Create reference for the file
-      final ref = _storage.ref()
-          .child('posts/$postId/comments/$commentId/media');
+      final ref =
+          _storage.ref().child('posts/$postId/comments/$commentId/media');
 
       // Upload file
       final uploadTask = await ref.putFile(file);
@@ -217,7 +223,8 @@ class CommentRepository {
   }) async {
     try {
       // First get the parent comment to get its path
-      final parentDoc = await commentsCollectionForPost(postId).doc(commentId).get();
+      final parentDoc =
+          await commentsCollectionForPost(postId).doc(commentId).get();
       if (!parentDoc.exists) {
         throw Exception('Comment not found');
       }
@@ -251,24 +258,23 @@ class CommentRepository {
       // Use a transaction to ensure atomicity
       await _firestore.runTransaction((transaction) async {
         // STEP 1: Gather ALL needed documents (ALL READS FIRST)
-        final commentDoc = await transaction.get(commentsCollectionForPost(postId).doc(commentId));
+        final commentDoc = await transaction
+            .get(commentsCollectionForPost(postId).doc(commentId));
         if (!commentDoc.exists) {
           throw Exception('Comment not found');
         }
 
-        final likeDoc = await transaction.get(
-            _firestore.collection('commentLikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId)
-        );
+        final likeDoc = await transaction.get(_firestore
+            .collection('commentLikes')
+            .doc(commentId)
+            .collection('users')
+            .doc(userId));
 
-        final dislikeDoc = await transaction.get(
-            _firestore.collection('commentDislikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId)
-        );
+        final dislikeDoc = await transaction.get(_firestore
+            .collection('commentDislikes')
+            .doc(commentId)
+            .collection('users')
+            .doc(userId));
 
         // STEP 2: Process logic based on reads
         final hasLiked = likeDoc.exists;
@@ -277,49 +283,41 @@ class CommentRepository {
         // STEP 3: All write operations
         if (hasLiked) {
           // Remove like
-          transaction.delete(
-              _firestore.collection('commentLikes')
-                  .doc(commentId)
-                  .collection('users')
-                  .doc(userId)
-          );
+          transaction.delete(_firestore
+              .collection('commentLikes')
+              .doc(commentId)
+              .collection('users')
+              .doc(userId));
 
-          transaction.update(
-              commentsCollectionForPost(postId).doc(commentId),
-              {'likeCount': FieldValue.increment(-1)}
-          );
+          transaction.update(commentsCollectionForPost(postId).doc(commentId),
+              {'likeCount': FieldValue.increment(-1)});
         } else {
           // Add like
           transaction.set(
-              _firestore.collection('commentLikes')
+              _firestore
+                  .collection('commentLikes')
                   .doc(commentId)
                   .collection('users')
                   .doc(userId),
-              {'timestamp': FieldValue.serverTimestamp()}
-          );
+              {'timestamp': FieldValue.serverTimestamp()});
 
           // Check if user previously disliked
           if (hasDisliked) {
             // Remove dislike
-            transaction.delete(
-                _firestore.collection('commentDislikes')
-                    .doc(commentId)
-                    .collection('users')
-                    .doc(userId)
-            );
+            transaction.delete(_firestore
+                .collection('commentDislikes')
+                .doc(commentId)
+                .collection('users')
+                .doc(userId));
 
             // Decrement dislike count
-            transaction.update(
-                commentsCollectionForPost(postId).doc(commentId),
-                {'dislikeCount': FieldValue.increment(-1)}
-            );
+            transaction.update(commentsCollectionForPost(postId).doc(commentId),
+                {'dislikeCount': FieldValue.increment(-1)});
           }
 
           // Increment like count
-          transaction.update(
-              commentsCollectionForPost(postId).doc(commentId),
-              {'likeCount': FieldValue.increment(1)}
-          );
+          transaction.update(commentsCollectionForPost(postId).doc(commentId),
+              {'likeCount': FieldValue.increment(1)});
         }
       });
     } catch (e) {
@@ -338,24 +336,23 @@ class CommentRepository {
       // Use a transaction to ensure atomicity
       await _firestore.runTransaction((transaction) async {
         // STEP 1: ALL READS FIRST
-        final commentDoc = await transaction.get(commentsCollectionForPost(postId).doc(commentId));
+        final commentDoc = await transaction
+            .get(commentsCollectionForPost(postId).doc(commentId));
         if (!commentDoc.exists) {
           throw Exception('Comment not found');
         }
 
-        final likeDoc = await transaction.get(
-            _firestore.collection('commentLikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId)
-        );
+        final likeDoc = await transaction.get(_firestore
+            .collection('commentLikes')
+            .doc(commentId)
+            .collection('users')
+            .doc(userId));
 
-        final dislikeDoc = await transaction.get(
-            _firestore.collection('commentDislikes')
-                .doc(commentId)
-                .collection('users')
-                .doc(userId)
-        );
+        final dislikeDoc = await transaction.get(_firestore
+            .collection('commentDislikes')
+            .doc(commentId)
+            .collection('users')
+            .doc(userId));
 
         // STEP 2: Process logic
         final hasLiked = likeDoc.exists;
@@ -364,50 +361,42 @@ class CommentRepository {
         // STEP 3: All writes
         if (hasDisliked) {
           // Remove dislike
-          transaction.delete(
-              _firestore.collection('commentDislikes')
-                  .doc(commentId)
-                  .collection('users')
-                  .doc(userId)
-          );
+          transaction.delete(_firestore
+              .collection('commentDislikes')
+              .doc(commentId)
+              .collection('users')
+              .doc(userId));
 
           // Decrement dislike count
-          transaction.update(
-              commentsCollectionForPost(postId).doc(commentId),
-              {'dislikeCount': FieldValue.increment(-1)}
-          );
+          transaction.update(commentsCollectionForPost(postId).doc(commentId),
+              {'dislikeCount': FieldValue.increment(-1)});
         } else {
           // Add dislike
           transaction.set(
-              _firestore.collection('commentDislikes')
+              _firestore
+                  .collection('commentDislikes')
                   .doc(commentId)
                   .collection('users')
                   .doc(userId),
-              {'timestamp': FieldValue.serverTimestamp()}
-          );
+              {'timestamp': FieldValue.serverTimestamp()});
 
           // If was liked, remove like
           if (hasLiked) {
             // Remove like
-            transaction.delete(
-                _firestore.collection('commentLikes')
-                    .doc(commentId)
-                    .collection('users')
-                    .doc(userId)
-            );
+            transaction.delete(_firestore
+                .collection('commentLikes')
+                .doc(commentId)
+                .collection('users')
+                .doc(userId));
 
             // Decrement like count
-            transaction.update(
-                commentsCollectionForPost(postId).doc(commentId),
-                {'likeCount': FieldValue.increment(-1)}
-            );
+            transaction.update(commentsCollectionForPost(postId).doc(commentId),
+                {'likeCount': FieldValue.increment(-1)});
           }
 
           // Increment dislike count
-          transaction.update(
-              commentsCollectionForPost(postId).doc(commentId),
-              {'dislikeCount': FieldValue.increment(1)}
-          );
+          transaction.update(commentsCollectionForPost(postId).doc(commentId),
+              {'dislikeCount': FieldValue.increment(1)});
         }
       });
     } catch (e) {
@@ -455,7 +444,8 @@ class CommentRepository {
   }) async {
     try {
       // Get the comment first to check authorization
-      final commentDoc = await commentsCollectionForPost(postId).doc(commentId).get();
+      final commentDoc =
+          await commentsCollectionForPost(postId).doc(commentId).get();
       if (!commentDoc.exists) {
         throw Exception('Comment not found');
       }
@@ -487,7 +477,9 @@ class CommentRepository {
 
         // If comment has a parent, decrement its reply count
         if (commentData['parentId'] != null) {
-          await commentsCollectionForPost(postId).doc(commentData['parentId']).update({
+          await commentsCollectionForPost(postId)
+              .doc(commentData['parentId'])
+              .update({
             'replyCount': FieldValue.increment(-1),
           });
         }
@@ -528,8 +520,8 @@ class CommentRepository {
     final order = netVotes > 0
         ? log(netVotes) / ln10
         : netVotes < 0
-        ? -log(-netVotes) / ln10
-        : 0;
+            ? -log(-netVotes) / ln10
+            : 0;
 
     final secondsAgo = now.difference(comment.timestamp).inSeconds;
     const decay = 45000; // Tune this value based on your needs

@@ -526,7 +526,6 @@ class PostRepository {
     return uploadedMedia;
   }
 
-  // Get post by ID
   /// Get post by ID
   Future<PostModel?> getPostById(String postId,
       {bool? isAlt, String? herdId, bool forceRefresh = false}) async {
@@ -573,6 +572,40 @@ class PostRepository {
       }
 
       // If we don't know the post type or haven't found it yet, check all collections
+      // Check herd posts first (less common)
+      if (herdId != null && herdId.isNotEmpty) {
+        final herdDoc = await _firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .doc(postId)
+            .get(fetchOptions);
+
+        if (herdDoc.exists) {
+          return PostModel.fromMap(herdDoc.id, herdDoc.data()!);
+        }
+      }
+
+      // Check alt posts collection
+      if (isAlt == true) {
+        final altDoc = await _firestore
+            .collection('altPosts')
+            .doc(postId)
+            .get(fetchOptions);
+
+        if (altDoc.exists) {
+          return PostModel.fromMap(altDoc.id, altDoc.data()!);
+        }
+      }
+      // If we know it's a public post, check the public posts collection
+      if (isAlt == false) {
+        final doc =
+            await _firestore.collection('posts').doc(postId).get(fetchOptions);
+
+        if (doc.exists) {
+          return PostModel.fromMap(doc.id, doc.data()!);
+        }
+      }
 
       // Check public posts first (most common)
       final publicDoc =
@@ -738,16 +771,65 @@ class PostRepository {
             .toList());
   }
 
-  // Get only user's alt posts
-  Stream<List<PostModel>> getUserAltPosts(String userId) {
-    return _globalAltPosts
-        .where('authorId', isEqualTo: userId)
-        .where('herdId', isNull: false) // Exclude herd posts
-        .orderBy('createdAt', descending: true)
+  // Add this method to your PostRepository class
+  Stream<List<PostModel>> getUserAltProfilePosts(String userId) {
+    return FirebaseFirestore.instance
+        .collection('userFeeds')
+        .doc(userId)
+        .collection('feed')
+        .where('authorId', isEqualTo: userId) // Posts by this user
+        .where('feedType', isEqualTo: 'alt') // Only alt posts
+        .orderBy('hotScore', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => PostModel.fromMap(doc.id, doc.data()))
             .toList());
+  }
+
+  // Get only user's alt posts=
+  Future<List<PostModel>> getFutureUserAltProfilePosts(
+    String userId, {
+    int limit = 20,
+    double? lastHotScore,
+    String? lastPostId,
+  }) async {
+    try {
+      debugPrint('Fetching alt profile posts for user: $userId');
+
+      // Query the userFeeds/{userId}/feed collection for alt posts by this author
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection('userFeeds')
+          .doc(userId)
+          .collection('feed')
+          .where('authorId', isEqualTo: userId) // Posts by this user
+          .where('feedType', isEqualTo: 'alt') // Only alt posts
+          .orderBy('hotScore', descending: true);
+
+      // Apply pagination if needed
+      if (lastHotScore != null && lastPostId != null) {
+        query = query.startAfter([lastHotScore, lastPostId]);
+      }
+
+      // Apply limit
+      query = query.limit(limit);
+
+      // Execute query
+      final snapshot = await query.get();
+
+      // Debug logging
+      debugPrint('Found ${snapshot.docs.length} alt posts for user profile');
+
+      // Convert to PostModel objects
+      List<PostModel> posts = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+          .toList();
+
+      return posts;
+    } catch (e, stackTrace) {
+      debugPrint('Error getting alt profile posts: $e');
+      debugPrint(stackTrace.toString());
+      return []; // Return empty list on error
+    }
   }
 
   /// Liking and Disliking Posts ///

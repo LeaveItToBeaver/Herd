@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/core/utils/unique_page.dart';
+import 'package:herdapp/core/barrels/screens.dart';
+
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
 import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
@@ -54,7 +54,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // Allow all other navigation
       return null;
     },
-
     routes: [
       GoRoute(
         path: '/',
@@ -65,17 +64,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         pageBuilder: (context, state) =>
-        const NoTransitionPage(child: SplashScreen()),
+            const NoTransitionPage(child: SplashScreen()),
       ),
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-        const NoTransitionPage(child: LoginScreen()),
+            const NoTransitionPage(child: LoginScreen()),
       ),
       GoRoute(
         path: '/signup',
         pageBuilder: (context, state) =>
-        const NoTransitionPage(child: SignUpScreen()),
+            const NoTransitionPage(child: SignUpScreen()),
       ),
 
       GoRoute(
@@ -176,7 +175,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) {
           return _TabScaffold(child: child);
         },
-
         routes: [
           GoRoute(
             path: '/altFeed',
@@ -257,7 +255,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           }
 
           // Create a unique key with timestamp
-          final uniqueKey = ValueKey('create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}-${DateTime.now().millisecondsSinceEpoch}');
+          final uniqueKey = ValueKey(
+              'create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}-${DateTime.now().millisecondsSinceEpoch}');
 
           return NoTransitionPage(
             key: uniqueKey,
@@ -308,11 +307,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: true,
-                child: Stack(
-                    children: [
-                      PublicProfileScreen(userId: userId),
-                    ]
-                ),
+                child: Stack(children: [
+                  PublicProfileScreen(userId: userId),
+                ]),
               ),
             ),
           );
@@ -352,11 +349,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: true,
-                child: Stack(
-                    children: [
-                      AltProfileScreen(userId: userId),
-                    ]
-                ),
+                child: Stack(children: [
+                  AltProfileScreen(userId: userId),
+                ]),
               ),
             ),
           );
@@ -369,7 +364,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'editProfile',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
-          final Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
+          final Map<String, dynamic> extra =
+              state.extra as Map<String, dynamic>;
           final user = extra['user'] as UserModel;
           final isPublic = extra['isPublic'] as bool;
           final isInitialSetup = extra['isInitialSetup'] as bool? ?? false;
@@ -385,9 +381,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   child: isPublic
                       ? PublicProfileEditScreen(user: user)
                       : AltProfileEditScreen(
-                    user: user,
-                    isInitialSetup: isInitialSetup,
-                  ),
+                          user: user,
+                          isInitialSetup: isInitialSetup,
+                        ),
                 ),
               ),
             ),
@@ -417,7 +413,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
 
 class _TabScaffold extends ConsumerWidget {
   final Widget child;

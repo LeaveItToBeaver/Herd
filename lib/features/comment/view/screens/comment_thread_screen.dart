@@ -1,36 +1,36 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:herdapp/features/comment/data/models/comment_model.dart';
+import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/comment/view/providers/comment_providers.dart';
 import 'package:herdapp/features/comment/view/widgets/comment_widget.dart';
 import 'package:herdapp/features/navigation/view/widgets/BottomNavPadding.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 import '../providers/reply_providers.dart';
 
-// TODO: Add GIF picker functionality
-// TODO: Add media upload functionality
-// TODO: Add comment editing functionality
-// TODO: Add comment deletion functionality
+// TODO: Add GIF picker functionality - Eh almost done
+// TODO: Add media upload functionality - done
+// TODO: Add comment editing functionality - Need to test
+// TODO: Add comment deletion functionality - Need to test
 // TODO: Add comment reporting functionality
 
 // TODO: Test the nested reply auto update.
 // TODO: Fix the comment threading screen postID error
 // TODO: Create cloud functions for loading and updating comments.
 
-
 class CommentThreadScreen extends ConsumerStatefulWidget {
   final String commentId;
   final String postId;
 
-  const CommentThreadScreen({super.key, required this.commentId, required this.postId});
+  const CommentThreadScreen(
+      {super.key, required this.commentId, required this.postId});
 
   @override
-  ConsumerState<CommentThreadScreen> createState() => _CommentThreadScreenState();
+  ConsumerState<CommentThreadScreen> createState() =>
+      _CommentThreadScreenState();
 }
 
 class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
@@ -44,9 +44,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
     super.initState();
 
     // Load thread data
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
   }
 
   @override
@@ -58,10 +56,8 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final threadState = ref.watch(commentThreadProvider((
-      commentId: widget.commentId,
-      postId: widget.postId
-    )));
+    final threadState = ref.watch(commentThreadProvider(
+        (commentId: widget.commentId, postId: widget.postId)));
     final currentUser = ref.watch(currentUserProvider);
 
     if (threadState == null) {
@@ -86,10 +82,12 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  ref.read(commentThreadProvider((
-                    commentId: widget.commentId,
-                    postId: widget.postId
-                  )).notifier).loadThread();
+                  ref
+                      .read(commentThreadProvider((
+                        commentId: widget.commentId,
+                        postId: widget.postId
+                      )).notifier)
+                      .loadThread();
                 },
                 child: const Text('Retry'),
               ),
@@ -117,10 +115,11 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.read(commentThreadProvider((
-                commentId: widget.commentId,
-                postId: widget.postId
-              )).notifier).loadThread();
+              ref
+                  .read(commentThreadProvider(
+                          (commentId: widget.commentId, postId: widget.postId))
+                      .notifier)
+                  .loadThread();
             },
           ),
         ],
@@ -157,23 +156,27 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
                 // Replies list
                 ...threadState.replies.map((reply) => CommentWidget(
-                  comment: reply,
-                  isAltPost: isAltPost,
-                  depth: 1, // Start at depth 1 since these are direct replies
-                  maxDepth: 20, // Allow deeper nesting in thread view
-                  onReplyTap: () => _focusReplyField(),
-                )),
+                      comment: reply,
+                      isAltPost: isAltPost,
+                      depth:
+                          1, // Start at depth 1 since these are direct replies
+                      maxDepth: 20, // Allow deeper nesting in thread view
+                      onReplyTap: () => _focusReplyField(),
+                    )),
 
                 // Load more button
                 if (threadState.hasMore)
                   Padding(
-                    padding: const EdgeInsets.only(left: 16, top: 8, bottom: 16),
+                    padding:
+                        const EdgeInsets.only(left: 16, top: 8, bottom: 16),
                     child: TextButton(
                       onPressed: () {
-                        ref.read(commentThreadProvider((
-                          commentId: widget.commentId,
-                          postId: widget.postId
-                        )).notifier).loadMoreReplies();
+                        ref
+                            .read(commentThreadProvider((
+                              commentId: widget.commentId,
+                              postId: widget.postId
+                            )).notifier)
+                            .loadMoreReplies();
                       },
                       child: threadState.isLoading
                           ? const CircularProgressIndicator()
@@ -211,8 +214,9 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                         radius: 16,
                         backgroundImage: currentUser.profileImageURL != null
                             ? NetworkImage(isAltPost
-                            ? (currentUser.altProfileImageURL ?? currentUser.profileImageURL!)
-                            : currentUser.profileImageURL!)
+                                ? (currentUser.altProfileImageURL ??
+                                    currentUser.profileImageURL!)
+                                : currentUser.profileImageURL!)
                             : null,
                         child: currentUser.profileImageURL == null
                             ? const Icon(Icons.person, size: 16)
@@ -246,10 +250,11 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                         child: IconButton(
                           icon: _isSubmitting
                               ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                                  width: 24,
+                                  height: 24,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
                               : const Icon(Icons.send),
                           onPressed: _isSubmitting ? null : _submitReply,
                         ),
@@ -339,10 +344,8 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
     }
 
     // Get the thread state
-    final threadState = ref.read(commentThreadProvider((
-      commentId: widget.commentId,
-      postId: widget.postId
-    )));
+    final threadState = ref.read(commentThreadProvider(
+        (commentId: widget.commentId, postId: widget.postId)));
     if (threadState == null) return;
 
     setState(() => _isSubmitting = true);
@@ -354,13 +357,13 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
       // Create the reply
       await ref.read(commentsProvider(postId).notifier).createComment(
-        authorId: currentUser.id,
-        content: _replyController.text.trim(),
-        parentId: widget.commentId,
-        isAltPost: isAltPost,
-        mediaFile: _mediaFile,
-        ref: ref,
-      );
+            authorId: currentUser.id,
+            content: _replyController.text.trim(),
+            parentId: widget.commentId,
+            isAltPost: isAltPost,
+            mediaFile: _mediaFile,
+            ref: ref,
+          );
 
       // Clear input
       _replyController.clear();
@@ -369,11 +372,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
       // Refresh the thread
       ref.invalidate(repliesProvider(widget.postId));
-        ref.read(commentThreadProvider((
-        commentId: widget.commentId,
-        postId: widget.postId
-      )).notifier).loadThread();
-
+      ref
+          .read(commentThreadProvider(
+              (commentId: widget.commentId, postId: widget.postId)).notifier)
+          .loadThread();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
