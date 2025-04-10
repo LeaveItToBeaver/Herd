@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/alt_connection_request_model.dart';
+
 import '../models/alt_connection_request_model.dart';
 import '../models/user_model.dart';
 
@@ -42,8 +42,9 @@ class UserRepository {
   Future<List<UserModel>> searchUsers(String query) async {
     // Try both lowercase and original casing
     final lowerQuery = query.toLowerCase();
-    final capitalQuery = query.length > 0 ?
-    query[0].toUpperCase() + query.substring(1).toLowerCase() : "";
+    final capitalQuery = query.length > 0
+        ? query[0].toUpperCase() + query.substring(1).toLowerCase()
+        : "";
 
     // Try searching with lowercase
     final userSnapLower = await _users
@@ -61,7 +62,8 @@ class UserRepository {
 
     // Combine results
     final allDocs = [...userSnapLower.docs, ...userSnapCapital.docs];
-    final uniqueDocsMap = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+    final uniqueDocsMap =
+        <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
 
     // Properly type the documents to ensure we're working with Map<String, dynamic>
     for (var doc in allDocs) {
@@ -100,7 +102,6 @@ class UserRepository {
   }
 
   // Update user
-
   Future<void> updateUser(String userId, Map<String, dynamic> data) async {
     // Existing code - this should be fine as it just updates the fields provided in the data map
     await _users.doc(userId).update({
@@ -122,36 +123,20 @@ class UserRepository {
     return downloadUrl;
   }
 
-
   // Delete user
   Future<void> deleteUser(String userId) async {
     // Delete user document
     await _users.doc(userId).delete();
 
     // Clean up following/followers
-    await _following
-        .doc(userId)
-        .collection('userFollowing')
-        .get()
-        .then(
-            (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete())
-    );
+    await _following.doc(userId).collection('userFollowing').get().then(
+        (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete()));
 
-    await _following
-        .doc(userId)
-        .collection('userFollowing')
-        .get()
-        .then(
-            (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete())
-    );
+    await _following.doc(userId).collection('userFollowing').get().then(
+        (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete()));
 
-    await _followers
-        .doc(userId)
-        .collection('userFollowers')
-        .get()
-        .then(
-            (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete())
-    );
+    await _followers.doc(userId).collection('userFollowers').get().then(
+        (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete()));
   }
 
   // Follow user
@@ -175,12 +160,10 @@ class UserRepository {
     });
 
     // Update follower/following counts
-    await _users.doc(userId).update({
-      'following': FieldValue.increment(1)
-    });
-    await _users.doc(followUserId).update({
-      'followers': FieldValue.increment(1)
-    });
+    await _users.doc(userId).update({'following': FieldValue.increment(1)});
+    await _users
+        .doc(followUserId)
+        .update({'followers': FieldValue.increment(1)});
   }
 
   // Unfollow user
@@ -200,12 +183,10 @@ class UserRepository {
         .delete();
 
     // Update follower/following counts
-    await _users.doc(userId).update({
-      'following': FieldValue.increment(-1)
-    });
-    await _users.doc(unfollowUserId).update({
-      'followers': FieldValue.increment(-1)
-    });
+    await _users.doc(userId).update({'following': FieldValue.increment(-1)});
+    await _users
+        .doc(unfollowUserId)
+        .update({'followers': FieldValue.increment(-1)});
   }
 
   // Check if following
@@ -261,31 +242,25 @@ class UserRepository {
 
   // Get follower count
   Future<int?> getFollowerCount(String userId) async {
-    final snapshot = await _followers
-        .doc(userId)
-        .collection('userFollowers')
-        .count()
-        .get();
+    final snapshot =
+        await _followers.doc(userId).collection('userFollowers').count().get();
 
     return snapshot.count;
   }
 
   // Get following count
   Future<int?> getFollowingCount(String userId) async {
-    final snapshot = await _following
-        .doc(userId)
-        .collection('userFollowing')
-        .count()
-        .get();
+    final snapshot =
+        await _following.doc(userId).collection('userFollowing').count().get();
 
     return snapshot.count;
   }
 
   Future<void> incrementUserPoints(String userId, int points) async {
-    await _users.doc(userId).update({'userPoints': FieldValue.increment(points)});
+    await _users
+        .doc(userId)
+        .update({'userPoints': FieldValue.increment(points)});
   }
-
-
 
   // Alt user methods:
   Future<String> uploadAltImage({
@@ -310,7 +285,8 @@ class UserRepository {
       }
 
       // Create a connection request document
-      await _firestore.collection('altConnectionRequests')
+      await _firestore
+          .collection('altConnectionRequests')
           .doc(targetUserId)
           .collection('requests')
           .doc(userId)
@@ -318,7 +294,8 @@ class UserRepository {
         'requesterId': userId,
         'requesterName': '${requester.firstName} ${requester.lastName}'.trim(),
         'requesterUsername': requester.username,
-        'requesterProfileImageURL': requester.altProfileImageURL ?? requester.profileImageURL,
+        'requesterProfileImageURL':
+            requester.altProfileImageURL ?? requester.profileImageURL,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'pending'
       });
@@ -332,34 +309,37 @@ class UserRepository {
   Future<void> acceptAltConnection(String userId, String requesterId) async {
     try {
       // Add to alt connections (bidirectional)
-      await _firestore.collection('altConnections')
+      await _firestore
+          .collection('altConnections')
           .doc(userId)
           .collection('userConnections')
           .doc(requesterId)
-          .set({
-        'timestamp': FieldValue.serverTimestamp()
-      });
+          .set({'timestamp': FieldValue.serverTimestamp()});
 
-      await _firestore.collection('altConnections')
+      await _firestore
+          .collection('altConnections')
           .doc(requesterId)
           .collection('userConnections')
           .doc(userId)
-          .set({
-        'timestamp': FieldValue.serverTimestamp()
-      });
+          .set({'timestamp': FieldValue.serverTimestamp()});
 
       // Update the request status
-      await _firestore.collection('altConnectionRequests')
+      await _firestore
+          .collection('altConnectionRequests')
           .doc(userId)
           .collection('requests')
           .doc(requesterId)
           .update({'status': 'accepted'});
 
       // Update connection counts for both users
-      await _firestore.collection('users').doc(userId)
+      await _firestore
+          .collection('users')
+          .doc(userId)
           .update({'altFriends': FieldValue.increment(1)});
 
-      await _firestore.collection('users').doc(requesterId)
+      await _firestore
+          .collection('users')
+          .doc(requesterId)
           .update({'altFriends': FieldValue.increment(1)});
     } catch (e) {
       print('Error accepting alt connection: $e');
@@ -370,7 +350,8 @@ class UserRepository {
   // Reject a alt connection request
   Future<void> rejectAltConnection(String userId, String requesterId) async {
     try {
-      await _firestore.collection('altConnectionRequests')
+      await _firestore
+          .collection('altConnectionRequests')
           .doc(userId)
           .collection('requests')
           .doc(requesterId)
@@ -382,21 +363,25 @@ class UserRepository {
   }
 
   // Get all pending alt connection requests for a user
-  Stream<List<AltConnectionRequest>> getPendingConnectionRequests(String userId) {
-    return _firestore.collection('altConnectionRequests')
+  Stream<List<AltConnectionRequest>> getPendingConnectionRequests(
+      String userId) {
+    return _firestore
+        .collection('altConnectionRequests')
         .doc(userId)
         .collection('requests')
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
-      return AltConnectionRequest.fromMap(doc.data());
-    }).toList());
+              return AltConnectionRequest.fromMap(doc.data());
+            }).toList());
   }
 
   // Check if a alt connection request already exists
-  Future<bool> hasAltConnectionRequest(String requesterId, String targetUserId) async {
+  Future<bool> hasAltConnectionRequest(
+      String requesterId, String targetUserId) async {
     try {
-      final doc = await _firestore.collection('altConnectionRequests')
+      final doc = await _firestore
+          .collection('altConnectionRequests')
           .doc(targetUserId)
           .collection('requests')
           .doc(requesterId)
@@ -412,7 +397,8 @@ class UserRepository {
   // Check if users are already altly connected
   Future<bool> areAltlyConnected(String userId1, String userId2) async {
     try {
-      final doc = await _firestore.collection('altConnections')
+      final doc = await _firestore
+          .collection('altConnections')
           .doc(userId1)
           .collection('userConnections')
           .doc(userId2)
@@ -427,7 +413,8 @@ class UserRepository {
 
   // Get all alt connections for a user
   Stream<List<String>> getAltConnectionIds(String userId) {
-    return _firestore.collection('altConnections')
+    return _firestore
+        .collection('altConnections')
         .doc(userId)
         .collection('userConnections')
         .snapshots()
@@ -450,7 +437,6 @@ class UserRepository {
     }
   }
 
-
 // Check if alt profile exists
   Future<bool> hasAltProfile(String userId) async {
     final doc = await _users.doc(userId).get();
@@ -463,7 +449,8 @@ class UserRepository {
   }
 
 // Create or update alt profile
-  Future<void> updateAltProfile(String userId, Map<String, dynamic> altData) async {
+  Future<void> updateAltProfile(
+      String userId, Map<String, dynamic> altData) async {
     final Map<String, dynamic> sanitizedData = {};
 
     // Explicitly handle known alt fields
@@ -478,7 +465,6 @@ class UserRepository {
     if (altData.containsKey('altCoverImageURL')) {
       sanitizedData['altCoverImageURL'] = altData['altCoverImageURL'];
     }
-
 
     await _users.doc(userId).update({
       ...altData,
@@ -499,9 +485,7 @@ class UserRepository {
     });
 
     // Update counts
-    await _users.doc(userId).update({
-      'altFriends': FieldValue.increment(1)
-    });
+    await _users.doc(userId).update({'altFriends': FieldValue.increment(1)});
   }
 
 // Remove alt connection
@@ -514,9 +498,7 @@ class UserRepository {
         .delete();
 
     // Update counts
-    await _users.doc(userId).update({
-      'altFriends': FieldValue.increment(-1)
-    });
+    await _users.doc(userId).update({'altFriends': FieldValue.increment(-1)});
   }
 
 // Check if users are altly connected

@@ -21,13 +21,13 @@ class CommentWidget extends ConsumerStatefulWidget {
   final Function()? onReplyTap;
 
   const CommentWidget({
-    Key? key,
+    super.key,
     required this.comment,
     this.isAltPost = false,
     this.depth = 0,
     this.maxDepth = 3,
     this.onReplyTap,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CommentWidget> createState() => _CommentWidgetState();
@@ -46,10 +46,12 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
     if (!_hasInitializedInteraction) {
       Future.microtask(() {
         if (mounted) {
-          ref.read(commentInteractionProvider((
-            commentId: widget.comment.id,
-            postId: widget.comment.postId
-          )).notifier).initializeState();
+          ref
+              .read(commentInteractionProvider((
+                commentId: widget.comment.id,
+                postId: widget.comment.postId
+              )).notifier)
+              .initializeState();
           _hasInitializedInteraction = true;
         }
       });
@@ -59,12 +61,11 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
   @override
   Widget build(BuildContext context) {
     // Get interaction state to display like/dislike status
-    final interactionState = ref.watch(commentInteractionProvider((
-      commentId: widget.comment.id,
-      postId: widget.comment.postId
-    )));
+    final interactionState = ref.watch(commentInteractionProvider(
+        (commentId: widget.comment.id, postId: widget.comment.postId)));
     final expandedComments = ref.watch(expandedCommentsProvider);
-    final isExpanded = expandedComments.expandedCommentIds.contains(widget.comment.id);
+    final isExpanded =
+        expandedComments.expandedCommentIds.contains(widget.comment.id);
 
     return Card(
       margin: EdgeInsets.only(
@@ -76,7 +77,9 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: widget.isAltPost ? Colors.blue.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+          color: widget.isAltPost
+              ? Colors.blue.withAlpha(51)
+              : Colors.grey.withAlpha(51), // 0.2 * 255 = 51
           width: 1,
         ),
       ),
@@ -88,11 +91,13 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
           ListTile(
             contentPadding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             leading: GestureDetector(
-              onTap: () => _navigateToUserProfile(context, widget.comment.authorId),
+              onTap: () =>
+                  _navigateToUserProfile(context, widget.comment.authorId),
               child: CircleAvatar(
                 radius: 18,
                 backgroundImage: widget.comment.authorProfileImage != null
-                    ? CachedNetworkImageProvider(widget.comment.authorProfileImage!)
+                    ? CachedNetworkImageProvider(
+                        widget.comment.authorProfileImage!)
                     : null,
                 child: widget.comment.authorProfileImage == null
                     ? const Icon(Icons.person, color: Colors.grey)
@@ -102,7 +107,8 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
             title: Row(
               children: [
                 GestureDetector(
-                  onTap: () => _navigateToUserProfile(context, widget.comment.authorId),
+                  onTap: () =>
+                      _navigateToUserProfile(context, widget.comment.authorId),
                   child: Text(
                     widget.comment.authorUsername ?? 'Unknown',
                     style: const TextStyle(
@@ -187,16 +193,22 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                         child: Row(
                           children: [
                             Icon(
-                              interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                              interactionState.isLiked
+                                  ? Icons.thumb_up
+                                  : Icons.thumb_up_outlined,
                               size: 16,
-                              color: interactionState.isLiked ? Colors.blue : Colors.grey,
+                              color: interactionState.isLiked
+                                  ? Colors.blue
+                                  : Colors.grey,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${interactionState.likeCount}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: interactionState.isLiked ? Colors.blue : Colors.grey,
+                                color: interactionState.isLiked
+                                    ? Colors.blue
+                                    : Colors.grey,
                               ),
                             ),
                           ],
@@ -214,16 +226,22 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                         child: Row(
                           children: [
                             Icon(
-                              interactionState.isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+                              interactionState.isDisliked
+                                  ? Icons.thumb_down
+                                  : Icons.thumb_down_outlined,
                               size: 16,
-                              color: interactionState.isDisliked ? Colors.red : Colors.grey,
+                              color: interactionState.isDisliked
+                                  ? Colors.red
+                                  : Colors.grey,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${interactionState.dislikeCount}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: interactionState.isDisliked ? Colors.red : Colors.grey,
+                                color: interactionState.isDisliked
+                                    ? Colors.red
+                                    : Colors.grey,
                               ),
                             ),
                           ],
@@ -244,7 +262,8 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                             SizedBox(width: 4),
                             Text(
                               'Reply',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                           ],
                         ),
@@ -256,7 +275,8 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                       const Spacer(),
                       InkWell(
                         onTap: () {
-                          ref.read(expandedCommentsProvider.notifier)
+                          ref
+                              .read(expandedCommentsProvider.notifier)
                               .toggleExpanded(widget.comment.id);
                         },
                         child: Padding(
@@ -264,7 +284,9 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                           child: Row(
                             children: [
                               Icon(
-                                isExpanded ? Icons.expand_less : Icons.expand_more,
+                                isExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
                                 size: 16,
                                 color: Colors.grey,
                               ),
@@ -273,7 +295,8 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                                 isExpanded
                                     ? 'Hide replies'
                                     : '${widget.comment.replyCount} replies',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
                               ),
                             ],
                           ),
@@ -287,7 +310,9 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
           ),
 
           // Show replies if expanded and not at max depth
-          if (isExpanded && widget.comment.replyCount > 0 && widget.depth < widget.maxDepth)
+          if (isExpanded &&
+              widget.comment.replyCount > 0 &&
+              widget.depth < widget.maxDepth)
             _buildReplies(),
 
           // Show "View thread" if at max depth and has replies
@@ -302,10 +327,8 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
   Widget _buildReplies() {
     return Consumer(
       builder: (context, ref, child) {
-        final threadStateAsync = ref.watch(commentThreadProvider((
-        commentId: widget.comment.id,
-        postId: widget.comment.postId
-        )));
+        final threadStateAsync = ref.watch(commentThreadProvider(
+            (commentId: widget.comment.id, postId: widget.comment.postId)));
 
         if (threadStateAsync == null) {
           return const Padding(
@@ -334,13 +357,12 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
         return Column(
           children: [
             ...replies.map((reply) => CommentWidget(
-              comment: reply,
-              isAltPost: widget.isAltPost,
-              depth: widget.depth + 1,
-              maxDepth: widget.maxDepth,
-              onReplyTap: () => _showReplyDialog(context, reply.id),
-            )),
-
+                  comment: reply,
+                  isAltPost: widget.isAltPost,
+                  depth: widget.depth + 1,
+                  maxDepth: widget.maxDepth,
+                  onReplyTap: () => _showReplyDialog(context, reply.id),
+                )),
             if (threadStateAsync.hasMore)
               Padding(
                 padding: EdgeInsets.only(
@@ -351,10 +373,12 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                 ),
                 child: TextButton(
                   onPressed: () {
-                    ref.read(commentThreadProvider((
-                      commentId: widget.comment.id,
-                      postId: widget.comment.postId
-                    )).notifier).loadMoreReplies();
+                    ref
+                        .read(commentThreadProvider((
+                          commentId: widget.comment.id,
+                          postId: widget.comment.postId
+                        )).notifier)
+                        .loadMoreReplies();
                   },
                   child: const Text('Load more replies'),
                 ),
@@ -400,10 +424,11 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       return;
     }
 
-    ref.read(commentInteractionProvider((
-      commentId: widget.comment.id,
-      postId: widget.comment.postId
-    )).notifier).toggleLike();
+    ref
+        .read(commentInteractionProvider(
+                (commentId: widget.comment.id, postId: widget.comment.postId))
+            .notifier)
+        .toggleLike();
   }
 
   // Dislike function with optimistic update
@@ -411,15 +436,17 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
     final userId = ref.read(currentUserProvider)?.id;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to dislike comments')),
+        const SnackBar(
+            content: Text('You must be logged in to dislike comments')),
       );
       return;
     }
 
-    ref.read(commentInteractionProvider((
-      commentId: widget.comment.id,
-      postId: widget.comment.postId
-    )).notifier).toggleDislike();
+    ref
+        .read(commentInteractionProvider(
+                (commentId: widget.comment.id, postId: widget.comment.postId))
+            .notifier)
+        .toggleDislike();
   }
 
   // Show reply dialog
@@ -485,11 +512,11 @@ class ReplyDialog extends ConsumerStatefulWidget {
   final bool isAltPost;
 
   const ReplyDialog({
-    Key? key,
+    super.key,
     required this.postId,
     required this.parentId,
     required this.isAltPost,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ReplyDialog> createState() => _ReplyDialogState();
@@ -556,10 +583,10 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
           onPressed: _isSubmitting ? null : _submitReply,
           child: _isSubmitting
               ? const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Text('Reply'),
         ),
       ],
@@ -598,16 +625,17 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
 
     try {
       await ref.read(commentsProvider(widget.postId).notifier).createComment(
-        authorId: currentUser.id,
-        content: _contentController.text.trim(),
-        parentId: widget.parentId,
-        isAltPost: widget.isAltPost,
-        mediaFile: _mediaFile,
-        ref: ref,
-      );
+            authorId: currentUser.id,
+            content: _contentController.text.trim(),
+            parentId: widget.parentId,
+            isAltPost: widget.isAltPost,
+            mediaFile: _mediaFile,
+            ref: ref,
+          );
 
       ref.invalidate(repliesProvider(widget.postId));
-      ref.invalidate(commentThreadProvider((commentId: widget.parentId, postId: widget.postId)));
+      ref.invalidate(commentThreadProvider(
+          (commentId: widget.parentId, postId: widget.postId)));
 
       // Increment update counter to force refresh of listeners
       ref.read(commentUpdateProvider.notifier).state++;

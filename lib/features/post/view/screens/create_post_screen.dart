@@ -10,6 +10,7 @@ import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 
+import '../../../drafts/view/widgets/save_draft_dialog.dart';
 import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 
@@ -34,10 +35,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   File? _postMedia;
   bool _isSubmitting = false;
   late bool _isAlt;
-  bool _isVideo = false;
+  final bool _isVideo = false;
   String? _selectedHerdId;
   String? _selectedHerdName;
   String? _selectHerdProfileImageUrl;
+  bool _hasEnteredContent = false;
   bool _isHerdPost = false;
 
   @override
@@ -57,6 +59,21 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     if (_selectedHerdId != null) {
       _fetchHerdInfo();
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Start monitoring content changes for draft saving
+    _checkContentEntered();
+  }
+
+// This method tracks when content is entered
+  void _checkContentEntered() {
+    // Check if title or content fields have text
+    setState(() {
+      _hasEnteredContent = _title.isNotEmpty || _content.isNotEmpty;
+    });
   }
 
 // Add this method to fetch the herd name when a herdId is provided
@@ -85,34 +102,47 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final currentUser = ref.watch(currentUserProvider);
     final currentFeed = ref.watch(currentFeedProvider);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          title: Text(_isAlt ? "Create Alt Post" : "Create Public Post"),
-          actions: [
-            if (_isSubmitting)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+
+        final canPop = await _handlePopScope();
+        if (canPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            title: Text(_isAlt ? "Create Alt Post" : "Create Public Post"),
+            actions: [
+              if (_isSubmitting)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
+          body: currentUser == null
+              ? const Center(child: CircularProgressIndicator())
+              : postState.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stackTrace) =>
+                      _buildForm(context, currentUser),
+                  data: (_) => _buildForm(context, currentUser),
+                ),
         ),
-        body: currentUser == null
-            ? const Center(child: CircularProgressIndicator())
-            : postState.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stackTrace) => _buildForm(context, currentUser),
-                data: (_) => _buildForm(context, currentUser),
-              ),
       ),
     );
   }
@@ -546,7 +576,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 color: _isAlt ? Colors.blue : null,
               ),
             ),
-            onChanged: (value) => _title = value,
+            onChanged: (value) {
+              _title = value;
+              _checkContentEntered();
+            },
             validator: (value) => value == null || value.isEmpty
                 ? 'Title cannot be empty.'
                 : null,
@@ -577,7 +610,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 ),
               ),
             ),
-            onChanged: (value) => _content = value,
+            onChanged: (value) {
+              _content = value;
+              _checkContentEntered();
+            },
           ),
         ],
       ),
@@ -657,90 +693,90 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _buildMediaPreview() {
-    if (_postMedia == null) return const SizedBox.shrink();
-
-    final extension = _postMedia!.path.toLowerCase().substring(
-          _postMedia!.path.lastIndexOf('.'),
-        );
-
-    if (_isVideo) {
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                color: Colors.black87,
-                width: double.infinity,
-                height: double.infinity,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.videocam,
-                        size: 48,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Video',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        extension.toUpperCase(),
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 12),
-                      )
-                    ],
-                  ),
-                ),
-              )),
-          Icon(
-            Icons.play_circle_fill,
-            size: 64,
-            color: Colors.white.withOpacity(0.8),
-          ),
-        ],
-      );
-    }
-
-    if (extension == '.gif') {
-      return Stack(children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(_postMedia!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity),
-        ),
-        Positioned(
-          bottom: 8,
-          right: 8,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text(
-              'GIF',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-      ]);
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.file(_postMedia!,
-          fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-    );
-  }
+  // Widget _buildMediaPreview() {
+  //   if (_postMedia == null) return const SizedBox.shrink();
+  //
+  //   final extension = _postMedia!.path.toLowerCase().substring(
+  //         _postMedia!.path.lastIndexOf('.'),
+  //       );
+  //
+  //   if (_isVideo) {
+  //     return Stack(
+  //       alignment: Alignment.center,
+  //       children: [
+  //         ClipRRect(
+  //             borderRadius: BorderRadius.circular(12),
+  //             child: Container(
+  //               color: Colors.black87,
+  //               width: double.infinity,
+  //               height: double.infinity,
+  //               child: Center(
+  //                 child: Column(
+  //                   mainAxisSize: MainAxisSize.min,
+  //                   children: [
+  //                     const Icon(
+  //                       Icons.videocam,
+  //                       size: 48,
+  //                       color: Colors.white70,
+  //                     ),
+  //                     const SizedBox(height: 8),
+  //                     const Text(
+  //                       'Video',
+  //                       style: TextStyle(
+  //                           color: Colors.white, fontWeight: FontWeight.bold),
+  //                     ),
+  //                     const SizedBox(height: 4),
+  //                     Text(
+  //                       extension.toUpperCase(),
+  //                       style: const TextStyle(
+  //                           color: Colors.white54, fontSize: 12),
+  //                     )
+  //                   ],
+  //                 ),
+  //               ),
+  //             )),
+  //         Icon(
+  //           Icons.play_circle_fill,
+  //           size: 64,
+  //           color: Colors.white.withOpacity(0.8),
+  //         ),
+  //       ],
+  //     );
+  //   }
+  //
+  //   if (extension == '.gif') {
+  //     return Stack(children: [
+  //       ClipRRect(
+  //         borderRadius: BorderRadius.circular(12),
+  //         child: Image.file(_postMedia!,
+  //             fit: BoxFit.cover,
+  //             width: double.infinity,
+  //             height: double.infinity),
+  //       ),
+  //       Positioned(
+  //         bottom: 8,
+  //         right: 8,
+  //         child: Container(
+  //           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //           decoration: BoxDecoration(
+  //             color: Colors.black.withOpacity(0.6),
+  //             borderRadius: BorderRadius.circular(4),
+  //           ),
+  //           child: const Text(
+  //             'GIF',
+  //             style: TextStyle(color: Colors.white),
+  //           ),
+  //         ),
+  //       ),
+  //     ]);
+  //   }
+  //
+  //   return ClipRRect(
+  //     borderRadius: BorderRadius.circular(12),
+  //     child: Image.file(_postMedia!,
+  //         fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+  //   );
+  // }
 
   Future<void> _showHerdSelectionDialog() async {
     final userHerds = await ref.read(userHerdsProvider.future);
@@ -802,5 +838,52 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         );
       },
     );
+  }
+
+  Future<bool> _handlePopScope() async {
+    // If no content entered or submitting, allow navigation without prompt
+    if (!_hasEnteredContent || _isSubmitting) {
+      return true;
+    }
+
+    // If user has selected media files, don't show draft dialog
+    // as we don't support media in drafts
+    if (_mediaFiles.isNotEmpty) {
+      final shouldDiscard = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Discard Post?'),
+          content: const Text(
+              'You have uploaded media files which cannot be saved as drafts. '
+              'Do you want to discard this post?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Discard'),
+            ),
+          ],
+        ),
+      );
+
+      return shouldDiscard ?? false;
+    }
+
+    // Show the save draft dialog for text-only posts
+    final shouldNavigate = await showDialog<bool>(
+      context: context,
+      builder: (context) => SaveDraftDialog(
+        title: _title,
+        content: _content,
+        isAlt: _isAlt,
+        herdId: _selectedHerdId,
+        herdName: _selectedHerdName,
+      ),
+    );
+
+    return shouldNavigate ?? false;
   }
 }

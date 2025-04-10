@@ -1,12 +1,17 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../data/models/comment_model.dart';
 import '../../data/repositories/comment_repository.dart';
 import 'state/reply_state.dart';
 
 // Provider to store all replies for a post
-final repliesProvider = StateNotifierProvider.family<RepliesNotifier, ReplyState, String>((ref, postId) {
+final repliesProvider =
+    StateNotifierProvider.family<RepliesNotifier, ReplyState, String>(
+        (ref, postId) {
   final repository = ref.watch(commentRepositoryProvider);
   return RepliesNotifier(repository, postId);
 });
@@ -16,7 +21,8 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
   final String _postId;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  RepliesNotifier(this._repository, this._postId) : super(ReplyState.initial()) {
+  RepliesNotifier(this._repository, this._postId)
+      : super(ReplyState.initial()) {
     // Load initial replies
     loadReplies();
   }
@@ -77,7 +83,8 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
         replies: [...state.replies, ...replies],
         isLoading: false,
         hasMore: replies.length >= 50,
-        lastDocument: replies.isNotEmpty ? querySnapshot.docs.last : state.lastDocument,
+        lastDocument:
+            replies.isNotEmpty ? querySnapshot.docs.last : state.lastDocument,
       );
     } catch (e) {
       state = state.copyWith(
@@ -112,16 +119,16 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
 
       return reply;
     } catch (e) {
-      print('Error creating reply: $e');
+      if (kDebugMode) {
+        print('Error creating reply: $e');
+      }
       rethrow;
     }
   }
 
   // Get replies for a specific comment
   List<CommentModel> getRepliesForComment(String commentId) {
-    return state.replies
-        .where((reply) => reply.parentId == commentId)
-        .toList();
+    return state.replies.where((reply) => reply.parentId == commentId).toList();
   }
 
   // Check if a comment has replies
