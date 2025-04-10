@@ -165,7 +165,7 @@ class PostRepository {
           "✅ Post created successfully with ${mediaItems.length} media items");
     } catch (e) {
       debugPrint("❌ ERROR creating post: $e");
-      throw e;
+      rethrow;
     }
   }
 
@@ -706,36 +706,189 @@ class PostRepository {
     }
   }
 
-  /// Post Deletion ///
-  Future<void> deletePost(String postId) async {
-    // Fetch post to check if it's alt or public
-    final postDoc = await _posts.doc(postId).get();
-    final altPostDoc = await _globalAltPosts.doc(postId).get();
+  Future<void> updatePost({
+    required String postId,
+    required String userId,
+    String? title,
+    String? content,
+    bool? isAlt,
+    String? herdId,
+  }) async {
+    try {
+      // Determine which collection to update based on post type
+      DocumentReference postRef;
 
-    // Determine which collection to delete from
-    if (postDoc.exists) {
-      await _posts.doc(postId).delete();
-      debugPrint('Public post deleted with ID: $postId');
-      debugPrint(
-          'Removal from followers\' feeds will be handled by Cloud Function');
-    } else if (altPostDoc.exists) {
-      await _globalAltPosts.doc(postId).delete();
-      debugPrint('Alt post deleted with ID: $postId');
-      debugPrint(
-          'Removal from alt connections\' feeds will be handled by Cloud Function');
-    } else {
-      throw Exception("Post not found");
+      if (isAlt == true) {
+        postRef = _firestore.collection('altPosts').doc(postId);
+      } else if (herdId != null && herdId.isNotEmpty) {
+        postRef = _firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .doc(postId);
+      } else {
+        postRef = _firestore.collection('posts').doc(postId);
+      }
+
+      // Get post data before update
+      final postDoc = await postRef.get();
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+
+      final postData = postDoc.data() as Map<String, dynamic>;
+
+      // Security check: Only allow the author to edit their own post
+      if (postData['authorId'] != userId) {
+        throw Exception("You don't have permission to edit this post");
+      }
+
+      // Create a map of fields to update
+      final Map<String, dynamic> updates = {
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (title != null) updates['title'] = title;
+      if (content != null) updates['content'] = content;
+
+      // Update the post
+      await postRef.update(updates);
+
+      debugPrint('Post $postId successfully updated');
+    } catch (e) {
+      debugPrint('Error updating post: $e');
+      rethrow;
     }
+  }
 
-    // Delete associated documents (comments, likes, dislikes)
-    await _deleteSubCollection(
-        _comments.doc(postId).collection('postComments'));
-    await _deleteSubCollection(_likes.doc(postId).collection('postLikes'));
-    await _deleteSubCollection(
-        _dislikes.doc(postId).collection('postDislikes'));
+  /// Post Deletion ///
+  Future<void> deletePost(String postId, String userId,
+      {bool isAlt = false, String? herdId}) async {
+    try {
+      DocumentReference? postRef;
 
-    // Remove from the author's feed (the Cloud Function will handle distribution)
-    // You'd need the authorId from the post data here
+      // Determine which collection to delete from based on post type
+      if (isAlt) {
+        postRef = _firestore.collection('altPosts').doc(postId);
+      } else if (herdId != null && herdId.isNotEmpty) {
+        postRef = _firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .doc(postId);
+      } else {
+        postRef = _firestore.collection('posts').doc(postId);
+      }
+
+      // Get post data before deletion for cleanup
+      final postDoc = await postRef.get();
+      if (!postDoc.exists) {
+        throw Exception("Post not found");
+      }
+
+      final postData = postDoc.data() as Map<String, dynamic>;
+
+      // Security check: Only allow the author to delete their own post
+      if (postData['authorId'] != userId) {
+        throw Exception("You don't have permission to delete this post");
+      }
+
+      // Delete associated media files from storage
+      await _deletePostMedia(postId, userId, isAlt);
+
+      // Delete associated documents (comments, likes, dislikes)
+      await _deleteSubCollection(_firestore
+          .collection('comments')
+          .doc(postId)
+          .collection('postComments'));
+      await _deleteSubCollection(_firestore
+          .collection('likes')
+          .doc(postId)
+          .collection('userInteractions'));
+      await _deleteSubCollection(_firestore
+          .collection('dislikes')
+          .doc(postId)
+          .collection('userInteractions'));
+
+      // Delete the post document itself
+      await postRef.delete();
+
+      debugPrint('Post $postId successfully deleted');
+    } catch (e) {
+      debugPrint('Error deleting post: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _deletePostMedia(
+      String postId, String userId, bool isAlt) async {
+    try {
+      // Base path for post media
+      final basePath = isAlt
+          ? 'users/$userId/alt/posts/$postId'
+          : 'users/$userId/posts/$postId';
+
+      final storageRef = _storage.ref().child(basePath);
+
+      try {
+        // List all items in this directory
+        final result = await storageRef.listAll();
+
+        // Delete each item
+        for (var item in result.items) {
+          debugPrint('Deleting storage item: ${item.fullPath}');
+          await item.delete();
+        }
+
+        // Delete items in subdirectories
+        for (var prefix in result.prefixes) {
+          final subResult = await prefix.listAll();
+          for (var item in subResult.items) {
+            debugPrint('Deleting storage item: ${item.fullPath}');
+            await item.delete();
+          }
+        }
+      } catch (e) {
+        debugPrint('Note: No media found at $basePath: $e');
+      }
+
+      // Also check for potential media with ID pattern postId-*
+      // We need to check parent directories and filter
+      try {
+        final userMediaRef = _storage.ref().child('users/$userId/posts');
+        final userMediaResult = await userMediaRef.listAll();
+
+        // Find and delete any items or directories matching the pattern
+        for (var prefix in userMediaResult.prefixes) {
+          if (prefix.name.startsWith('$postId-')) {
+            debugPrint('Found matching directory: ${prefix.fullPath}');
+
+            // List all files in this directory
+            final subResult = await prefix.listAll();
+
+            // Delete each file
+            for (var item in subResult.items) {
+              debugPrint('Deleting storage item: ${item.fullPath}');
+              await item.delete();
+            }
+          }
+        }
+
+        // Also check direct files
+        for (var item in userMediaResult.items) {
+          if (item.name.contains('$postId-')) {
+            debugPrint('Deleting storage item: ${item.fullPath}');
+            await item.delete();
+          }
+        }
+      } catch (e) {
+        // Ignore errors if the parent folder doesn't exist
+        debugPrint('Note: Error checking for media with pattern $postId-*: $e');
+      }
+    } catch (e) {
+      // Log but don't fail if media deletion has issues
+      debugPrint('Warning: Error deleting post media: $e');
+    }
   }
 
   // Utility: Delete all documents in a subcollection
@@ -863,7 +1016,7 @@ class PostRepository {
       await _directLikePost(postId: postId, userId: userId);
     } catch (e) {
       debugPrint('Error liking post: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -895,7 +1048,7 @@ class PostRepository {
       await _directDislikePost(postId: postId, userId: userId);
     } catch (e) {
       debugPrint('Error liking post: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -952,7 +1105,7 @@ class PostRepository {
         await UserRepository(_firestore).incrementUserPoints(postAuthorId, 1);
       }
     } catch (e) {
-      print("Error in likePost operation: $e");
+      debugPrint("Error in likePost operation: $e");
       rethrow;
     }
   }

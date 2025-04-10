@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/comment/view/providers/reply_providers.dart';
 import 'package:herdapp/features/comment/view/providers/state/comment_state.dart';
@@ -12,7 +13,9 @@ import '../../data/repositories/comment_repository.dart';
 final commentSortProvider = StateProvider<String>((ref) => 'hot');
 
 // Provider for the expanded comments (which comments should show their replies)
-final expandedCommentsProvider = StateNotifierProvider<ExpandedCommentsNotifier, ExpandedCommentsState>((ref) {
+final expandedCommentsProvider =
+    StateNotifierProvider<ExpandedCommentsNotifier, ExpandedCommentsState>(
+        (ref) {
   return ExpandedCommentsNotifier();
 });
 
@@ -34,9 +37,10 @@ class ExpandedCommentsNotifier extends StateNotifier<ExpandedCommentsState> {
   }
 }
 
-
 // Provider for comment list for a specific post
-final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentState, String>((ref, postId) {
+final commentsProvider =
+    StateNotifierProvider.family<CommentsNotifier, CommentState, String>(
+        (ref, postId) {
   final repository = ref.watch(commentRepositoryProvider);
   final sortBy = ref.watch(commentSortProvider);
   return CommentsNotifier(repository, postId, sortBy);
@@ -56,7 +60,8 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     loadComments();
   }
 
-  Future<void> invalidateRelatedProviders(WidgetRef ref, String postId, String? parentId) async {
+  Future<void> invalidateRelatedProviders(
+      WidgetRef ref, String postId, String? parentId) async {
     try {
       // Invalidate providers
       ref.invalidate(commentsProvider(postId));
@@ -66,14 +71,18 @@ class CommentsNotifier extends StateNotifier<CommentState> {
       // Instead, let the UI reload data as needed
 
       if (parentId != null) {
-        ref.invalidate(commentThreadProvider((commentId: parentId, postId: postId)));
+        ref.invalidate(
+            commentThreadProvider((commentId: parentId, postId: postId)));
       } else {
-        ref.invalidate(commentThreadProvider((commentId: _postId, postId: postId)));
+        ref.invalidate(
+            commentThreadProvider((commentId: _postId, postId: postId)));
       }
 
       // The UI should handle refreshing data after invalidation
     } catch (e) {
-      print('Error invalidating providers: $e');
+      if (kDebugMode) {
+        print('Error invalidating providers: $e');
+      }
     }
   }
 
@@ -91,8 +100,9 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         comments: comments,
         isLoading: false,
         hasMore: comments.length >= 30,
-        lastDocument: comments.isNotEmpty ?
-        await _getLastDocument(comments.last.id) : null,
+        lastDocument: comments.isNotEmpty
+            ? await _getLastDocument(comments.last.id)
+            : null,
       );
     } catch (e) {
       state = state.copyWith(
@@ -119,8 +129,9 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         comments: [...state.comments, ...comments],
         isLoading: false,
         hasMore: comments.length >= 30,
-        lastDocument: comments.isNotEmpty ?
-        await _getLastDocument(comments.last.id) : state.lastDocument,
+        lastDocument: comments.isNotEmpty
+            ? await _getLastDocument(comments.last.id)
+            : state.lastDocument,
       );
     } catch (e) {
       state = state.copyWith(
@@ -186,12 +197,16 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         // Invalidate the replies provider for this post
         invalidateRelatedProviders(ref, _postId, parentId);
       } catch (e) {
-        print('Error uploading comment: $e');
+        if (kDebugMode) {
+          print('Error uploading comment: $e');
+        }
       }
 
       return comment;
     } catch (e) {
-      print('Error creating comment: $e');
+      if (kDebugMode) {
+        print('Error creating comment: $e');
+      }
       rethrow;
     }
   }
@@ -204,13 +219,18 @@ class CommentsNotifier extends StateNotifier<CommentState> {
           .doc(commentId)
           .get();
     } catch (e) {
-      print('Error getting document: $e');
+      if (kDebugMode) {
+        print('Error getting document: $e');
+      }
       return null;
     }
   }
 }
 
-final commentThreadProvider = StateNotifierProvider.family<CommentThreadNotifier, CommentThreadState?, ({String commentId, String? postId})>((ref, params) {
+final commentThreadProvider = StateNotifierProvider.family<
+    CommentThreadNotifier,
+    CommentThreadState?,
+    ({String commentId, String? postId})>((ref, params) {
   final repository = ref.watch(commentRepositoryProvider);
   return CommentThreadNotifier(repository, params.commentId, params.postId);
 });
@@ -254,14 +274,17 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
           parentComment: parentComment,
           replies: replies,
           hasMore: replies.length >= 30,
-          lastDocument: replies.isNotEmpty ?
-          await _getLastDocument(replies.last.id) : null,
+          lastDocument: replies.isNotEmpty
+              ? await _getLastDocument(replies.last.id)
+              : null,
         );
       } else {
         throw Exception('Unable to determine post ID for comment');
       }
     } catch (e) {
-      print('Error loading thread: $e');
+      if (kDebugMode) {
+        print('Error loading thread: $e');
+      }
       // State remains null to indicate error
     }
   }
@@ -295,7 +318,8 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
       }
     }
 
-    final altPostsSnapshot = await _firestore.collection('globalAltPosts').limit(50).get();
+    final altPostsSnapshot =
+        await _firestore.collection('globalAltPosts').limit(50).get();
 
     for (final postDoc in altPostsSnapshot.docs) {
       final postId = postDoc.id;
@@ -317,7 +341,8 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
   }
 
   Future<void> loadMoreReplies() async {
-    if (state == null || state!.isLoading || !state!.hasMore || _postId == null) return;
+    if (state == null || state!.isLoading || !state!.hasMore || _postId == null)
+      return;
 
     try {
       state = state!.copyWith(isLoading: true);
@@ -333,8 +358,9 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
         replies: [...state!.replies, ...replies],
         isLoading: false,
         hasMore: replies.length >= 30,
-        lastDocument: replies.isNotEmpty ?
-        await _getLastDocument(replies.last.id) : state!.lastDocument,
+        lastDocument: replies.isNotEmpty
+            ? await _getLastDocument(replies.last.id)
+            : state!.lastDocument,
       );
     } catch (e) {
       state = state!.copyWith(
@@ -356,30 +382,32 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
           .doc(commentId)
           .get();
     } catch (e) {
-      print('Error getting document: $e');
+      if (kDebugMode) {
+        print('Error getting document: $e');
+      }
       return null;
     }
   }
 }
 
-final commentInteractionProvider = StateNotifierProvider.family<CommentInteractionNotifier, CommentInteractionState, ({String commentId, String postId})>((ref, params) {
+final commentInteractionProvider = StateNotifierProvider.family<
+    CommentInteractionNotifier,
+    CommentInteractionState,
+    ({String commentId, String postId})>((ref, params) {
   final repository = ref.watch(commentRepositoryProvider);
-  return CommentInteractionNotifier(
-      repository,
-      params.commentId,
-      ref.read(currentUserProvider)?.id ?? '',
-      params.postId
-  );
+  return CommentInteractionNotifier(repository, params.commentId,
+      ref.read(currentUserProvider)?.id ?? '', params.postId);
 });
 
-class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> {
+class CommentInteractionNotifier
+    extends StateNotifier<CommentInteractionState> {
   final CommentRepository _repository;
   final String _commentId;
   final String _userId;
   final String _postId;
 
-
-  CommentInteractionNotifier(this._repository, this._commentId, this._userId, this._postId)
+  CommentInteractionNotifier(
+      this._repository, this._commentId, this._userId, this._postId)
       : super(const CommentInteractionState()) {
     _loadInteractionState();
   }
@@ -392,14 +420,10 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
   Future<void> _loadInteractionState() async {
     try {
       final isLiked = await _repository.isCommentLikedByUser(
-          commentId: _commentId,
-          userId: _userId
-      );
+          commentId: _commentId, userId: _userId);
 
       final isDisliked = await _repository.isCommentDislikedByUser(
-          commentId: _commentId,
-          userId: _userId
-      );
+          commentId: _commentId, userId: _userId);
 
       // Get the comment to get current like/dislike counts
       final commentDoc = await FirebaseFirestore.instance
@@ -419,7 +443,9 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
         );
       }
     } catch (e) {
-      print('Error loading interaction state: $e');
+      if (kDebugMode) {
+        print('Error loading interaction state: $e');
+      }
     }
   }
 
@@ -431,13 +457,10 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
     final wasDisliked = state.isDisliked;
 
     // Calculate new counts
-    final newLikeCount = wasLiked
-        ? state.likeCount - 1
-        : state.likeCount + 1;
+    final newLikeCount = wasLiked ? state.likeCount - 1 : state.likeCount + 1;
 
-    final newDislikeCount = wasDisliked && !wasLiked
-        ? state.dislikeCount - 1
-        : state.dislikeCount;
+    final newDislikeCount =
+        wasDisliked && !wasLiked ? state.dislikeCount - 1 : state.dislikeCount;
 
     // Update state optimistically
     state = CommentInteractionState(
@@ -459,14 +482,18 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
       // Mark loading complete
       state = state.copyWith(isLoading: false);
     } catch (e) {
-      print('Error toggling like: $e');
+      if (kDebugMode) {
+        print('Error toggling like: $e');
+      }
 
       // Revert on error
       state = CommentInteractionState(
         isLiked: wasLiked,
         isDisliked: wasDisliked,
         likeCount: state.likeCount + (wasLiked ? 1 : -1),
-        dislikeCount: wasDisliked && !wasLiked ? state.dislikeCount + 1 : state.dislikeCount,
+        dislikeCount: wasDisliked && !wasLiked
+            ? state.dislikeCount + 1
+            : state.dislikeCount,
         isLoading: false,
       );
     }
@@ -480,13 +507,11 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
     final wasDisliked = state.isDisliked;
 
     // Calculate new counts
-    final newDislikeCount = wasDisliked
-        ? state.dislikeCount - 1
-        : state.dislikeCount + 1;
+    final newDislikeCount =
+        wasDisliked ? state.dislikeCount - 1 : state.dislikeCount + 1;
 
-    final newLikeCount = wasLiked && !wasDisliked
-        ? state.likeCount - 1
-        : state.likeCount;
+    final newLikeCount =
+        wasLiked && !wasDisliked ? state.likeCount - 1 : state.likeCount;
 
     // Update state optimistically
     state = CommentInteractionState(
@@ -508,13 +533,16 @@ class CommentInteractionNotifier extends StateNotifier<CommentInteractionState> 
       // Mark loading complete
       state = state.copyWith(isLoading: false);
     } catch (e) {
-      print('Error toggling dislike: $e');
+      if (kDebugMode) {
+        print('Error toggling dislike: $e');
+      }
 
       // Revert on error
       state = CommentInteractionState(
         isLiked: wasLiked,
         isDisliked: wasDisliked,
-        likeCount: wasLiked && !wasDisliked ? state.likeCount + 1 : state.likeCount,
+        likeCount:
+            wasLiked && !wasDisliked ? state.likeCount + 1 : state.likeCount,
         dislikeCount: state.dislikeCount + (wasDisliked ? 1 : -1),
         isLoading: false,
       );

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/comment/view/providers/comment_providers.dart';
 import 'package:herdapp/features/comment/view/widgets/comment_widget.dart';
-import 'package:herdapp/features/navigation/view/widgets/BottomNavPadding.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 class CommentListWidget extends ConsumerStatefulWidget {
   final String postId;
@@ -40,7 +40,8 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
     });
 
     // Set up comment refresh listener
-    _commentRefreshListener = Stream.periodic(const Duration(seconds: 10)).listen((_) {
+    _commentRefreshListener =
+        Stream.periodic(const Duration(seconds: 10)).listen((_) {
       if (mounted) {
         ref.read(commentsProvider(widget.postId).notifier).loadComments();
       }
@@ -77,13 +78,16 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
                 onChanged: (value) {
                   if (value != null) {
                     ref.read(commentSortProvider.notifier).state = value;
-                    ref.read(commentsProvider(widget.postId).notifier).changeSortBy(value);
+                    ref
+                        .read(commentsProvider(widget.postId).notifier)
+                        .changeSortBy(value);
                   }
                 },
                 items: const [
                   DropdownMenuItem(value: 'hot', child: Text('Hot')),
                   DropdownMenuItem(value: 'newest', child: Text('Newest')),
-                  DropdownMenuItem(value: 'mostLiked', child: Text('Most Liked')),
+                  DropdownMenuItem(
+                      value: 'mostLiked', child: Text('Most Liked')),
                 ],
               ),
               const Spacer(),
@@ -110,8 +114,9 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
                   radius: 20,
                   backgroundImage: currentUser.profileImageURL != null
                       ? NetworkImage(widget.isAltPost
-                      ? (currentUser.altProfileImageURL ?? currentUser.profileImageURL!)
-                      : currentUser.profileImageURL!)
+                          ? (currentUser.altProfileImageURL ??
+                              currentUser.profileImageURL!)
+                          : currentUser.profileImageURL!)
                       : null,
                   child: currentUser.profileImageURL == null
                       ? const Icon(Icons.person)
@@ -166,7 +171,8 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.clear, size: 16),
-                              onPressed: () => setState(() => _mediaFile = null),
+                              onPressed: () =>
+                                  setState(() => _mediaFile = null),
                             ),
                           ],
                         ],
@@ -181,10 +187,10 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
                   child: IconButton(
                     icon: _isSubmitting
                         ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.send),
                     onPressed: _isSubmitting ? null : _submitComment,
                   ),
@@ -199,37 +205,42 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
           child: commentsState.isLoading && commentsState.comments.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : commentsState.comments.isEmpty
-              ? const Center(child: Text('No comments yet. Be the first to comment!'))
-              : Column(
-            children: [
-              // Map comments to widgets directly
-              ...commentsState.comments.map((comment) => CommentWidget(
-                comment: comment,
-                isAltPost: widget.isAltPost,
-                onReplyTap: () => _showReplyDialog(context, comment.id),
-              )),
+                  ? const Center(
+                      child: Text('No comments yet. Be the first to comment!'))
+                  : Column(
+                      children: [
+                        // Map comments to widgets directly
+                        ...commentsState.comments
+                            .map((comment) => CommentWidget(
+                                  comment: comment,
+                                  isAltPost: widget.isAltPost,
+                                  onReplyTap: () =>
+                                      _showReplyDialog(context, comment.id),
+                                )),
 
-              // Load more button
-              if (commentsState.isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.0),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (commentsState.hasMore)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Center(
-                    child: TextButton(
-                      onPressed: () {
-                        ref.read(commentsProvider(widget.postId).notifier)
-                            .loadMoreComments();
-                      },
-                      child: const Text('Load More Comments'),
+                        // Load more button
+                        if (commentsState.isLoading)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (commentsState.hasMore)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Center(
+                              child: TextButton(
+                                onPressed: () {
+                                  ref
+                                      .read(commentsProvider(widget.postId)
+                                          .notifier)
+                                      .loadMoreComments();
+                                },
+                                child: const Text('Load More Comments'),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                ),
-            ],
-          ),
         ),
       ],
     );
@@ -278,12 +289,11 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
 
     try {
       await ref.read(commentsProvider(widget.postId).notifier).createComment(
-        authorId: currentUser.id,
-        content: _commentController.text.trim(),
-        isAltPost: widget.isAltPost,
-        mediaFile: _mediaFile,
-        ref: ref
-      );
+          authorId: currentUser.id,
+          content: _commentController.text.trim(),
+          isAltPost: widget.isAltPost,
+          mediaFile: _mediaFile,
+          ref: ref);
 
       _commentController.clear();
       setState(() => _mediaFile = null);
