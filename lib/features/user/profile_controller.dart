@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
+import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/user/view/providers/state/profile_state.dart';
-
 
 import '../auth/view/providers/auth_provider.dart';
 import '../feed/providers/feed_type_provider.dart';
@@ -52,7 +51,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Fetch posts based on view type
       List<PostModel> posts;
       if (useAltView) {
-        posts = await _postRepository.getUserAltPosts(userId).first;
+        posts = await _postRepository.getUserAltProfilePosts(userId).first;
       } else {
         posts = await _postRepository.getUserPublicPosts(userId).first;
       }
@@ -75,7 +74,8 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
               .get();
           connectionCount = snapshot.count ?? 0;
 
-          print("DEBUG: Found $connectionCount alt connections for user $userId");
+          print(
+              "DEBUG: Found $connectionCount alt connections for user $userId");
         } catch (e) {
           print("DEBUG: Error getting alt connections count: $e");
         }
@@ -109,16 +109,16 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
 
     try {
       if (currentlyFollowing) {
-        await _userRepository.unfollowUser(currentUser.uid, currentState.user!.id);
+        await _userRepository.unfollowUser(
+            currentUser.uid, currentState.user!.id);
       } else {
-        await _userRepository.followUser(currentUser.uid, currentState.user!.id);
+        await _userRepository.followUser(
+            currentUser.uid, currentState.user!.id);
       }
 
       // Reload profile with same view type
-      await loadProfile(
-          currentState.user!.id,
-          isAltView: currentState.isAltView
-      );
+      await loadProfile(currentState.user!.id,
+          isAltView: currentState.isAltView);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -136,7 +136,8 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     }
   }
 
-  Future<void> updateProfile(Map<String, dynamic> data, bool isPublicProfile) async {
+  Future<void> updateProfile(
+      Map<String, dynamic> data, bool isPublicProfile) async {
     final currentUser = ref.read(authProvider);
     if (currentUser == null) return;
 
@@ -149,6 +150,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
   }
 }
 
-final profileControllerProvider = AutoDisposeAsyncNotifierProvider<ProfileController, ProfileState>(
-      () => ProfileController(),
+final profileControllerProvider =
+    AutoDisposeAsyncNotifierProvider<ProfileController, ProfileState>(
+  () => ProfileController(),
 );

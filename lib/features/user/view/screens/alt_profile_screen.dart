@@ -6,6 +6,7 @@ import 'package:herdapp/features/user/view/providers/profile_controller_provider
 
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../herds/view/providers/herd_providers.dart';
+import '../../../post/data/models/post_model.dart';
 import '../../../post/view/widgets/post_widget.dart';
 import '../providers/state/profile_state.dart';
 import '../widgets/alt_connection_request_button.dart';
@@ -78,221 +79,213 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   .read(profileControllerProvider.notifier)
                   .loadProfile(widget.userId, isAltView: true);
             },
-            child: CustomScrollView(
-              controller: _scrollViewController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // App Bar with cover image
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 150.0,
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: UserCoverImage(
-                      isSelected: false,
-                      coverImageUrl: profile.user?.altCoverImageURL ??
-                          profile.user?.coverImageURL,
-                    ),
-                  ),
-                  actions: [
-                    if (profile.isCurrentUser) ...[
-                      TextButton.icon(
-                        icon: const Icon(Icons.notifications),
-                        label: const Text('Notifications'),
-                        onPressed: () {
-                          context.pushNamed('connectionRequests');
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          context.push('/editProfile', extra: {
-                            'user': profile.user!,
-                            'isPublic': false,
-                          });
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.settings_rounded),
-                        onPressed: () => context.push('/settings'),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.exit_to_app),
-                        onPressed: () =>
-                            ref.read(authProvider.notifier).signOut(),
-                      ),
-                    ],
-                  ],
-                ),
-
-                // Profile card
-                SliverPadding(
-                  padding: const EdgeInsets.all(16.0),
-                  sliver: SliverToBoxAdapter(
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withOpacity(0.1),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                UserProfileImage(
-                                  radius: 40.0,
-                                  profileImageUrl:
-                                      profile.user?.altProfileImageURL ??
-                                          profile.user?.profileImageURL,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        profile.user?.username ?? '',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (profile.user?.altBio != null &&
-                                profile.user!.altBio!.isNotEmpty)
-                              Text(
-                                profile.user!.altBio!,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildStatColumn(
-                                    'Alt Posts', altPosts.length.toString()),
-                                _buildStatColumn('Connections',
-                                    profile.user?.friends?.toString() ?? '0'),
-                                _buildStatColumn('Herds', '0'),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (!profile.isCurrentUser)
-                              SizedBox(
-                                width: double.infinity,
-                                child: AltConnectionButton(
-                                    targetUserId: profile.user!.id),
-                              ),
-                          ],
-                        ),
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  // App Bar with cover image
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 150.0,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: UserCoverImage(
+                        isSelected: false,
+                        coverImageUrl: profile.user?.altCoverImageURL ??
+                            profile.user?.coverImageURL,
                       ),
                     ),
-                  ),
-                ),
-
-                // Tab Bar (as a sticky header)
-                SliverPersistentHeader(
-                  delegate: _SliverAppBarDelegate(
-                    TabBar(
-                      controller: _tabController,
-                      labelColor: Theme.of(context).colorScheme.primary,
-                      unselectedLabelColor:
-                          Theme.of(context).colorScheme.onSurfaceVariant,
-                      indicatorColor: Theme.of(context).colorScheme.primary,
-                      tabs: const [
-                        Tab(text: 'Alt Posts'),
-                        Tab(text: 'Groups'),
-                        Tab(text: 'About'),
+                    actions: [
+                      if (profile.isCurrentUser) ...[
+                        TextButton.icon(
+                          icon: const Icon(Icons.notifications),
+                          label: const Text('Notifications'),
+                          onPressed: () {
+                            context.pushNamed('connectionRequests');
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () {
+                            context.push('/editProfile', extra: {
+                              'user': profile.user!,
+                              'isPublic': false,
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.settings_rounded),
+                          onPressed: () => context.push('/settings'),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.exit_to_app),
+                          onPressed: () =>
+                              ref.read(authProvider.notifier).signOut(),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  pinned: true,
-                ),
 
-                // Tab Content
-                SliverFillRemaining(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Alt posts tab
-                      altPosts.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                  // Profile card
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withOpacity(0.1),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Icon(Icons.lock,
-                                      size: 64,
-                                      color: Colors.blue.withOpacity(0.5)),
-                                  const SizedBox(height: 16),
-                                  Text('No alt posts yet',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium),
-                                  if (profile.isCurrentUser) ...[
-                                    const SizedBox(height: 16),
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.add),
-                                      label: const Text('Create Alt Post'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      onPressed: () {
-                                        context.pushNamed('create',
-                                            queryParameters: {'isAlt': 'true'});
-                                      },
-                                    )
-                                  ]
+                                  UserProfileImage(
+                                    radius: 40.0,
+                                    profileImageUrl:
+                                        profile.user?.altProfileImageURL ??
+                                            profile.user?.profileImageURL,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          profile.user?.username ?? '',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
-                            )
-                          : ListView.builder(
-                              // Important settings to prevent scroll conflicts
-                              primary: false,
-                              shrinkWrap: true,
-                              // No need for a separate scroll controller
-                              itemCount: altPosts.length,
-                              itemBuilder: (context, index) {
-                                return PostWidget(
-                                  post: altPosts[index],
-                                  isCompact: true,
-                                );
-                              },
-                            ),
+                              const SizedBox(height: 16),
+                              if (profile.user?.altBio != null &&
+                                  profile.user!.altBio!.isNotEmpty)
+                                Text(
+                                  profile.user!.altBio!,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildStatColumn(
+                                      'Alt Posts', altPosts.length.toString()),
+                                  _buildStatColumn('Connections',
+                                      profile.user?.friends?.toString() ?? '0'),
+                                  _buildStatColumn('Herds', '0'),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              if (!profile.isCurrentUser)
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: AltConnectionButton(
+                                      targetUserId: profile.user!.id),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
 
-                      // Groups tab
-                      _buildGroupsSection(profile),
-
-                      // About tab
-                      ListView(
-                        primary: false,
-                        shrinkWrap: true,
-                        children: [
-                          _buildAboutSection(profile),
+                  // Tab Bar (as a sticky header)
+                  SliverPersistentHeader(
+                    delegate: _SliverAppBarDelegate(
+                      TabBar(
+                        controller: _tabController,
+                        labelColor: Theme.of(context).colorScheme.primary,
+                        unselectedLabelColor:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                        indicatorColor: Theme.of(context).colorScheme.primary,
+                        tabs: const [
+                          Tab(text: 'Alt Posts'),
+                          Tab(text: 'Groups'),
+                          Tab(text: 'About'),
                         ],
                       ),
-                    ],
+                    ),
+                    pinned: true,
                   ),
-                ),
-              ],
+                ];
+              },
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Alt posts tab - Now using a custom list to handle both empty state and list
+                  _buildPostsTab(altPosts, profile),
+
+                  // Groups tab
+                  _buildGroupsSection(profile),
+
+                  // About tab
+                  SingleChildScrollView(
+                    child: _buildAboutSection(profile),
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  Widget _buildPostsTab(List<PostModel> posts, ProfileState profile) {
+    if (posts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock, size: 64, color: Colors.blue.withOpacity(0.5)),
+            const SizedBox(height: 16),
+            Text('No alt posts yet',
+                style: Theme.of(context).textTheme.titleMedium),
+            if (profile.isCurrentUser) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Create Alt Post'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  context
+                      .pushNamed('create', queryParameters: {'isAlt': 'true'});
+                },
+              )
+            ]
+          ],
+        ),
+      );
+    } else {
+      return ListView.builder(
+        padding: EdgeInsets.zero, // Important to avoid extra padding
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          return PostWidget(
+            post: posts[index],
+            isCompact: true,
+          );
+        },
+      );
+    }
   }
 
   // Build the view for when a user needs to create their alt profile
@@ -417,6 +410,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
             }
 
             return ListView.builder(
+              padding: EdgeInsets.zero, // Important to avoid extra padding
               itemCount: herds.length,
               itemBuilder: (context, index) {
                 final herd = herds[index];
@@ -449,14 +443,41 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
   }
 
   Widget _buildAboutSection(ProfileState profile) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Alt Profile',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow('Username', '@${profile.user?.username}'),
+                  const SizedBox(height: 8),
+                  if (profile.user?.altBio != null &&
+                      profile.user!.altBio!.isNotEmpty) ...[
+                    _buildInfoRow('Bio', profile.user!.altBio!),
+                    const SizedBox(height: 8),
+                  ],
+                  _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Alt Posts',
+                      '${profile.posts.where((post) => post.isAlt).length}'),
+                ],
+              ),
+            ),
+          ),
+          if (profile.isCurrentUser) ...[
+            const SizedBox(height: 24),
             const Text(
-              'Alt Profile',
+              'Privacy Settings',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -464,65 +485,36 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoRow('Username', '@${profile.user?.username}'),
-                    const SizedBox(height: 8),
-                    if (profile.user?.altBio != null &&
-                        profile.user!.altBio!.isNotEmpty) ...[
-                      _buildInfoRow('Bio', profile.user!.altBio!),
-                      const SizedBox(height: 8),
-                    ],
-                    _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
-                    const SizedBox(height: 8),
-                    _buildInfoRow('Alt Posts',
-                        '${profile.posts.where((post) => post.isAlt).length}'),
+                    _buildSwitchRow(
+                      'Show Public Profile in Alt Feed',
+                      true, // Default value
+                      (value) {
+                        // Update setting
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSwitchRow(
+                      'Allow Connection Requests',
+                      true, // Default value
+                      (value) {
+                        // Update setting
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSwitchRow(
+                      'Show Activity Status',
+                      false, // Default value
+                      (value) {
+                        // Update setting
+                      },
+                    ),
                   ],
                 ),
               ),
             ),
-            if (profile.isCurrentUser) ...[
-              const SizedBox(height: 24),
-              const Text(
-                'Privacy Settings',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      _buildSwitchRow(
-                        'Show Public Profile in Alt Feed',
-                        true, // Default value
-                        (value) {
-                          // Update setting
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSwitchRow(
-                        'Allow Connection Requests',
-                        true, // Default value
-                        (value) {
-                          // Update setting
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSwitchRow(
-                        'Show Activity Status',
-                        false, // Default value
-                        (value) {
-                          // Update setting
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }

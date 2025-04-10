@@ -7,7 +7,7 @@ import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_sta
 import '../../../data/repositories/feed_repository.dart';
 
 // Repository provider with Firebase Functions
-final feedRepositoryProvider = Provider<FeedRepository>((ref) {
+final altFeedRepositoryProvider = Provider<FeedRepository>((ref) {
   return FeedRepository(
     FirebaseFirestore.instance,
     FirebaseFunctions.instance,
@@ -72,9 +72,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       }
 
       // Use the global alt feed as fallback
-      final posts = await repository.getGlobalAltFeed(
-        limit: pageSize,
-      );
+      final posts = await repository.getGlobalAltFeed(limit: pageSize);
 
       state = state.copyWith(
         posts: posts,
@@ -297,7 +295,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 /// Provider for the alt feed controller
 final altFeedControllerProvider =
     StateNotifierProvider<AltFeedController, AltFeedState>((ref) {
-  final repository = ref.watch(feedRepositoryProvider);
+  final repository = ref.watch(altFeedRepositoryProvider);
   final user = ref.watch(authProvider);
 
   return AltFeedController(repository, user?.uid);

@@ -212,7 +212,7 @@ final userPublicPostsProvider =
 final userAltPostsProvider =
     StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final postRepository = ref.watch(postRepositoryProvider);
-  return postRepository.getUserAltPosts(userId);
+  return postRepository.getUserAltProfilePosts(userId);
 });
 
 // Provider for a single post

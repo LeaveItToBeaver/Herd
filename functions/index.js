@@ -81,13 +81,25 @@ function sanitizeData(obj) {
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    // Check if this looks like a mediaItems array
-    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && (obj[0].url || obj[0].id)) {
-      return obj.filter(item => item && item.url).map(item => sanitizeData(item));
+    // Check if this is a posts array (contain feedType property)
+    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && obj[0].feedType) {
+      // This is a posts array - don't filter, just sanitize each
+      return obj.map(item => sanitizeData(item));
     }
+
+    // Check if this is a mediaItems array
+    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' &&
+        (obj[0].url || obj[0].thumbnailUrl) && obj[0].mediaType) {
+      // This is a mediaItems array - filter out items without URLs
+      return obj.filter(item => item && (item.url || item.thumbnailUrl))
+                .map(item => sanitizeData(item));
+    }
+
+    // For any other array, just sanitize each item
     return obj.map(item => sanitizeData(item));
   }
-  // Handle objects
+
+  // Handle objects - same as before
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     // Handle Firestore timestamps
@@ -1021,7 +1033,14 @@ exports.getFeed = onCall(async (request) => {
 
   // Validate required userId
   const userId = request.data.userId;
+
+  // Add detailed logging
+  logger.info(`getFeed called with params: ${JSON.stringify({
+    userId, feedType, herdId, limit, lastHotScore, lastPostId
+  })}`);
+
   if (!userId) {
+    logger.error('getFeed called without userId');
     throw new HttpsError('invalid-argument', 'User ID is required');
   }
 
@@ -1030,15 +1049,30 @@ exports.getFeed = onCall(async (request) => {
     let postsResult = {};
 
     if (feedType === 'public') {
+      logger.info(`Getting public feed for user: ${userId}`);
       postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
     }
     else if (feedType === 'alt') {
+      logger.info(`Getting alt feed, lastHotScore: ${lastHotScore}`);
       postsResult = await getAltFeed(limit, lastHotScore, lastPostId);
     }
     else if (herdId) {
+      logger.info(`Getting herd feed for herd: ${herdId}`);
       postsResult = await getHerdFeed(herdId, limit, lastHotScore, lastPostId);
     } else {
+      logger.info(`Defaulting to public feed for user: ${userId}`);
       postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+    }
+
+    logger.info(`Feed query returned ${postsResult.posts?.length || 0} posts`);
+
+    // Log the first post to verify structure
+    if (postsResult.posts && postsResult.posts.length > 0) {
+      logger.info(`Sample post: ${JSON.stringify({
+        id: postsResult.posts[0].id,
+        hotScore: postsResult.posts[0].hotScore,
+        feedType: postsResult.posts[0].feedType
+      })}`);
     }
 
     // Deep sanitize the entire response to remove any NaN values
@@ -1047,13 +1081,6 @@ exports.getFeed = onCall(async (request) => {
       lastHotScore: postsResult.lastHotScore,
       lastPostId: postsResult.lastPostId
     });
-
-    // Additional validation as a last resort
-    if (sanitizedResult.lastHotScore !== undefined &&
-      typeof sanitizedResult.lastHotScore === 'number' &&
-      isNaN(sanitizedResult.lastHotScore)) {
-      sanitizedResult.lastHotScore = 0;
-    }
 
     return sanitizedResult;
   } catch (error) {

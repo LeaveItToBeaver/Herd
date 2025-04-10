@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 /// A wrapper around NoTransitionPage that ensures a unique key
 /// Use this instead of NoTransitionPage to avoid duplicate key issues
@@ -29,9 +27,10 @@ class UniquePage<T> extends Page<T> {
     super.arguments,
     super.restorationId,
   }) : super(
-    // Create a truly unique key by combining route info with timestamp
-    key: ValueKey('${child.runtimeType}-${DateTime.now().microsecondsSinceEpoch}'),
-  );
+          // Create a truly unique key by combining route info with timestamp
+          key: ValueKey(
+              '${child.runtimeType}-${DateTime.now().microsecondsSinceEpoch}'),
+        );
 
   @override
   Route<T> createRoute(BuildContext context) {
