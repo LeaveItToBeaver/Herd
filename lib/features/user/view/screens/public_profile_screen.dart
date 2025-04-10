@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
+import '../../../post/data/models/post_model.dart';
 import '../providers/state/profile_state.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
@@ -69,224 +70,221 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                   .read(profileControllerProvider.notifier)
                   .loadProfile(widget.userId, isAltView: false);
             },
-            child: CustomScrollView(
-              controller: _scrollViewController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // App Bar with cover image
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 150.0,
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: UserCoverImage(
-                      isSelected: false,
-                      coverImageUrl: profile.user?.coverImageURL,
-                    ),
-                  ),
-                  actions: [
-                    if (profile.isCurrentUser) ...[
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          context.push('/editProfile', extra: {
-                            'user': profile.user!,
-                            'isPublic': true,
-                          });
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.settings_rounded),
-                        onPressed: () => context.push('/settings'),
-                      ),
-                    ],
-                  ],
-                ),
-
-                // Profile card
-                SliverPadding(
-                  padding: const EdgeInsets.all(16.0),
-                  sliver: SliverToBoxAdapter(
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withOpacity(0.1),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                UserProfileImage(
-                                  radius: 40.0,
-                                  profileImageUrl:
-                                      profile.user?.profileImageURL,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${profile.user?.firstName ?? ''} ${profile.user?.lastName ?? ''}'
-                                            .trim(),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (profile.user?.bio != null &&
-                                profile.user!.bio!.isNotEmpty)
-                              Text(
-                                profile.user!.bio!,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildStatColumn(
-                                    'Posts', filteredPosts.length.toString()),
-                                _buildStatColumn('Followers',
-                                    profile.user?.followers?.toString() ?? '0'),
-                                _buildStatColumn('Following',
-                                    profile.user?.following?.toString() ?? '0'),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (!profile.isCurrentUser)
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    ref
-                                        .read(
-                                            profileControllerProvider.notifier)
-                                        .toggleFollow(profile.isFollowing);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: profile.isFollowing
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .surfaceVariant
-                                        : Theme.of(context).colorScheme.primary,
-                                    foregroundColor: profile.isFollowing
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
-                                  ),
-                                  child: Text(profile.isFollowing
-                                      ? 'Unfollow'
-                                      : 'Follow'),
-                                ),
-                              ),
-                          ],
-                        ),
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  // App Bar with cover image
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 150.0,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: UserCoverImage(
+                        isSelected: false,
+                        coverImageUrl: profile.user?.coverImageURL,
                       ),
                     ),
-                  ),
-                ),
-
-                // Tab Bar (as a sticky header)
-                SliverPersistentHeader(
-                  delegate: _SliverAppBarDelegate(
-                    TabBar(
-                      controller: _tabController,
-                      labelColor: Theme.of(context).colorScheme.primary,
-                      unselectedLabelColor:
-                          Theme.of(context).colorScheme.onSurfaceVariant,
-                      indicatorColor: Theme.of(context).colorScheme.primary,
-                      tabs: const [
-                        Tab(text: 'Posts'),
-                        Tab(text: 'About'),
+                    actions: [
+                      if (profile.isCurrentUser) ...[
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () {
+                            context.push('/editProfile', extra: {
+                              'user': profile.user!,
+                              'isPublic': true,
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.settings_rounded),
+                          onPressed: () => context.push('/settings'),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  pinned: true,
-                ),
 
-                // Tab Content
-                SliverFillRemaining(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Posts tab
-                      filteredPosts.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                  // Profile card
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withOpacity(0.1),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Icon(Icons.post_add,
-                                      size: 64, color: Colors.grey[400]),
-                                  const SizedBox(height: 16),
-                                  Text('No public posts yet',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium),
-                                  if (profile.isCurrentUser) ...[
-                                    const SizedBox(height: 16),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        context.pushNamed('create',
-                                            queryParameters: {
-                                              'isAlt': 'false'
-                                            });
-                                      },
-                                      child: const Text('Create Post'),
-                                    )
-                                  ]
+                                  UserProfileImage(
+                                    radius: 40.0,
+                                    profileImageUrl:
+                                        profile.user?.profileImageURL,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${profile.user?.firstName ?? ''} ${profile.user?.lastName ?? ''}'
+                                              .trim(),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
-                            )
-                          : ListView.builder(
-                              // Important settings to prevent scroll conflicts
-                              primary: false,
-                              shrinkWrap: true,
-                              // No need for a separate scroll controller
-                              itemCount: filteredPosts.length,
-                              itemBuilder: (context, index) {
-                                return PostWidget(
-                                  post: filteredPosts[index],
-                                  isCompact: true,
-                                );
-                              },
-                            ),
+                              const SizedBox(height: 16),
+                              if (profile.user?.bio != null &&
+                                  profile.user!.bio!.isNotEmpty)
+                                Text(
+                                  profile.user!.bio!,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildStatColumn(
+                                      'Posts', filteredPosts.length.toString()),
+                                  _buildStatColumn(
+                                      'Followers',
+                                      profile.user?.followers?.toString() ??
+                                          '0'),
+                                  _buildStatColumn(
+                                      'Following',
+                                      profile.user?.following?.toString() ??
+                                          '0'),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              if (!profile.isCurrentUser)
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      ref
+                                          .read(profileControllerProvider
+                                              .notifier)
+                                          .toggleFollow(profile.isFollowing);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: profile.isFollowing
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .surfaceVariant
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                      foregroundColor: profile.isFollowing
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
+                                    ),
+                                    child: Text(profile.isFollowing
+                                        ? 'Unfollow'
+                                        : 'Follow'),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
 
-                      // About tab
-                      ListView(
-                        primary: false,
-                        shrinkWrap: true,
-                        children: [
-                          _buildAboutSection(profile),
+                  // Tab Bar (as a sticky header)
+                  SliverPersistentHeader(
+                    delegate: _SliverAppBarDelegate(
+                      TabBar(
+                        controller: _tabController,
+                        labelColor: Theme.of(context).colorScheme.primary,
+                        unselectedLabelColor:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                        indicatorColor: Theme.of(context).colorScheme.primary,
+                        tabs: const [
+                          Tab(text: 'Posts'),
+                          Tab(text: 'About'),
                         ],
                       ),
-                    ],
+                    ),
+                    pinned: true,
                   ),
-                ),
-              ],
+                ];
+              },
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Posts tab
+                  _buildPostsTab(filteredPosts, profile),
+
+                  // About tab
+                  SingleChildScrollView(
+                    child: _buildAboutSection(profile),
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  Widget _buildPostsTab(List<PostModel> posts, ProfileState profile) {
+    if (posts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.post_add, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text('No public posts yet',
+                style: Theme.of(context).textTheme.titleMedium),
+            if (profile.isCurrentUser) ...[
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  context
+                      .pushNamed('create', queryParameters: {'isAlt': 'false'});
+                },
+                child: const Text('Create Post'),
+              )
+            ]
+          ],
+        ),
+      );
+    } else {
+      return ListView.builder(
+        padding: EdgeInsets.zero, // Important to avoid extra padding
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          return PostWidget(
+            post: posts[index],
+            isCompact: true,
+          );
+        },
+      );
+    }
   }
 
   Widget _buildStatColumn(String label, String count) {
