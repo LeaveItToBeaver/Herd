@@ -9,6 +9,7 @@ import '../../features/floating_buttons/views/widgets/global_overlay_manager.dar
 import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
 import '../../features/herds/view/screens/herd_screen.dart';
+import '../../features/post/view/screens/edit_post_screen.dart';
 import '../../features/user/data/models/user_model.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -269,6 +270,49 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 isAlt: isAlt,
                 herdId: herdId,
               ),
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/editPost/:id',
+        name: 'editPost',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final postId = state.pathParameters['id']!;
+          final isAlt = state.uri.queryParameters['isAlt'] == 'true';
+
+          return NoTransitionPage(
+            child: Consumer(
+              builder: (context, ref, _) {
+                // Use the appropriate provider based on whether it's an alt post
+                final postAsync = ref.watch(
+                  isAlt
+                      ? postProviderWithPrivacy(
+                          PostParams(id: postId, isAlt: true))
+                      : postProvider(postId),
+                );
+
+                return postAsync.when(
+                  loading: () => const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (err, stack) => Scaffold(
+                    appBar: AppBar(title: const Text('Edit Post')),
+                    body: Center(child: Text('Error: $err')),
+                  ),
+                  data: (post) {
+                    if (post == null) {
+                      return Scaffold(
+                        appBar: AppBar(title: const Text('Edit Post')),
+                        body: const Center(child: Text('Post not found')),
+                      );
+                    }
+                    return EditPostScreen(post: post);
+                  },
+                );
+              },
             ),
           );
         },

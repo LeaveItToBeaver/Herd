@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,8 @@ class AltProfileEditScreen extends ConsumerStatefulWidget {
   }) : super(key: key);
 
   @override
-  ConsumerState<AltProfileEditScreen> createState() => _AltProfileEditScreenState();
+  ConsumerState<AltProfileEditScreen> createState() =>
+      _AltProfileEditScreenState();
 }
 
 class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
@@ -37,13 +39,21 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
   }
 
   void _saveChanges() async {
-    ref.read(editAltProfileProvider(widget.user).notifier).bioChanged(_bioController.text);
-    ref.read(editAltProfileProvider(widget.user).notifier).usernameChanged(_usernameController.text);
+    ref
+        .read(editAltProfileProvider(widget.user).notifier)
+        .bioChanged(_bioController.text);
+    ref
+        .read(editAltProfileProvider(widget.user).notifier)
+        .usernameChanged(_usernameController.text);
     await ref.read(editAltProfileProvider(widget.user).notifier).submit();
 
-    if (ref.read(editAltProfileProvider(widget.user)).errorMessage == null && context.mounted) {
+    // Check if still mounted immediately after the async operation
+    if (!context.mounted) return;
+
+    // Now we can safely use context
+    if (ref.read(editAltProfileProvider(widget.user)).errorMessage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Alt profile updated sucessfully.")),
+        const SnackBar(content: Text("Alt profile updated successfully.")),
       );
 
       context.pop();
@@ -67,7 +77,9 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
       setState(() {
         _profileImage = File(image.path);
       });
-      ref.read(editAltProfileProvider(widget.user).notifier).profileImageChanged(_profileImage);
+      ref
+          .read(editAltProfileProvider(widget.user).notifier)
+          .profileImageChanged(_profileImage);
     }
   }
 
@@ -77,7 +89,9 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
       setState(() {
         _coverImage = File(image.path);
       });
-      ref.read(editAltProfileProvider(widget.user).notifier).coverImageChanged(_coverImage);
+      ref
+          .read(editAltProfileProvider(widget.user).notifier)
+          .coverImageChanged(_coverImage);
     }
   }
 
@@ -87,7 +101,8 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isInitialSetup ? 'Set Up Alt Profile' : 'Edit Alt Profile'),
+        title: Text(
+            widget.isInitialSetup ? 'Set Up Alt Profile' : 'Edit Alt Profile'),
         actions: [
           TextButton(
             onPressed: state.isSubmitting ? null : _saveChanges,
@@ -116,8 +131,8 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     Text(
                       'Welcome to Your Alt Profile',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -164,7 +179,8 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                   children: [
                     UserProfileImage(
                       radius: 50,
-                      profileImageUrl: widget.user.altProfileImageURL ?? widget.user.profileImageURL,
+                      profileImageUrl: widget.user.altProfileImageURL ??
+                          widget.user.profileImageURL,
                       profileImage: _profileImage,
                     ),
                     Positioned(
@@ -208,7 +224,10 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                   ),
                   prefixText: '@',
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withOpacity(0.3),
                 ),
               ),
               const SizedBox(height: 16),
@@ -230,7 +249,9 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                hintText: state.bio.isEmpty ? 'Tell us about yourself in your alt profile...' : null,
+                hintText: state.bio.isEmpty
+                    ? 'Tell us about yourself in your alt profile...'
+                    : null,
               ),
             ),
             const SizedBox(height: 24),
@@ -252,7 +273,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     _buildSwitchRow(
                       'Show Activity Status',
                       false, // Default value
-                          (value) {
+                      (value) {
                         //TODO: Update setting
                       },
                     ),
@@ -260,7 +281,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     _buildSwitchRow(
                       'Allow Connection Requests',
                       true, // Default value
-                          (value) {
+                      (value) {
                         //TODO: Update setting
                       },
                     ),
@@ -268,7 +289,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     _buildSwitchRow(
                       'Show Public Profile in Alt Feed',
                       true, // Default value
-                          (value) {
+                      (value) {
                         //TODO: Update setting
                       },
                     ),
@@ -284,7 +305,11 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+                  border: Border.all(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outline
+                          .withOpacity(0.5)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,8 +317,8 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     Text(
                       'What\'s Next?',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -309,7 +334,8 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
     );
   }
 
-  Widget _buildSwitchRow(String label, bool initialValue, Function(bool) onChanged) {
+  Widget _buildSwitchRow(
+      String label, bool initialValue, Function(bool) onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

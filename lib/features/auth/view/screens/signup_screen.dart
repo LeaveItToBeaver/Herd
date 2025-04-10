@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
-import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 
-import '../providers/state/sign_up_form_state.dart';
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
@@ -79,7 +77,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final confirmPassword = confirmPasswordController.text;
 
     // Reset form state
-    ref.read(signUpFormProvider.notifier).state = SignUpFormState(isLoading: true);
+    ref.read(signUpFormProvider.notifier).state =
+        SignUpFormState(isLoading: true);
 
     // Validate inputs
     if (firstName.isEmpty) {
@@ -134,7 +133,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         ref.read(signUpFormProvider.notifier).state = SignUpFormState(
           usernameError: 'Username is already taken',
         );
-        return;  // Add this return statement
+        return; // Add this return statement
       }
 
       // Sign up user and get credentials
@@ -198,6 +197,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Future<void> _returnToLogin() async {
     context.go('/login');
   }
+
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(signUpFormProvider);
@@ -218,12 +218,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   errorStyle: const TextStyle(color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.firstNameError != null ? Colors.red : Colors.grey,
+                      color: formState.firstNameError != null
+                          ? Colors.red
+                          : Colors.grey,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.firstNameError != null ? Colors.red : Colors.blue,
+                      color: formState.firstNameError != null
+                          ? Colors.red
+                          : Colors.blue,
                     ),
                   ),
                 ),
@@ -238,12 +242,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   errorStyle: const TextStyle(color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.lastNameError != null ? Colors.red : Colors.grey,
+                      color: formState.lastNameError != null
+                          ? Colors.red
+                          : Colors.grey,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.lastNameError != null ? Colors.red : Colors.blue,
+                      color: formState.lastNameError != null
+                          ? Colors.red
+                          : Colors.blue,
                     ),
                   ),
                 ),
@@ -258,20 +266,24 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   errorStyle: const TextStyle(color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.usernameError != null ? Colors.red : Colors.grey,
+                      color: formState.usernameError != null
+                          ? Colors.red
+                          : Colors.grey,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.usernameError != null ? Colors.red : Colors.blue,
+                      color: formState.usernameError != null
+                          ? Colors.red
+                          : Colors.blue,
                     ),
                   ),
                   suffixIcon: _isCheckingUsername
                       ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : null,
                 ),
                 onChanged: _onUsernameChanged,
@@ -285,12 +297,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   errorStyle: const TextStyle(color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.emailError != null ? Colors.red : Colors.grey,
+                      color: formState.emailError != null
+                          ? Colors.red
+                          : Colors.grey,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.emailError != null ? Colors.red : Colors.blue,
+                      color: formState.emailError != null
+                          ? Colors.red
+                          : Colors.blue,
                     ),
                   ),
                 ),
@@ -306,12 +322,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   errorStyle: const TextStyle(color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.passwordError != null ? Colors.red : Colors.grey,
+                      color: formState.passwordError != null
+                          ? Colors.red
+                          : Colors.grey,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.passwordError != null ? Colors.red : Colors.blue,
+                      color: formState.passwordError != null
+                          ? Colors.red
+                          : Colors.blue,
                     ),
                   ),
                 ),
@@ -326,12 +346,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   errorStyle: const TextStyle(color: Colors.red),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.confirmPasswordError != null ? Colors.red : Colors.grey,
+                      color: formState.confirmPasswordError != null
+                          ? Colors.red
+                          : Colors.grey,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: formState.confirmPasswordError != null ? Colors.red : Colors.blue,
+                      color: formState.confirmPasswordError != null
+                          ? Colors.red
+                          : Colors.blue,
                     ),
                   ),
                 ),
@@ -344,10 +368,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     onPressed: formState.isLoading ? null : _handleSignUp,
                     child: formState.isLoading
                         ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Text('Sign Up'),
                   ),
                   ElevatedButton(

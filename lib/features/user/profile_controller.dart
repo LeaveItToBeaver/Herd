@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
@@ -74,10 +75,10 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
               .get();
           connectionCount = snapshot.count ?? 0;
 
-          print(
+          debugPrint(
               "DEBUG: Found $connectionCount alt connections for user $userId");
         } catch (e) {
-          print("DEBUG: Error getting alt connections count: $e");
+          debugPrint("DEBUG: Error getting alt connections count: $e");
         }
       }
 
@@ -95,7 +96,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         hasAltProfile: hasAltProfile,
       ));
     } catch (e, stack) {
-      print("DEBUG: Profile loading error: $e");
+      debugPrint("DEBUG: Profile loading error: $e");
       state = AsyncValue.error(e, stack);
     }
   }

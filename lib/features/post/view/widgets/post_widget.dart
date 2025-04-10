@@ -445,8 +445,11 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           case 'report':
             _showReportDialog();
             break;
+          case 'edit':
+            _navigateToEditScreen(context);
+            break;
           case 'delete':
-            _showDeleteConfirmation();
+            _showDeleteConfirmation(context);
             break;
           case 'save':
             _savePost();
@@ -454,6 +457,17 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         }
       },
       itemBuilder: (context) => [
+        if (isCurrentUserAuthor)
+          const PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit, size: 20),
+                SizedBox(width: 8),
+                Text('Edit post'),
+              ],
+            ),
+          ),
         if (isCurrentUserAuthor)
           const PopupMenuItem(
             value: 'delete',
@@ -788,25 +802,57 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     // Implement bookmark functionality
   }
 
-  void _showDeleteConfirmation() {
+  void _showDeleteConfirmation(BuildContext context) {
+    final user = ref.read(currentUserProvider);
+    if (user == null || user.id != widget.post.authorId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can only delete your own posts')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Post'),
         content: const Text(
-            'Are you sure you want to delete this post? This action cannot be undone.'),
+          'Are you sure you want to delete this post? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              // TODO: Implement post deletion
+
+              // Show loading indicator
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Post deleted')),
+                const SnackBar(content: Text('Deleting post...')),
               );
+
+              try {
+                await ref.read(postControllerProvider.notifier).deletePost(
+                      widget.post.id,
+                      user.id,
+                      isAlt: widget.post.isAlt,
+                      herdId: widget.post.herdId,
+                    );
+
+                if (context.mounted) {
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Post deleted successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete post: $e')),
+                  );
+                }
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
@@ -839,6 +885,14 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           ),
         ],
       ),
+    );
+  }
+
+  void _navigateToEditScreen(BuildContext context) {
+    context.pushNamed(
+      'editPost',
+      pathParameters: {'id': widget.post.id},
+      queryParameters: {'isAlt': widget.post.isAlt.toString()},
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
+import '../../../auth/view/providers/auth_provider.dart';
 import '../../../post/data/models/post_model.dart';
 import '../providers/state/profile_state.dart';
 
@@ -98,6 +99,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                         IconButton(
                           icon: const Icon(Icons.settings_rounded),
                           onPressed: () => context.push('/settings'),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.exit_to_app),
+                          onPressed: () =>
+                              ref.read(authProvider.notifier).signOut(),
                         ),
                       ],
                     ],

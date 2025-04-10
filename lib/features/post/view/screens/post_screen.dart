@@ -13,6 +13,7 @@ import '../../../user/view/providers/user_provider.dart';
 import '../../data/models/post_media_model.dart';
 import '../providers/post_provider.dart' hide commentsProvider;
 import '../widgets/media_carousel_widget.dart';
+import 'edit_post_screen.dart';
 import 'fullscreen_gallery_screen.dart';
 
 class PostScreen extends ConsumerStatefulWidget {
@@ -397,11 +398,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                           icon: const Icon(Icons.more_vert),
                           onSelected: (value) {
                             if (value == 'edit') {
-                              // TODO: Implement edit post
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('Edit post not implemented yet')),
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      EditPostScreen(post: post),
+                                ),
                               );
                             } else if (value == 'delete') {
                               _showDeleteConfirmation(context, post.id);
@@ -607,12 +608,27 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   }
 
   void _showDeleteConfirmation(BuildContext context, String postId) {
+    final user = ref.read(currentUserProvider);
+    final post = ref
+        .watch(postProviderWithPrivacy(
+          PostParams(id: postId, isAlt: widget.isAlt),
+        ))
+        .value;
+
+    if (user == null || post == null || user.id != post.authorId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can only delete your own posts')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Post'),
         content: const Text(
-            'Are you sure you want to delete this post? This action cannot be undone.'),
+          'Are you sure you want to delete this post? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -628,8 +644,12 @@ class _PostScreenState extends ConsumerState<PostScreen> {
               );
 
               try {
-                // TODO: Implement post deletion.
-                //await ref.read(postControllerProvider.notifier).deletePost(postId);
+                await ref.read(postControllerProvider.notifier).deletePost(
+                      postId,
+                      user.id,
+                      isAlt: post.isAlt,
+                      herdId: post.herdId,
+                    );
 
                 if (context.mounted) {
                   // Navigate back after deletion

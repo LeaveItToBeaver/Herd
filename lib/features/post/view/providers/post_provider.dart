@@ -3,10 +3,10 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/state/create_post_state.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
+
 import '../../../comment/data/repositories/comment_repository.dart';
 import '../../../comment/view/providers/comment_providers.dart';
 import '../../../comment/view/providers/state/comment_state.dart';
-import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/data/repositories/user_repository.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../data/repositories/post_repository.dart';
@@ -18,13 +18,16 @@ final postRepositoryProvider = Provider<PostRepository>((ref) {
 });
 
 // User posts provider
-final userPostsProvider = StreamProvider.family<List<PostModel>, String>((ref, userId) {
+final userPostsProvider =
+    StreamProvider.family<List<PostModel>, String>((ref, userId) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.getUserPosts(userId);
 });
 
 // Creating a new post provider
-final postControllerProvider = StateNotifierProvider<CreatePostController, AsyncValue<CreatePostState>>((ref) {
+final postControllerProvider =
+    StateNotifierProvider<CreatePostController, AsyncValue<CreatePostState>>(
+        (ref) {
   final userRepository = ref.watch(userRepositoryProvider);
   final postRepository = ref.watch(postRepositoryProvider);
   return CreatePostController(userRepository, postRepository);
@@ -47,21 +50,24 @@ class PostParams {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is PostParams &&
-              runtimeType == other.runtimeType &&
-              id == other.id &&
-              isAlt == other.isAlt;
+      other is PostParams &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          isAlt == other.isAlt;
 
   @override
   int get hashCode => id.hashCode ^ isAlt.hashCode;
 }
-final postProviderWithPrivacy = StreamProvider.family<PostModel?, PostParams>((ref, params) {
+
+final postProviderWithPrivacy =
+    StreamProvider.family<PostModel?, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.streamPost(params.id, isAlt: params.isAlt);
 });
 
 // Providers for checking like/dislike status
-final isPostLikedByUserProvider = FutureProvider.family<bool, String>((ref, postId) async {
+final isPostLikedByUserProvider =
+    FutureProvider.family<bool, String>((ref, postId) async {
   final user = ref.watch(currentUserProvider);
   final userId = user?.id;
 
@@ -73,7 +79,8 @@ final isPostLikedByUserProvider = FutureProvider.family<bool, String>((ref, post
   return repository.isPostLikedByUser(postId: postId, userId: userId);
 });
 
-final isPostDislikedByUserProvider = FutureProvider.family<bool, String>((ref, postId) async {
+final isPostDislikedByUserProvider =
+    FutureProvider.family<bool, String>((ref, postId) async {
   final user = ref.watch(currentUserProvider);
   final userId = user?.id;
 
@@ -94,14 +101,17 @@ final isPostDislikedByUserProvider = FutureProvider.family<bool, String>((ref, p
 //   );
 // });
 
-final commentsProvider = StateNotifierProvider.family<CommentsNotifier, CommentState, String>((ref, postId) {
+final commentsProvider =
+    StateNotifierProvider.family<CommentsNotifier, CommentState, String>(
+        (ref, postId) {
   final repository = ref.watch(commentRepositoryProvider);
   final sortBy = ref.watch(commentSortProvider);
   return CommentsNotifier(repository, postId, sortBy);
 });
 
 // Post interactions provider with privacy setting
-final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
+final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
+    PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
   return PostInteractionsNotifier(
     repository: repository,

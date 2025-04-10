@@ -65,7 +65,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
           }
         } catch (e) {
           // Log error but continue with post creation
-          print('Warning: Failed to upload media: $e');
+          debugPrint('Warning: Failed to upload media: $e');
         }
       }
 
@@ -128,15 +128,15 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       state = AsyncValue.error(e, stackTrace);
 
       // Log error for debugging
-      print('Error creating post: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('Error creating post: $e');
+      debugPrint('Stack trace: $stackTrace');
 
       // If we have a postId, try to clean up any partially created resources
       if (postId != null) {
         try {
           await _cleanupFailedPost(postId, userId, isAlt);
         } catch (cleanupError) {
-          print('Warning: Failed to cleanup failed post: $cleanupError');
+          debugPrint('Warning: Failed to cleanup failed post: $cleanupError');
         }
       }
 
@@ -148,7 +148,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       String postId, String userId, bool isAlt) async {
     try {
       // Try to delete the post document if it was created
-      await _postRepository.deletePost(postId);
+      await _postRepository.deletePost(postId, userId, isAlt: isAlt);
 
       // Try to delete any uploaded images
       final String basePath = isAlt
@@ -174,10 +174,44 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         }
       } catch (e) {
         // Ignore errors if files don't exist
-        print('Warning during cleanup: $e');
+        debugPrint('Warning during cleanup: $e');
       }
     } catch (e) {
-      print('Warning: Cleanup of failed post encountered errors: $e');
+      debugPrint('Warning: Cleanup of failed post encountered errors: $e');
+    }
+  }
+
+  Future<void> deletePost(String postId, String userId,
+      {bool isAlt = false, String? herdId}) async {
+    try {
+      await _postRepository.deletePost(postId, userId,
+          isAlt: isAlt, herdId: herdId);
+    } catch (e) {
+      debugPrint('Error in delete post controller: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updatePost({
+    required String postId,
+    required String userId,
+    String? title,
+    String? content,
+    bool? isAlt,
+    String? herdId,
+  }) async {
+    try {
+      await _postRepository.updatePost(
+        postId: postId,
+        userId: userId,
+        title: title,
+        content: content,
+        isAlt: isAlt,
+        herdId: herdId,
+      );
+    } catch (e) {
+      debugPrint('Error in update post controller: $e');
+      rethrow;
     }
   }
 
@@ -194,6 +228,7 @@ final postControllerProvider =
   final postRepository = ref.watch(postRepositoryProvider);
   return CreatePostController(userRepository, postRepository);
 });
+
 // Provider for user posts with privacy filter
 final userPostsProvider =
     StreamProvider.family<List<PostModel>, String>((ref, userId) {
