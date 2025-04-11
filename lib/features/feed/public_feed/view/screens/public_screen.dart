@@ -7,6 +7,7 @@ import 'package:herdapp/features/feed/public_feed/view/providers/public_feed_pro
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
+import '../../../../post/view/widgets/post_list_widget.dart';
 
 class PublicFeedScreen extends ConsumerStatefulWidget {
   const PublicFeedScreen({super.key});
@@ -95,6 +96,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
 
@@ -116,107 +118,139 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
           ),
         ],
       ),
-      // Use PostListWidget if possible
-      body: publicFeedState.isLoading && publicFeedState.posts.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : publicFeedState.error != null
-              ? _buildErrorWidget(context, publicFeedState.error!, () {
-                  ref.read(publicFeedControllerProvider.notifier).refreshFeed();
-                })
-              : publicFeedState.posts.isEmpty
-                  ? _buildEmptyFeed(context)
-                  : RefreshIndicator(
-                      onRefresh: () async {
-                        ref
+      // Wrap all states with RefreshIndicator
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(publicFeedControllerProvider.notifier).refreshFeed();
+        },
+        child: publicFeedState.isLoading && publicFeedState.posts.isEmpty
+            ? _buildLoadingWidget()
+            : publicFeedState.error != null
+                ? _buildErrorWidget(context, publicFeedState.error!, () {
+                    ref
+                        .read(publicFeedControllerProvider.notifier)
+                        .refreshFeed();
+                  })
+                : publicFeedState.posts.isEmpty
+                    ? _buildEmptyFeed(context)
+                    : PostListWidget(
+                        posts: publicFeedState.posts,
+                        isLoading: publicFeedState.isLoading &&
+                            publicFeedState.posts.isEmpty,
+                        hasError: publicFeedState.error != null,
+                        errorMessage: publicFeedState.error?.toString(),
+                        hasMorePosts: publicFeedState.hasMorePosts,
+                        scrollController: _scrollController,
+                        onRefresh: () => ref
                             .read(publicFeedControllerProvider.notifier)
-                            .refreshFeed();
-                      },
-                      child: ListView.builder(
-                        controller:
-                            _scrollController, // Ensure you have this controller
-                        itemCount: publicFeedState.posts.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == publicFeedState.posts.length) {
-                            return const BottomNavPadding();
-                          }
-                          // Use the new PostWidget with consistent props
-                          return PostWidget(
-                            post: publicFeedState.posts[index],
-                            isCompact: false, // Set this consistently
-                          );
+                            .refreshFeed(),
+                        onLoadMore: () => ref
+                            .read(publicFeedControllerProvider.notifier)
+                            .loadMorePosts(),
+                        type: PostListType.feed,
+                        emptyMessage: 'No posts in your public feed yet',
+                        emptyActionLabel: 'Find users to follow',
+                        onEmptyAction: () {
+                          // Navigate to search screen
                         },
                       ),
-                    ),
-    );
-  }
-
-  Widget _buildEmptyFeed(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.groups_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No posts in your public feed',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Follow users or join herds to see posts here',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.search),
-            label: const Text('Find users to follow'),
-            onPressed: () {
-              // Navigate to search screen
-            },
-          ),
-          const BottomNavPadding(),
-        ],
       ),
     );
   }
 
+// Add a loading widget that's scrollable
+  Widget _buildLoadingWidget() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: 100),
+        Center(child: CircularProgressIndicator()),
+        SizedBox(height: 100),
+      ],
+    );
+  }
+
+// Update empty feed to be scrollable
+  Widget _buildEmptyFeed(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 100),
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.groups_outlined,
+                size: 64,
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No posts in your public feed',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Follow users or join herds to see posts here',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.search),
+                label: const Text('Find users to follow'),
+                onPressed: () {
+                  // Navigate to search screen
+                },
+              ),
+            ],
+          ),
+        ),
+        const BottomNavPadding(),
+      ],
+    );
+  }
+
+// Update error widget to be scrollable
   Widget _buildErrorWidget(
       BuildContext context, Object error, VoidCallback onRetry) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 60,
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 100),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 60,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load feed',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text('Try Again'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load feed',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('Try Again'),
-            ),
-            const BottomNavPadding(),
-          ],
+          ),
         ),
-      ),
+        const BottomNavPadding(),
+      ],
     );
   }
 

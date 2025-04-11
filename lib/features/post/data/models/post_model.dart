@@ -57,12 +57,32 @@ abstract class PostModel with _$PostModel {
       try {
         final rawItems = map['mediaItems'] as List;
         debugPrint("Raw mediaItems type: ${rawItems.runtimeType}");
+
+        // Convert the list items using map() instead of a for loop
         mediaItems = rawItems
-            .map((item) => PostMediaModel.fromMap(
-                item is Map ? item : (item as dynamic).toMap()))
+            .where((item) => item is Map) // Filter out non-Map items
+            .map((item) {
+              // Convert each item to Map<String, dynamic>
+              final mediaMap = item is Map<String, dynamic>
+                  ? item
+                  : Map<String, dynamic>.fromEntries((item as Map)
+                      .entries
+                      .map((e) => MapEntry(e.key.toString(), e.value)));
+
+              // Create PostMediaModel from the map
+              return PostMediaModel(
+                id: mediaMap['id']?.toString() ?? '0',
+                url: mediaMap['url']?.toString() ?? '',
+                thumbnailUrl: mediaMap['thumbnailUrl']?.toString(),
+                mediaType: mediaMap['mediaType']?.toString() ?? 'image',
+              );
+            })
+            .where((model) => model.url.isNotEmpty) // Filter out empty URLs
             .toList();
+
+        debugPrint("Successfully processed ${mediaItems.length} media items");
       } catch (e) {
-        debugPrint("Error parsing mediaItems: $e");
+        debugPrint("Error parsing mediaItems list: $e");
       }
     } else if (map['mediaURL'] != null && map['mediaURL'].isNotEmpty) {
       // For backward compatibility - create a media item from the old fields
@@ -74,7 +94,9 @@ abstract class PostModel with _$PostModel {
           mediaType: map['mediaType'] ?? 'image',
         )
       ];
+      debugPrint("Using legacy mediaURL: ${map['mediaURL']}");
     }
+
     return PostModel(
       id: id,
       authorId: map['authorId'] ?? '',
