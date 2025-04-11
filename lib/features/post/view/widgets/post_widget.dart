@@ -6,6 +6,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
+import '../../../user/view/widgets/user_profile_image.dart';
 import '../../data/models/post_media_model.dart';
 import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
@@ -327,24 +328,18 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                       context.pushNamed('herd', pathParameters: {'id': herdId}),
                   child: Row(
                     children: [
-                      // Herd avatar
-                      CircleAvatar(
+                      // Use the UserProfileImage widget for herd avatar
+                      UserProfileImage(
                         radius: widget.isCompact ? 16 : 20,
-                        backgroundColor: Colors.blue.shade50,
-                        backgroundImage: herd.profileImageURL != null
-                            ? NetworkImage(herd.profileImageURL!)
-                            : null,
-                        child: herd.profileImageURL == null
-                            ? Icon(Icons.group, color: Colors.blue.shade300)
-                            : null,
+                        profileImageUrl: herd.profileImageURL,
                       ),
 
                       const SizedBox(width: 12),
 
-                      // Herd name
+                      // Herd name (without h/ prefix)
                       Expanded(
                         child: Text(
-                          'h/${herd.name}',
+                          herd.name, // No h/ prefix
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.blue.shade700,

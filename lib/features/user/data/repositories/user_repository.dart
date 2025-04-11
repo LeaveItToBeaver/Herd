@@ -241,7 +241,7 @@ class UserRepository {
     required File file,
     required String type,
   }) async {
-    final ref = _storage.ref().child('users/$userId/$type.jpg');
+    final ref = _storage.ref().child('users/$userId/$type');
     final uploadTask = ref.putFile(file);
 
     final snapshot = await uploadTask;
@@ -394,7 +394,7 @@ class UserRepository {
     required File file,
     required String type,
   }) async {
-    final ref = _storage.ref().child('users/$userId/alt/$type.jpg');
+    final ref = _storage.ref().child('users/$userId/alt/$type');
     final uploadTask = ref.putFile(file);
 
     final snapshot = await uploadTask;

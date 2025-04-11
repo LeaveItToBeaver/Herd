@@ -1,44 +1,60 @@
+// lib/features/herds/view/screens/edit_herd_screen.dart
 import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/herds/data/models/herd_model.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:path/path.dart'
-    as path; // Add this import for file extension handling
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 
-class CreateHerdScreen extends ConsumerStatefulWidget {
-  const CreateHerdScreen({super.key});
+class EditHerdScreen extends ConsumerStatefulWidget {
+  final HerdModel herd;
+
+  const EditHerdScreen({super.key, required this.herd});
 
   @override
-  ConsumerState<CreateHerdScreen> createState() => _CreateHerdScreenState();
+  ConsumerState<EditHerdScreen> createState() => _EditHerdScreenState();
 }
 
-class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
+class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  String _name = '';
-  String _description = '';
-  bool _isPrivate = false;
   File? _profileImage;
   File? _coverImage;
+  final ImagePicker _picker = ImagePicker();
+
+  late String _name;
+  late String _description;
+  late String _rules;
+  late String _faq;
+  late bool _isPrivate;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize fields with herd data
+    _name = widget.herd.name;
+    _description = widget.herd.description;
+    _rules = widget.herd.rules;
+    _faq = widget.herd.faq;
+    _isPrivate = widget.herd.isPrivate;
+  }
 
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider);
-    final canCreate = ref.watch(canCreateHerdProvider);
+    final isCreator = widget.herd.creatorId == currentUser?.uid;
+    final isModerator = ref.watch(isHerdModeratorProvider(widget.herd.id));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Herd'),
+        title: const Text('Edit Herd'),
       ),
-      body: canCreate.when(
+      body: isModerator.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
@@ -46,29 +62,22 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
             children: [
               Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Unable to create herd: $error'),
+              Text('Error: $error'),
             ],
           ),
         ),
-        data: (canCreateHerd) {
-          if (!canCreateHerd) {
-            return Center(
+        data: (canEdit) {
+          if (!canEdit) {
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.block, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'You don\'t meet the requirements to create a herd yet',
+                  Icon(Icons.block, size: 48, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    'You do not have permission to edit this herd',
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Requirements:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const Text('• At least 100 points'),
-                  const Text('• Account age of at least 30 days'),
                 ],
               ),
             );
@@ -92,9 +101,16 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                               image: FileImage(_coverImage!),
                               fit: BoxFit.cover,
                             )
-                          : null,
+                          : (widget.herd.coverImageURL != null
+                              ? DecorationImage(
+                                  image:
+                                      NetworkImage(widget.herd.coverImageURL!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null),
                     ),
-                    child: _coverImage == null
+                    child: (_coverImage == null &&
+                            widget.herd.coverImageURL == null)
                         ? const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -120,8 +136,11 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                       backgroundColor: Colors.grey[300],
                       backgroundImage: _profileImage != null
                           ? FileImage(_profileImage!)
-                          : null,
-                      child: _profileImage == null
+                          : (widget.herd.profileImageURL != null
+                              ? NetworkImage(widget.herd.profileImageURL!)
+                              : null),
+                      child: (_profileImage == null &&
+                              widget.herd.profileImageURL == null)
                           ? const Icon(Icons.add_a_photo, size: 30)
                           : null,
                     ),
@@ -132,6 +151,7 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
 
                 // Name field
                 TextFormField(
+                  initialValue: _name,
                   decoration: const InputDecoration(
                     labelText: 'Herd Name',
                     prefixIcon: Icon(Icons.group),
@@ -153,6 +173,7 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
 
                 // Description field
                 TextFormField(
+                  initialValue: _description,
                   decoration: const InputDecoration(
                     labelText: 'Description',
                     prefixIcon: Icon(Icons.description),
@@ -170,19 +191,50 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
 
                 const SizedBox(height: 16),
 
-                // Privacy toggle
-                SwitchListTile(
-                  title: const Text('Private Herd'),
-                  subtitle: const Text(
-                    'Only approved members can join and see content',
+                // Rules field (only for creators)
+                if (isCreator)
+                  TextFormField(
+                    initialValue: _rules,
+                    decoration: const InputDecoration(
+                      labelText: 'Rules (optional)',
+                      prefixIcon: Icon(Icons.rule),
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 5,
+                    onChanged: (value) => _rules = value,
                   ),
-                  value: _isPrivate,
-                  onChanged: (value) {
-                    setState(() {
-                      _isPrivate = value;
-                    });
-                  },
-                ),
+
+                if (isCreator) const SizedBox(height: 16),
+
+                // FAQ field (only for creators)
+                if (isCreator)
+                  TextFormField(
+                    initialValue: _faq,
+                    decoration: const InputDecoration(
+                      labelText: 'FAQ (optional)',
+                      prefixIcon: Icon(Icons.question_answer),
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 5,
+                    onChanged: (value) => _faq = value,
+                  ),
+
+                if (isCreator) const SizedBox(height: 16),
+
+                // Privacy toggle (only for creators)
+                if (isCreator)
+                  SwitchListTile(
+                    title: const Text('Private Herd'),
+                    subtitle: const Text(
+                      'Only approved members can join and see content',
+                    ),
+                    value: _isPrivate,
+                    onChanged: (value) {
+                      setState(() {
+                        _isPrivate = value;
+                      });
+                    },
+                  ),
 
                 const SizedBox(height: 24),
 
@@ -196,7 +248,7 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                   ),
                   child: _isSubmitting
                       ? const CircularProgressIndicator()
-                      : const Text('Create Herd'),
+                      : const Text('Save Changes'),
                 ),
               ],
             ),
@@ -207,32 +259,50 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
   }
 
   Future<void> _selectProfileImage() async {
-    final image = await ImageHelper.pickImageFromGallery(
-      context: context,
-      cropStyle: CropStyle.circle,
-      title: 'Herd Profile Image',
-    );
-
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _profileImage = image;
+        _profileImage = File(image.path);
       });
     }
   }
 
   Future<void> _selectCoverImage() async {
-    final image = await ImageHelper.pickImageFromGallery(
-      context: context,
-      cropStyle: CropStyle.rectangle,
-      title: 'Herd Cover Image',
-    );
-
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _coverImage = image;
+        _coverImage = File(image.path);
       });
     }
   }
+
+  // Future<void> _selectProfileImage() async {
+  //   final image = await ImageHelper.pickImageFromGallery(
+  //     context: context,
+  //     cropStyle: CropStyle.circle,
+  //     title: 'Herd Profile Image',
+  //   );
+  //
+  //   if (image != null) {
+  //     setState(() {
+  //       _profileImage = image;
+  //     });
+  //   }
+  // }
+  //
+  // Future<void> _selectCoverImage() async {
+  //   final image = await ImageHelper.pickImageFromGallery(
+  //     context: context,
+  //     cropStyle: CropStyle.rectangle,
+  //     title: 'Herd Cover Image',
+  //   );
+  //
+  //   if (image != null) {
+  //     setState(() {
+  //       _coverImage = image;
+  //     });
+  //   }
+  // }
 
   Future<void> _submitForm(String? userId) async {
     if (_formKey.currentState?.validate() != true || userId == null) {
@@ -246,23 +316,27 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
     try {
       final repository = ref.read(herdRepositoryProvider);
 
-      // Create a new herd model
-      final herd = HerdModel(
-        id: '', // Will be set by the repository
-        name: _name,
-        description: _description,
-        creatorId: userId,
-        isPrivate: _isPrivate,
-      );
+      // Create a map of the fields to update
+      final Map<String, dynamic> updateData = {
+        'name': _name,
+        'description': _description,
+      };
 
-      // Create the herd and get its ID
-      final herdId = await repository.createHerd(herd, userId);
+      // Only creators can update these fields
+      if (widget.herd.creatorId == userId) {
+        updateData['rules'] = _rules;
+        updateData['faq'] = _faq;
+        updateData['isPrivate'] = _isPrivate;
+      }
 
-      // Upload images if selected
+      // Update the herd data first
+      await repository.updateHerd(widget.herd.id, updateData, userId);
+
+      // Handle image uploads if any
       if (_profileImage != null || _coverImage != null) {
         final storage = FirebaseStorage.instance;
 
-        // Upload profile image with proper extension
+        // Upload profile image
         if (_profileImage != null) {
           // Get the file extension from the path
           final fileExtension =
@@ -271,18 +345,18 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
           final storageExt = fileExtension.isNotEmpty ? fileExtension : '.jpg';
 
           final profileRef =
-              storage.ref().child('herds/$herdId/profile$storageExt');
+              storage.ref().child('herds/${widget.herd.id}/profile$storageExt');
           await profileRef.putFile(_profileImage!);
           final profileImageURL = await profileRef.getDownloadURL();
 
           await repository.updateHerd(
-            herdId,
+            widget.herd.id,
             {'profileImageURL': profileImageURL},
             userId,
           );
         }
 
-        // Upload cover image with proper extension
+        // Upload cover image
         if (_coverImage != null) {
           // Get the file extension from the path
           final fileExtension = path.extension(_coverImage!.path).toLowerCase();
@@ -290,12 +364,12 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
           final storageExt = fileExtension.isNotEmpty ? fileExtension : '.jpg';
 
           final coverRef =
-              storage.ref().child('herds/$herdId/cover$storageExt');
+              storage.ref().child('herds/${widget.herd.id}/cover$storageExt');
           await coverRef.putFile(_coverImage!);
           final coverImageURL = await coverRef.getDownloadURL();
 
           await repository.updateHerd(
-            herdId,
+            widget.herd.id,
             {'coverImageURL': coverImageURL},
             userId,
           );
@@ -303,17 +377,20 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
       }
 
       if (mounted) {
-        // Show success and navigate to the new herd
+        // Show success and navigate back
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Herd created successfully')),
+          const SnackBar(content: Text('Herd updated successfully')),
         );
 
-        context.pushNamed('herd', pathParameters: {'id': herdId});
+        // Go back to the herd page
+        context.pop();
+        // Refresh herd view
+        context.pushNamed('herd', pathParameters: {'id': widget.herd.id});
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating herd: $e')),
+          SnackBar(content: Text('Error updating herd: $e')),
         );
 
         setState(() {
