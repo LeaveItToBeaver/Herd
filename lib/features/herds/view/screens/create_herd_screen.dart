@@ -65,7 +65,7 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                     'Requirements:',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  const Text('• At least 100 karma points'),
+                  const Text('• At least 100 points'),
                   const Text('• Account age of at least 30 days'),
                 ],
               ),

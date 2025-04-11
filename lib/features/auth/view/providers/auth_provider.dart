@@ -1,7 +1,7 @@
 // lib/features/auth/providers/auth_provider.dart
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AuthNotifier extends StateNotifier<User?> {
   final FirebaseAuth _auth;
@@ -43,6 +43,25 @@ class AuthNotifier extends StateNotifier<User?> {
   Future<void> signOut() async {
     await _auth.signOut();
     state = null;
+  }
+
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? 'An error occurred';
+    } catch (e) {
+      throw 'An error occurred';
+    }
+  }
+
+  Future<bool> isEmailVerified() async {
+    try {
+      _auth.currentUser?.reload();
+      return _auth.currentUser?.emailVerified ?? false;
+    } catch (e) {
+      return false;
+    }
   }
 }
 
