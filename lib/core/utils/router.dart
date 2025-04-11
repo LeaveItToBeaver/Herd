@@ -8,8 +8,10 @@ import 'package:herdapp/features/auth/view/screens/email_verification_screen.dar
 
 import '../../features/auth/view/screens/reset_password_screen.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
+import '../../features/herds/data/models/herd_model.dart';
 import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
+import '../../features/herds/view/screens/edit_herd_screen.dart';
 import '../../features/herds/view/screens/herd_screen.dart';
 import '../../features/post/view/screens/edit_post_screen.dart';
 import '../../features/user/data/models/user_model.dart';
@@ -144,6 +146,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return const NoTransitionPage(
             child: CreateHerdScreen(),
           );
+        },
+      ),
+
+      GoRoute(
+        path: '/editHerd',
+        name: 'editHerd',
+        builder: (context, state) {
+          final herd = state.extra as HerdModel;
+          return EditHerdScreen(herd: herd);
         },
       ),
 

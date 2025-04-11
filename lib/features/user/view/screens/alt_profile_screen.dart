@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../auth/view/providers/auth_provider.dart';
+import '../../../herds/data/models/herd_model.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../post/data/models/post_model.dart';
 import '../../../post/view/widgets/post_widget.dart';
@@ -152,7 +153,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               Row(
                                 children: [
                                   UserProfileImage(
-                                    radius: 40.0,
+                                    radius: 20.0,
                                     profileImageUrl:
                                         profile.user?.altProfileImageURL ??
                                             profile.user?.profileImageURL,
@@ -219,7 +220,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                         indicatorColor: Theme.of(context).colorScheme.primary,
                         tabs: const [
                           Tab(text: 'Alt Posts'),
-                          Tab(text: 'Groups'),
+                          Tab(text: 'Herds'),
                           Tab(text: 'About'),
                         ],
                       ),
@@ -234,8 +235,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   // Alt posts tab - Now using a custom list to handle both empty state and list
                   _buildPostsTab(altPosts, profile),
 
-                  // Groups tab
-                  _buildGroupsSection(profile),
+                  // Herd tab
+                  _buildHerdsSection(profile),
 
                   // About tab
                   SingleChildScrollView(
@@ -372,8 +373,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     );
   }
 
-  Widget _buildGroupsSection(ProfileState profile) {
-    // Placeholder for groups section
+  Widget _buildHerdsSection(ProfileState profile) {
     return Consumer(
       builder: (context, ref, child) {
         final userHerdsAsyncValue = ref.watch(userHerdsProvider);
@@ -382,63 +382,81 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => Center(child: Text('Error: $error')),
           data: (herds) {
-            if (herds.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.group_off, size: 48, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No Herds',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'This user hasn\'t joined any herds yet',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    if (profile.isCurrentUser) ...[
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          context.pushNamed('createHerd');
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create a Herd'),
-                      ),
-                    ],
-                  ],
+            return Column(
+              children: [
+                Expanded(
+                  child: herds.isEmpty
+                      ? _buildEmptyHerdsView(profile)
+                      : _buildHerdsList(herds),
                 ),
-              );
-            }
-
-            return ListView.builder(
-              padding: EdgeInsets.zero, // Important to avoid extra padding
-              itemCount: herds.length,
-              itemBuilder: (context, index) {
-                final herd = herds[index];
-
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: herd.profileImageURL != null
-                        ? NetworkImage(herd.profileImageURL!)
-                        : null,
-                    child: herd.profileImageURL == null
-                        ? const Icon(Icons.group)
-                        : null,
+                // Add Create Herd button at the bottom
+                if (profile.isCurrentUser)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        context.pushNamed('createHerd');
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create New Herd'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
                   ),
-                  title: Text('h/${herd.name}'),
-                  subtitle: Text('${herd.memberCount} members'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    context.pushNamed(
-                      'herd',
-                      pathParameters: {'id': herd.id},
-                    );
-                  },
-                );
-              },
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyHerdsView(ProfileState profile) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.group_off, size: 48, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            'No Herds',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            profile.isCurrentUser
+                ? 'You haven\'t joined any herds yet'
+                : 'This user hasn\'t joined any herds yet',
+            style: TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+// New method for herds list
+  Widget _buildHerdsList(List<HerdModel> herds) {
+    return ListView.builder(
+      padding: EdgeInsets.zero, // Important to avoid extra padding
+      itemCount: herds.length,
+      itemBuilder: (context, index) {
+        final herd = herds[index];
+
+        return ListTile(
+          leading: UserProfileImage(
+              radius: 40.0, profileImageUrl: herd.profileImageURL),
+          title: Text('h/${herd.name}'),
+          subtitle: Text('${herd.memberCount} members'),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () {
+            context.pushNamed(
+              'herd',
+              pathParameters: {'id': herd.id},
             );
           },
         );
