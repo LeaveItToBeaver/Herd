@@ -114,7 +114,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
               // Post Type Indicator
               if (widget.post.isAlt)
                 _buildTypeIndicator(
-                  icon: Icons.lock_outline,
+                  icon: Icons.public,
                   label: 'Alt Post',
                   color: theme.colorScheme.primary,
                 ),

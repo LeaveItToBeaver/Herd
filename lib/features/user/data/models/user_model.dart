@@ -383,9 +383,8 @@ abstract class UserModel with _$UserModel {
   }
 
   // JSON serialization
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel.fromMap(json['id'] as String, json);
-  }
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
 
   Map<String, dynamic> toJson() => toMap();
 
