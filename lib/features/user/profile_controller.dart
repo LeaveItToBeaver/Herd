@@ -52,7 +52,9 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Fetch posts based on view type
       List<PostModel> posts;
       if (useAltView) {
+        debugPrint('⚠️ ProfileController loading alt posts for user: $userId');
         posts = await _postRepository.getUserAltProfilePosts(userId).first;
+        debugPrint('⚠️ ProfileController received ${posts.length} alt posts');
       } else {
         posts = await _postRepository.getUserPublicPosts(userId).first;
       }

@@ -70,7 +70,11 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         }
 
         // Get alt posts only
-        final altPosts = profile.posts.where((post) => post.isAlt).toList();
+        final altPosts = profile.posts;
+        debugPrint(
+            '⚠️ AltProfileScreen: original: ${profile.posts.length}, filtered: ${altPosts.length}');
+        debugPrint(
+            '⚠️ Post IDs: ${profile.posts.map((p) => "${p.id}:${p.isAlt}").join(', ')}');
 
         return Scaffold(
           body: RefreshIndicator(
