@@ -28,10 +28,6 @@ class PostRepository {
       _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes =>
       _firestore.collection('dislikes');
-  CollectionReference<Map<String, dynamic>> get _feeds =>
-      _firestore.collection('feeds');
-  CollectionReference<Map<String, dynamic>> get _altFeeds =>
-      _firestore.collection('altFeeds');
 
 // At the beginning of createPost
   Future<void> createPost(PostModel post, {List<File>? mediaFiles}) async {
@@ -366,55 +362,6 @@ class PostRepository {
 
   /// Get Posts for Feeds ///
   // Get public user feed with pagination
-  Future<List<PostModel>> getUserFeed({
-    required String userId,
-    String? lastPostId,
-    int limit = 10,
-  }) async {
-    var query = _feeds
-        .doc(userId)
-        .collection('userFeed')
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
-
-    if (lastPostId != null) {
-      final lastPostDoc = await _posts.doc(lastPostId).get();
-      if (lastPostDoc.exists) {
-        query = query.startAfterDocument(lastPostDoc);
-      }
-    }
-
-    final postsSnap = await query.get();
-    return postsSnap.docs
-        .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-        .toList();
-  }
-
-  // Get alt user feed with pagination
-  Future<List<PostModel>> getAltUserFeed({
-    required String userId,
-    String? lastPostId,
-    int limit = 10,
-  }) async {
-    var query = _altFeeds
-        .doc(userId)
-        .collection('altFeed')
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
-
-    if (lastPostId != null) {
-      final lastPostDoc = await _globalAltPosts.doc(lastPostId).get();
-      if (lastPostDoc.exists) {
-        query = query.startAfterDocument(lastPostDoc);
-      }
-    }
-
-    final postsSnap = await query.get();
-    return postsSnap.docs
-        .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-        .toList();
-  }
-
   Future<List<PostModel>> getPostsWithAuthorDetails(
       {bool altOnly = false}) async {
     var query = _posts.orderBy('createdAt', descending: true);
@@ -926,17 +873,26 @@ class PostRepository {
 
   // Add this method to your PostRepository class
   Stream<List<PostModel>> getUserAltProfilePosts(String userId) {
+    debugPrint('⚠️ Getting alt posts from userFeeds/$userId/feed');
     return FirebaseFirestore.instance
         .collection('userFeeds')
         .doc(userId)
         .collection('feed')
-        .where('authorId', isEqualTo: userId) // Posts by this user
-        .where('feedType', isEqualTo: 'alt') // Only alt posts
-        .orderBy('hotScore', descending: true)
+        .where('authorId', isEqualTo: userId)
+        .where('feedType', isEqualTo: 'alt')
+        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-            .toList());
+        .map((snapshot) {
+      final posts = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+          .toList();
+      debugPrint('⚠️ Found ${posts.length} alt posts in userFeeds');
+      for (int i = 0; i < posts.length; i++) {
+        debugPrint(
+            '⚠️ Alt post ${i + 1}: id=${posts[i].id}, isAlt=${posts[i].isAlt}, feedType=${posts[i].feedType}');
+      }
+      return posts;
+    });
   }
 
   // Get only user's alt posts=

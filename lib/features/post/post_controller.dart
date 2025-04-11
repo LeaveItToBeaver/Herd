@@ -215,6 +215,14 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     }
   }
 
+  void debugAltPosts(String userId) async {
+    final altPosts = await _postRepository.getUserAltProfilePosts(userId).first;
+    print('Alt posts count: ${altPosts.length}');
+    for (var post in altPosts) {
+      print('Post ID: ${post.id}, isAlt: ${post.isAlt}');
+    }
+  }
+
   void reset() {
     state = AsyncValue.data(CreatePostState.initial());
   }
