@@ -163,7 +163,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
               ref.read(altFeedControllerProvider.notifier).refreshFeed();
             })
           : altFeedState.posts.isEmpty && !altFeedState.isLoading
-              ? _buildEmptyFeed()
+              ? null
               : PostListWidget(
                   posts: altFeedState.posts,
                   isLoading: altFeedState.isLoading,
@@ -201,9 +201,9 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     }
 
     // Show empty state if no posts and not loading
-    if (state.posts.isEmpty && !state.isLoading) {
-      return _buildEmptyFeed();
-    }
+    // if (state.posts.isEmpty && !state.isLoading) {
+    //   return _buildEmptyFeed();
+    // }
 
     // Show posts with pull-to-refresh
     return RefreshIndicator(
@@ -236,43 +236,43 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
   }
 
   /// Empty feed state widget
-  Widget _buildEmptyFeed() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.lock,
-            size: 64,
-            color: Colors.blue.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No alt posts yet',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Be the first to create a alt post!',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.edit),
-            label: const Text('Create a alt post'),
-            onPressed: () {
-              // Navigate to create post screen with isAlt=true
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-          const BottomNavPadding(),
-        ],
-      ),
-    );
-  }
+  // Widget _buildEmptyFeed() {
+  //   return Center(
+  //     child: Column(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         Icon(
+  //           Icons.lock,
+  //           size: 64,
+  //           color: Colors.blue.withOpacity(0.5),
+  //         ),
+  //         const SizedBox(height: 16),
+  //         const Text(
+  //           'No alt posts yet',
+  //           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  //         ),
+  //         const SizedBox(height: 8),
+  //         const Text(
+  //           'Be the first to create a alt post!',
+  //           textAlign: TextAlign.center,
+  //         ),
+  //         const SizedBox(height: 24),
+  //         ElevatedButton.icon(
+  //           icon: const Icon(Icons.edit),
+  //           label: const Text('Create a alt post'),
+  //           onPressed: () {
+  //             // Navigate to create post screen with isAlt=true
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.blue,
+  //             foregroundColor: Colors.white,
+  //           ),
+  //         ),
+  //         const BottomNavPadding(),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   /// Error widget with retry button
   Widget _buildErrorWidget(Object error, VoidCallback onRetry) {
