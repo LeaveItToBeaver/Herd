@@ -1,12 +1,15 @@
-// lib/features/herds/view/screens/herd_screen.dart
+// lib/features/herds/view/screens/herd_screen.dart - Updated version
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
-import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../user/data/repositories/user_repository.dart';
+import '../../data/models/herd_model.dart';
+import '../widgets/herd_stats_widget.dart';
 
 class HerdScreen extends ConsumerStatefulWidget {
   final String herdId;
@@ -17,7 +20,8 @@ class HerdScreen extends ConsumerStatefulWidget {
   ConsumerState<HerdScreen> createState() => _HerdScreenState();
 }
 
-class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProviderStateMixin {
+class _HerdScreenState extends ConsumerState<HerdScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -26,7 +30,6 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
     _tabController = TabController(length: 3, vsync: this);
 
     // Use a small delay to ensure widget is fully mounted before setting state
-    // This prevents potential navigation conflicts during widget initialization
     Future.microtask(() {
       if (mounted) {
         ref.read(currentHerdIdProvider.notifier).state = widget.herdId;
@@ -34,26 +37,18 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
     });
   }
 
-  @override
-  void dispose() {
-    // Clear the current herd ID when leaving the screen
-    // Use try-catch to handle potential state disposal issues
-    try {
-      if (mounted) {
-        ref.read(currentHerdIdProvider.notifier).state = null;
-      }
-    } catch (e) {
-      // Ignore errors that might occur if provider is already disposed
-      debugPrint('Error clearing herd ID: $e');
-    }
-    _tabController.dispose();
-    super.dispose();
+  // Navigate to edit herd screen
+  void _navigateToEditHerd(HerdModel herd) {
+    context.pushNamed('editHerd', extra: herd);
   }
 
+  // Updated build method
   @override
   Widget build(BuildContext context) {
     final herdAsyncValue = ref.watch(herdProvider(widget.herdId));
     final isCurrentUserMember = ref.watch(isHerdMemberProvider(widget.herdId));
+    final isCurrentUserModerator =
+        ref.watch(isHerdModeratorProvider(widget.herdId));
     final postsAsyncValue = ref.watch(herdPostsProvider(widget.herdId));
 
     return Scaffold(
@@ -67,12 +62,14 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
 
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              // SliverAppBar remains the same
               SliverAppBar(
                 expandedHeight: 150.0,
                 floating: true,
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text(herd.name,
+                  title: Text(
+                    herd.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -80,11 +77,24 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  background: herd.coverImageURL != null
-                      ? Image.network(herd.coverImageURL!, fit: BoxFit.cover)
-                      : Container(color: Colors.blueGrey),
+                  background: UserCoverImage(
+                    isSelected: false,
+                    coverImageUrl: herd.coverImageURL,
+                  ),
                 ),
                 actions: [
+                  // Add edit button if user is moderator
+                  isCurrentUserModerator.when(
+                    loading: () => Container(),
+                    error: (_, __) => Container(),
+                    data: (isModerator) => isModerator
+                        ? IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _navigateToEditHerd(herd),
+                            tooltip: 'Edit Herd',
+                          )
+                        : Container(),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.more_vert),
                     onPressed: () {
@@ -94,6 +104,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                 ],
               ),
 
+              // Herd header information
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -139,14 +150,14 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                               onPressed: () {
                                 if (isMember) {
                                   ref.read(herdRepositoryProvider).leaveHerd(
-                                    herd.id,
-                                    ref.read(authProvider)!.uid,
-                                  );
+                                        herd.id,
+                                        ref.read(authProvider)!.uid,
+                                      );
                                 } else {
                                   ref.read(herdRepositoryProvider).joinHerd(
-                                    herd.id,
-                                    ref.read(authProvider)!.uid,
-                                  );
+                                        herd.id,
+                                        ref.read(authProvider)!.uid,
+                                      );
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -159,18 +170,15 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 16),
-
-                      if (herd.description.isNotEmpty)
-                        Text(herd.description),
-
+                      if (herd.description.isNotEmpty) Text(herd.description),
                       const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
 
+              // Tab Bar
               SliverPersistentHeader(
                 delegate: _SliverAppBarDelegate(
                   TabBar(
@@ -190,9 +198,10 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
             body: TabBarView(
               controller: _tabController,
               children: [
-                // Posts tab
+                // Posts tab remains the same
                 postsAsyncValue.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, stack) => Center(child: Text('Error: $error')),
                   data: (posts) {
                     if (posts.isEmpty) {
@@ -208,24 +217,29 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                   },
                 ),
 
-                // About tab
+                // About tab with our new HerdStats widget
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'About this herd',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      // Add the HerdStats widget here
+                      isCurrentUserModerator.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (_, __) => Container(),
+                        data: (isModerator) => HerdStats(
+                          herd: herd,
+                          isCreatorOrMod: isModerator,
+                          onEditPressed: isModerator
+                              ? () => _navigateToEditHerd(herd)
+                              : null,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(herd.description),
+
+                      const SizedBox(height: 24),
 
                       if (herd.rules.isNotEmpty) ...[
-                        const SizedBox(height: 16),
                         const Text(
                           'Rules',
                           style: TextStyle(
@@ -234,7 +248,12 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(herd.rules),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(herd.rules),
+                          ),
+                        ),
                       ],
 
                       if (herd.faq.isNotEmpty) ...[
@@ -247,16 +266,23 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(herd.faq),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(herd.faq),
+                          ),
+                        ),
                       ],
                     ],
                   ),
                 ),
 
-                // Members tab
+                // Members tab remains the same
                 FutureBuilder<List<String>>(
-                  future: ref.read(herdRepositoryProvider).getHerdMembers(herd.id),
+                  future:
+                      ref.read(herdRepositoryProvider).getHerdMembers(herd.id),
                   builder: (context, snapshot) {
+                    // Same implementation as before
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
@@ -275,9 +301,13 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                       itemCount: memberIds.length,
                       itemBuilder: (context, index) {
                         return FutureBuilder(
-                          future: ref.read(userRepositoryProvider).getUserById(memberIds[index]),
+                          future: ref
+                              .read(userRepositoryProvider)
+                              .getUserById(memberIds[index]),
                           builder: (context, userSnapshot) {
-                            if (!userSnapshot.hasData || userSnapshot.data == null) {
+                            // Same implementation as before
+                            if (!userSnapshot.hasData ||
+                                userSnapshot.data == null) {
                               return const ListTile(
                                 leading: CircleAvatar(),
                                 title: Text('Loading...'),
@@ -287,11 +317,9 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
                             final user = userSnapshot.data!;
 
                             return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: user.profileImageURL != null
-                                    ? NetworkImage(user.profileImageURL!)
-                                    : null,
-                              ),
+                              leading: UserProfileImage(
+                                  radius: 40.0,
+                                  profileImageUrl: herd.profileImageURL),
                               title: Text(user.username ?? 'User'),
                               subtitle: herd.moderatorIds.contains(user.id)
                                   ? const Text('Moderator')
@@ -314,7 +342,6 @@ class _HerdScreenState extends ConsumerState<HerdScreen> with SingleTickerProvid
           );
         },
       ),
-      // Floating action button removed
     );
   }
 }
@@ -331,7 +358,8 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: _tabBar,
