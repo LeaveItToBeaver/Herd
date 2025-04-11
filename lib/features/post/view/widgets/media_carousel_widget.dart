@@ -40,22 +40,24 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
           itemCount: widget.mediaItems.length,
           options: CarouselOptions(
             height: widget.height,
-            viewportFraction: widget.isFullscreen
-                ? 1.0
-                : 0.95, // Slightly larger to improve swipe detection
-            enlargeCenterPage: !widget.isFullscreen,
+            viewportFraction: 1.0, // Set to full width for better swiping
+            enlargeCenterPage:
+                false, // Disable for better swipe detection and sizing
             enableInfiniteScroll: widget.mediaItems.length > 1,
             autoPlay: widget.autoPlay,
-            enlargeStrategy: CenterPageEnlargeStrategy.height,
+            scrollPhysics:
+                const PageScrollPhysics(), // Important for proper page behavior
             onPageChanged: (index, reason) {
               setState(() {
                 _currentIndex = index;
               });
-              // Add debug print to verify when page changes
-              debugPrint("Carousel changed to page $index, reason: $reason");
+              debugPrint(
+                  "Carousel page changed to $index of ${widget.mediaItems.length}, reason: $reason");
             },
           ),
           itemBuilder: (context, index, realIndex) {
+            debugPrint(
+                "Building carousel item $index of ${widget.mediaItems.length}");
             final mediaItem = widget.mediaItems[index];
             return _buildMediaItem(mediaItem, index);
           },
@@ -74,7 +76,7 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _currentIndex == index
-                        ? Theme.of(context).primaryColor
+                        ? Colors.blue
                         : Colors.grey.shade300,
                   ),
                 ),
@@ -116,15 +118,16 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(widget.isFullscreen ? 0 : 10),
-          boxShadow: widget.isFullscreen
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+          // Remove shadow for smoother swiping
+          // boxShadow: widget.isFullscreen
+          //     ? null
+          //     : [
+          //         BoxShadow(
+          //           color: Colors.black.withOpacity(0.2),
+          //           blurRadius: 5,
+          //           offset: const Offset(0, 3),
+          //         ),
+          //       ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(widget.isFullscreen ? 0 : 10),
@@ -138,7 +141,7 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                 )
               : CachedNetworkImage(
                   imageUrl: imageUrl,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain, // Changed from cover to contain
                   width: double.infinity,
                   placeholder: (context, url) => Container(
                     color: Colors.grey[200],
