@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
+import 'package:herdapp/features/auth/view/screens/email_verification_screen.dart';
 
+import '../../features/auth/view/screens/reset_password_screen.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
 import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
@@ -28,6 +30,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = user != null;
       final isGoingToAuth = state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup' ||
+          state.matchedLocation == '/emailVerification' ||
+          state.matchedLocation == '/resetPassword' ||
           state.matchedLocation == '/splash';
 
       if (kDebugMode) {
@@ -76,6 +80,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/signup',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SignUpScreen()),
+      ),
+      GoRoute(
+        path: '/emailVerification',
+        pageBuilder: (context, state) {
+          final email = state.extra != null
+              ? (state.extra as Map<String, dynamic>)['email'] as String
+              : '';
+          return NoTransitionPage(
+            child: EmailVerificationScreen(email: email),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/resetPassword',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: ResetPasswordScreen()),
       ),
 
       GoRoute(

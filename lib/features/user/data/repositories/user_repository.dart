@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../feed/providers/feed_type_provider.dart';
 import '../models/alt_connection_request_model.dart';
 import '../models/user_model.dart';
 
@@ -38,44 +39,169 @@ class UserRepository {
   }
 
   // Search users
-// Search users
-  Future<List<UserModel>> searchUsers(String query) async {
-    // Try both lowercase and original casing
+  Future<List<UserModel>> searchUsers(String query,
+      {FeedType profileType = FeedType.public}) async {
+    if (query.isEmpty) return [];
+
+    // Convert query to lowercase and capitalized for more flexible search
     final lowerQuery = query.toLowerCase();
-    final capitalQuery = query.length > 0
+    final capitalQuery = query.isNotEmpty
         ? query[0].toUpperCase() + query.substring(1).toLowerCase()
         : "";
 
-    // Try searching with lowercase
-    final userSnapLower = await _users
-        .where('username', isGreaterThanOrEqualTo: lowerQuery)
-        .where('username', isLessThan: '$lowerQuery\uf8ff')
-        .limit(10)
-        .get();
+    // Determine which fields to search based on profile type
+    final List<Future<QuerySnapshot<Map<String, dynamic>>>> searches = [];
 
-    // Try searching with capitalized first letter
-    final userSnapCapital = await _users
-        .where('username', isGreaterThanOrEqualTo: capitalQuery)
-        .where('username', isLessThan: '$capitalQuery\uf8ff')
-        .limit(10)
-        .get();
+    if (profileType == FeedType.public) {
+      // Only search public profile fields for public feed
+      searches.addAll([
+        // Search by username - avoiding potential alt username matches
+        _users
+            .where('username', isGreaterThanOrEqualTo: lowerQuery)
+            .where('username', isLessThan: '$lowerQuery\uf8ff')
+            .limit(10)
+            .get(),
 
-    // Combine results
-    final allDocs = [...userSnapLower.docs, ...userSnapCapital.docs];
+        // Search by first name - lowercase
+        _users
+            .where('firstName', isGreaterThanOrEqualTo: lowerQuery)
+            .where('firstName', isLessThan: '$lowerQuery\uf8ff')
+            .limit(10)
+            .get(),
+
+        // Search by first name - capitalized
+        _users
+            .where('firstName', isGreaterThanOrEqualTo: capitalQuery)
+            .where('firstName', isLessThan: '$capitalQuery\uf8ff')
+            .limit(10)
+            .get(),
+
+        // Search by last name - lowercase
+        _users
+            .where('lastName', isGreaterThanOrEqualTo: lowerQuery)
+            .where('lastName', isLessThan: '$lowerQuery\uf8ff')
+            .limit(10)
+            .get(),
+
+        // Search by last name - capitalized
+        _users
+            .where('lastName', isGreaterThanOrEqualTo: capitalQuery)
+            .where('lastName', isLessThan: '$capitalQuery\uf8ff')
+            .limit(10)
+            .get(),
+      ]);
+    } else {
+      // Only search alt profile fields for alt feed
+      searches.addAll([
+        // Search by alt username ONLY
+        _users
+            .where('altUsername', isGreaterThanOrEqualTo: lowerQuery)
+            .where('altUsername', isLessThan: '$lowerQuery\uf8ff')
+            .limit(10)
+            .get(),
+
+        // Do NOT search by firstName/lastName/username for alt profiles to maintain anonymity
+      ]);
+    }
+
+    // Execute all searches in parallel
+    final results = await Future.wait(searches);
+
+    // Combine results and remove duplicates
     final uniqueDocsMap =
         <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
 
-    // Properly type the documents to ensure we're working with Map<String, dynamic>
-    for (var doc in allDocs) {
-      if (!uniqueDocsMap.containsKey(doc.id)) {
-        uniqueDocsMap[doc.id] = doc;
+    for (var querySnapshot in results) {
+      for (var doc in querySnapshot.docs) {
+        if (!uniqueDocsMap.containsKey(doc.id)) {
+          uniqueDocsMap[doc.id] = doc;
+        }
       }
     }
 
-    final uniqueDocs = uniqueDocsMap.values.toList();
+    // Convert to UserModels but ensure profile type separation
+    List<UserModel> users = [];
 
-    return uniqueDocs
-        .map((doc) => UserModel.fromMap(doc.id, doc.data()))
+    for (var doc in uniqueDocsMap.values) {
+      final user = UserModel.fromMap(doc.id, doc.data());
+
+      // For alt profile search, ensure there is an alt username
+      if (profileType == FeedType.alt &&
+          (user.altUsername == null || user.altUsername!.isEmpty)) {
+        continue; // Skip this user as they don't have an alt profile
+      }
+
+      // For public profile search, ensure there is a name
+      if (profileType == FeedType.public &&
+          (user.firstName.isEmpty &&
+              user.lastName.isEmpty &&
+              user.username.isEmpty)) {
+        continue; // Skip this user as they don't have a public profile
+      }
+
+      users.add(user);
+    }
+
+    return users;
+  }
+
+  // Username-specific search that respects profile type
+  Future<List<UserModel>> searchByUsername(String username,
+      {FeedType profileType = FeedType.public}) async {
+    if (username.isEmpty) return [];
+
+    final lowerUsername = username.toLowerCase();
+
+    try {
+      QuerySnapshot<Map<String, dynamic>> snapshot;
+
+      if (profileType == FeedType.public) {
+        // For public feed, search by regular username only
+        snapshot = await _users
+            .where('username', isEqualTo: lowerUsername)
+            .limit(1)
+            .get();
+      } else {
+        // For alt feed, search by alt username only
+        snapshot = await _users
+            .where('altUsername', isEqualTo: lowerUsername)
+            .limit(1)
+            .get();
+      }
+
+      return snapshot.docs
+          .map((doc) => UserModel.fromMap(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      print('Error searching by username: $e');
+      return [];
+    }
+  }
+
+  // Search for users by both first and last name combined (public only)
+  Future<List<UserModel>> searchByFullName(String query) async {
+    // This handles searching for "first last" combined pattern
+    // ONLY for public profiles - not applicable to alt profiles
+    if (query.isEmpty) return [];
+
+    final queryParts = query.trim().split(' ');
+    if (queryParts.length < 2) {
+      // Single word query should use the regular search
+      return searchUsers(query, profileType: FeedType.public);
+    }
+
+    // Get first name and last name parts for searching
+    final firstName = queryParts[0];
+    final lastName = queryParts.sublist(1).join(' ');
+
+    // Get all users that match firstName
+    final firstNameMatches =
+        await searchUsers(firstName, profileType: FeedType.public);
+
+    // Filter to those that also match lastName
+    final lowerLastName = lastName.toLowerCase();
+    return firstNameMatches
+        .where((user) => user.lastName.toLowerCase().contains(lowerLastName))
         .toList();
   }
 

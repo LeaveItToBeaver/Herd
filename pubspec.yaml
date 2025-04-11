@@ -1,5 +1,5 @@
 name: herdapp
-description: "A new Flutter project."
+description: "Social media of the future."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 
@@ -30,19 +30,22 @@ dependencies:
   freezed_annotation: ^3.0.0
   image_cropper: ^9.1.0
   image_picker: ^1.1.2
-  file_picker: ^10.0.0
+  file_picker: ^10.1.0
   path: ^1.9.1
   video_player: ^2.9.3
   chewie: ^1.11.0
   flutter_image_compress: ^2.4.0
   timeago: ^3.7.0
-  google_mobile_ads: ^5.3.1
+  google_mobile_ads: ^6.0.0
   json_annotation: ^4.9.0
   shimmer: ^3.0.0
   carousel_slider: ^5.0.0
   smooth_page_indicator: ^1.2.1
   share_plus: ^10.1.4
   photo_view: ^0.15.0
+  device_info_plus: ^11.3.3
+  package_info_plus: ^8.3.0
+  flutter_markdown: ^0.7.7
 
 
 dev_dependencies:
@@ -61,3 +64,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/legal/

@@ -10,8 +10,12 @@ class HerdRepository {
 
   // Minimum requirements to create a herd
   static const int minUserPoints = 100; // Points required to create a herd
-  static const int minAccountAgeInDays = 30; // Account must be at least this old
-  static const List<String> exemptUserIds = ['YOUR_USER_ID_HERE']; // Users exempt from restrictions
+  static const int minAccountAgeInDays =
+      30; // Account must be at least this old
+  static const List<String> exemptUserIds = [
+    'O7BMlbB0PYTR0zW8IZ5SAPbKIPF3',
+    'gv7EiDzcP2b0aelyLTAbY4AyFnX2'
+  ]; // Users exempt from restrictions
 
   HerdRepository(this._firestore);
 
@@ -85,7 +89,8 @@ class HerdRepository {
   }
 
   /// Update a herd's information
-  Future<void> updateHerd(String herdId, Map<String, dynamic> data, String userId) async {
+  Future<void> updateHerd(
+      String herdId, Map<String, dynamic> data, String userId) async {
     try {
       // Check if user is a moderator
       final isModerator = await isHerdModerator(herdId, userId);
@@ -190,7 +195,8 @@ class HerdRepository {
 
       // Check if user is the creator (creators can't leave)
       if (herd.creatorId == userId) {
-        throw Exception('Creators cannot leave their herds. Transfer ownership or delete the herd instead.');
+        throw Exception(
+            'Creators cannot leave their herds. Transfer ownership or delete the herd instead.');
       }
 
       // Remove user from herd members
@@ -241,7 +247,8 @@ class HerdRepository {
       final doc = await herdMembers(herdId).doc(userId).get();
       if (!doc.exists) return false;
 
-      return doc.data()?['isModerator'] == true || herd.moderatorIds.contains(userId);
+      return doc.data()?['isModerator'] == true ||
+          herd.moderatorIds.contains(userId);
     } catch (e, stackTrace) {
       logError('isHerdModerator', e, stackTrace);
       return false;
@@ -257,9 +264,8 @@ class HerdRepository {
   }) async {
     try {
       // Query for posts in the herd with pagination
-      var query = herdPosts(herdId)
-          .orderBy('createdAt', descending: true)
-          .limit(limit);
+      var query =
+          herdPosts(herdId).orderBy('createdAt', descending: true).limit(limit);
 
       // Add pagination if lastPost is provided
       if (lastPost != null && lastPost.createdAt != null) {
@@ -274,7 +280,8 @@ class HerdRepository {
           .toList();
 
       // Apply hot sorting algorithm
-      final sortedPosts = applySortingAlgorithm(posts, decayFactor: decayFactor);
+      final sortedPosts =
+          applySortingAlgorithm(posts, decayFactor: decayFactor);
 
       return sortedPosts;
     } catch (e, stackTrace) {
@@ -300,7 +307,8 @@ class HerdRepository {
             .toList();
 
         // Apply hot sorting algorithm
-        final sortedPosts = applySortingAlgorithm(posts, decayFactor: decayFactor);
+        final sortedPosts =
+            applySortingAlgorithm(posts, decayFactor: decayFactor);
         return sortedPosts;
       });
     } catch (e, stackTrace) {
@@ -317,7 +325,8 @@ class HerdRepository {
       final snapshot = await userHerds(userId).get();
 
       // Get full herd details for each followed herd
-      List<HerdModel> followedHerds = []; // Changed variable name from userHerds to followedHerds
+      List<HerdModel> followedHerds =
+          []; // Changed variable name from userHerds to followedHerds
       for (var doc in snapshot.docs) {
         final herdDoc = await _herds.doc(doc.id).get();
         if (herdDoc.exists) {
@@ -410,7 +419,8 @@ class HerdRepository {
   }
 
   /// Add a post to a herd
-  Future<void> addPostToHerd(String herdId, PostModel post, String userId) async {
+  Future<void> addPostToHerd(
+      String herdId, PostModel post, String userId) async {
     try {
       // Check if user is a member of the herd
       final isMember = await isHerdMember(herdId, userId);
@@ -432,7 +442,8 @@ class HerdRepository {
   }
 
   /// Get members of a herd with pagination
-  Future<List<String>> getHerdMembers(String herdId, {int limit = 20, String? lastUserId}) async {
+  Future<List<String>> getHerdMembers(String herdId,
+      {int limit = 20, String? lastUserId}) async {
     try {
       var query = herdMembers(herdId)
           .orderBy('joinedAt', descending: true)
@@ -456,7 +467,8 @@ class HerdRepository {
   }
 
   /// Add moderator to a herd
-  Future<void> addModerator(String herdId, String userId, String currentUserId) async {
+  Future<void> addModerator(
+      String herdId, String userId, String currentUserId) async {
     try {
       // Check if current user has permission to add moderators
       final isModerator = await isHerdModerator(herdId, currentUserId);
@@ -467,7 +479,8 @@ class HerdRepository {
       // Check if target user is a member
       final isMember = await isHerdMember(herdId, userId);
       if (!isMember) {
-        throw Exception('User must be a member of the herd to become a moderator');
+        throw Exception(
+            'User must be a member of the herd to become a moderator');
       }
 
       // Add user to moderator list in herd document
@@ -491,7 +504,8 @@ class HerdRepository {
   }
 
   /// Remove moderator from a herd
-  Future<void> removeModerator(String herdId, String userId, String currentUserId) async {
+  Future<void> removeModerator(
+      String herdId, String userId, String currentUserId) async {
     try {
       // Get herd details
       final herd = await getHerd(herdId);
@@ -530,7 +544,8 @@ class HerdRepository {
   }
 
   /// Ban a user from a herd
-  Future<void> banUser(String herdId, String userId, String currentUserId) async {
+  Future<void> banUser(
+      String herdId, String userId, String currentUserId) async {
     try {
       // Check if current user has permission to ban
       final isModerator = await isHerdModerator(herdId, currentUserId);
@@ -575,7 +590,8 @@ class HerdRepository {
       }
 
       // Add user to banned list
-      await _firestore.collection('herdBans')
+      await _firestore
+          .collection('herdBans')
           .doc(herdId)
           .collection('banned')
           .doc(userId)
@@ -592,7 +608,8 @@ class HerdRepository {
   /// Check if user is banned from a herd
   Future<bool> isUserBanned(String herdId, String userId) async {
     try {
-      final doc = await _firestore.collection('herdBans')
+      final doc = await _firestore
+          .collection('herdBans')
           .doc(herdId)
           .collection('banned')
           .doc(userId)
@@ -638,7 +655,8 @@ class HerdRepository {
   /// Create a request to join a private herd
   Future<void> _createJoinRequest(String herdId, String userId) async {
     try {
-      await _firestore.collection('herdJoinRequests')
+      await _firestore
+          .collection('herdJoinRequests')
           .doc(herdId)
           .collection('requests')
           .doc(userId)
@@ -653,7 +671,8 @@ class HerdRepository {
   }
 
   /// Approve a join request for a private herd
-  Future<void> approveJoinRequest(String herdId, String userId, String currentUserId) async {
+  Future<void> approveJoinRequest(
+      String herdId, String userId, String currentUserId) async {
     try {
       // Check if current user has permission
       final isModerator = await isHerdModerator(herdId, currentUserId);
@@ -662,7 +681,8 @@ class HerdRepository {
       }
 
       // Get the request
-      final requestDoc = await _firestore.collection('herdJoinRequests')
+      final requestDoc = await _firestore
+          .collection('herdJoinRequests')
           .doc(herdId)
           .collection('requests')
           .doc(userId)
@@ -707,13 +727,11 @@ class HerdRepository {
   }
 
   /// Sort a list of posts using the hot algorithm
-  List<PostModel> applySortingAlgorithm(List<PostModel> posts, {double decayFactor = 1.0}) {
-    return HotAlgorithm.sortByHotScore(
-        posts,
-            (post) => calculateNetVotes(post),
-            (post) => post.createdAt ?? DateTime.now(),
-        decayFactor: decayFactor
-    );
+  List<PostModel> applySortingAlgorithm(List<PostModel> posts,
+      {double decayFactor = 1.0}) {
+    return HotAlgorithm.sortByHotScore(posts, (post) => calculateNetVotes(post),
+        (post) => post.createdAt ?? DateTime.now(),
+        decayFactor: decayFactor);
   }
 
   /// Helper method to log errors

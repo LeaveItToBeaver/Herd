@@ -156,7 +156,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.public,
+            Icons.groups_outlined,
             size: 64,
             color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
           ),
