@@ -158,7 +158,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     // Either media or text content
                     const SizedBox(height: 12),
                     _shouldShowMedia()
-                        ? _buildMediaPreview()
+                        ? _buildMediaPreview(widget.post)
                         : _buildContentText(theme),
 
                     const SizedBox(height: 16),
@@ -568,12 +568,12 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   bool _shouldShowMedia() {
-    return (widget.post.mediaThumbnailURL != null &&
+    return (widget.post.mediaItems != null &&
+            widget.post.mediaItems.isNotEmpty) ||
+        (widget.post.mediaThumbnailURL != null &&
             widget.post.mediaThumbnailURL!.isNotEmpty) ||
         (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty);
   }
-
-  // In post_widget.dart and post_screen.dart, update the media item conversion:
 
   List<PostMediaModel> getMediaItemsFromPost(dynamic post) {
     List<PostMediaModel> mediaItems = [];
@@ -612,18 +612,24 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     return mediaItems;
   }
 
-  Widget _buildMediaPreview() {
-    List<PostMediaModel> mediaItems = getMediaItemsFromPost(widget.post);
+  Widget _buildMediaPreview(PostModel post) {
+    List<PostMediaModel> mediaItems = getMediaItemsFromPost(post);
+
+    debugPrint("Building media preview with ${mediaItems.length} items");
 
     if (mediaItems.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // Create a carousel
+    // Create a carousel with improved configuration
     return MediaCarouselWidget(
       mediaItems: mediaItems,
-      height: 200,
+      height: 350,
+      autoPlay: false,
+      showIndicator:
+          mediaItems.length > 1, // Only show indicators if multiple items
       onMediaTap: (media, index) {
+        debugPrint("Tapped media item at index $index");
         // Navigate to full screen gallery
         Navigator.of(context).push(
           MaterialPageRoute(
