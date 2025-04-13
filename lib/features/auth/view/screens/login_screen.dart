@@ -96,10 +96,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final auth = ref.read(authProvider.notifier);
-      await auth.signIn(email, password);
+      var authProcess = await auth.signIn(email, password);
 
-      if (mounted) {
+      if (mounted && authProcess.user != null) {
         context.go('/profile');
+      } else if (mounted) {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          emailError: 'Login failed. Please try again.',
+        );
+      } else {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          emailError: 'Login failed. Please try again.',
+        );
       }
     } catch (e) {
       String errorMessage = 'An error occurred';

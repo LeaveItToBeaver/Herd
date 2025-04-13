@@ -35,6 +35,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   bool _isVideoInitialized = false;
+  bool _showNSFWContent = false;
 
   @override
   void initState() {
@@ -207,6 +208,36 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       ),
                     ),
 
+// NSFW badge - Add this section
+                  if (post.isNSFW)
+                    Container(
+                      color: Colors.red.withOpacity(0.1),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 16),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              size: 16, color: Colors.red),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'NSFW Content',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'This post contains sensitive content',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Post content
                   _buildPostContent(postAsyncValue, currentUser),
 
@@ -280,6 +311,60 @@ class _PostScreenState extends ConsumerState<PostScreen> {
             .showSnackBar(SnackBar(content: Text('Error refreshing: $e')));
       }
     }
+  }
+
+  Widget _buildNSFWContentOverlay() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showNSFWContent = true;
+        });
+      },
+      child: Container(
+        height: 250,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.visibility_off, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'NSFW Content',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This post contains sensitive content',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _showNSFWContent = true;
+                });
+              },
+              icon: const Icon(Icons.visibility),
+              label: const Text('View Content'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildPostContent(
@@ -465,7 +550,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
                   // Media content (if any)
                   if (_hasMedia(post)) ...[
-                    _buildMedia(post),
+                    post.isNSFW && !_showNSFWContent
+                        ? _buildNSFWContentOverlay()
+                        : _buildMedia(post),
                   ],
                 ],
               ),
