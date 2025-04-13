@@ -32,6 +32,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     with AutomaticKeepAliveClientMixin {
   bool _hasInitializedInteraction = false;
   bool _isExpanded = false;
+  bool _showNSFWContent = false;
 
   @override
   bool get wantKeepAlive => true; // Keep widget state when scrolling
@@ -112,10 +113,10 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Post Type Indicator
+              // Post Type Indicators
               if (widget.post.isAlt)
                 _buildTypeIndicator(
-                  icon: Icons.public,
+                  icon: Icons.lock,
                   label: 'Alt Post',
                   color: theme.colorScheme.primary,
                 ),
@@ -127,6 +128,14 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                   icon: Icons.group_outlined,
                   label: 'Herd Post',
                   color: theme.colorScheme.secondary,
+                ),
+
+              // NSFW Indicator - Add this here
+              if (widget.post.isNSFW)
+                _buildTypeIndicator(
+                  icon: Icons.warning_amber_rounded,
+                  label: 'NSFW Content',
+                  color: Colors.red,
                 ),
 
               // Post Content
@@ -156,11 +165,15 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                       ),
                     ],
 
-                    // Either media or text content
+                    // Either media or text content with NSFW blur option
                     const SizedBox(height: 12),
-                    _shouldShowMedia()
-                        ? _buildMediaPreview(widget.post)
-                        : _buildContentText(theme),
+
+                    // NSFW content handling
+                    widget.post.isNSFW && !_showNSFWContent
+                        ? _buildNSFWOverlay()
+                        : (_shouldShowMedia()
+                            ? _buildMediaPreview(widget.post)
+                            : _buildContentText(theme)),
 
                     const SizedBox(height: 16),
 
@@ -176,6 +189,45 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     );
   }
 
+// Add this method for NSFW content overlay
+  Widget _buildNSFWOverlay() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showNSFWContent = true;
+        });
+      },
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.visibility_off, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'NSFW Content',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to view',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTypeIndicator({
     required IconData icon,
     required String label,
@@ -183,7 +235,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: const BorderRadius.only(
@@ -642,7 +694,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   Widget _buildActionBar(
       PostInteractionState interactionState, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 0),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: theme.dividerColor.withOpacity(0.1), width: 1),
@@ -718,7 +770,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       ),
       style: TextButton.styleFrom(
         minimumSize: Size.zero,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );

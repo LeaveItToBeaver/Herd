@@ -23,13 +23,13 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   CreatePostController(this._userRepository, this._postRepository)
       : super(AsyncValue.data(CreatePostState.initial()));
 
-  // In CreatePostController class, update createPost method:
   Future<String> createPost({
     required String userId,
     required String title,
     required String content,
-    List<File>? mediaFiles, // Changed to List<File>
+    List<File>? mediaFiles,
     bool isAlt = false,
+    bool isNSFW = false, // Added NSFW parameter
     String herdId = '',
     String herdName = '',
     String herdProfileImageURL = '',
@@ -105,6 +105,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isAlt: isAlt,
+        isNSFW: isNSFW, // Set the NSFW flag
       );
 
       // 5. Save post to Firestore
@@ -198,6 +199,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     String? title,
     String? content,
     bool? isAlt,
+    bool? isNSFW,
     String? herdId,
   }) async {
     try {
@@ -207,6 +209,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         title: title,
         content: content,
         isAlt: isAlt,
+        isNSFW: isNSFW,
         herdId: herdId,
       );
     } catch (e) {
