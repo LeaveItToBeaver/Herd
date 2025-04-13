@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
 
@@ -27,6 +30,13 @@ class MediaCarouselWidget extends StatefulWidget {
 
 class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
   int _currentIndex = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Prefetch media after the widget is built
+    _prefetchMedia();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +150,9 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                   ),
                 )
               : CachedNetworkImage(
+                  cacheKey: _generateCacheKey(imageUrl),
+                  memCacheHeight: 1024,
+                  memCacheWidth: 1024,
                   imageUrl: imageUrl,
                   fit: BoxFit.contain, // Changed from cover to contain
                   width: double.infinity,
@@ -234,5 +247,20 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
         ],
       ),
     );
+  }
+
+  String _generateCacheKey(String url) {
+    return md5.convert(utf8.encode(url)).toString();
+  }
+
+  void _prefetchMedia() {
+    for (final media in widget.mediaItems) {
+      if (media.url.isNotEmpty) {
+        precacheImage(CachedNetworkImageProvider(media.url), context);
+      }
+      if (media.thumbnailUrl != null && media.thumbnailUrl!.isNotEmpty) {
+        precacheImage(CachedNetworkImageProvider(media.thumbnailUrl!), context);
+      }
+    }
   }
 }
