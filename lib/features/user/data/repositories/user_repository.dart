@@ -38,9 +38,115 @@ class UserRepository {
     return UserModel.fromMap(doc.id, doc.data()!);
   }
 
+  String capitalize(String s) {
+    if (s.isEmpty) return '';
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
   // Search users
   Future<List<UserModel>> searchUsers(String query,
       {FeedType profileType = FeedType.public}) async {
+    if (query.isEmpty) return [];
+
+    // Convert query to lowercase for more flexible search
+    final lowerQuery = query.toLowerCase();
+    final capitalizedQuery = query.isNotEmpty
+        ? query[0].toUpperCase() + query.substring(1).toLowerCase()
+        : "";
+
+    // Split query for potential full name search
+    final parts = query.trim().split(' ');
+    final isFullNameSearch = parts.length > 1;
+
+    final List<Future<QuerySnapshot<Map<String, dynamic>>>> searches = [];
+
+    if (profileType == FeedType.public) {
+      // For public feed, search first and last name
+      if (isFullNameSearch) {
+        // Full name search - combine first and last name conditions
+        final firstName = parts[0].toLowerCase();
+        final lastName = parts.sublist(1).join(' ').toLowerCase();
+
+        searches.add(_users
+            .where('firstName', isEqualTo: firstName)
+            .where('lastName', isEqualTo: lastName)
+            .limit(10)
+            .get());
+
+        // Also try capitalized versions
+        searches.add(_users
+            .where('firstName', isEqualTo: capitalize(firstName))
+            .where('lastName', isEqualTo: capitalize(lastName))
+            .limit(10)
+            .get());
+      } else {
+        // Single word search - check first name or last name
+        searches.addAll([
+          _users
+              .where('firstName', isGreaterThanOrEqualTo: lowerQuery)
+              .where('firstName', isLessThan: '$lowerQuery\uf8ff')
+              .limit(10)
+              .get(),
+          _users
+              .where('firstName', isGreaterThanOrEqualTo: capitalizedQuery)
+              .where('firstName', isLessThan: '$capitalizedQuery\uf8ff')
+              .limit(10)
+              .get(),
+          _users
+              .where('lastName', isGreaterThanOrEqualTo: lowerQuery)
+              .where('lastName', isLessThan: '$lowerQuery\uf8ff')
+              .limit(10)
+              .get(),
+          _users
+              .where('lastName', isGreaterThanOrEqualTo: capitalizedQuery)
+              .where('lastName', isLessThan: '$capitalizedQuery\uf8ff')
+              .limit(10)
+              .get(),
+        ]);
+      }
+    } else {
+      // For alt feed, only search username
+      searches.add(_users
+          .where('username', isGreaterThanOrEqualTo: lowerQuery)
+          .where('username', isLessThan: '$lowerQuery\uf8ff')
+          .limit(10)
+          .get());
+    }
+
+    // Execute searches and collect results
+    final results = await Future.wait(searches);
+    final uniqueDocsMap =
+        <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+
+    for (var querySnapshot in results) {
+      for (var doc in querySnapshot.docs) {
+        if (!uniqueDocsMap.containsKey(doc.id)) {
+          uniqueDocsMap[doc.id] = doc;
+        }
+      }
+    }
+
+    // Convert to UserModels with appropriate filtering
+    List<UserModel> users = [];
+    for (var doc in uniqueDocsMap.values) {
+      final user = UserModel.fromMap(doc.id, doc.data());
+
+      // Filter based on feed type
+      if (profileType == FeedType.alt) {
+        if (user.username == null || user.username!.isEmpty) continue;
+      } else {
+        if (user.firstName.isEmpty && user.lastName.isEmpty) continue;
+      }
+
+      users.add(user);
+    }
+
+    return users;
+  }
+
+  Future<List<UserModel>> searchAll(
+    String query,
+  ) async {
     if (query.isEmpty) return [];
 
     // Convert query to lowercase and capitalized for more flexible search
@@ -52,57 +158,47 @@ class UserRepository {
     // Determine which fields to search based on profile type
     final List<Future<QuerySnapshot<Map<String, dynamic>>>> searches = [];
 
-    if (profileType == FeedType.public) {
-      // Only search public profile fields for public feed
-      searches.addAll([
-        // Search by username - avoiding potential alt username matches
-        _users
-            .where('username', isGreaterThanOrEqualTo: lowerQuery)
-            .where('username', isLessThan: '$lowerQuery\uf8ff')
-            .limit(10)
-            .get(),
+    // Only search public profile fields for public feed
+    searches.addAll([
+      // Search by first name - lowercase
+      _users
+          .where('firstName', isGreaterThanOrEqualTo: lowerQuery)
+          .where('firstName', isLessThan: '$lowerQuery\uf8ff')
+          .limit(10)
+          .get(),
 
-        // Search by first name - lowercase
-        _users
-            .where('firstName', isGreaterThanOrEqualTo: lowerQuery)
-            .where('firstName', isLessThan: '$lowerQuery\uf8ff')
-            .limit(10)
-            .get(),
+      // Search by first name - capitalized
+      _users
+          .where('firstName', isGreaterThanOrEqualTo: capitalQuery)
+          .where('firstName', isLessThan: '$capitalQuery\uf8ff')
+          .limit(10)
+          .get(),
 
-        // Search by first name - capitalized
-        _users
-            .where('firstName', isGreaterThanOrEqualTo: capitalQuery)
-            .where('firstName', isLessThan: '$capitalQuery\uf8ff')
-            .limit(10)
-            .get(),
+      // Search by last name - lowercase
+      _users
+          .where('lastName', isGreaterThanOrEqualTo: lowerQuery)
+          .where('lastName', isLessThan: '$lowerQuery\uf8ff')
+          .limit(10)
+          .get(),
 
-        // Search by last name - lowercase
-        _users
-            .where('lastName', isGreaterThanOrEqualTo: lowerQuery)
-            .where('lastName', isLessThan: '$lowerQuery\uf8ff')
-            .limit(10)
-            .get(),
+      // Search by last name - capitalized
+      _users
+          .where('lastName', isGreaterThanOrEqualTo: capitalQuery)
+          .where('lastName', isLessThan: '$capitalQuery\uf8ff')
+          .limit(10)
+          .get(),
+    ]);
+    // Only search alt profile fields for alt feed
+    searches.addAll([
+      // Search by username ONLY
+      _users
+          .where('username', isGreaterThanOrEqualTo: lowerQuery)
+          .where('username', isLessThan: '$lowerQuery\uf8ff')
+          .limit(10)
+          .get(),
 
-        // Search by last name - capitalized
-        _users
-            .where('lastName', isGreaterThanOrEqualTo: capitalQuery)
-            .where('lastName', isLessThan: '$capitalQuery\uf8ff')
-            .limit(10)
-            .get(),
-      ]);
-    } else {
-      // Only search alt profile fields for alt feed
-      searches.addAll([
-        // Search by alt username ONLY
-        _users
-            .where('altUsername', isGreaterThanOrEqualTo: lowerQuery)
-            .where('altUsername', isLessThan: '$lowerQuery\uf8ff')
-            .limit(10)
-            .get(),
-
-        // Do NOT search by firstName/lastName/username for alt profiles to maintain anonymity
-      ]);
-    }
+      // Do NOT search by firstName/lastName/username for alt profiles to maintain anonymity
+    ]);
 
     // Execute all searches in parallel
     final results = await Future.wait(searches);
@@ -124,21 +220,6 @@ class UserRepository {
 
     for (var doc in uniqueDocsMap.values) {
       final user = UserModel.fromMap(doc.id, doc.data());
-
-      // For alt profile search, ensure there is an alt username
-      if (profileType == FeedType.alt &&
-          (user.altUsername == null || user.altUsername!.isEmpty)) {
-        continue; // Skip this user as they don't have an alt profile
-      }
-
-      // For public profile search, ensure there is a name
-      if (profileType == FeedType.public &&
-          (user.firstName.isEmpty &&
-              user.lastName.isEmpty &&
-              user.username.isEmpty)) {
-        continue; // Skip this user as they don't have a public profile
-      }
-
       users.add(user);
     }
 
@@ -155,16 +236,15 @@ class UserRepository {
     try {
       QuerySnapshot<Map<String, dynamic>> snapshot;
 
-      if (profileType == FeedType.public) {
-        // For public feed, search by regular username only
+      // Use different field based on the feed type
+      if (profileType == FeedType.alt) {
         snapshot = await _users
             .where('username', isEqualTo: lowerUsername)
             .limit(1)
             .get();
       } else {
-        // For alt feed, search by alt username only
         snapshot = await _users
-            .where('altUsername', isEqualTo: lowerUsername)
+            .where('username', isEqualTo: lowerUsername)
             .limit(1)
             .get();
       }

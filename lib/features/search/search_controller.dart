@@ -134,31 +134,21 @@ class SearchController extends StateNotifier<SearchState> {
     state = state.copyWith(status: SearchStatus.loading);
 
     try {
-      // Start searches concurrently based on current feed type
-      final usersResultFuture =
-          _userRepository.searchUsers(query, profileType: _feedType);
-      final herdsResultFuture = _herdRepository.searchHerds(query);
+      // Execute all searches in parallel
+      final List<UserModel> publicUsersResult = await _userRepository
+          .searchUsers(query, profileType: FeedType.public);
 
-      // Get both public and alt profiles if using the "All" tab
-      final publicUsersResultFuture = _feedType == FeedType.alt
-          ? _userRepository.searchUsers(query, profileType: FeedType.public)
-          : Future.value(<UserModel>[]);
+      final List<UserModel> altUsersResult =
+          await _userRepository.searchUsers(query, profileType: FeedType.alt);
 
-      final altUsersResultFuture = _feedType == FeedType.public
-          ? _userRepository.searchUsers(query, profileType: FeedType.alt)
-          : Future.value(<UserModel>[]);
+      final List<HerdModel> herdsResult =
+          await _herdRepository.searchHerds(query);
 
-      // Wait for each one with proper typing
-      final List<UserModel> users = await usersResultFuture;
-      final List<HerdModel> herds = await herdsResultFuture;
-      final List<UserModel> publicUsers = await publicUsersResultFuture;
-      final List<UserModel> altUsers = await altUsersResultFuture;
-
+      // Update state with all results
       state = state.copyWith(
-        users: users,
-        herds: herds,
-        publicUsers: publicUsers,
-        altUsers: altUsers,
+        publicUsers: publicUsersResult,
+        altUsers: altUsersResult,
+        herds: herdsResult,
         status: SearchStatus.loaded,
         type: SearchType.all,
       );

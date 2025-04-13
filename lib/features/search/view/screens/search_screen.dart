@@ -255,6 +255,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
     return ListView(
       children: [
+        //I need to add a section for searching for all users and herds here -
+        // Search Results Header
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'Search Results',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+        ),
+        // Search Results Count
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            '${usersToShow.length + publicUsersToShow.length + altUsersToShow.length + herdsToShow.length} results found',
+            style: const TextStyle(fontSize: 14.0, color: Colors.grey),
+          ),
+        ),
+
         // Current Feed Users Section (Based on current feed type)
         if (usersToShow.isNotEmpty) ...[
           Padding(
@@ -388,12 +408,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           displayName,
           style: const TextStyle(fontSize: 16.0),
         ),
-        subtitle: user.username.isNotEmpty
-            ? Text(
-                '@${user.username}',
-                style: TextStyle(color: Colors.grey[600]),
-              )
-            : null,
         trailing: Icon(Icons.public, color: Colors.blue, size: 16),
         onTap: () {
           context.pushNamed(

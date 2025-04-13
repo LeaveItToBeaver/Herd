@@ -660,6 +660,7 @@ class PostRepository {
     String? content,
     bool? isAlt,
     String? herdId,
+    bool? isNSFW,
   }) async {
     try {
       // Determine which collection to update based on post type
@@ -697,6 +698,7 @@ class PostRepository {
 
       if (title != null) updates['title'] = title;
       if (content != null) updates['content'] = content;
+      if (isNSFW != null) updates['isNSFW'] = isNSFW;
 
       // Update the post
       await postRef.update(updates);

@@ -22,12 +22,14 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
   bool _isSubmitting = false;
+  late bool _isNSFW; // TODO: Implement NSFW toggle
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.post.title);
     _contentController = TextEditingController(text: widget.post.content);
+    _isNSFW = widget.post.isNSFW;
   }
 
   @override
@@ -107,6 +109,76 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
                     ),
                   ),
 
+                // NSFW toggle - Add this card
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: _isNSFW ? Colors.red : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Content Warning',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Switch(
+                              value: _isNSFW,
+                              activeColor: Colors.red,
+                              onChanged: (value) {
+                                setState(() {
+                                  _isNSFW = value;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              _isNSFW
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.check_circle,
+                              color: _isNSFW ? Colors.red : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isNSFW ? 'NSFW Content' : 'Safe Content',
+                              style: TextStyle(
+                                color: _isNSFW ? Colors.red : Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _isNSFW
+                              ? 'This post contains sensitive content not suitable for all audiences.'
+                              : 'This post is appropriate for all audiences.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
                 // Title field
                 TextFormField(
                   controller: _titleController,
@@ -180,6 +252,7 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
             title: _titleController.text,
             content: _contentController.text,
             isAlt: widget.post.isAlt,
+            isNSFW: _isNSFW,
             herdId: widget.post.herdId,
           );
 

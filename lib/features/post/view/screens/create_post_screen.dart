@@ -35,6 +35,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   File? _postMedia;
   bool _isSubmitting = false;
   late bool _isAlt;
+  late bool _isDraft = false;
+  late bool _hasMedia = false;
+  late bool _isNSFW = false;
   final bool _isVideo = false;
   String? _selectedHerdId;
   String? _selectedHerdName;
@@ -117,11 +120,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         child: Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.white,
-            title: Text(_isAlt ? "Create Alt Post" : "Create Public Post"),
+            title: Text("Create A Post"),
             actions: [
               if (_isSubmitting)
                 const Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(8.0),
                   child: SizedBox(
                     width: 24,
                     height: 24,
@@ -152,7 +155,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,23 +164,52 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: _isAlt ? Colors.blue : Colors.grey.shade300,
+                color: _isNSFW && _isAlt
+                    ? Colors.purple
+                    : _isNSFW && !_isAlt
+                        ? Colors.red
+                        : _isAlt
+                            ? Colors.blue
+                            : Colors.black,
                 width: 1,
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Alt post toggle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Post Privacy',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _isAlt ? Icons.public : Icons.public_off,
+                                color: _isAlt ? Colors.blue : Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isAlt ? 'Alt Post' : 'Regular Post',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: _isAlt ? Colors.blue : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _isAlt
+                                ? 'Post with your alt profile'
+                                : 'Post with your main profile',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
                       ),
                       Switch(
                         value: _isAlt,
@@ -190,41 +222,128 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 4),
+
+                  // NSFW toggle
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        _isAlt ? Icons.lock : Icons.public,
-                        color: _isAlt ? Colors.blue : Colors.grey,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                  _isNSFW
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility,
+                                  color: _isNSFW && _isAlt
+                                      ? Colors.purple
+                                      : _isNSFW && !_isAlt
+                                          ? Colors.red
+                                          : Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isNSFW ? 'NSFW' : 'SFW',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: _isNSFW && _isAlt
+                                        ? Colors.purple
+                                        : _isNSFW && !_isAlt
+                                            ? Colors.red
+                                            : Colors.grey),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _isNSFW
+                                ? 'Sensitive content warning'
+                                : 'No sensitive content',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isAlt ? 'Alt Post' : 'Public Post',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: _isAlt ? Colors.blue : Colors.grey,
-                        ),
+                      Switch(
+                        value: _isNSFW,
+                        activeColor:
+                            _isNSFW && _isAlt ? Colors.purple : Colors.red,
+                        onChanged: (value) {
+                          setState(() {
+                            _isNSFW = value;
+                          });
+                        },
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isAlt
-                        ? 'Only visible to your alt connections.'
-                        : 'Visible to everyone in your public feed.',
-                    style: theme.textTheme.bodySmall,
+
+                  // Media Toggle
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _hasMedia
+                                    ? Icons.image
+                                    : Icons.image_not_supported_outlined,
+                                color:
+                                    _hasMedia ? Colors.green[700] : Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _hasMedia ? 'Media' : 'No Media',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: _hasMedia
+                                      ? Colors.green[700]
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_hasMedia) const SizedBox(height: 2),
+                          if (_hasMedia)
+                            Text(
+                              'Post with media',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                        ],
+                      ),
+                      Switch(
+                        value: _hasMedia,
+                        activeColor: Colors.blue,
+                        onChanged: (value) {
+                          setState(() {
+                            _hasMedia = value;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          // Herd selection card
 
+          const SizedBox(height: 6),
+          // Herd selection card
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: Colors.grey.shade300,
+                color: _isNSFW && _isAlt
+                    ? Colors.purple
+                    : _isNSFW && !_isAlt
+                        ? Colors.red
+                        : _isAlt
+                            ? Colors.blue
+                            : Colors.black,
                 width: 1,
               ),
             ),
@@ -244,18 +363,26 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
                   InkWell(
                     onTap: _showHerdSelectionDialog,
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                        horizontal: 8,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade400),
+                        border: Border.all(
+                          color: _isNSFW && _isAlt
+                              ? Colors.purple
+                              : _isNSFW && !_isAlt
+                                  ? Colors.red
+                                  : _isAlt
+                                      ? Colors.blue
+                                      : Colors.black,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -266,18 +393,30 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                             size: 18,
                             color: _selectedHerdId != null
                                 ? Colors.blue
-                                : Colors.grey,
+                                : _isNSFW && _isAlt
+                                    ? Colors.purple
+                                    : _isNSFW && !_isAlt
+                                        ? Colors.red
+                                        : _isAlt
+                                            ? Colors.blue
+                                            : Colors.grey,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               _selectedHerdId != null
-                                  ? 'h/$_selectedHerdName'
+                                  ? '$_selectedHerdName'
                                   : 'Personal post (no herd)',
                               style: TextStyle(
                                 color: _selectedHerdId != null
                                     ? Colors.blue
-                                    : null,
+                                    : _isNSFW && _isAlt
+                                        ? Colors.purple
+                                        : _isNSFW && !_isAlt
+                                            ? Colors.red
+                                            : _isAlt
+                                                ? Colors.blue
+                                                : Colors.grey,
                               ),
                             ),
                           ),
@@ -293,13 +432,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
           const SizedBox(height: 16),
 
-          _mediaPicker(context),
-
-          const SizedBox(height: 16),
-
+          // Post form
           _buildPostForm(context),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Submit button at the bottom
           SizedBox(
@@ -307,7 +443,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             height: 50,
             child: ElevatedButton.icon(
               icon: Icon(
-                _isAlt ? Icons.lock : Icons.send,
+                Icons.send,
                 color: Colors.white,
               ),
               label: Text(
@@ -315,7 +451,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isAlt ? Colors.blue : Colors.black,
+                backgroundColor: _isNSFW && _isAlt
+                    ? Colors.purple
+                    : _isNSFW && !_isAlt
+                        ? Colors.red
+                        : _isAlt
+                            ? Colors.blue
+                            : Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -375,9 +517,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _isAlt
-                    ? Colors.blue.withOpacity(0.3)
-                    : Colors.grey.shade300,
+                color: _isNSFW && _isAlt
+                    ? Colors.purple
+                    : _isNSFW && !_isAlt
+                        ? Colors.red
+                        : _isAlt
+                            ? Colors.blue
+                            : Colors.grey,
               ),
             ),
             child: _mediaFiles.isNotEmpty
@@ -388,17 +534,25 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       Icon(
                         Icons.add_photo_alternate,
                         size: 64,
-                        color: _isAlt
-                            ? Colors.blue.withOpacity(0.7)
-                            : Colors.black54,
+                        color: _isNSFW && _isAlt
+                            ? Colors.purple
+                            : _isNSFW && !_isAlt
+                                ? Colors.red
+                                : _isAlt
+                                    ? Colors.blue
+                                    : Colors.grey,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Tap to add media (up to 10 images/videos)',
                         style: TextStyle(
-                          color: _isAlt
-                              ? Colors.blue.withOpacity(0.7)
-                              : Colors.black54,
+                          color: _isNSFW && _isAlt
+                              ? Colors.purple
+                              : _isNSFW && !_isAlt
+                                  ? Colors.red
+                                  : _isAlt
+                                      ? Colors.blue
+                                      : Colors.black54,
                         ),
                       ),
                     ],
@@ -461,8 +615,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-// Add this method to preview selected media files:
-
   Widget _buildMediaFilesPreview() {
     if (_mediaFiles.isEmpty) return const SizedBox.shrink();
 
@@ -481,7 +633,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: Colors.black87,
+              color: _isNSFW && _isAlt
+                  ? Colors.purple
+                  : _isNSFW && !_isAlt
+                      ? Colors.red
+                      : _isAlt
+                          ? Colors.blue
+                          : Colors.grey,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -549,8 +707,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Widget _buildPostForm(BuildContext context) {
-    final borderColor =
-        _isAlt ? Colors.blue.withOpacity(0.3) : Colors.grey.shade300;
+    final borderColor = _isNSFW && _isAlt
+        ? Colors.purple
+        : _isNSFW && !_isAlt
+            ? Colors.red
+            : _isAlt
+                ? Colors.blue
+                : Colors.grey;
 
     return Form(
       key: _formKey,
@@ -562,18 +725,37 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               labelText: 'Title',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: borderColor),
+                borderSide: BorderSide(
+                    color: _isNSFW && _isAlt
+                        ? Colors.purple
+                        : _isNSFW && !_isAlt
+                            ? Colors.red
+                            : _isAlt
+                                ? Colors.blue
+                                : Colors.black),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _isAlt ? Colors.blue : Colors.black,
+                  color: _isNSFW && _isAlt
+                      ? Colors.purple
+                      : _isNSFW && !_isAlt
+                          ? Colors.red
+                          : _isAlt
+                              ? Colors.blue
+                              : Colors.grey,
                   width: 2,
                 ),
               ),
               prefixIcon: Icon(
                 Icons.title,
-                color: _isAlt ? Colors.blue : null,
+                color: _isNSFW && _isAlt
+                    ? Colors.purple
+                    : _isNSFW && !_isAlt
+                        ? Colors.red
+                        : _isAlt
+                            ? Colors.blue
+                            : Colors.grey,
               ),
             ),
             onChanged: (value) {
@@ -584,7 +766,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 ? 'Title cannot be empty.'
                 : null,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+
+          // Media picker
+          if (_hasMedia) _mediaPicker(context),
+
+          const SizedBox(height: 8),
           TextFormField(
             enabled: !_isSubmitting,
             maxLines: 7,
@@ -593,20 +780,40 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               alignLabelWithHint: true,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: borderColor),
+                borderSide: BorderSide(
+                    width: 2,
+                    color: _isNSFW && _isAlt
+                        ? Colors.purple
+                        : _isNSFW && !_isAlt
+                            ? Colors.red
+                            : _isAlt
+                                ? Colors.blue
+                                : Colors.black),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _isAlt ? Colors.blue : Colors.black,
                   width: 2,
+                  color: _isNSFW && _isAlt
+                      ? Colors.purple
+                      : _isNSFW && !_isAlt
+                          ? Colors.red
+                          : _isAlt
+                              ? Colors.blue
+                              : Colors.black,
                 ),
               ),
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 100),
                 child: Icon(
                   Icons.article,
-                  color: _isAlt ? Colors.blue : null,
+                  color: _isNSFW && _isAlt
+                      ? Colors.purple
+                      : _isNSFW && !_isAlt
+                          ? Colors.red
+                          : _isAlt
+                              ? Colors.blue
+                              : Colors.black,
                 ),
               ),
             ),
@@ -650,7 +857,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             content: Text(_isAlt
                 ? 'Alt post created successfully!'
                 : 'Post created successfully!'),
-            backgroundColor: _isAlt ? Colors.blue : Colors.green,
+            backgroundColor: _isNSFW && _isAlt
+                ? Colors.purple
+                : _isNSFW && !_isAlt
+                    ? Colors.red
+                    : _isAlt
+                        ? Colors.blue
+                        : Colors.black,
           ),
         );
 
