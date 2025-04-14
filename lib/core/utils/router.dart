@@ -73,16 +73,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SplashScreen()),
       ),
+
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: LoginScreen()),
       ),
+
       GoRoute(
         path: '/signup',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SignUpScreen()),
       ),
+
       GoRoute(
         path: '/emailVerification',
         pageBuilder: (context, state) {
@@ -94,6 +97,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+
       GoRoute(
         path: '/resetPassword',
         pageBuilder: (context, state) =>
