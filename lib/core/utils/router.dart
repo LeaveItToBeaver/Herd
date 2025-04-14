@@ -176,6 +176,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Settings Route
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) {
+          return SettingsScreen();
+        },
+      ),
+
       // Comment Thread Route
       GoRoute(
         path: '/commentThread',
