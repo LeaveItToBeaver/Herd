@@ -21,15 +21,27 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   final FeedRepository repository;
   final String userId;
   final int pageSize;
+  bool _disposed = false;
 
   PublicFeedController(this.repository, this.userId, {this.pageSize = 20})
       : super(PublicFeedState.initial());
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  /// Check if controller is still active
+  bool get _isActive => !_disposed;
 
   /// Load initial public feed posts
   Future<void> loadInitialPosts({String? overrideUserId}) async {
     try {
       // Don't reload if already loading
-      if (state.isLoading) return;
+      if (state.isLoading || _disposed) return;
+
+      if (_isActive) state = state.copyWith(isLoading: true, error: null);
 
       state = state.copyWith(isLoading: true, error: null);
 
@@ -52,16 +64,19 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           lastPostId: state.lastPost?.id,
         );
 
-        state = state.copyWith(
-          posts: posts,
-          isLoading: false,
-          hasMorePosts: posts.length >= pageSize,
-          lastPost: posts.isNotEmpty ? posts.last : null,
-        );
+        if (_isActive) {
+          state = state.copyWith(
+            posts: posts,
+            isLoading: false,
+            hasMorePosts: posts.length >= pageSize,
+            lastPost: posts.isNotEmpty ? posts.last : null,
+          );
+        }
         return;
       } catch (e) {
         // If cloud function fails, fall back to direct Firestore query
         print('Falling back to direct Firestore query: $e');
+        if (_disposed) return;
       }
 
       final posts = await repository.getPublicFeed(
@@ -69,17 +84,21 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         limit: pageSize,
       );
 
-      state = state.copyWith(
-        posts: posts,
-        isLoading: false,
-        hasMorePosts: posts.length >= pageSize,
-        lastPost: posts.isNotEmpty ? posts.last : null,
-      );
+      if (_isActive) {
+        state = state.copyWith(
+          posts: posts,
+          isLoading: false,
+          hasMorePosts: posts.length >= pageSize,
+          lastPost: posts.isNotEmpty ? posts.last : null,
+        );
+      }
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e,
-      );
+      if (_isActive) {
+        state = state.copyWith(
+          isLoading: false,
+          error: e,
+        );
+      }
     }
   }
 
