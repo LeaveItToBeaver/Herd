@@ -5,13 +5,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/utils/router.dart';
 
 import 'core/bootstrap/app_bootstraps.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Start initializing mobile ads in the background
   unawaited(MobileAds.instance.initialize());
+
   await Firebase.initializeApp();
   await FirebaseAppCheck.instance.activate(
     webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
@@ -26,6 +29,10 @@ void main() async {
     // Use provider for iOS/macOS
     appleProvider: AppleProvider.debug,
   );
+
+  // This will pre-warm the cache system
+  unawaited(CacheManager.bootstrapCache());
+
   runApp(
     const ProviderScope(
       child: BootstrapWrapper(
