@@ -21,6 +21,7 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
   Object? get error;
   bool get isRefreshing;
   PostModel? get lastPost;
+  bool get fromCache;
 
   /// Create a copy of PublicFeedState
   /// with the given fields replaced by the non-null parameter values.
@@ -39,7 +40,8 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isRefreshing', isRefreshing))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('fromCache', fromCache));
   }
 
   @override
@@ -56,7 +58,9 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
             (identical(other.isRefreshing, isRefreshing) ||
                 other.isRefreshing == isRefreshing) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.fromCache, fromCache) ||
+                other.fromCache == fromCache));
   }
 
   @override
@@ -67,11 +71,12 @@ mixin _$PublicFeedState implements DiagnosticableTreeMixin {
       hasMorePosts,
       const DeepCollectionEquality().hash(error),
       isRefreshing,
-      lastPost);
+      lastPost,
+      fromCache);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PublicFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
+    return 'PublicFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache)';
   }
 }
 
@@ -87,7 +92,8 @@ abstract mixin class $PublicFeedStateCopyWith<$Res> {
       bool hasMorePosts,
       Object? error,
       bool isRefreshing,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      bool fromCache});
 
   $PostModelCopyWith<$Res>? get lastPost;
 }
@@ -111,6 +117,7 @@ class _$PublicFeedStateCopyWithImpl<$Res>
     Object? error = freezed,
     Object? isRefreshing = null,
     Object? lastPost = freezed,
+    Object? fromCache = null,
   }) {
     return _then(_self.copyWith(
       posts: null == posts
@@ -134,6 +141,10 @@ class _$PublicFeedStateCopyWithImpl<$Res>
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      fromCache: null == fromCache
+          ? _self.fromCache
+          : fromCache // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 
@@ -161,7 +172,8 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
       this.hasMorePosts = true,
       this.error,
       this.isRefreshing = false,
-      this.lastPost})
+      this.lastPost,
+      this.fromCache = false})
       : _posts = posts;
 
   final List<PostModel> _posts;
@@ -185,6 +197,9 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
   final bool isRefreshing;
   @override
   final PostModel? lastPost;
+  @override
+  @JsonKey()
+  final bool fromCache;
 
   /// Create a copy of PublicFeedState
   /// with the given fields replaced by the non-null parameter values.
@@ -203,7 +218,8 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isRefreshing', isRefreshing))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('fromCache', fromCache));
   }
 
   @override
@@ -220,7 +236,9 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
             (identical(other.isRefreshing, isRefreshing) ||
                 other.isRefreshing == isRefreshing) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.fromCache, fromCache) ||
+                other.fromCache == fromCache));
   }
 
   @override
@@ -231,11 +249,12 @@ class _PublicFeedState with DiagnosticableTreeMixin implements PublicFeedState {
       hasMorePosts,
       const DeepCollectionEquality().hash(error),
       isRefreshing,
-      lastPost);
+      lastPost,
+      fromCache);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PublicFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
+    return 'PublicFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache)';
   }
 }
 
@@ -253,7 +272,8 @@ abstract mixin class _$PublicFeedStateCopyWith<$Res>
       bool hasMorePosts,
       Object? error,
       bool isRefreshing,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      bool fromCache});
 
   @override
   $PostModelCopyWith<$Res>? get lastPost;
@@ -278,6 +298,7 @@ class __$PublicFeedStateCopyWithImpl<$Res>
     Object? error = freezed,
     Object? isRefreshing = null,
     Object? lastPost = freezed,
+    Object? fromCache = null,
   }) {
     return _then(_PublicFeedState(
       posts: null == posts
@@ -301,6 +322,10 @@ class __$PublicFeedStateCopyWithImpl<$Res>
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      fromCache: null == fromCache
+          ? _self.fromCache
+          : fromCache // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 

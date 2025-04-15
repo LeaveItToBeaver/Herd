@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../../core/services/image_helper.dart';
@@ -477,6 +478,14 @@ class PostRepository {
   Future<PostModel?> getPostById(String postId,
       {bool? isAlt, String? herdId, bool forceRefresh = false}) async {
     try {
+      if (!forceRefresh) {
+        final cacheManager = CacheManager();
+        final cachedPost =
+            await cacheManager.getPost(postId, isAlt: isAlt ?? false);
+        if (cachedPost != null) {
+          return cachedPost;
+        }
+      }
       // Set the correct fetch option based on forceRefresh
       final fetchOptions = forceRefresh
           ? GetOptions(source: Source.server)
