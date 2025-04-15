@@ -21,6 +21,7 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
   Object? get error;
   bool get isRefreshing;
   PostModel? get lastPost;
+  bool get fromCache;
 
   /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
@@ -39,7 +40,8 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isRefreshing', isRefreshing))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('fromCache', fromCache));
   }
 
   @override
@@ -56,7 +58,9 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
             (identical(other.isRefreshing, isRefreshing) ||
                 other.isRefreshing == isRefreshing) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.fromCache, fromCache) ||
+                other.fromCache == fromCache));
   }
 
   @override
@@ -67,11 +71,12 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
       hasMorePosts,
       const DeepCollectionEquality().hash(error),
       isRefreshing,
-      lastPost);
+      lastPost,
+      fromCache);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
+    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache)';
   }
 }
 
@@ -87,7 +92,8 @@ abstract mixin class $AltFeedStateCopyWith<$Res> {
       bool hasMorePosts,
       Object? error,
       bool isRefreshing,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      bool fromCache});
 
   $PostModelCopyWith<$Res>? get lastPost;
 }
@@ -110,6 +116,7 @@ class _$AltFeedStateCopyWithImpl<$Res> implements $AltFeedStateCopyWith<$Res> {
     Object? error = freezed,
     Object? isRefreshing = null,
     Object? lastPost = freezed,
+    Object? fromCache = null,
   }) {
     return _then(_self.copyWith(
       posts: null == posts
@@ -133,6 +140,10 @@ class _$AltFeedStateCopyWithImpl<$Res> implements $AltFeedStateCopyWith<$Res> {
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      fromCache: null == fromCache
+          ? _self.fromCache
+          : fromCache // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 
@@ -160,7 +171,8 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
       this.hasMorePosts = true,
       this.error,
       this.isRefreshing = false,
-      this.lastPost})
+      this.lastPost,
+      this.fromCache = false})
       : _posts = posts;
 
   final List<PostModel> _posts;
@@ -184,6 +196,9 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
   final bool isRefreshing;
   @override
   final PostModel? lastPost;
+  @override
+  @JsonKey()
+  final bool fromCache;
 
   /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
@@ -202,7 +217,8 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isRefreshing', isRefreshing))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('fromCache', fromCache));
   }
 
   @override
@@ -219,7 +235,9 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
             (identical(other.isRefreshing, isRefreshing) ||
                 other.isRefreshing == isRefreshing) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.fromCache, fromCache) ||
+                other.fromCache == fromCache));
   }
 
   @override
@@ -230,11 +248,12 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
       hasMorePosts,
       const DeepCollectionEquality().hash(error),
       isRefreshing,
-      lastPost);
+      lastPost,
+      fromCache);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost)';
+    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache)';
   }
 }
 
@@ -252,7 +271,8 @@ abstract mixin class _$AltFeedStateCopyWith<$Res>
       bool hasMorePosts,
       Object? error,
       bool isRefreshing,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      bool fromCache});
 
   @override
   $PostModelCopyWith<$Res>? get lastPost;
@@ -277,6 +297,7 @@ class __$AltFeedStateCopyWithImpl<$Res>
     Object? error = freezed,
     Object? isRefreshing = null,
     Object? lastPost = freezed,
+    Object? fromCache = null,
   }) {
     return _then(_AltFeedState(
       posts: null == posts
@@ -300,6 +321,10 @@ class __$AltFeedStateCopyWithImpl<$Res>
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      fromCache: null == fromCache
+          ? _self.fromCache
+          : fromCache // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 

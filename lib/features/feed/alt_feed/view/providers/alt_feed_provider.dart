@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
 
+import '../../../../../core/services/cache_manager.dart';
 import '../../../data/repositories/feed_repository.dart';
 
 // Repository provider with Firebase Functions
@@ -14,18 +15,24 @@ final altFeedRepositoryProvider = Provider<FeedRepository>((ref) {
   );
 });
 
+final altFeedCacheManagerProvider = Provider<CacheManager>((ref) {
+  return CacheManager();
+});
+
 // ===== ALT FEED CONTROLLERS =====
 
 /// Controller for alt feed with pagination
 class AltFeedController extends StateNotifier<AltFeedState> {
   final FeedRepository repository;
+  final CacheManager cacheManager;
   final String? userId;
   final int pageSize;
   bool _showHerdPosts = true;
 
   bool get showHerdPosts => _showHerdPosts;
 
-  AltFeedController(this.repository, this.userId, {this.pageSize = 15})
+  AltFeedController(this.repository, this.userId, this.cacheManager,
+      {this.pageSize = 15})
       : super(AltFeedState.initial());
 
   /// Toggle whether to show herd posts in the alt feed
@@ -35,7 +42,8 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   }
 
   /// Load initial alt feed posts
-  Future<void> loadInitialPosts({String? overrideUserId}) async {
+  Future<void> loadInitialPosts(
+      {String? overrideUserId, bool forceRefresh = false}) async {
     try {
       // Don't reload if already loading
       if (state.isLoading) return;
@@ -51,7 +59,24 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         return;
       }
 
-      // Try cloud function first
+      // Try to load from cache if not forcing refresh
+      if (!forceRefresh) {
+        final cachedPosts =
+            await cacheManager.getFeed(effectiveUserId, isAlt: true);
+
+        if (cachedPosts.isNotEmpty) {
+          state = state.copyWith(
+            posts: cachedPosts,
+            isLoading: false,
+            hasMorePosts: cachedPosts.length >= pageSize,
+            lastPost: cachedPosts.isNotEmpty ? cachedPosts.last : null,
+            fromCache: true, // New field to indicate cache source
+          );
+          return;
+        }
+      }
+
+      // Try cloud function first if no cache or forcing refresh
       try {
         final posts = await repository.getFeedFromFunction(
           userId: effectiveUserId,
@@ -59,11 +84,15 @@ class AltFeedController extends StateNotifier<AltFeedState> {
           limit: pageSize,
         );
 
+        // Cache the results
+        await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
+
         state = state.copyWith(
           posts: posts,
           isLoading: false,
           hasMorePosts: posts.length >= pageSize,
           lastPost: posts.isNotEmpty ? posts.last : null,
+          fromCache: false,
         );
         return;
       } catch (e) {
@@ -74,11 +103,15 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       // Use the global alt feed as fallback
       final posts = await repository.getGlobalAltFeed(limit: pageSize);
 
+      // Cache the global feed results
+      await cacheManager.cacheFeed(posts, 'global', isAlt: true);
+
       state = state.copyWith(
         posts: posts,
         isLoading: false,
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
+        fromCache: false,
       );
     } catch (e) {
       state = state.copyWith(
@@ -171,46 +204,14 @@ class AltFeedController extends StateNotifier<AltFeedState> {
     }
   }
 
-  /// Refresh the feed (pull-to-refresh)
   Future<void> refreshFeed() async {
     try {
       if (userId == null) return;
 
       state = state.copyWith(isRefreshing: true, error: null);
 
-      // Try cloud function first
-      try {
-        final posts = await repository.getFeedFromFunction(
-          userId: userId!,
-          feedType: 'alt',
-          limit: pageSize,
-        );
-
-        state = state.copyWith(
-          posts: posts,
-          isRefreshing: false,
-          isLoading: false,
-          hasMorePosts: posts.length >= pageSize,
-          lastPost: posts.isNotEmpty ? posts.last : null,
-        );
-        return;
-      } catch (e) {
-        // Fall back to direct Firestore query
-        print('Falling back to direct Firestore query: $e');
-      }
-
-      // Use the global alt feed for refresh
-      final posts = await repository.getGlobalAltFeed(
-        limit: pageSize,
-      );
-
-      state = state.copyWith(
-        posts: posts,
-        isRefreshing: false,
-        isLoading: false,
-        hasMorePosts: posts.length >= pageSize,
-        lastPost: posts.isNotEmpty ? posts.last : null,
-      );
+      // Force refresh always loads fresh data from server
+      await loadInitialPosts(forceRefresh: true);
     } catch (e) {
       state = state.copyWith(
         isRefreshing: false,
@@ -219,6 +220,55 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       );
     }
   }
+
+  /// Refresh the feed (pull-to-refresh)
+  // Future<void> refreshFeed() async {
+  //   try {
+  //     if (userId == null) return;
+  //
+  //     state = state.copyWith(isRefreshing: true, error: null);
+  //
+  //     // Try cloud function first
+  //     try {
+  //       final posts = await repository.getFeedFromFunction(
+  //         userId: userId!,
+  //         feedType: 'alt',
+  //         limit: pageSize,
+  //       );
+  //
+  //       state = state.copyWith(
+  //         posts: posts,
+  //         isRefreshing: false,
+  //         isLoading: false,
+  //         hasMorePosts: posts.length >= pageSize,
+  //         lastPost: posts.isNotEmpty ? posts.last : null,
+  //       );
+  //       return;
+  //     } catch (e) {
+  //       // Fall back to direct Firestore query
+  //       print('Falling back to direct Firestore query: $e');
+  //     }
+  //
+  //     // Use the global alt feed for refresh
+  //     final posts = await repository.getGlobalAltFeed(
+  //       limit: pageSize,
+  //     );
+  //
+  //     state = state.copyWith(
+  //       posts: posts,
+  //       isRefreshing: false,
+  //       isLoading: false,
+  //       hasMorePosts: posts.length >= pageSize,
+  //       lastPost: posts.isNotEmpty ? posts.last : null,
+  //     );
+  //   } catch (e) {
+  //     state = state.copyWith(
+  //       isRefreshing: false,
+  //       isLoading: false,
+  //       error: e,
+  //     );
+  //   }
+  // }
 
   /// Handle post like
   Future<void> likePost(String postId) async {
@@ -298,5 +348,9 @@ final altFeedControllerProvider =
   final repository = ref.watch(altFeedRepositoryProvider);
   final user = ref.watch(authProvider);
 
-  return AltFeedController(repository, user?.uid);
+  return AltFeedController(
+    repository,
+    user?.uid,
+    ref.watch(altFeedCacheManagerProvider),
+  );
 });

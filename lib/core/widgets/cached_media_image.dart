@@ -96,11 +96,26 @@ class _CachedMediaImageState extends ConsumerState<CachedMediaImage> {
         mediaType: widget.mediaType,
       );
 
+      if (cachedPath != null) {
+        // Check if the file actually exists
+        final file = File(cachedPath);
+        if (!await file.exists()) {
+          debugPrint('⚠️ Cached file doesn\'t exist: $cachedPath');
+          cachedPath = null;
+        }
+      }
+
       // If not cached, try caching it
-      cachedPath ??= await cacheService.cacheMediaFromUrl(
-        widget.imageUrl,
-        mediaType: widget.mediaType,
-      );
+      if (cachedPath == null) {
+        try {
+          cachedPath = await cacheService.cacheMediaFromUrl(
+            widget.imageUrl,
+            mediaType: widget.mediaType,
+          );
+        } catch (e) {
+          debugPrint('⚠️ Error caching from URL: $e');
+        }
+      }
 
       // If we have a thumbnail URL and no high-res image yet, use thumbnail as fallback
       if (cachedPath == null &&
