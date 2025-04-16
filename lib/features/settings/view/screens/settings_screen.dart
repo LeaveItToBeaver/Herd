@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/user/view/providers/user_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../user/view/providers/user_settings_provider.dart';
 import 'cache_settings_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -18,6 +21,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isLoading = false;
   String _appVersion = '';
+  Timer? _debounceTimer;
+  bool _isUpdatingPreference = false;
 
   // User preferences
   bool _allowNSFWContent = false;
@@ -26,16 +31,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isOver18 = false;
 
   @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _loadAppInfo();
-    _loadUserPreferences();
   }
 
   Future<void> _loadAppInfo() async {
     final packageInfo = await PackageInfo.fromPlatform();
     setState(() {
       _appVersion = '${packageInfo.version} (${packageInfo.buildNumber})';
+    });
+  }
+
+  Future<void> _debouncedSavePreference(String key, dynamic value) async {
+    // Cancel any previous timer
+    _debounceTimer?.cancel();
+
+    // Don't start a new timer if we're already updating
+    if (_isUpdatingPreference) return;
+
+    // Start a new timer
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (mounted) {
+        setState(() => _isUpdatingPreference = true);
+
+        try {
+          await _savePreference(key, value);
+        } finally {
+          if (mounted) {
+            setState(() => _isUpdatingPreference = false);
+          }
+        }
+      }
     });
   }
 
@@ -105,9 +138,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _updateUserModelNSFWSettings(bool allowNSFW) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    try {
+      // Get user repository from provider
+      final userRepository = ref.read(userRepositoryProvider);
+
+      // Update user model with the new NSFW settings
+      await userRepository.updateUser(currentUser.uid, {
+        'allowNSFW': allowNSFW,
+        // We're updating the user's preference to allow NSFW content,
+        // not marking the user profile itself as NSFW
+      });
+
+      if (mounted) {
+        // Update was successful
+        debugPrint('User NSFW settings updated: allowNSFW=$allowNSFW');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating NSFW settings: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settingsState = ref.watch(currentUserSettingsProvider);
+    final settingsNotifier = ref.watch(currentUserSettingsProvider.notifier);
     final theme = Theme.of(context);
+
+    if (settingsState.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -122,7 +191,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   // Account Section
                   _buildExpandableSection(
-                    title: 'Account',
+                    title:
+                        'Content${_isUpdatingPreference ? ' (Saving...)' : ''}',
                     isInitiallyExpanded: false,
                     children: [
                       ListTile(
@@ -171,23 +241,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       SwitchListTile(
                         title: const Text('Allow NSFW Content'),
                         subtitle: Text(
-                          _isOver18
+                          settingsState.isOver18
                               ? 'Show content marked as NSFW'
                               : 'You must be 18+ to enable this setting',
                         ),
-                        value: _allowNSFWContent,
-                        secondary: const Icon(Icons.explicit),
-                        onChanged: _isOver18
-                            ? (value) {
-                                setState(() => _allowNSFWContent = value);
-                                _savePreference('allowNSFWContent', value);
-                              }
+                        value: settingsState.allowNSFWContent,
+                        secondary: settingsState
+                                .isFieldUpdating('allowNSFWContent')
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.explicit),
+                        onChanged: settingsState.isOver18
+                            ? (value) =>
+                                settingsNotifier.updateAllowNSFWContent(value)
                             : null,
                       ),
-                      if (!_isOver18)
+                      if (!settingsState.isOver18)
                         CheckboxListTile(
                           title: const Text('I confirm that I am 18 or older'),
-                          value: _isOver18,
+                          value: settingsState.isOver18,
                           onChanged: (value) {
                             if (value ?? false) {
                               _showAgeVerificationDialog();
@@ -198,23 +274,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         title: const Text('Blur NSFW Content'),
                         subtitle:
                             const Text('Blur images and videos marked as NSFW'),
-                        value: _blurNSFWContent,
-                        secondary: const Icon(Icons.blur_on),
-                        onChanged: (value) {
-                          setState(() => _blurNSFWContent = value);
-                          _savePreference('blurNSFWContent', value);
-                        },
+                        value: settingsState.blurNSFWContent,
+                        secondary: settingsState
+                                .isFieldUpdating('blurNSFWContent')
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.blur_on),
+                        onChanged: (value) =>
+                            settingsNotifier.updateBlurNSFWContent(value),
                       ),
                       SwitchListTile(
                         title: const Text('Show Herds in Alt Feed'),
                         subtitle: const Text(
                             'Allow herd posts to appear in your alt feed'),
-                        value: _showHerdsInAltFeed,
-                        secondary: const Icon(Icons.group),
-                        onChanged: (value) {
-                          setState(() => _showHerdsInAltFeed = value);
-                          _savePreference('showHerdsInAltFeed', value);
-                        },
+                        value: settingsState.showHerdsInAltFeed,
+                        secondary: settingsState
+                                .isFieldUpdating('showHerdsInAltFeed')
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.group),
+                        onChanged: (value) =>
+                            settingsNotifier.updateShowHerdsInAltFeed(value),
                       ),
                       ListTile(
                         leading: const Icon(Icons.tune),
@@ -340,8 +428,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // Placeholder dialogs and navigation functions
+  Future<void> _showAgeVerificationDialog() async {
+    final settings = ref.read(currentUserSettingsProvider.notifier);
 
-  void _showAgeVerificationDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -358,12 +447,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              setState(() {
-                _isOver18 = true;
-                _allowNSFWContent = true;
-              });
-              _savePreference('isOver18', true);
-              _savePreference('allowNSFWContent', true);
+              settings.updateIsOver18(true);
             },
             child: const Text('I Confirm'),
           ),

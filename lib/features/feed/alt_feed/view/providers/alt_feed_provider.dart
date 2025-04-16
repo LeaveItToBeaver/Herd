@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
@@ -97,7 +98,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         return;
       } catch (e) {
         // Fall back to direct Firestore query
-        print('Falling back to direct Firestore query: $e');
+        if (kDebugMode) {
+          print('Falling back to direct Firestore query: $e');
+        }
       }
 
       // Use the global alt feed as fallback

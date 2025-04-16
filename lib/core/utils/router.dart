@@ -13,7 +13,9 @@ import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
 import '../../features/herds/view/screens/edit_herd_screen.dart';
 import '../../features/herds/view/screens/herd_screen.dart';
+import '../../features/post/data/models/post_media_model.dart';
 import '../../features/post/view/screens/edit_post_screen.dart';
+import '../../features/post/view/screens/fullscreen_gallery_screen.dart';
 import '../../features/user/data/models/user_model.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -54,8 +56,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      if (isLoggedIn && isGoingToAuth) {
-        return currentFeed == FeedType.alt ? '/altFeed' : '/publicFeed';
+      if (state.matchedLocation == '/') {
+        if (isLoggedIn) {
+          // Send to appropriate feed based on current feed type
+          return currentFeed == FeedType.alt ? '/altFeed' : '/publicFeed';
+        } else {
+          // Not logged in, send to login
+          return '/login';
+        }
       }
 
       // Allow all other navigation
@@ -64,26 +72,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        redirect: (_, __) => '/splash',
+        redirect: (_, __) =>
+            '/splash', // This will then be handled by the main redirect function
       ),
 
-      // Authentication routes //
+      // Authentication routes
+      GoRoute(
+        path: '/login',
+        name: 'login', // Added name for named navigation
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: LoginScreen()),
+      ),
+      GoRoute(
+        path: '/signup',
+        name: 'signup', // Added name for named navigation
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: SignUpScreen()),
+      ),
       GoRoute(
         path: '/splash',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SplashScreen()),
-      ),
-
-      GoRoute(
-        path: '/login',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: LoginScreen()),
-      ),
-
-      GoRoute(
-        path: '/signup',
-        pageBuilder: (context, state) =>
-            const NoTransitionPage(child: SignUpScreen()),
       ),
 
       GoRoute(
@@ -185,7 +194,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Comment Thread Route
       // Comment Thread Route
       GoRoute(
         path: '/commentThread',
@@ -504,6 +512,131 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             child: PostScreen(
               postId: postId,
               isAlt: isAlt,
+            ),
+          );
+        },
+      ),
+
+      // Add this GoRoute entry to your routes array in the goRouterProvider
+// Place it before or after the post route
+
+      GoRoute(
+        path: '/gallery/:postId',
+        name: 'gallery',
+        parentNavigatorKey:
+            rootNavigatorKey, // Use root navigator for fullscreen experience
+        pageBuilder: (context, state) {
+          final postId = state.pathParameters['postId']!;
+
+          // Extract query parameters
+          final initialIndex =
+              int.tryParse(state.uri.queryParameters['index'] ?? '0') ?? 0;
+          final isAlt = state.uri.queryParameters['isAlt'] == 'true';
+
+          // We need to get the media items from the post
+          // So we'll have to use a FutureBuilder or Consumer to get the post data
+          return MaterialPage(
+            key: state.pageKey,
+            // Use MaterialPage instead of NoTransitionPage for proper transition
+            child: Consumer(
+              builder: (context, ref, _) {
+                // Use the appropriate provider based on whether it's an alt post
+                final postAsync = ref.watch(
+                  isAlt
+                      ? postProviderWithPrivacy(
+                          PostParams(id: postId, isAlt: true))
+                      : postProvider(postId),
+                );
+
+                return postAsync.when(
+                  loading: () => const Scaffold(
+                    backgroundColor: Colors.black,
+                    body: Center(
+                        child: CircularProgressIndicator(color: Colors.white)),
+                  ),
+                  error: (error, stack) => Scaffold(
+                    backgroundColor: Colors.black,
+                    appBar: AppBar(
+                      backgroundColor: Colors.black,
+                      leading: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => context.pop(),
+                      ),
+                    ),
+                    body: Center(
+                      child: Text(
+                        'Error loading gallery: $error',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  data: (post) {
+                    if (post == null) {
+                      return Scaffold(
+                        backgroundColor: Colors.black,
+                        appBar: AppBar(
+                          backgroundColor: Colors.black,
+                          leading: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => context.pop(),
+                          ),
+                        ),
+                        body: const Center(
+                          child: Text(
+                            'Post not found',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Extract the media items from the post
+                    List<PostMediaModel> mediaItems = [];
+
+                    // Check for new media items format first
+                    if (post.mediaItems != null && post.mediaItems.isNotEmpty) {
+                      mediaItems = post.mediaItems;
+                    }
+                    // Fall back to legacy format
+                    else if (post.mediaURL != null &&
+                        post.mediaURL!.isNotEmpty) {
+                      mediaItems.add(PostMediaModel(
+                        id: '0',
+                        url: post.mediaURL!,
+                        thumbnailUrl: post.mediaThumbnailURL,
+                        mediaType: post.mediaType ?? 'image',
+                      ));
+                    }
+
+                    if (mediaItems.isEmpty) {
+                      return Scaffold(
+                        backgroundColor: Colors.black,
+                        appBar: AppBar(
+                          backgroundColor: Colors.black,
+                          leading: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => context.pop(),
+                          ),
+                        ),
+                        body: const Center(
+                          child: Text(
+                            'No media found in this post',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Return the fullscreen gallery with the media items
+                    return FullscreenGalleryScreen(
+                      mediaItems: mediaItems,
+                      initialIndex:
+                          initialIndex < mediaItems.length ? initialIndex : 0,
+                      postId: postId,
+                    );
+                  },
+                );
+              },
             ),
           );
         },

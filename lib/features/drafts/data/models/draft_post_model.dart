@@ -15,6 +15,7 @@ abstract class DraftPostModel with _$DraftPostModel {
     String? title,
     required String content,
     @Default(false) bool isAlt,
+    @Default(false) bool isNSFW,
     String? herdId,
     String? herdName,
     DateTime? createdAt,
@@ -29,6 +30,7 @@ abstract class DraftPostModel with _$DraftPostModel {
       title: map['title'],
       content: map['content'] ?? '',
       isAlt: map['isAlt'] ?? false,
+      isNSFW: map['isNSFW'] ?? false,
       herdId: map['herdId'],
       herdName: map['herdName'],
       createdAt: _parseDateTime(map['createdAt']),
@@ -54,6 +56,7 @@ abstract class DraftPostModel with _$DraftPostModel {
       'title': title,
       'content': content,
       'isAlt': isAlt,
+      'isNSFW': isNSFW,
       'herdId': herdId,
       'herdName': herdName,
       'createdAt': createdAt != null

@@ -379,7 +379,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Sign Up Button
                   OutlinedButton(
-                    onPressed: () => context.go('/signup'),
+                    onPressed: () => context.goNamed('signup'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 56),
                       side: BorderSide(color: theme.colorScheme.primary),
