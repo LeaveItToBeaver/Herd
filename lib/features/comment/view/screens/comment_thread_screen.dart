@@ -6,6 +6,7 @@ import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/comment/view/providers/comment_providers.dart';
 import 'package:herdapp/features/comment/view/widgets/comment_widget.dart';
 import 'package:herdapp/features/navigation/view/widgets/BottomNavPadding.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
 import 'package:image_cropper/image_cropper.dart';
 
@@ -24,9 +25,13 @@ import '../providers/reply_providers.dart';
 class CommentThreadScreen extends ConsumerStatefulWidget {
   final String commentId;
   final String postId;
+  final bool isAltPost;
 
   const CommentThreadScreen(
-      {super.key, required this.commentId, required this.postId});
+      {super.key,
+      required this.isAltPost,
+      required this.commentId,
+      required this.postId});
 
   @override
   ConsumerState<CommentThreadScreen> createState() =>
@@ -58,7 +63,14 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
   Widget build(BuildContext context) {
     final threadState = ref.watch(commentThreadProvider(
         (commentId: widget.commentId, postId: widget.postId)));
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
+
+    // Get user data for UI
+    final user = currentUserAsync.userOrNull;
+    final profileImageUrl = widget.isAltPost
+        ? currentUserAsync.safeAltProfileImageURL ??
+            currentUserAsync.safeProfileImageURL
+        : currentUserAsync.safeProfileImageURL;
 
     if (threadState == null) {
       return Scaffold(
@@ -191,7 +203,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
           ),
 
           // Reply input area
-          if (currentUser != null)
+          if (currentUserAsync.exists)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -211,15 +223,12 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                     children: [
                       // User avatar
                       CircleAvatar(
-                        radius: 16,
-                        backgroundImage: currentUser.profileImageURL != null
-                            ? NetworkImage(isAltPost
-                                ? (currentUser.altProfileImageURL ??
-                                    currentUser.profileImageURL!)
-                                : currentUser.profileImageURL!)
+                        radius: 20,
+                        backgroundImage: profileImageUrl != null
+                            ? NetworkImage(profileImageUrl)
                             : null,
-                        child: currentUser.profileImageURL == null
-                            ? const Icon(Icons.person, size: 16)
+                        child: profileImageUrl == null
+                            ? const Icon(Icons.person)
                             : null,
                       ),
                       const SizedBox(width: 8),
@@ -335,8 +344,9 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
       return;
     }
 
-    final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) {
+    final currentUserAsync = ref.read(currentUserProvider);
+    final userId = currentUserAsync.userId;
+    if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to reply')),
       );
@@ -357,7 +367,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
       // Create the reply
       await ref.read(commentsProvider(postId).notifier).createComment(
-            authorId: currentUser.id,
+            authorId: userId,
             content: _replyController.text.trim(),
             parentId: widget.commentId,
             isAltPost: isAltPost,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../herds/view/providers/herd_providers.dart';
@@ -50,7 +51,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   void _initializePostInteraction() {
     // Only initialize once to avoid repeated calls
     if (!_hasInitializedInteraction && mounted) {
-      final userId = ref.read(currentUserProvider)?.id;
+      final user = ref.read(currentUserProvider);
+      final userId = user.userId;
       if (userId != null) {
         // Use a Future to avoid modifying state during build
         Future.microtask(() {
@@ -116,7 +118,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
               // Post Type Indicators
               if (widget.post.isAlt)
                 _buildTypeIndicator(
-                  icon: Icons.lock,
+                  icon: Icons.public,
                   label: 'Alt Post',
                   color: theme.colorScheme.primary,
                 ),
@@ -480,8 +482,9 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildPostMenu() {
-    final currentUserId = ref.read(currentUserProvider)?.id;
-    final isCurrentUserAuthor = currentUserId == widget.post.authorId;
+    final user = ref.read(currentUserProvider);
+    final userId = user.userId;
+    final isCurrentUserAuthor = userId == widget.post.authorId;
 
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
@@ -806,7 +809,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
   void _handleLikePost() {
     final user = ref.read(currentUserProvider);
-    final userId = user?.id;
+    final userId = user.userId;
 
     if (userId != null) {
       ref
@@ -823,7 +826,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
   void _handleDislikePost() {
     final user = ref.read(currentUserProvider);
-    final userId = user?.id;
+    final userId = user.userId;
 
     if (userId != null) {
       ref
@@ -857,7 +860,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
   void _showDeleteConfirmation(BuildContext context) {
     final user = ref.read(currentUserProvider);
-    if (user == null || user.id != widget.post.authorId) {
+    final userId = user.userId;
+    if (user == null || userId != widget.post.authorId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You can only delete your own posts')),
       );
@@ -888,7 +892,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
               try {
                 await ref.read(postControllerProvider.notifier).deletePost(
                       widget.post.id,
-                      user.id,
+                      userId!,
                       isAlt: widget.post.isAlt,
                       herdId: widget.post.herdId,
                     );

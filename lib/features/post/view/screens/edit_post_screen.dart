@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
 
 class EditPostScreen extends ConsumerStatefulWidget {
@@ -41,10 +42,11 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final userId = currentUserAsync.userId;
 
     // Security check: Only allow the author to edit their own post
-    if (currentUser == null || currentUser.id != widget.post.authorId) {
+    if (userId == null || userId != widget.post.authorId) {
       return Scaffold(
         appBar: AppBar(title: const Text('Edit Post')),
         body: const Center(
@@ -243,12 +245,13 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
     });
 
     try {
-      final currentUser = ref.read(currentUserProvider);
-      if (currentUser == null) throw Exception('User not logged in');
+      final currentUserAsync = ref.read(currentUserProvider);
+      final userId = currentUserAsync.userId;
+      if (userId == null) throw Exception('User not logged in');
 
       await ref.read(postControllerProvider.notifier).updatePost(
             postId: widget.post.id,
-            userId: currentUser.id,
+            userId: userId,
             title: _titleController.text,
             content: _contentController.text,
             isAlt: widget.post.isAlt,
