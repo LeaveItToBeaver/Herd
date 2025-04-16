@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../../../herds/view/providers/herd_providers.dart';
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
@@ -32,10 +33,11 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     if (!mounted) return;
 
     Future.microtask(() {
-      final currentUser = ref.read(currentUserProvider);
       final state = ref.read(altFeedControllerProvider);
+      final currentUserAsync = ref.read(currentUserProvider);
+      final userId = currentUserAsync.userId;
 
-      if (currentUser?.id == null || state.posts.isEmpty) return;
+      if (userId == null || state.posts.isEmpty) return;
 
       // Only refresh posts that are likely visible
       final visibleStartIndex = 0;
@@ -50,7 +52,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
               .read(postInteractionsWithPrivacyProvider(
                       PostParams(id: post.id, isAlt: post.isAlt))
                   .notifier)
-              .initializeState(currentUser!.id);
+              .initializeState(userId);
         }
       }
     });

@@ -1,9 +1,9 @@
-// lib/features/post/view/screens/fullscreen_gallery_screen.dart
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
+import 'package:herdapp/features/navigation/view/widgets/BottomNavPadding.dart'; // Import BottomNavPadding
 import 'package:share_plus/share_plus.dart';
 
 class FullscreenGalleryScreen extends ConsumerStatefulWidget {
@@ -36,9 +36,10 @@ class _FullscreenGalleryScreenState
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
 
-    // Hide status bar
+    // Change to a less restrictive UI mode that keeps navigation visible
     SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.immersiveSticky,
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
     );
   }
 
@@ -90,37 +91,39 @@ class _FullscreenGalleryScreenState
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Make sure we're not capturing too many gestures
-          PageView.builder(
-            controller: _pageController,
-            physics:
-                const ClampingScrollPhysics(), // Try a different scroll physics
-            itemCount: widget.mediaItems.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              final mediaItem = widget.mediaItems[index];
-              return GestureDetector(
-                onTap: _toggleControls,
-                onVerticalDragEnd: (details) {
-                  if (details.primaryVelocity! > 300) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: InteractiveViewer(
-                  minScale: 0.5,
-                  maxScale: 3.0,
-                  child: Center(
-                    child: mediaItem.mediaType == 'video'
-                        ? _buildVideoViewer(mediaItem)
-                        : _buildImageViewer(mediaItem),
+          // Media PageView
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _pageController,
+              // Change to a more responsive physics implementation
+              physics: const PageScrollPhysics(),
+              itemCount: widget.mediaItems.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final mediaItem = widget.mediaItems[index];
+                return GestureDetector(
+                  onTap: _toggleControls,
+                  onVerticalDragEnd: (details) {
+                    if (details.primaryVelocity! > 300) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 3.0,
+                    child: Center(
+                      child: mediaItem.mediaType == 'video'
+                          ? _buildVideoViewer(mediaItem)
+                          : _buildImageViewer(mediaItem),
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
 
           // Controls overlay
@@ -183,7 +186,7 @@ class _FullscreenGalleryScreenState
                                 onPressed: _isSharing
                                     ? null
                                     : () => _shareMedia(
-                                        widget.mediaItems[_currentIndex]),
+                                    widget.mediaItems[_currentIndex]),
                               ),
                             ],
                           ),
@@ -210,7 +213,7 @@ class _FullscreenGalleryScreenState
                                     onPressed: () {
                                       _pageController.previousPage(
                                         duration:
-                                            const Duration(milliseconds: 300),
+                                        const Duration(milliseconds: 300),
                                         curve: Curves.easeInOut,
                                       );
                                     },
@@ -224,7 +227,7 @@ class _FullscreenGalleryScreenState
                                     onPressed: () {
                                       _pageController.nextPage(
                                         duration:
-                                            const Duration(milliseconds: 300),
+                                        const Duration(milliseconds: 300),
                                         curve: Curves.easeInOut,
                                       );
                                     },
@@ -237,11 +240,11 @@ class _FullscreenGalleryScreenState
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: List.generate(
                                 widget.mediaItems.length,
-                                (index) => Container(
+                                    (index) => Container(
                                   width: 8,
                                   height: 8,
                                   margin:
-                                      const EdgeInsets.symmetric(horizontal: 4),
+                                  const EdgeInsets.symmetric(horizontal: 4),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: _currentIndex == index
@@ -258,6 +261,14 @@ class _FullscreenGalleryScreenState
                 ),
               ),
             ),
+          ),
+
+          // Add bottom padding to ensure content doesn't stick to bottom of screen
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: BottomNavPadding(height: 80),
           ),
         ],
       ),

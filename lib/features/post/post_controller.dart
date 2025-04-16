@@ -10,6 +10,7 @@ import 'package:herdapp/features/post/view/providers/state/create_post_state.dar
 import 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../herds/data/repositories/herd_repository.dart';
 import '../user/view/providers/current_user_provider.dart';
@@ -271,7 +272,8 @@ final postProvider = StreamProvider.family<PostModel?, String>((ref, postId) {
 final isPostLikedByUserProvider =
     FutureProvider.family<bool, String>((ref, postId) async {
   final postRepository = ref.watch(postRepositoryProvider);
-  final userId = ref.read(currentUserProvider)?.id;
+  final user = ref.read(currentUserProvider);
+  final userId = user.userId;
   if (userId == null) return false;
   return postRepository.isPostLikedByUser(postId: postId, userId: userId);
 });
@@ -280,7 +282,8 @@ final isPostLikedByUserProvider =
 final isPostDislikedByUserProvider =
     FutureProvider.family<bool, String>((ref, postId) async {
   final postRepository = ref.watch(postRepositoryProvider);
-  final userId = ref.read(currentUserProvider)?.id;
+  final user = ref.read(currentUserProvider);
+  final userId = user.userId;
   if (userId == null) return false;
   return postRepository.isPostDislikedByUser(postId: postId, userId: userId);
 });

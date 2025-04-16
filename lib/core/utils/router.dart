@@ -186,17 +186,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Comment Thread Route
+      // Comment Thread Route
       GoRoute(
         path: '/commentThread',
         name: 'commentThread',
         parentNavigatorKey: rootNavigatorKey, // Use root navigator
         pageBuilder: (context, state) {
+          // Extract all parameters from state.extra
           final commentId = state.extra != null
               ? (state.extra as Map<String, dynamic>)['commentId'] as String
               : '';
           final postId = state.extra != null
               ? (state.extra as Map<String, dynamic>)['postId'] as String
               : '';
+          final isAltPost = state.extra != null
+              ? (state.extra as Map<String, dynamic>)['isAltPost'] as bool? ??
+                  false
+              : false;
 
           if (commentId.isEmpty) {
             return const NoTransitionPage(
@@ -209,7 +215,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           }
 
           return NoTransitionPage(
-            child: CommentThreadScreen(commentId: commentId, postId: postId),
+            child: CommentThreadScreen(
+              commentId: commentId,
+              postId: postId,
+              isAltPost: isAltPost,
+            ),
           );
         },
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AppColors {
+class AppTheme {
   // Primary brand colors
   static const Color primary = Color(0xFF3D5AFE); // Indigo accent
   static const Color primaryDark = Color(0xFF0031CA); // Darker shade

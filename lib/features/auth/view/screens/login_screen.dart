@@ -96,10 +96,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final auth = ref.read(authProvider.notifier);
-      var authProcess = await auth.signIn(email, password);
+      final userCredential = await auth.signIn(email, password);
 
-      if (mounted && authProcess.user != null) {
-        context.go('/profile');
+      if (userCredential.user != null) {
+        // Wait for Firestore data to be loaded
+        await ref.read(currentUserProvider.notifier).fetchCurrentUser();
+
+        if (mounted) {
+          context.go('/profile');
+        }
       } else if (mounted) {
         ref.read(loginFormProvider.notifier).state = LoginFormState(
           emailError: 'Login failed. Please try again.',

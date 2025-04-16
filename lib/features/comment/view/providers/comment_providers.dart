@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/comment/view/providers/reply_providers.dart';
 import 'package:herdapp/features/comment/view/providers/state/comment_state.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../data/models/comment_model.dart';
@@ -395,8 +396,13 @@ final commentInteractionProvider = StateNotifierProvider.family<
     CommentInteractionState,
     ({String commentId, String postId})>((ref, params) {
   final repository = ref.watch(commentRepositoryProvider);
-  return CommentInteractionNotifier(repository, params.commentId,
-      ref.read(currentUserProvider)?.id ?? '', params.postId);
+  final currentUser = ref.read(currentUserProvider);
+
+  // Use the extension method to safely extract the ID
+  final userId = currentUser.userId ?? '';
+
+  return CommentInteractionNotifier(
+      repository, params.commentId, userId, params.postId);
 });
 
 class CommentInteractionNotifier
