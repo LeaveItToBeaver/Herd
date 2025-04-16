@@ -855,6 +855,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             mediaFiles: _mediaFiles,
             userId: currentUser.id,
             isAlt: _isAlt,
+            isNSFW: _isNSFW,
             herdId: _selectedHerdId ?? '',
             herdName: _selectedHerdName ?? '',
             herdProfileImageURL: _selectHerdProfileImageUrl ?? '',

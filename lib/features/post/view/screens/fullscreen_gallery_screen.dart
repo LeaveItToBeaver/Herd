@@ -1,9 +1,9 @@
+// lib/features/post/view/screens/fullscreen_gallery_screen.dart
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
-import 'package:herdapp/features/navigation/view/widgets/BottomNavPadding.dart'; // Import BottomNavPadding
 import 'package:share_plus/share_plus.dart';
 
 class FullscreenGalleryScreen extends ConsumerStatefulWidget {
@@ -35,21 +35,11 @@ class _FullscreenGalleryScreenState
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
-
-    // Change to a less restrictive UI mode that keeps navigation visible
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
-    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    // Show status bar again
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.edgeToEdge,
-    );
     super.dispose();
   }
 
@@ -89,14 +79,62 @@ class _FullscreenGalleryScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Media PageView
-          Positioned.fill(
-            child: PageView.builder(
+      // AppBar provides the back button and system UI restoration
+      appBar: _showControls
+          ? AppBar(
+              backgroundColor: Colors.black,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => context.pop(),
+              ),
+              actions: [
+                if (widget.mediaItems.length > 1)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        '${_currentIndex + 1}/${widget.mediaItems.length}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  icon: Icon(
+                    _isSharing ? Icons.share_outlined : Icons.share,
+                    color: Colors.white,
+                  ),
+                  onPressed: _isSharing
+                      ? null
+                      : () => _shareMedia(widget.mediaItems[_currentIndex]),
+                ),
+                const SizedBox(width: 8),
+              ],
+            )
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(0),
+              child: AppBar(
+                backgroundColor: Colors.black,
+                elevation: 0,
+                toolbarHeight: 0,
+              ),
+            ),
+      body: GestureDetector(
+        onTap: _toggleControls,
+        // Handle vertical swipe to dismiss
+        onVerticalDragEnd: (details) {
+          if (details.primaryVelocity != null &&
+              details.primaryVelocity! > 300) {
+            context.pop();
+          }
+        },
+        child: Stack(
+          children: [
+            // Main PageView for swiping through images
+            PageView.builder(
               controller: _pageController,
-              // Change to a more responsive physics implementation
-              physics: const PageScrollPhysics(),
+              // Use clamping physics for better swipe feel
+              physics: const ClampingScrollPhysics(),
               itemCount: widget.mediaItems.length,
               onPageChanged: (index) {
                 setState(() {
@@ -105,172 +143,80 @@ class _FullscreenGalleryScreenState
               },
               itemBuilder: (context, index) {
                 final mediaItem = widget.mediaItems[index];
-                return GestureDetector(
-                  onTap: _toggleControls,
-                  onVerticalDragEnd: (details) {
-                    if (details.primaryVelocity! > 300) {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 3.0,
-                    child: Center(
-                      child: mediaItem.mediaType == 'video'
-                          ? _buildVideoViewer(mediaItem)
-                          : _buildImageViewer(mediaItem),
-                    ),
+                return InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 3.0,
+                  child: Center(
+                    child: mediaItem.mediaType == 'video'
+                        ? _buildVideoViewer(mediaItem)
+                        : _buildImageViewer(mediaItem),
                   ),
                 );
               },
             ),
-          ),
 
-          // Controls overlay
-          AnimatedOpacity(
-            opacity: _showControls ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.center,
-                  colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.transparent,
+            // Bottom navigation controls - only shown when _showControls is true
+            if (_showControls && widget.mediaItems.length > 1)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 50,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_currentIndex > 0)
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios,
+                            color: Colors.white),
+                        onPressed: () {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                      ),
+                    const SizedBox(width: 20),
+                    if (_currentIndex < widget.mediaItems.length - 1)
+                      IconButton(
+                        icon: const Icon(Icons.arrow_forward_ios,
+                            color: Colors.white),
+                        onPressed: () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    // Top controls
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          Row(
-                            children: [
-                              if (widget.mediaItems.length > 1)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    '${_currentIndex + 1}/${widget.mediaItems.length}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(width: 16),
-                              IconButton(
-                                icon: Icon(
-                                  _isSharing
-                                      ? Icons.share_outlined
-                                      : Icons.share,
-                                  color: Colors.white,
-                                ),
-                                onPressed: _isSharing
-                                    ? null
-                                    : () => _shareMedia(
-                                    widget.mediaItems[_currentIndex]),
-                              ),
-                            ],
-                          ),
-                        ],
+
+            // Page indicators
+            if (_showControls && widget.mediaItems.length > 1)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 20,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    widget.mediaItems.length,
+                    (index) => Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _currentIndex == index
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.5),
                       ),
                     ),
-
-                    const Spacer(),
-
-                    // Bottom indicator and navigation buttons
-                    if (widget.mediaItems.length > 1)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 20.0),
-                        child: Column(
-                          children: [
-                            // Add navigation buttons for more obvious swiping
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (_currentIndex > 0)
-                                  IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios,
-                                        color: Colors.white),
-                                    onPressed: () {
-                                      _pageController.previousPage(
-                                        duration:
-                                        const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOut,
-                                      );
-                                    },
-                                  ),
-                                const SizedBox(width: 20),
-                                if (_currentIndex <
-                                    widget.mediaItems.length - 1)
-                                  IconButton(
-                                    icon: const Icon(Icons.arrow_forward_ios,
-                                        color: Colors.white),
-                                    onPressed: () {
-                                      _pageController.nextPage(
-                                        duration:
-                                        const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOut,
-                                      );
-                                    },
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // Dots indicator
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                widget.mediaItems.length,
-                                    (index) => Container(
-                                  width: 8,
-                                  height: 8,
-                                  margin:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _currentIndex == index
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.5),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-
-          // Add bottom padding to ensure content doesn't stick to bottom of screen
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: BottomNavPadding(height: 80),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -12,79 +12,9 @@ import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../../core/widgets/date_selector.dart';
 import '../widgets/custom_textfield.dart';
 import '../widgets/legal_document_widget.dart';
-
-class SignUpFormState {
-  final String? firstNameError;
-  final String? lastNameError;
-  final String? usernameError;
-  final String? emailError;
-  final String? passwordError;
-  final String? confirmPasswordError;
-  final String? bioError;
-  final bool isLoading;
-  final int currentStep;
-  final bool acceptedTerms;
-  final bool acceptedPrivacy;
-  final Map<String, dynamic> deviceInfo;
-  final File? profileImage;
-  final List<String> selectedInterests;
-
-  SignUpFormState({
-    this.firstNameError,
-    this.lastNameError,
-    this.usernameError,
-    this.emailError,
-    this.passwordError,
-    this.confirmPasswordError,
-    this.bioError,
-    this.isLoading = false,
-    this.currentStep = 0,
-    this.acceptedTerms = false,
-    this.acceptedPrivacy = false,
-    this.deviceInfo = const {},
-    this.profileImage,
-    this.selectedInterests = const [],
-  });
-
-  SignUpFormState copyWith({
-    String? firstNameError,
-    String? lastNameError,
-    String? usernameError,
-    String? emailError,
-    String? passwordError,
-    String? confirmPasswordError,
-    String? bioError,
-    bool? isLoading,
-    int? currentStep,
-    bool? acceptedTerms,
-    bool? acceptedPrivacy,
-    Map<String, dynamic>? deviceInfo,
-    File? profileImage,
-    List<String>? selectedInterests,
-  }) {
-    return SignUpFormState(
-      firstNameError: firstNameError,
-      lastNameError: lastNameError,
-      usernameError: usernameError,
-      emailError: emailError,
-      passwordError: passwordError,
-      confirmPasswordError: confirmPasswordError,
-      bioError: bioError,
-      isLoading: isLoading ?? this.isLoading,
-      currentStep: currentStep ?? this.currentStep,
-      acceptedTerms: acceptedTerms ?? this.acceptedTerms,
-      acceptedPrivacy: acceptedPrivacy ?? this.acceptedPrivacy,
-      deviceInfo: deviceInfo ?? this.deviceInfo,
-      profileImage: profileImage ?? this.profileImage,
-      selectedInterests: selectedInterests ?? this.selectedInterests,
-    );
-  }
-}
-
-final signUpFormProvider =
-    StateProvider<SignUpFormState>((ref) => SignUpFormState());
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -307,6 +237,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           return false;
         }
 
+        if (ref.read(signUpFormProvider).dateOfBirth == null) {
+          ref.read(signUpFormProvider.notifier).state =
+              ref.read(signUpFormProvider).copyWith(
+                    dateOfBirthError: 'Date of birth is required',
+                  );
+          return false;
+        }
+
         if (usernameController.text.trim().isEmpty) {
           ref.read(signUpFormProvider.notifier).state =
               ref.read(signUpFormProvider).copyWith(
@@ -317,6 +255,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
         if (ref.read(signUpFormProvider).usernameError != null) {
           // Username has an error (likely already taken)
+          return false;
+        }
+
+        final now = DateTime.now();
+        final thirteenYearsAgo = DateTime(now.year - 13, now.month, now.day);
+        if (ref
+            .read(signUpFormProvider)
+            .dateOfBirth!
+            .isAfter(thirteenYearsAgo)) {
+          ref.read(signUpFormProvider.notifier).state =
+              ref.read(signUpFormProvider).copyWith(
+                    dateOfBirthError: 'You must be at least 13 years old',
+                  );
           return false;
         }
 
@@ -527,6 +478,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         timezone: formState.deviceInfo['timezone'],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        dateOfBirth: formState.dateOfBirth,
       );
 
       // Create user document in Firestore
@@ -614,6 +566,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         },
       ),
     );
+  }
+
+  void _onDateOfBirthSelected(DateTime date) {
+    ref.read(signUpFormProvider.notifier).state =
+        ref.read(signUpFormProvider).copyWith(
+              dateOfBirth: date,
+              dateOfBirthError: null,
+            );
   }
 
   @override
@@ -761,6 +721,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                               }
                             },
                           ),
+
+                          const SizedBox(height: 16),
+
+                          DateSelector(
+                            initialDate: formState.dateOfBirth,
+                            onDateSelected: _onDateOfBirthSelected,
+                            labelText: 'Date of Birth',
+                            errorText: formState.dateOfBirthError,
+                          ),
+
                           const SizedBox(height: 16),
 
                           // Username field
