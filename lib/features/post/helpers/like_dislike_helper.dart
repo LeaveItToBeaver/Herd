@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../user/view/providers/current_user_provider.dart';
 import '../view/providers/post_provider.dart';
@@ -13,14 +14,14 @@ class LikeDislikeHelper {
     required bool isAlt,
   }) {
     final user = ref.read(currentUserProvider);
-    final userId = user?.id;
+    final userId = user.userId;
 
-    if (userId != null) {
+    if (user.userId != null) {
       ref
           .read(postInteractionsWithPrivacyProvider(
                   PostParams(id: postId, isAlt: isAlt))
               .notifier)
-          .likePost(userId, isAlt: isAlt);
+          .likePost(userId!, isAlt: isAlt);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to like posts.')),
@@ -35,7 +36,7 @@ class LikeDislikeHelper {
     required bool isAlt,
   }) {
     final user = ref.read(currentUserProvider);
-    final userId = user?.id;
+    final userId = user.userId;
 
     if (userId != null) {
       ref

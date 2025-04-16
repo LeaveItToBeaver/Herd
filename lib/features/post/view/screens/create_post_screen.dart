@@ -9,6 +9,7 @@ import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../../drafts/view/widgets/save_draft_dialog.dart';
 import '../../../navigation/view/widgets/BottomNavPadding.dart';
@@ -102,7 +103,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     final postState = ref.watch(postControllerProvider);
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUserAsync =
+        ref.watch(currentUserProvider); // Changed read to watch
+    final userId = currentUserAsync.userId;
     final currentFeed = ref.watch(currentFeedProvider);
 
     return PopScope(
@@ -136,15 +139,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 ),
             ],
           ),
-          body: currentUser == null
-              ? const Center(child: CircularProgressIndicator())
-              : postState.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stackTrace) =>
-                      _buildForm(context, currentUser),
-                  data: (_) => _buildForm(context, currentUser),
-                ),
+          body: currentUserAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(child: Text('Error: $error')),
+            data: (user) {
+              if (user == null) {
+                return const Center(
+                    child: Text('You must be logged in to create a post'));
+              }
+
+              return postState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => _buildForm(context, user),
+                data: (_) => _buildForm(context, user),
+              );
+            },
+          ),
         ),
       ),
     );

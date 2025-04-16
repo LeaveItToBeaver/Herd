@@ -3,6 +3,7 @@ import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/state/create_post_state.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../../comment/data/repositories/comment_repository.dart';
 import '../../../comment/view/providers/comment_providers.dart';
@@ -68,8 +69,8 @@ final postProviderWithPrivacy =
 // Providers for checking like/dislike status
 final isPostLikedByUserProvider =
     FutureProvider.family<bool, String>((ref, postId) async {
-  final user = ref.watch(currentUserProvider);
-  final userId = user?.id;
+  final currentUserAsync = ref.read(currentUserProvider);
+  final userId = currentUserAsync.userId;
 
   if (userId == null) {
     return false;
@@ -81,8 +82,8 @@ final isPostLikedByUserProvider =
 
 final isPostDislikedByUserProvider =
     FutureProvider.family<bool, String>((ref, postId) async {
-  final user = ref.watch(currentUserProvider);
-  final userId = user?.id;
+  final currentUserAsync = ref.read(currentUserProvider);
+  final userId = currentUserAsync.userId;
 
   if (userId == null) {
     return false;

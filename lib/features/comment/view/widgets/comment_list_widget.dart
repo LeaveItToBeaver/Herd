@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/comment/view/providers/comment_providers.dart';
 import 'package:herdapp/features/comment/view/widgets/comment_widget.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
 import 'package:image_cropper/image_cropper.dart';
 
@@ -61,7 +62,14 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
   Widget build(BuildContext context) {
     final commentsState = ref.watch(commentsProvider(widget.postId));
     final sortBy = ref.watch(commentSortProvider);
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
+
+    // Get user data for UI
+    final user = currentUserAsync.userOrNull;
+    final profileImageUrl = widget.isAltPost
+        ? currentUserAsync.safeAltProfileImageURL ??
+            currentUserAsync.safeProfileImageURL
+        : currentUserAsync.safeProfileImageURL;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -103,7 +111,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
         ),
 
         // Comment entry field
-        if (currentUser != null)
+        if (currentUserAsync.exists)
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -112,15 +120,11 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
                 // User avatar
                 CircleAvatar(
                   radius: 20,
-                  backgroundImage: currentUser.profileImageURL != null
-                      ? NetworkImage(widget.isAltPost
-                          ? (currentUser.altProfileImageURL ??
-                              currentUser.profileImageURL!)
-                          : currentUser.profileImageURL!)
+                  backgroundImage: profileImageUrl != null
+                      ? NetworkImage(profileImageUrl)
                       : null,
-                  child: currentUser.profileImageURL == null
-                      ? const Icon(Icons.person)
-                      : null,
+                  child:
+                      profileImageUrl == null ? const Icon(Icons.person) : null,
                 ),
                 const SizedBox(width: 12),
 
@@ -277,8 +281,10 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
       return;
     }
 
-    final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) {
+    final currentUserAsync = ref.read(currentUserProvider);
+    final userId = currentUserAsync.userId;
+
+    if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to comment')),
       );
@@ -289,7 +295,7 @@ class _CommentListWidgetState extends ConsumerState<CommentListWidget> {
 
     try {
       await ref.read(commentsProvider(widget.postId).notifier).createComment(
-          authorId: currentUser.id,
+          authorId: userId,
           content: _commentController.text.trim(),
           isAltPost: widget.isAltPost,
           mediaFile: _mediaFile,

@@ -2,6 +2,7 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../comment/view/providers/comment_providers.dart';
@@ -42,7 +43,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(currentUserProvider);
-      final userId = user?.id;
+      final userId = user.userId;
       if (userId != null) {
         // Use the updated provider with PostParams
         ref
@@ -118,7 +119,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         ? postProviderWithPrivacy(
             PostParams(id: widget.postId, isAlt: widget.isAlt))
         : postProvider(widget.postId));
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final currentUser = currentUserAsync.userOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -208,7 +210,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       ),
                     ),
 
-// NSFW badge - Add this section
+                  // NSFW badge - Add this section
                   if (post.isNSFW)
                     Container(
                       color: Colors.red.withOpacity(0.1),
@@ -239,7 +241,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                     ),
 
                   // Post content
-                  _buildPostContent(postAsyncValue, currentUser),
+                  _buildPostContent(postAsyncValue, currentUser!),
 
                   // Comments section header
                   Padding(
@@ -287,7 +289,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       await ref.read(repliesProvider(widget.postId).notifier).loadReplies();
 
       // Reload interaction data
-      final userId = ref.read(currentUserProvider)?.id;
+      final user = ref.read(currentUserProvider);
+      final userId = user.userId;
       if (userId != null) {
         // Use the existing interaction provider
         ref.invalidate(postInteractionsWithPrivacyProvider(
@@ -368,7 +371,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   }
 
   Widget _buildPostContent(
-      AsyncValue<dynamic> postAsyncValue, UserModel? currentUser) {
+      AsyncValue<dynamic> postAsyncValue, UserModel currentUser) {
     return postAsyncValue.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text('Error: $error')),
@@ -702,7 +705,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         ))
         .value;
 
-    if (user == null || post == null || user.id != post.authorId) {
+    if (user == null || post == null || user.userId != post.authorId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You can only delete your own posts')),
       );
@@ -733,7 +736,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
               try {
                 await ref.read(postControllerProvider.notifier).deletePost(
                       postId,
-                      user.id,
+                      user.userId!,
                       isAlt: post.isAlt,
                       herdId: post.herdId,
                     );
@@ -846,7 +849,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
   void _handleLikePost(BuildContext context, WidgetRef ref, String postId) {
     final user = ref.read(currentUserProvider);
-    final userId = user?.id;
+    final userId = user.userId;
 
     if (userId != null) {
       ref
@@ -863,7 +866,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
   void _handleDislikePost(BuildContext context, WidgetRef ref, String postId) {
     final user = ref.read(currentUserProvider);
-    final userId = user?.id;
+    final userId = user.userId;
 
     if (userId != null) {
       ref
@@ -884,8 +887,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     if (currentUser == null) return null;
 
     final profileImageUrl = widget.isAlt
-        ? (currentUser.altProfileImageURL ?? currentUser.profileImageURL)
-        : currentUser.profileImageURL;
+        ? (currentUser.safeAltProfileImageURL ??
+            currentUser.safeAltProfileImageURL)
+        : currentUser.safeAltProfileImageURL;
 
     return profileImageUrl != null
         ? NetworkImage(profileImageUrl)

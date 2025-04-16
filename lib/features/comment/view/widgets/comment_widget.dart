@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/comment/data/models/comment_model.dart';
 import 'package:herdapp/features/comment/view/providers/comment_providers.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -402,7 +403,8 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
           // Navigate to full thread view
           context.push('/commentThread', extra: {
             'commentId': widget.comment.id,
-            'postId': widget.comment.postId
+            'postId': widget.comment.postId,
+            'isAltPost': widget.comment.isAltPost,
           });
         },
         icon: const Icon(Icons.forum, size: 16),
@@ -416,7 +418,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
 
   // Like function with optimistic update
   void _handleLike() {
-    final userId = ref.read(currentUserProvider)?.id;
+    final userId = ref.read(currentUserProvider).userId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to like comments')),
@@ -433,7 +435,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
 
   // Dislike function with optimistic update
   void _handleDislike() {
-    final userId = ref.read(currentUserProvider)?.id;
+    final userId = ref.read(currentUserProvider).userId;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -442,6 +444,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       return;
     }
 
+    // This executes immediately for optimistic update, just like before
     ref
         .read(commentInteractionProvider(
                 (commentId: widget.comment.id, postId: widget.comment.postId))
@@ -613,8 +616,10 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
       return;
     }
 
-    final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) {
+    final userAsync = ref.read(currentUserProvider);
+    final user = userAsync.userOrNull; // Using our extension method to unwrap
+
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to reply')),
       );
@@ -625,7 +630,7 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
 
     try {
       await ref.read(commentsProvider(widget.postId).notifier).createComment(
-            authorId: currentUser.id,
+            authorId: user.id,
             content: _contentController.text.trim(),
             parentId: widget.parentId,
             isAltPost: widget.isAltPost,
@@ -633,6 +638,7 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
             ref: ref,
           );
 
+      // Rest of the function remains the same
       ref.invalidate(repliesProvider(widget.postId));
       ref.invalidate(commentThreadProvider(
           (commentId: widget.parentId, postId: widget.postId)));

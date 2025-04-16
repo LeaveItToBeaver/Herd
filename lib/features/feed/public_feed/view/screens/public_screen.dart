@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/public_feed_provider.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
+import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../../post/view/widgets/post_list_widget.dart';
@@ -31,10 +32,11 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     if (!mounted) return;
 
     Future.microtask(() {
-      final currentUser = ref.read(currentUserProvider);
       final state = ref.read(publicFeedControllerProvider);
+      final currentUserAsync = ref.read(currentUserProvider);
+      final userId = currentUserAsync.userId;
 
-      if (currentUser?.id == null || state.posts.isEmpty) return;
+      if (currentUserAsync.exists || state.posts.isEmpty) return;
 
       // Only refresh posts that are likely visible
       final visibleStartIndex = 0;
@@ -49,7 +51,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
               .read(postInteractionsWithPrivacyProvider(
                       PostParams(id: post.id, isAlt: post.isAlt))
                   .notifier)
-              .initializeState(currentUser!.id);
+              .initializeState(userId!);
         }
       }
     });
