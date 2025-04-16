@@ -12,7 +12,6 @@ import '../../data/models/post_media_model.dart';
 import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../providers/state/post_interaction_state.dart';
-import '../screens/fullscreen_gallery_screen.dart';
 import 'media_carousel_widget.dart';
 
 class PostWidget extends ConsumerStatefulWidget {
@@ -116,12 +115,25 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Post Type Indicators
-              if (widget.post.isAlt)
-                _buildTypeIndicator(
-                  icon: Icons.public,
-                  label: 'Alt Post',
-                  color: theme.colorScheme.primary,
-                ),
+              widget.post.isAlt && !widget.post.isNSFW
+                  ? _buildTypeIndicator(
+                      icon: Icons.public,
+                      label: 'Alt Post',
+                      color: theme.colorScheme.primary,
+                    )
+                  : widget.post.isAlt && widget.post.isNSFW
+                      ? _buildTypeIndicator(
+                          icon: Icons.public,
+                          label: 'Alt Post (NSFW)',
+                          color: Colors.redAccent,
+                        )
+                      : !widget.post.isAlt && widget.post.isNSFW
+                          ? _buildTypeIndicator(
+                              icon: Icons.warning_amber_rounded,
+                              label: 'NSFW Content',
+                              color: Colors.red,
+                            )
+                          : const SizedBox.shrink(),
 
               if (widget.post.herdId != null &&
                   widget.post.herdId!.isNotEmpty &&
@@ -133,12 +145,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                 ),
 
               // NSFW Indicator - Add this here
-              if (widget.post.isNSFW)
-                _buildTypeIndicator(
-                  icon: Icons.warning_amber_rounded,
-                  label: 'NSFW Content',
-                  color: Colors.red,
-                ),
 
               // Post Content
               Padding(
@@ -680,15 +686,15 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           mediaItems.length > 1, // Only show indicators if multiple items
       onMediaTap: (media, index) {
         debugPrint("Tapped media item at index $index");
-        // Navigate to full screen gallery
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => FullscreenGalleryScreen(
-              mediaItems: mediaItems,
-              initialIndex: index,
-              postId: widget.post.id,
-            ),
-          ),
+
+        // Use GoRouter to navigate to the fullscreen gallery
+        context.pushNamed(
+          'gallery',
+          pathParameters: {'postId': post.id},
+          queryParameters: {
+            'index': index.toString(),
+            'isAlt': post.isAlt.toString(),
+          },
         );
       },
     );

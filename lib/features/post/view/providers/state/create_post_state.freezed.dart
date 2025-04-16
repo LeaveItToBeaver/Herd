@@ -21,6 +21,7 @@ mixin _$CreatePostState implements DiagnosticableTreeMixin {
   String? get herdName;
   bool get isImage;
   bool get isLoading;
+  bool get isNSFW;
   String? get errorMessage;
 
   /// Create a copy of CreatePostState
@@ -41,6 +42,7 @@ mixin _$CreatePostState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('herdName', herdName))
       ..add(DiagnosticsProperty('isImage', isImage))
       ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('isNSFW', isNSFW))
       ..add(DiagnosticsProperty('errorMessage', errorMessage));
   }
 
@@ -57,17 +59,18 @@ mixin _$CreatePostState implements DiagnosticableTreeMixin {
             (identical(other.isImage, isImage) || other.isImage == isImage) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
+            (identical(other.isNSFW, isNSFW) || other.isNSFW == isNSFW) &&
             (identical(other.errorMessage, errorMessage) ||
                 other.errorMessage == errorMessage));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, user, post, herdId, herdName,
-      isImage, isLoading, errorMessage);
+      isImage, isLoading, isNSFW, errorMessage);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'CreatePostState(user: $user, post: $post, herdId: $herdId, herdName: $herdName, isImage: $isImage, isLoading: $isLoading, errorMessage: $errorMessage)';
+    return 'CreatePostState(user: $user, post: $post, herdId: $herdId, herdName: $herdName, isImage: $isImage, isLoading: $isLoading, isNSFW: $isNSFW, errorMessage: $errorMessage)';
   }
 }
 
@@ -84,6 +87,7 @@ abstract mixin class $CreatePostStateCopyWith<$Res> {
       String? herdName,
       bool isImage,
       bool isLoading,
+      bool isNSFW,
       String? errorMessage});
 
   $UserModelCopyWith<$Res>? get user;
@@ -109,6 +113,7 @@ class _$CreatePostStateCopyWithImpl<$Res>
     Object? herdName = freezed,
     Object? isImage = null,
     Object? isLoading = null,
+    Object? isNSFW = null,
     Object? errorMessage = freezed,
   }) {
     return _then(_self.copyWith(
@@ -135,6 +140,10 @@ class _$CreatePostStateCopyWithImpl<$Res>
       isLoading: null == isLoading
           ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isNSFW: null == isNSFW
+          ? _self.isNSFW
+          : isNSFW // ignore: cast_nullable_to_non_nullable
               as bool,
       errorMessage: freezed == errorMessage
           ? _self.errorMessage
@@ -182,6 +191,7 @@ class _CreatePostState with DiagnosticableTreeMixin implements CreatePostState {
       this.herdName,
       this.isImage = false,
       this.isLoading = false,
+      this.isNSFW = false,
       this.errorMessage});
 
   @override
@@ -198,6 +208,9 @@ class _CreatePostState with DiagnosticableTreeMixin implements CreatePostState {
   @override
   @JsonKey()
   final bool isLoading;
+  @override
+  @JsonKey()
+  final bool isNSFW;
   @override
   final String? errorMessage;
 
@@ -219,6 +232,7 @@ class _CreatePostState with DiagnosticableTreeMixin implements CreatePostState {
       ..add(DiagnosticsProperty('herdName', herdName))
       ..add(DiagnosticsProperty('isImage', isImage))
       ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('isNSFW', isNSFW))
       ..add(DiagnosticsProperty('errorMessage', errorMessage));
   }
 
@@ -235,17 +249,18 @@ class _CreatePostState with DiagnosticableTreeMixin implements CreatePostState {
             (identical(other.isImage, isImage) || other.isImage == isImage) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
+            (identical(other.isNSFW, isNSFW) || other.isNSFW == isNSFW) &&
             (identical(other.errorMessage, errorMessage) ||
                 other.errorMessage == errorMessage));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, user, post, herdId, herdName,
-      isImage, isLoading, errorMessage);
+      isImage, isLoading, isNSFW, errorMessage);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'CreatePostState(user: $user, post: $post, herdId: $herdId, herdName: $herdName, isImage: $isImage, isLoading: $isLoading, errorMessage: $errorMessage)';
+    return 'CreatePostState(user: $user, post: $post, herdId: $herdId, herdName: $herdName, isImage: $isImage, isLoading: $isLoading, isNSFW: $isNSFW, errorMessage: $errorMessage)';
   }
 }
 
@@ -264,6 +279,7 @@ abstract mixin class _$CreatePostStateCopyWith<$Res>
       String? herdName,
       bool isImage,
       bool isLoading,
+      bool isNSFW,
       String? errorMessage});
 
   @override
@@ -291,6 +307,7 @@ class __$CreatePostStateCopyWithImpl<$Res>
     Object? herdName = freezed,
     Object? isImage = null,
     Object? isLoading = null,
+    Object? isNSFW = null,
     Object? errorMessage = freezed,
   }) {
     return _then(_CreatePostState(
@@ -317,6 +334,10 @@ class __$CreatePostStateCopyWithImpl<$Res>
       isLoading: null == isLoading
           ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isNSFW: null == isNSFW
+          ? _self.isNSFW
+          : isNSFW // ignore: cast_nullable_to_non_nullable
               as bool,
       errorMessage: freezed == errorMessage
           ? _self.errorMessage

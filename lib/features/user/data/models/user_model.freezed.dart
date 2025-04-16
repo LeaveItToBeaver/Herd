@@ -40,7 +40,12 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   String get fcmToken; // Firebase Cloud Messaging token
   Map<String, dynamic> get preferences;
   Map<String, dynamic> get notifications;
-  List<String> get savedPosts; // Location data
+  List<String> get savedPosts;
+  bool get isNSFW; // Not Safe For Work flag
+  bool get allowNSFW; // Not Safe For Work flag
+  bool get blurNSFW; // Blur NSFW content
+  bool get showHerdPostsInAltFeed; // Blur NSFW content
+// Location data
   String? get country;
   String? get city;
   String? get timezone; // Activity metrics
@@ -66,6 +71,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   List<String> get altSavedPosts;
   DateTime? get altCreatedAt;
   DateTime? get altUpdatedAt;
+  DateTime? get dateOfBirth;
   List<String> get altConnections;
   bool get altIsPrivateAccount; // Community fields
   List<String> get groups;
@@ -132,6 +138,11 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('preferences', preferences))
       ..add(DiagnosticsProperty('notifications', notifications))
       ..add(DiagnosticsProperty('savedPosts', savedPosts))
+      ..add(DiagnosticsProperty('isNSFW', isNSFW))
+      ..add(DiagnosticsProperty('allowNSFW', allowNSFW))
+      ..add(DiagnosticsProperty('blurNSFW', blurNSFW))
+      ..add(
+          DiagnosticsProperty('showHerdPostsInAltFeed', showHerdPostsInAltFeed))
       ..add(DiagnosticsProperty('country', country))
       ..add(DiagnosticsProperty('city', city))
       ..add(DiagnosticsProperty('timezone', timezone))
@@ -157,6 +168,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('altSavedPosts', altSavedPosts))
       ..add(DiagnosticsProperty('altCreatedAt', altCreatedAt))
       ..add(DiagnosticsProperty('altUpdatedAt', altUpdatedAt))
+      ..add(DiagnosticsProperty('dateOfBirth', dateOfBirth))
       ..add(DiagnosticsProperty('altConnections', altConnections))
       ..add(DiagnosticsProperty('altIsPrivateAccount', altIsPrivateAccount))
       ..add(DiagnosticsProperty('groups', groups))
@@ -236,6 +248,13 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
                 .equals(other.notifications, notifications) &&
             const DeepCollectionEquality()
                 .equals(other.savedPosts, savedPosts) &&
+            (identical(other.isNSFW, isNSFW) || other.isNSFW == isNSFW) &&
+            (identical(other.allowNSFW, allowNSFW) ||
+                other.allowNSFW == allowNSFW) &&
+            (identical(other.blurNSFW, blurNSFW) ||
+                other.blurNSFW == blurNSFW) &&
+            (identical(other.showHerdPostsInAltFeed, showHerdPostsInAltFeed) ||
+                other.showHerdPostsInAltFeed == showHerdPostsInAltFeed) &&
             (identical(other.country, country) || other.country == country) &&
             (identical(other.city, city) || other.city == city) &&
             (identical(other.timezone, timezone) ||
@@ -273,14 +292,12 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
                 .equals(other.altBlockedUsers, altBlockedUsers) &&
             (identical(other.altTotalPosts, altTotalPosts) ||
                 other.altTotalPosts == altTotalPosts) &&
-            (identical(other.altTotalComments, altTotalComments) ||
-                other.altTotalComments == altTotalComments) &&
-            (identical(other.altTotalLikes, altTotalLikes) ||
-                other.altTotalLikes == altTotalLikes) &&
-            const DeepCollectionEquality()
-                .equals(other.altSavedPosts, altSavedPosts) &&
+            (identical(other.altTotalComments, altTotalComments) || other.altTotalComments == altTotalComments) &&
+            (identical(other.altTotalLikes, altTotalLikes) || other.altTotalLikes == altTotalLikes) &&
+            const DeepCollectionEquality().equals(other.altSavedPosts, altSavedPosts) &&
             (identical(other.altCreatedAt, altCreatedAt) || other.altCreatedAt == altCreatedAt) &&
             (identical(other.altUpdatedAt, altUpdatedAt) || other.altUpdatedAt == altUpdatedAt) &&
+            (identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth) &&
             const DeepCollectionEquality().equals(other.altConnections, altConnections) &&
             (identical(other.altIsPrivateAccount, altIsPrivateAccount) || other.altIsPrivateAccount == altIsPrivateAccount) &&
             const DeepCollectionEquality().equals(other.groups, groups) &&
@@ -337,6 +354,10 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(preferences),
         const DeepCollectionEquality().hash(notifications),
         const DeepCollectionEquality().hash(savedPosts),
+        isNSFW,
+        allowNSFW,
+        blurNSFW,
+        showHerdPostsInAltFeed,
         country,
         city,
         timezone,
@@ -362,6 +383,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(altSavedPosts),
         altCreatedAt,
         altUpdatedAt,
+        dateOfBirth,
         const DeepCollectionEquality().hash(altConnections),
         altIsPrivateAccount,
         const DeepCollectionEquality().hash(groups),
@@ -390,7 +412,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance)';
   }
 }
 
@@ -426,6 +448,10 @@ abstract mixin class $UserModelCopyWith<$Res> {
       Map<String, dynamic> preferences,
       Map<String, dynamic> notifications,
       List<String> savedPosts,
+      bool isNSFW,
+      bool allowNSFW,
+      bool blurNSFW,
+      bool showHerdPostsInAltFeed,
       String? country,
       String? city,
       String? timezone,
@@ -451,6 +477,7 @@ abstract mixin class $UserModelCopyWith<$Res> {
       List<String> altSavedPosts,
       DateTime? altCreatedAt,
       DateTime? altUpdatedAt,
+      DateTime? dateOfBirth,
       List<String> altConnections,
       bool altIsPrivateAccount,
       List<String> groups,
@@ -515,6 +542,10 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? preferences = null,
     Object? notifications = null,
     Object? savedPosts = null,
+    Object? isNSFW = null,
+    Object? allowNSFW = null,
+    Object? blurNSFW = null,
+    Object? showHerdPostsInAltFeed = null,
     Object? country = freezed,
     Object? city = freezed,
     Object? timezone = freezed,
@@ -540,6 +571,7 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? altSavedPosts = null,
     Object? altCreatedAt = freezed,
     Object? altUpdatedAt = freezed,
+    Object? dateOfBirth = freezed,
     Object? altConnections = null,
     Object? altIsPrivateAccount = null,
     Object? groups = null,
@@ -670,6 +702,22 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.savedPosts
           : savedPosts // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      isNSFW: null == isNSFW
+          ? _self.isNSFW
+          : isNSFW // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowNSFW: null == allowNSFW
+          ? _self.allowNSFW
+          : allowNSFW // ignore: cast_nullable_to_non_nullable
+              as bool,
+      blurNSFW: null == blurNSFW
+          ? _self.blurNSFW
+          : blurNSFW // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showHerdPostsInAltFeed: null == showHerdPostsInAltFeed
+          ? _self.showHerdPostsInAltFeed
+          : showHerdPostsInAltFeed // ignore: cast_nullable_to_non_nullable
+              as bool,
       country: freezed == country
           ? _self.country
           : country // ignore: cast_nullable_to_non_nullable
@@ -769,6 +817,10 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
       altUpdatedAt: freezed == altUpdatedAt
           ? _self.altUpdatedAt
           : altUpdatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      dateOfBirth: freezed == dateOfBirth
+          ? _self.dateOfBirth
+          : dateOfBirth // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       altConnections: null == altConnections
           ? _self.altConnections
@@ -900,6 +952,10 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       final Map<String, dynamic> preferences = const {},
       final Map<String, dynamic> notifications = const {},
       final List<String> savedPosts = const [],
+      this.isNSFW = false,
+      this.allowNSFW = false,
+      this.blurNSFW = false,
+      this.showHerdPostsInAltFeed = true,
       this.country,
       this.city,
       this.timezone,
@@ -925,6 +981,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       final List<String> altSavedPosts = const [],
       this.altCreatedAt,
       this.altUpdatedAt,
+      this.dateOfBirth,
       final List<String> altConnections = const [],
       this.altIsPrivateAccount = false,
       final List<String> groups = const [],
@@ -1086,6 +1143,22 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_savedPosts);
   }
 
+  @override
+  @JsonKey()
+  final bool isNSFW;
+// Not Safe For Work flag
+  @override
+  @JsonKey()
+  final bool allowNSFW;
+// Not Safe For Work flag
+  @override
+  @JsonKey()
+  final bool blurNSFW;
+// Blur NSFW content
+  @override
+  @JsonKey()
+  final bool showHerdPostsInAltFeed;
+// Blur NSFW content
 // Location data
   @override
   final String? country;
@@ -1186,6 +1259,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   final DateTime? altCreatedAt;
   @override
   final DateTime? altUpdatedAt;
+  @override
+  final DateTime? dateOfBirth;
   final List<String> _altConnections;
   @override
   @JsonKey()
@@ -1376,6 +1451,11 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('preferences', preferences))
       ..add(DiagnosticsProperty('notifications', notifications))
       ..add(DiagnosticsProperty('savedPosts', savedPosts))
+      ..add(DiagnosticsProperty('isNSFW', isNSFW))
+      ..add(DiagnosticsProperty('allowNSFW', allowNSFW))
+      ..add(DiagnosticsProperty('blurNSFW', blurNSFW))
+      ..add(
+          DiagnosticsProperty('showHerdPostsInAltFeed', showHerdPostsInAltFeed))
       ..add(DiagnosticsProperty('country', country))
       ..add(DiagnosticsProperty('city', city))
       ..add(DiagnosticsProperty('timezone', timezone))
@@ -1401,6 +1481,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('altSavedPosts', altSavedPosts))
       ..add(DiagnosticsProperty('altCreatedAt', altCreatedAt))
       ..add(DiagnosticsProperty('altUpdatedAt', altUpdatedAt))
+      ..add(DiagnosticsProperty('dateOfBirth', dateOfBirth))
       ..add(DiagnosticsProperty('altConnections', altConnections))
       ..add(DiagnosticsProperty('altIsPrivateAccount', altIsPrivateAccount))
       ..add(DiagnosticsProperty('groups', groups))
@@ -1480,6 +1561,13 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
                 .equals(other._notifications, _notifications) &&
             const DeepCollectionEquality()
                 .equals(other._savedPosts, _savedPosts) &&
+            (identical(other.isNSFW, isNSFW) || other.isNSFW == isNSFW) &&
+            (identical(other.allowNSFW, allowNSFW) ||
+                other.allowNSFW == allowNSFW) &&
+            (identical(other.blurNSFW, blurNSFW) ||
+                other.blurNSFW == blurNSFW) &&
+            (identical(other.showHerdPostsInAltFeed, showHerdPostsInAltFeed) ||
+                other.showHerdPostsInAltFeed == showHerdPostsInAltFeed) &&
             (identical(other.country, country) || other.country == country) &&
             (identical(other.city, city) || other.city == city) &&
             (identical(other.timezone, timezone) ||
@@ -1517,14 +1605,12 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
                 .equals(other._altBlockedUsers, _altBlockedUsers) &&
             (identical(other.altTotalPosts, altTotalPosts) ||
                 other.altTotalPosts == altTotalPosts) &&
-            (identical(other.altTotalComments, altTotalComments) ||
-                other.altTotalComments == altTotalComments) &&
-            (identical(other.altTotalLikes, altTotalLikes) ||
-                other.altTotalLikes == altTotalLikes) &&
-            const DeepCollectionEquality()
-                .equals(other._altSavedPosts, _altSavedPosts) &&
+            (identical(other.altTotalComments, altTotalComments) || other.altTotalComments == altTotalComments) &&
+            (identical(other.altTotalLikes, altTotalLikes) || other.altTotalLikes == altTotalLikes) &&
+            const DeepCollectionEquality().equals(other._altSavedPosts, _altSavedPosts) &&
             (identical(other.altCreatedAt, altCreatedAt) || other.altCreatedAt == altCreatedAt) &&
             (identical(other.altUpdatedAt, altUpdatedAt) || other.altUpdatedAt == altUpdatedAt) &&
+            (identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth) &&
             const DeepCollectionEquality().equals(other._altConnections, _altConnections) &&
             (identical(other.altIsPrivateAccount, altIsPrivateAccount) || other.altIsPrivateAccount == altIsPrivateAccount) &&
             const DeepCollectionEquality().equals(other._groups, _groups) &&
@@ -1581,6 +1667,10 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(_preferences),
         const DeepCollectionEquality().hash(_notifications),
         const DeepCollectionEquality().hash(_savedPosts),
+        isNSFW,
+        allowNSFW,
+        blurNSFW,
+        showHerdPostsInAltFeed,
         country,
         city,
         timezone,
@@ -1606,6 +1696,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(_altSavedPosts),
         altCreatedAt,
         altUpdatedAt,
+        dateOfBirth,
         const DeepCollectionEquality().hash(_altConnections),
         altIsPrivateAccount,
         const DeepCollectionEquality().hash(_groups),
@@ -1634,7 +1725,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance)';
   }
 }
 
@@ -1673,6 +1764,10 @@ abstract mixin class _$UserModelCopyWith<$Res>
       Map<String, dynamic> preferences,
       Map<String, dynamic> notifications,
       List<String> savedPosts,
+      bool isNSFW,
+      bool allowNSFW,
+      bool blurNSFW,
+      bool showHerdPostsInAltFeed,
       String? country,
       String? city,
       String? timezone,
@@ -1698,6 +1793,7 @@ abstract mixin class _$UserModelCopyWith<$Res>
       List<String> altSavedPosts,
       DateTime? altCreatedAt,
       DateTime? altUpdatedAt,
+      DateTime? dateOfBirth,
       List<String> altConnections,
       bool altIsPrivateAccount,
       List<String> groups,
@@ -1762,6 +1858,10 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? preferences = null,
     Object? notifications = null,
     Object? savedPosts = null,
+    Object? isNSFW = null,
+    Object? allowNSFW = null,
+    Object? blurNSFW = null,
+    Object? showHerdPostsInAltFeed = null,
     Object? country = freezed,
     Object? city = freezed,
     Object? timezone = freezed,
@@ -1787,6 +1887,7 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? altSavedPosts = null,
     Object? altCreatedAt = freezed,
     Object? altUpdatedAt = freezed,
+    Object? dateOfBirth = freezed,
     Object? altConnections = null,
     Object? altIsPrivateAccount = null,
     Object? groups = null,
@@ -1917,6 +2018,22 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self._savedPosts
           : savedPosts // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      isNSFW: null == isNSFW
+          ? _self.isNSFW
+          : isNSFW // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowNSFW: null == allowNSFW
+          ? _self.allowNSFW
+          : allowNSFW // ignore: cast_nullable_to_non_nullable
+              as bool,
+      blurNSFW: null == blurNSFW
+          ? _self.blurNSFW
+          : blurNSFW // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showHerdPostsInAltFeed: null == showHerdPostsInAltFeed
+          ? _self.showHerdPostsInAltFeed
+          : showHerdPostsInAltFeed // ignore: cast_nullable_to_non_nullable
+              as bool,
       country: freezed == country
           ? _self.country
           : country // ignore: cast_nullable_to_non_nullable
@@ -2016,6 +2133,10 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
       altUpdatedAt: freezed == altUpdatedAt
           ? _self.altUpdatedAt
           : altUpdatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      dateOfBirth: freezed == dateOfBirth
+          ? _self.dateOfBirth
+          : dateOfBirth // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       altConnections: null == altConnections
           ? _self._altConnections

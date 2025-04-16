@@ -36,6 +36,10 @@ abstract class UserModel with _$UserModel {
     @Default({}) Map<String, dynamic> preferences,
     @Default({}) Map<String, dynamic> notifications,
     @Default([]) List<String> savedPosts,
+    @Default(false) bool isNSFW, // Not Safe For Work flag
+    @Default(false) bool allowNSFW, // Not Safe For Work flag
+    @Default(false) bool blurNSFW, // Blur NSFW content
+    @Default(true) bool showHerdPostsInAltFeed, // Blur NSFW content
 
     // Location data
     String? country,
@@ -67,6 +71,7 @@ abstract class UserModel with _$UserModel {
     @Default([]) List<String> altSavedPosts,
     DateTime? altCreatedAt,
     DateTime? altUpdatedAt,
+    DateTime? dateOfBirth,
     @Default([]) List<String> altConnections,
     @Default(false) bool altIsPrivateAccount,
 
@@ -142,6 +147,7 @@ abstract class UserModel with _$UserModel {
       email: map['email'] ?? '',
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
+      dateOfBirth: _parseDateTime(map['dateOfBirth']),
       followers: map['followers'] ?? 0,
       following: map['following'] ?? 0,
       friends: map['friends'] ?? 0,
@@ -161,6 +167,10 @@ abstract class UserModel with _$UserModel {
       preferences: map['preferences'] ?? {},
       notifications: map['notifications'] ?? {},
       savedPosts: _parseStringList(map['savedPosts']),
+      isNSFW: map['isNSFW'] ?? false,
+      allowNSFW: map['allowNSFW'] ?? false,
+      blurNSFW: map['blurNSFW'] ?? false,
+      showHerdPostsInAltFeed: map['showHerdPostsInAltFeed'] ?? true,
       country: map['country'],
       city: map['city'],
       timezone: map['timezone'],
@@ -257,6 +267,8 @@ abstract class UserModel with _$UserModel {
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'dateOfBirth':
+          dateOfBirth != null ? Timestamp.fromDate(dateOfBirth!) : null,
       'followers': followers,
       'following': following,
       'friends': friends,
@@ -276,6 +288,10 @@ abstract class UserModel with _$UserModel {
       'preferences': preferences,
       'notifications': notifications,
       'savedPosts': savedPosts,
+      'isNSFW': isNSFW,
+      'allowNSFW': allowNSFW,
+      'blurNSFW': blurNSFW,
+      'showHerdPostsInAltFeed': showHerdPostsInAltFeed,
       'country': country,
       'city': city,
       'timezone': timezone,

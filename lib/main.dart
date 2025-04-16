@@ -9,7 +9,6 @@ import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/utils/router.dart';
 
 import 'core/bootstrap/app_bootstraps.dart';
-import 'core/bootstrap/authentication_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,9 +58,6 @@ class MyApp extends ConsumerWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      builder: (context, child) {
-        return AuthenticationWrapper(child: child ?? const SizedBox());
-      },
     );
   }
 }

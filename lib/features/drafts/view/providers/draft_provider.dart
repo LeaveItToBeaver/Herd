@@ -112,6 +112,7 @@ class DraftController extends StateNotifier<AsyncValue<void>> {
         title: draft.title ?? '',
         content: draft.content,
         isAlt: draft.isAlt,
+        isNSFW: draft.isNSFW,
         herdId: draft.herdId ?? '',
         herdName: draft.herdName ?? '',
       );

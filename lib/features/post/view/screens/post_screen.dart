@@ -15,7 +15,6 @@ import '../../data/models/post_media_model.dart';
 import '../providers/post_provider.dart' hide commentsProvider;
 import '../widgets/media_carousel_widget.dart';
 import 'edit_post_screen.dart';
-import 'fullscreen_gallery_screen.dart';
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -659,18 +658,21 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     // Create a carousel
     return MediaCarouselWidget(
       mediaItems: mediaItems,
-      height: 300,
+      height: 350,
       autoPlay: false,
+      showIndicator:
+          mediaItems.length > 1, // Only show indicators if multiple items
       onMediaTap: (media, index) {
-        // Navigate to fullscreen gallery
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => FullscreenGalleryScreen(
-              mediaItems: mediaItems,
-              initialIndex: index,
-              postId: post.id,
-            ),
-          ),
+        debugPrint("Tapped media item at index $index");
+
+        // Use GoRouter to navigate to the fullscreen gallery
+        context.pushNamed(
+          'gallery',
+          pathParameters: {'postId': post.id},
+          queryParameters: {
+            'index': index.toString(),
+            'isAlt': post.isAlt.toString(),
+          },
         );
       },
     );

@@ -17,13 +17,11 @@ class AuthenticationWrapper extends ConsumerWidget {
     return authState.when(
       data: (user) {
         if (user == null) {
-          // Wrap LoginScreen in MaterialApp to provide Overlay
-          return MaterialApp(
-            theme: Theme.of(context),
-            home: const LoginScreen(),
-            debugShowCheckedModeBanner: false,
-          );
+          // Instead of creating a new MaterialApp, just return LoginScreen
+          // GoRouter will handle the navigation
+          return const LoginScreen();
         }
+
         // User is authenticated, now check if user data is loaded
         final userData = ref.watch(currentUserStreamProvider);
 
