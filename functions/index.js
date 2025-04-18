@@ -711,8 +711,29 @@ exports.populateHerdPostMediaItems = onDocumentCreated(
   });
 
 // Helper function for fan-out operations
+// Helper function for fan-out operations with minimal data
 async function fanOutToUserFeeds(postId, postData, userIds) {
   if (userIds.length === 0) return;
+
+  // Extract only the minimal necessary data
+  const minimalPostData = {
+    id: postId,
+    authorId: postData.authorId,
+    authorName: postData.authorName || null,
+    authorUsername: postData.authorUsername || null,
+    authorProfileImageURL: postData.authorProfileImageURL || null,
+    tags: postData.tags || [],
+    isNSFW: postData.isNSFW || false,
+    isAlt: postData.isAlt || false,
+    feedType: postData.feedType,
+    createdAt: postData.createdAt,
+    herdId: postData.herdId || null,
+    // Reference fields that help identify where to look up the full post
+    sourceCollection: postData.isAlt ? 'altPosts' :
+                     (postData.herdId ? 'herdPosts' : 'posts'),
+    // Store the hotScore to maintain sort order without recalculating
+    hotScore: postData.hotScore || 0
+  };
 
   // Batch processing
   const MAX_BATCH_SIZE = 500; // Firestore limit
@@ -726,10 +747,7 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
       .collection("feed")
       .doc(postId);
 
-    batch.set(userFeedRef, {
-      ...postData,
-      mediaItems: postData.mediaItems || [] // Explicitly set mediaItems
-    });
+    batch.set(userFeedRef, minimalPostData);
     operationCount++;
 
     // If batch is full, commit and reset
@@ -745,6 +763,7 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
     await batch.commit();
   }
 }
+
 /**
  * Remove post from all feeds when the post is deleted
  */

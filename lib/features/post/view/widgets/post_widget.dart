@@ -80,7 +80,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
     final theme = Theme.of(context);
     final user = ref.read(currentUserProvider);
-    _showNSFWContent = user.allowNSFW!;
+    _showNSFWContent = user.allowNSFW ?? false;
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
         PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
 

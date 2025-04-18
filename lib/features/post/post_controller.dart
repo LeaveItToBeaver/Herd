@@ -220,7 +220,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   }
 
   void debugAltPosts(String userId) async {
-    final altPosts = await _postRepository.getUserAltProfilePosts(userId).first;
+    final altPosts = await _postRepository.getFutureUserPublicPosts(userId);
     print('Alt posts count: ${altPosts.length}');
     for (var post in altPosts) {
       print('Post ID: ${post.id}, isAlt: ${post.isAlt}');
@@ -250,16 +250,16 @@ final userPostsProvider =
 
 // Provider for user's public posts only
 final userPublicPostsProvider =
-    StreamProvider.family<List<PostModel>, String>((ref, userId) {
+    FutureProvider.family<List<PostModel>, String>((ref, userId) async {
   final postRepository = ref.watch(postRepositoryProvider);
-  return postRepository.getUserPublicPosts(userId);
+  return await postRepository.getFutureUserPublicPosts(userId);
 });
 
 // Provider for user's alt posts only
 final userAltPostsProvider =
-    StreamProvider.family<List<PostModel>, String>((ref, userId) {
+    FutureProvider.family<List<PostModel>, String>((ref, userId) async {
   final postRepository = ref.watch(postRepositoryProvider);
-  return postRepository.getUserAltProfilePosts(userId);
+  return await postRepository.getFutureUserAltProfilePosts(userId);
 });
 
 // Provider for a single post

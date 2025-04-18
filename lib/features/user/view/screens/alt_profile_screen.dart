@@ -10,6 +10,8 @@ import '../../../herds/data/models/herd_model.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../post/data/models/post_model.dart';
 import '../providers/state/profile_state.dart';
+import '../widgets/cover_image_blur_effect.dart';
+import '../widgets/posts_tab_view.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -23,13 +25,16 @@ class AltProfileScreen extends ConsumerStatefulWidget {
 class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late ScrollController _scrollViewController;
+  late ScrollController _scrollController;
+  Color _dominantColor = Colors.transparent;
+  double _scrollProgress = 0.0;
+  List<Color> _imageColors = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _scrollViewController = ScrollController();
+    _scrollController = ScrollController();
 
     // Load user profile data
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,9 +49,18 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _tabController.dispose();
-    _scrollViewController.dispose();
     super.dispose();
+  }
+
+  // Add this method to determine appropriate text color based on background
+  Brightness _getBrightness(Color color) {
+    // Calculate the color's luminance (0.0 for black, 1.0 for white)
+    final double luminance = color.computeLuminance();
+
+    // A common threshold is 0.5, but you can adjust for your preference
+    return luminance > 0.5 ? Brightness.light : Brightness.dark;
   }
 
   @override
@@ -58,7 +72,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
       error: (error, stack) => errorWidget(error, stack),
       data: (profile) {
         if (profile.user == null) {
-          return const Center(child: Text('User not found'));
+          return const Center(child: CircularProgressIndicator());
         }
 
         // Check if this is the current user viewing their own profile
@@ -69,178 +83,176 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
         // Get alt posts only
         final altPosts = profile.posts;
-        debugPrint(
-            '⚠️ AltProfileScreen: original: ${profile.posts.length}, filtered: ${altPosts.length}');
-        debugPrint(
-            '⚠️ Post IDs: ${profile.posts.map((p) => "${p.id}:${p.isAlt}").join(', ')}');
 
         return Scaffold(
-          body: RefreshIndicator(
-            onRefresh: () async {
-              await ref
-                  .read(profileControllerProvider.notifier)
-                  .loadProfile(widget.userId, isAltView: true);
-            },
-            child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  // App Bar with cover image
-                  SliverAppBar(
-                    pinned: true,
-                    expandedHeight: 150.0,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: UserCoverImage(
-                        isSelected: false,
-                        coverImageUrl: profile.user?.altCoverImageURL ??
-                            profile.user?.coverImageURL,
-                      ),
+          body: NestedScrollView(
+            controller: _scrollController,
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                // App Bar with cover image
+                SliverAppBar(
+                  pinned: true,
+                  expandedHeight: 150.0,
+                  backgroundColor: _dominantColor,
+                  iconTheme: IconThemeData(
+                    color: _getBrightness(_dominantColor) == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
+                  ),
+                  flexibleSpace: RepaintBoundary(
+                    child: CoverImageBlurEffect(
+                      coverImageUrl: profile.user?.coverImageURL,
+                      dominantColor: _dominantColor,
+                      scrollController: _scrollController,
                     ),
-                    actions: [
-                      if (profile.isCurrentUser) ...[
-                        TextButton.icon(
-                          icon: const Icon(Icons.notifications),
-                          label: const Text('Notifications'),
-                          onPressed: () {
-                            context.pushNamed('connectionRequests');
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () {
-                            context.push('/editProfile', extra: {
-                              'user': profile.user!,
-                              'isPublic': false,
-                            });
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_rounded),
-                          onPressed: () => context.push('/settings'),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.exit_to_app),
-                          onPressed: () =>
-                              ref.read(authProvider.notifier).signOut(),
-                        ),
-                      ],
+                  ),
+                  actions: [
+                    if (profile.isCurrentUser) ...[
+                      TextButton.icon(
+                        icon: const Icon(Icons.notifications),
+                        label: const Text('Notifications'),
+                        onPressed: () {
+                          context.pushNamed('connectionRequests');
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          context.push('/editProfile', extra: {
+                            'user': profile.user!,
+                            'isPublic': false,
+                          });
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.settings_rounded),
+                        onPressed: () => context.push('/settings'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.exit_to_app),
+                        onPressed: () =>
+                            ref.read(authProvider.notifier).signOut(),
+                      ),
                     ],
-                  ),
+                  ],
+                ),
 
-                  // Profile card
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .outline
-                                .withOpacity(0.1),
-                          ),
+                // Profile card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withOpacity(0.1),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  UserProfileImage(
-                                    radius: 20.0,
-                                    profileImageUrl:
-                                        profile.user?.altProfileImageURL ??
-                                            profile.user?.profileImageURL,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          profile.user?.username ?? '',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleLarge,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              if (profile.user?.altBio != null &&
-                                  profile.user!.altBio!.isNotEmpty)
-                                Text(
-                                  profile.user!.altBio!,
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                UserProfileImage(
+                                  radius: 40.0,
+                                  profileImageUrl:
+                                      profile.user?.altProfileImageURL ??
+                                          profile.user?.profileImageURL,
                                 ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildStatColumn(
-                                      'Alt Posts', altPosts.length.toString()),
-                                  _buildStatColumn('Connections',
-                                      profile.user?.friends?.toString() ?? '0'),
-                                  _buildStatColumn('Herds', '0'),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              if (!profile.isCurrentUser)
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: AltConnectionButton(
-                                      targetUserId: profile.user!.id),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        profile.user?.username ?? '',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                            ],
-                          ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (profile.user?.altBio != null &&
+                                profile.user!.altBio!.isNotEmpty)
+                              Text(
+                                profile.user!.altBio!,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildStatColumn(
+                                    'Alt Posts', altPosts.length.toString()),
+                                _buildStatColumn('Connections',
+                                    profile.user?.friends?.toString() ?? '0'),
+                                _buildStatColumn('Herds', '0'),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (!profile.isCurrentUser)
+                              SizedBox(
+                                width: double.infinity,
+                                child: AltConnectionButton(
+                                    targetUserId: profile.user!.id),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ),
+                ),
 
-                  // Tab Bar (as a sticky header)
-                  SliverPersistentHeader(
-                    delegate: _SliverAppBarDelegate(
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: Theme.of(context).colorScheme.primary,
-                        unselectedLabelColor:
-                            Theme.of(context).colorScheme.onSurfaceVariant,
-                        indicatorColor: Theme.of(context).colorScheme.primary,
-                        tabs: const [
-                          Tab(text: 'Alt Posts'),
-                          Tab(text: 'Herds'),
-                          Tab(text: 'About'),
-                        ],
-                      ),
+                // Tab Bar (as a sticky header)
+                SliverPersistentHeader(
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: Theme.of(context).colorScheme.primary,
+                      unselectedLabelColor:
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      tabs: const [
+                        Tab(text: 'Alt Posts'),
+                        Tab(text: 'Herds'),
+                        Tab(text: 'About'),
+                      ],
                     ),
-                    pinned: true,
                   ),
-                ];
-              },
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Alt posts tab - Now using a custom list to handle both empty state and list
-                  _buildPostsTab(altPosts, profile),
+                  pinned: true,
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                // Alt posts tab - Now using a custom list to handle both empty state and list
+                PostsTabView(
+                  posts: altPosts,
+                  profile: profile,
+                  userId: widget.userId,
+                ),
 
-                  // Herd tab
-                  _buildHerdsSection(profile),
+                // Herd tab
+                _buildHerdsSection(profile),
 
-                  // About tab
-                  SingleChildScrollView(
-                    child: _buildAboutSection(profile),
-                  ),
-                ],
-              ),
+                // About tab
+                SingleChildScrollView(
+                  child: _buildAboutSection(profile),
+                ),
+              ],
             ),
           ),
         );
@@ -250,42 +262,81 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
   Widget _buildPostsTab(List<PostModel> posts, ProfileState profile) {
     if (posts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      // Empty state with a fallback scrollable to enable pull-to-refresh
+      return RefreshIndicator(
+        onRefresh: () async {
+          await ref
+              .read(profileControllerProvider.notifier)
+              .loadProfile(widget.userId, isAltView: true);
+        },
+        child: ListView(
+          // This ensures RefreshIndicator can work even with centered content
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Icon(Icons.lock, size: 64, color: Colors.blue.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            Text('No alt posts yet',
-                style: Theme.of(context).textTheme.titleMedium),
-            if (profile.isCurrentUser) ...[
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Create Alt Post'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  context
-                      .pushNamed('create', queryParameters: {'isAlt': 'true'});
-                },
-              )
-            ]
+            Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.lock,
+                      size: 64, color: Colors.blue.withOpacity(0.5)),
+                  const SizedBox(height: 16),
+                  Text('No alt posts yet',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  if (profile.isCurrentUser) ...[
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Alt Post'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        context.pushNamed('create',
+                            queryParameters: {'isAlt': 'true'});
+                      },
+                    )
+                  ]
+                ],
+              ),
+            ),
           ],
         ),
       );
     } else {
-      return ListView.builder(
-        padding: EdgeInsets.zero, // Important to avoid extra padding
-        itemCount: posts.length,
-        itemBuilder: (context, index) {
-          return PostWidget(
-            post: posts[index],
-            isCompact: true,
-          );
+      // For the list state, wrap CustomScrollView with local RefreshIndicator
+      return RefreshIndicator(
+        onRefresh: () async {
+          await ref
+              .read(profileControllerProvider.notifier)
+              .loadProfile(widget.userId, isAltView: true);
         },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverList.builder(
+              itemCount: posts.length + (profile.isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (profile.isLoading && index == posts.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                return PostWidget(
+                  post: posts[index],
+                  isCompact: true,
+                );
+              },
+            ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 20),
+            ),
+          ],
+        ),
       );
     }
   }
@@ -382,11 +433,27 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
             return Column(
               children: [
                 Expanded(
-                  child: herds.isEmpty
-                      ? _buildEmptyHerdsView(profile)
-                      : _buildHerdsList(herds),
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      // Refresh herds data
+                      ref.refresh(userHerdsProvider);
+                    },
+                    child: herds.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              Container(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.5,
+                                alignment: Alignment.center,
+                                child: _buildEmptyHerdsView(profile),
+                              ),
+                            ],
+                          )
+                        : _buildHerdsList(herds),
+                  ),
                 ),
-                // Add Create Herd button at the bottom
+                // Add Create Herd button at the bottom if needed
                 if (profile.isCurrentUser)
                   Padding(
                     padding: const EdgeInsets.all(16.0),

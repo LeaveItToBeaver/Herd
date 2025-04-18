@@ -259,18 +259,21 @@ class HerdRepository {
   Future<List<PostModel>> getHerdPosts({
     required String herdId,
     int limit = 15,
-    PostModel? lastPost,
-    double decayFactor = 1.0,
+    double? lastHotScore,
+    String? lastPostId,
   }) async {
     try {
       // Query for posts in the herd with pagination
-      var query =
-          herdPosts(herdId).orderBy('createdAt', descending: true).limit(limit);
+      Query<Map<String, dynamic>> query =
+          herdPosts(herdId).orderBy('hotScore', descending: true);
 
-      // Add pagination if lastPost is provided
-      if (lastPost != null && lastPost.createdAt != null) {
-        query = query.startAfter([lastPost.createdAt]);
+      // Apply pagination if lastHotScore is provided
+      if (lastHotScore != null && lastPostId != null) {
+        query = query.startAfter([lastHotScore, lastPostId]);
       }
+
+      // Apply limit
+      query = query.limit(limit);
 
       final snapshot = await query.get();
 
@@ -279,11 +282,7 @@ class HerdRepository {
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
 
-      // Apply hot sorting algorithm
-      final sortedPosts =
-          applySortingAlgorithm(posts, decayFactor: decayFactor);
-
-      return sortedPosts;
+      return posts;
     } catch (e, stackTrace) {
       logError('getHerdPosts', e, stackTrace);
       rethrow;
