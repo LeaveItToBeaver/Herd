@@ -1,13 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/enums/bottom_nav_item.dart';
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../feed/providers/feed_type_provider.dart';
-import '../../../navigation/view/providers/bottom_nav_bar_provider.dart';
 import '../../../herds/view/providers/herd_providers.dart';
+import '../../../navigation/view/providers/bottom_nav_bar_provider.dart';
 
 class GlobalOverlayManager extends StatelessWidget {
   final Widget child;
@@ -127,6 +127,10 @@ class FloatingButtonsColumn extends ConsumerWidget {
               ),
               child: const Icon(Icons.person, color: Colors.white),
               onPressed: () {
+                final navService = ref.read(navigationServiceProvider);
+                if (!navService.canNavigate) return;
+
+                HapticFeedback.mediumImpact();
                 final currentUser = ref.read(authProvider);
                 if (currentUser?.uid != null) {
                   // Navigate to the appropriate profile based on current feed
@@ -159,12 +163,29 @@ class FloatingButtonsColumn extends ConsumerWidget {
             ),
             child: const Icon(Icons.search, color: Colors.white),
             onPressed: () {
+              HapticFeedback.mediumImpact();
               context.pushNamed('search');
             },
           ),
-
       ],
     );
+  }
+}
+
+final navigationServiceProvider = Provider<NavigationService>((ref) {
+  return NavigationService();
+});
+
+class NavigationService {
+  DateTime _lastNavigationTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  bool get canNavigate {
+    final now = DateTime.now();
+    if (now.difference(_lastNavigationTime).inMilliseconds > 300) {
+      _lastNavigationTime = now;
+      return true;
+    }
+    return false;
   }
 }
 
@@ -173,9 +194,9 @@ class BottomNavOverlay extends ConsumerWidget {
   final FeedType? currentFeedType;
 
   const BottomNavOverlay({
-    Key? key,
+    super.key,
     this.currentFeedType,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -186,10 +207,15 @@ class BottomNavOverlay extends ConsumerWidget {
         ? ref.watch(isHerdMemberProvider(currentHerdId)).value ?? false
         : false;
 
-
     void onItemTapped(int index) {
+      final navService = ref.read(navigationServiceProvider);
+
+      if (!navService.canNavigate) return;
+
       final selectedItem = BottomNavItem.values[index];
       ref.read(bottomNavProvider.notifier).state = selectedItem;
+
+      HapticFeedback.heavyImpact();
 
       // Handle create action with context awareness for herds
       if (selectedItem == BottomNavItem.create) {
@@ -210,7 +236,8 @@ class BottomNavOverlay extends ConsumerWidget {
       }
 
       // Reset current herd ID when navigating to feeds
-      if (selectedItem == BottomNavItem.altFeed || selectedItem == BottomNavItem.publicFeed) {
+      if (selectedItem == BottomNavItem.altFeed ||
+          selectedItem == BottomNavItem.publicFeed) {
         ref.read(currentHerdIdProvider.notifier).state = null;
       }
 
@@ -220,7 +247,8 @@ class BottomNavOverlay extends ConsumerWidget {
       // Override route for Home/Feed based on feed type
       if (selectedItem == BottomNavItem.altFeed && feedType == FeedType.alt) {
         routeName = 'altFeed';
-      } else if (selectedItem == BottomNavItem.publicFeed && feedType == FeedType.public) {
+      } else if (selectedItem == BottomNavItem.publicFeed &&
+          feedType == FeedType.public) {
         routeName = 'publicFeed';
       }
 
@@ -260,12 +288,17 @@ class BottomNavOverlay extends ConsumerWidget {
                 : Colors.grey;
 
             // If this is the home icon, apply a special color for alt feed
-            if (item == BottomNavItem.altFeed && feedType == FeedType.alt && isSelected) {
-              iconColor = Colors.blue; // Use a different color for alt feed
+            if (item == BottomNavItem.altFeed &&
+                feedType == FeedType.alt &&
+                isSelected) {
+              iconColor =
+                  Colors.purpleAccent; // Use a different color for alt feed
             }
 
             // Customize the 'create' icon if we're in a herd context
-            if (item == BottomNavItem.create && currentHerdId != null && isHerdMember) {
+            if (item == BottomNavItem.create &&
+                currentHerdId != null &&
+                isHerdMember) {
               iconColor = isSelected ? Colors.green : Colors.grey;
             }
 
@@ -285,7 +318,8 @@ class BottomNavOverlay extends ConsumerWidget {
                           size: 24,
                         ),
                         // Add an indicator for feed type on the home icon
-                        if (item == BottomNavItem.altFeed && feedType == FeedType.alt)
+                        if (item == BottomNavItem.altFeed &&
+                            feedType == FeedType.alt)
                           Positioned(
                             right: 0,
                             top: 0,
@@ -293,13 +327,15 @@ class BottomNavOverlay extends ConsumerWidget {
                               width: 8,
                               height: 8,
                               decoration: const BoxDecoration(
-                                color: Colors.blue,
+                                color: Colors.purpleAccent,
                                 shape: BoxShape.circle,
                               ),
                             ),
                           ),
                         // Add an indicator for herd context on the create button
-                        if (item == BottomNavItem.create && currentHerdId != null && isHerdMember)
+                        if (item == BottomNavItem.create &&
+                            currentHerdId != null &&
+                            isHerdMember)
                           Positioned(
                             right: 0,
                             top: 0,
@@ -401,20 +437,19 @@ class SideBubblesOverlay extends ConsumerWidget {
       );
     }
 
-
     // Add feed toggle button
     bubbles.add(
       _buildBubble(
         context: context,
         child: feedType == FeedType.alt
-            ? const Icon(Icons.lock, color: Colors.white, size: 24)
-            : const Icon(Icons.public, color: Colors.white, size: 24),
-        backgroundColor: feedType == FeedType.alt ? Colors.blue : Colors.black,
+            ? const Icon(Icons.public, color: Colors.white, size: 24)
+            : const Icon(Icons.groups_outlined, color: Colors.white, size: 24),
+        backgroundColor:
+            feedType == FeedType.alt ? Colors.purpleAccent : Colors.black,
         onTap: () {
           // Toggle feed type
-          final newFeedType = feedType == FeedType.alt
-              ? FeedType.public
-              : FeedType.alt;
+          final newFeedType =
+              feedType == FeedType.alt ? FeedType.public : FeedType.alt;
 
           ref.read(currentFeedProvider.notifier).state = newFeedType;
 

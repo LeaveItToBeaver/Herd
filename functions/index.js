@@ -1647,3 +1647,53 @@ exports.findNaNHotScores = onCall(async (request) => {
     throw new HttpsError('internal', `Error: ${error.message}`);
   }
 });
+
+exports.catchAndLogExceptions = onCall(async (request) => {
+  try {
+    const {
+      errorMessage,
+      stackTrace,
+      errorCode,
+      userId,
+      route,
+      action,
+      appInfo
+    } = request.data;
+  
+    if (!errorMessage) {
+      throw new HttpsError("invalid-argument", 'Error Message is required');
+    }
+  
+    const errorDoc = {
+      errorMessage,
+      stackTrace: stackTrace || 'No stack trace provided',
+      errorCode: errorCode || 'No error code provided',
+      userId: userId || 'No userId provided',
+      route: route || 'No route provided',
+      action: action || 'No action provided',
+      appInfo: appInfo || 'No appInfo provided',
+      timeStamp: admin.firestore.FieldValue.serverTimestamp(),
+      authContext: request.auth ?{
+        uid: request.data.uid,
+        email: request.auth.token.email,
+        emailVerified: request.auth.token.email_verified,
+      } : null,
+    };
+  
+    logger.error(`App Exception: ${errorMessage}`, {
+      stackTrace,
+      errorCode,
+      userId,
+      route,
+      action
+    });
+  
+    const docRef = await firestore
+      .collection("appExceptions")
+      .add(errorDoc);
+  
+  } catch (error) {
+    logger.error(`Error in exception logging function`, error);
+    throw new HttpsError('internal', `failed to log exception ${error.message}`);
+  }
+});
