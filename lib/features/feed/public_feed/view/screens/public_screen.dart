@@ -98,7 +98,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
 
@@ -323,7 +322,10 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                               if (index == posts.length) {
                                 return const BottomNavPadding(height: 100);
                               }
-                              return PostWidget(post: posts[index]);
+                              return PostWidget(
+                                post: posts[index],
+                                isCompact: false,
+                              );
                             },
                           );
                         },

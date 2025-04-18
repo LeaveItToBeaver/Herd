@@ -13,9 +13,9 @@ final bottomNavItems = [
 ];
 
 final bottomNavIcons = {
-  BottomNavItem.altFeed: Icons.home_filled,
+  BottomNavItem.altFeed: Icons.public,
   BottomNavItem.create: Icons.add,
-  BottomNavItem.publicFeed: Icons.home,
+  BottomNavItem.publicFeed: Icons.dynamic_feed,
 };
 
 final bottomNavRoutes = {

@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -129,7 +130,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
     } catch (e) {
       // Silently fail - device info is not critical
-      print('Failed to collect device info: $e');
+      if (kDebugMode) {
+        print('Failed to collect device info: $e');
+      }
     }
   }
 
