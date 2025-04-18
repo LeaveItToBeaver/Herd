@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
@@ -13,6 +12,7 @@ import '../post/view/providers/post_provider.dart';
 class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
   late final UserRepository _userRepository;
   late final PostRepository _postRepository;
+  final int pageSize = 20;
 
   @override
   Future<ProfileState> build() async {
@@ -52,11 +52,15 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Fetch posts based on view type
       List<PostModel> posts;
       if (useAltView) {
-        debugPrint('⚠️ ProfileController loading alt posts for user: $userId');
-        posts = await _postRepository.getUserAltProfilePosts(userId).first;
-        debugPrint('⚠️ ProfileController received ${posts.length} alt posts');
+        posts = await _postRepository.getFutureUserAltProfilePosts(
+          userId,
+          limit: pageSize,
+        );
       } else {
-        posts = await _postRepository.getUserPublicPosts(userId).first;
+        posts = await _postRepository.getFutureUserPublicPosts(
+          userId,
+          limit: pageSize,
+        );
       }
 
       // Check following status if not viewing own profile
@@ -68,15 +72,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       int connectionCount = 0;
       if (useAltView) {
         try {
-          // This works for any user, not just the current one
-          final snapshot = await FirebaseFirestore.instance
-              .collection('altConnections')
-              .doc(userId)
-              .collection('userConnections')
-              .count()
-              .get();
-          connectionCount = snapshot.count ?? 0;
-
+          connectionCount = await _userRepository.getAltConnectionCount(userId);
           debugPrint(
               "DEBUG: Found $connectionCount alt connections for user $userId");
         } catch (e) {
@@ -86,7 +82,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
 
       // Since we now have freezed UserModel, we can use copyWith
       final updatedUser = user.copyWith(
-        friends: connectionCount, // Use the actual connection count
+        friends: connectionCount,
       );
 
       state = AsyncValue.data(ProfileState(
@@ -96,10 +92,63 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         isFollowing: isFollowing,
         isAltView: useAltView,
         hasAltProfile: hasAltProfile,
+        hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
       ));
     } catch (e, stack) {
       debugPrint("DEBUG: Profile loading error: $e");
       state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> loadMorePosts(String userId) async {
+    final currentState = state.value;
+    if (currentState == null ||
+        !currentState.hasMorePosts ||
+        currentState.isLoading ||
+        currentState.lastPost == null) {
+      return;
+    }
+
+    try {
+      // Set loading state
+      state = AsyncValue.data(currentState.copyWith(isLoading: true));
+
+      // Get pagination parameters
+      final lastPost = currentState.lastPost!;
+
+      List<PostModel> morePosts;
+      if (currentState.isAltView) {
+        // For alt profile
+        morePosts = await _postRepository.getFutureUserAltProfilePosts(
+          userId,
+          limit: pageSize,
+          lastHotScore: lastPost.hotScore,
+          lastPostId: lastPost.id,
+        );
+      } else {
+        // For public profile
+        morePosts = await _postRepository.getFutureUserPublicPosts(
+          userId,
+          limit: pageSize,
+          lastHotScore: lastPost.hotScore,
+          lastPostId: lastPost.id,
+        );
+      }
+
+      // Combine with existing posts
+      final allPosts = [...currentState.posts, ...morePosts];
+
+      state = AsyncValue.data(currentState.copyWith(
+        posts: allPosts,
+        isLoading: false,
+        hasMorePosts: morePosts.length >= pageSize,
+        lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
+      ));
+    } catch (e, stack) {
+      debugPrint("DEBUG: Error loading more posts: $e");
+      // Keep the current posts but set loading to false
+      state = AsyncValue.data(currentState.copyWith(isLoading: false));
     }
   }
 

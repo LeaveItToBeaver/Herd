@@ -882,8 +882,12 @@ class PostRepository {
             .toList());
   }
 
-  // Add this method to your PostRepository class
-  Stream<List<PostModel>> getUserAltProfilePosts(String userId) {
+  Stream<List<PostModel>> getUserAltProfilePosts(
+    String userId, {
+    int limit = 20,
+    double? lastHotScore,
+    String? lastPostId,
+  }) {
     debugPrint('⚠️ Getting alt posts from userFeeds/$userId/feed');
     return FirebaseFirestore.instance
         .collection('userFeeds')
@@ -897,13 +901,52 @@ class PostRepository {
       final posts = snapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
-      debugPrint('⚠️ Found ${posts.length} alt posts in userFeeds');
-      for (int i = 0; i < posts.length; i++) {
-        debugPrint(
-            '⚠️ Alt post ${i + 1}: id=${posts[i].id}, isAlt=${posts[i].isAlt}, feedType=${posts[i].feedType}');
-      }
       return posts;
     });
+  }
+
+  // Get only user's public posts with pagination
+  Future<List<PostModel>> getFutureUserPublicPosts(
+    String userId, {
+    int limit = 20,
+    double? lastHotScore,
+    String? lastPostId,
+  }) async {
+    try {
+      debugPrint('Fetching public profile posts for user: $userId');
+
+      // Query the main posts collection for public posts by this user
+      Query<Map<String, dynamic>> query = _posts
+          .where('authorId', isEqualTo: userId)
+          .where('herdId', isNull: true) // Exclude herd posts
+          .where('isAlt', isEqualTo: false) // Only public posts
+          .orderBy('hotScore', descending: true);
+
+      // Apply pagination if needed
+      if (lastHotScore != null && lastPostId != null) {
+        query = query.startAfter([lastHotScore, lastPostId]);
+      }
+
+      // Apply limit
+      query = query.limit(limit);
+
+      // Execute query
+      final snapshot = await query.get();
+
+      // Debug logging
+      debugPrint('Found ${snapshot.docs.length} public posts for user profile');
+
+      // Convert to PostModel objects
+      List<PostModel> posts = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+          .toList();
+
+      return posts;
+    } catch (e, stackTrace) {
+      debugPrint('Error getting public profile posts: $e');
+      debugPrint(stackTrace.toString());
+      return []; // Return empty list on error
+    }
   }
 
   // Get only user's alt posts=
