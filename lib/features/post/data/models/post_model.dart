@@ -141,11 +141,26 @@ abstract class PostModel with _$PostModel {
   // Helper for parsing DateTime values from Firestore
   static DateTime? _parseDateTime(dynamic value) {
     if (value == null) return null;
+
     if (value is Timestamp) {
       return value.toDate();
     } else if (value is String) {
       return DateTime.tryParse(value);
+    } else if (value is int) {
+      // Handle milliseconds since epoch
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    } else if (value is Map) {
+      // Handle Firestore timestamp object that got serialized to JSON
+      if (value.containsKey('_seconds') && value.containsKey('_nanoseconds')) {
+        final seconds = value['_seconds'] as int;
+        final nanoseconds = value['_nanoseconds'] as int;
+        return DateTime.fromMillisecondsSinceEpoch(
+          (seconds * 1000) + (nanoseconds ~/ 1000000),
+        );
+      }
     }
+
+    print('Unhandled timestamp format: $value (${value.runtimeType})');
     return null;
   }
 

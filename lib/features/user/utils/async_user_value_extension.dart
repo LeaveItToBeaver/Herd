@@ -18,6 +18,8 @@ extension AsyncUserValueExtension on AsyncValue<UserModel?> {
   String? get safeAltProfileImageURL =>
       whenOrNull(data: (user) => user?.altProfileImageURL);
 
+  bool? get allowNSFW => whenOrNull(data: (user) => user?.allowNSFW);
+
   // Apply a function if user exists (for more complex operations)
   T? mapIfUser<T>(T Function(UserModel user) fn) {
     return whenOrNull(data: (user) => user != null ? fn(user) : null);

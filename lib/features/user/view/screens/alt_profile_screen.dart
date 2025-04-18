@@ -2,17 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../../herds/data/models/herd_model.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../post/data/models/post_model.dart';
-import '../../../post/view/widgets/post_widget.dart';
 import '../providers/state/profile_state.dart';
-import '../widgets/alt_connection_request_button.dart';
-import '../widgets/user_cover_image.dart';
-import '../widgets/user_profile_image.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -407,6 +404,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       ),
                     ),
                   ),
+                BottomNavPadding(),
               ],
             );
           },
@@ -508,29 +506,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    _buildSwitchRow(
-                      'Show Public Profile in Alt Feed',
-                      true, // Default value
-                      (value) {
-                        // Update setting
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchRow(
-                      'Allow Connection Requests',
-                      true, // Default value
-                      (value) {
-                        // Update setting
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchRow(
-                      'Show Activity Status',
-                      false, // Default value
-                      (value) {
-                        // Update setting
-                      },
-                    ),
+                    Text(
+                        "This section will include settings that you might want to toggle off or on at a moments notice. For now, just enjoy this empty space."),
                   ],
                 ),
               ),

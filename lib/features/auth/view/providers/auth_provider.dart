@@ -1,12 +1,14 @@
-// lib/features/auth/providers/auth_provider.dart
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/exception_logger_provider.dart';
+import '../../../../core/services/exception_logging_service.dart';
+
 class AuthNotifier extends StateNotifier<User?> {
   final FirebaseAuth _auth;
+  final ExceptionLoggerService _logger;
 
-  AuthNotifier(this._auth) : super(_auth.currentUser) {
+  AuthNotifier(this._auth, this._logger) : super(_auth.currentUser) {
     _auth.authStateChanges().listen((user) {
       state = user;
     });
@@ -22,8 +24,24 @@ class AuthNotifier extends StateNotifier<User?> {
       );
       state = userCredential.user;
       return userCredential;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stack) {
+      // Log the specific Firebase Auth exception
+      await _logger.logException(
+          errorMessage: e.message ?? 'Unknown authentication error',
+          stackTrace: stack.toString(),
+          errorCode: e.code,
+          action: 'signIn',
+          route: 'LoginScreen',
+          errorDetails: {'email': email});
       throw e.message ?? 'An error occurred';
+    } catch (e, stack) {
+      // Log generic exceptions
+      await _logger.logException(
+          errorMessage: e.toString(),
+          stackTrace: stack.toString(),
+          action: 'signIn',
+          route: 'LoginScreen');
+      throw 'An error occurred';
     }
   }
 
@@ -35,8 +53,24 @@ class AuthNotifier extends StateNotifier<User?> {
       );
       state = userCredential.user;
       return userCredential;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stack) {
+      // Log the specific Firebase Auth exception
+      await _logger.logException(
+          errorMessage: e.message ?? 'Unknown authentication error',
+          stackTrace: stack.toString(),
+          errorCode: e.code,
+          action: 'signUp',
+          route: 'LoginScreen',
+          errorDetails: {'email': email});
       throw e.message ?? 'An error occurred';
+    } catch (e, stack) {
+      // Log generic exceptions
+      await _logger.logException(
+          errorMessage: e.toString(),
+          stackTrace: stack.toString(),
+          action: 'signUp',
+          route: 'LoginScreen');
+      throw 'An error occurred';
     }
   }
 
@@ -48,9 +82,23 @@ class AuthNotifier extends StateNotifier<User?> {
   Future<void> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stack) {
+      // Log the specific Firebase Auth exception
+      await _logger.logException(
+          errorMessage: e.message ?? 'Unknown authentication error',
+          stackTrace: stack.toString(),
+          errorCode: e.code,
+          action: 'resetPassword',
+          route: 'LoginScreen',
+          errorDetails: {'email': email});
       throw e.message ?? 'An error occurred';
-    } catch (e) {
+    } catch (e, stack) {
+      // Log generic exceptions
+      await _logger.logException(
+          errorMessage: e.toString(),
+          stackTrace: stack.toString(),
+          action: 'resetPassword',
+          route: 'LoginScreen');
       throw 'An error occurred';
     }
   }
@@ -66,7 +114,8 @@ class AuthNotifier extends StateNotifier<User?> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, User?>((ref) {
-  return AuthNotifier(FirebaseAuth.instance);
+  final exceptionLogger = ref.watch(exceptionLoggerProvider);
+  return AuthNotifier(FirebaseAuth.instance, exceptionLogger);
 });
 
 final authStateChangesProvider = StreamProvider<User?>((ref) {

@@ -231,7 +231,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
           }
 
           // Regular post
-          return PostWidget(post: state.posts[index]);
+          return PostWidget(post: state.posts[index], isCompact: false);
         },
       ),
     );

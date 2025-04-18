@@ -79,6 +79,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     super.build(context);
 
     final theme = Theme.of(context);
+    final user = ref.read(currentUserProvider);
+    _showNSFWContent = user.allowNSFW!;
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
         PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
 
@@ -269,6 +271,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildAuthorHeader(String formattedTimestamp) {
+    print(
+        'Building author header for post ${widget.post.id}, timestamp: $formattedTimestamp');
     return Consumer(
       builder: (context, ref, child) {
         final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
@@ -346,8 +350,9 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                         Text(
                           formattedTimestamp,
                           style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: widget.isCompact ? 11 : 12,
+                            color: Colors.black87,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
@@ -366,6 +371,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildHerdHeader(String formattedTimestamp) {
+    print(
+        'Building herd header for post ${widget.post.id}, timestamp: $formattedTimestamp');
     return Consumer(
       builder: (context, ref, child) {
         final herdId = widget.post.herdId!;
@@ -453,7 +460,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '· $formattedTimestamp',
+                    formattedTimestamp,
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: widget.isCompact ? 11 : 12,

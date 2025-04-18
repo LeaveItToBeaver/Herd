@@ -318,11 +318,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           }
 
           // Create a unique key with timestamp
-          final uniqueKey = ValueKey(
-              'create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}-${DateTime.now().millisecondsSinceEpoch}');
+          //final uniqueKey = ValueKey(
+          //    'create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}-${DateTime.now().millisecondsSinceEpoch}');
 
           return NoTransitionPage(
-            key: uniqueKey,
+            key: state.pageKey,
             child: GlobalOverlayManager(
               showBottomNav: true,
               showSideBubbles: false,

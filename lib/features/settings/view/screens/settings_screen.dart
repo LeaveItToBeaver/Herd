@@ -192,7 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   // Account Section
                   _buildExpandableSection(
                     title:
-                        'Content${_isUpdatingPreference ? ' (Saving...)' : ''}',
+                        'Account${_isUpdatingPreference ? ' (Saving...)' : ''}',
                     isInitiallyExpanded: false,
                     children: [
                       ListTile(
@@ -235,7 +235,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                   // Content Section
                   _buildExpandableSection(
-                    title: 'Content',
+                    title:
+                        'Content${_isUpdatingPreference ? ' (Saving...)' : ''}',
                     isInitiallyExpanded: false,
                     children: [
                       SwitchListTile(
