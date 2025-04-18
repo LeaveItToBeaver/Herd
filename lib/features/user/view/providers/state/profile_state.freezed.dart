@@ -15,12 +15,15 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$ProfileState implements DiagnosticableTreeMixin {
-  UserModel? get user; // Make user nullable
+  UserModel? get user;
   List<PostModel> get posts;
   bool get isCurrentUser;
   bool get isFollowing;
   bool get isAltView;
   bool get hasAltProfile;
+  bool get isLoading;
+  bool get hasMorePosts;
+  PostModel? get lastPost;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -39,7 +42,10 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isCurrentUser', isCurrentUser))
       ..add(DiagnosticsProperty('isFollowing', isFollowing))
       ..add(DiagnosticsProperty('isAltView', isAltView))
-      ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile));
+      ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
+      ..add(DiagnosticsProperty('lastPost', lastPost));
   }
 
   @override
@@ -56,7 +62,13 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
             (identical(other.isAltView, isAltView) ||
                 other.isAltView == isAltView) &&
             (identical(other.hasAltProfile, hasAltProfile) ||
-                other.hasAltProfile == hasAltProfile));
+                other.hasAltProfile == hasAltProfile) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.hasMorePosts, hasMorePosts) ||
+                other.hasMorePosts == hasMorePosts) &&
+            (identical(other.lastPost, lastPost) ||
+                other.lastPost == lastPost));
   }
 
   @override
@@ -67,11 +79,14 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       isCurrentUser,
       isFollowing,
       isAltView,
-      hasAltProfile);
+      hasAltProfile,
+      isLoading,
+      hasMorePosts,
+      lastPost);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, lastPost: $lastPost)';
   }
 }
 
@@ -87,9 +102,13 @@ abstract mixin class $ProfileStateCopyWith<$Res> {
       bool isCurrentUser,
       bool isFollowing,
       bool isAltView,
-      bool hasAltProfile});
+      bool hasAltProfile,
+      bool isLoading,
+      bool hasMorePosts,
+      PostModel? lastPost});
 
   $UserModelCopyWith<$Res>? get user;
+  $PostModelCopyWith<$Res>? get lastPost;
 }
 
 /// @nodoc
@@ -110,6 +129,9 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
     Object? isFollowing = null,
     Object? isAltView = null,
     Object? hasAltProfile = null,
+    Object? isLoading = null,
+    Object? hasMorePosts = null,
+    Object? lastPost = freezed,
   }) {
     return _then(_self.copyWith(
       user: freezed == user
@@ -136,6 +158,18 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
           ? _self.hasAltProfile
           : hasAltProfile // ignore: cast_nullable_to_non_nullable
               as bool,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hasMorePosts: null == hasMorePosts
+          ? _self.hasMorePosts
+          : hasMorePosts // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastPost: freezed == lastPost
+          ? _self.lastPost
+          : lastPost // ignore: cast_nullable_to_non_nullable
+              as PostModel?,
     ));
   }
 
@@ -152,6 +186,20 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
       return _then(_self.copyWith(user: value));
     });
   }
+
+  /// Create a copy of ProfileState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PostModelCopyWith<$Res>? get lastPost {
+    if (_self.lastPost == null) {
+      return null;
+    }
+
+    return $PostModelCopyWith<$Res>(_self.lastPost!, (value) {
+      return _then(_self.copyWith(lastPost: value));
+    });
+  }
 }
 
 /// @nodoc
@@ -163,14 +211,15 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       required this.isCurrentUser,
       required this.isFollowing,
       required this.isAltView,
-      required this.hasAltProfile})
+      required this.hasAltProfile,
+      this.isLoading = false,
+      this.hasMorePosts = true,
+      this.lastPost})
       : _posts = posts;
 
   @override
   final UserModel? user;
-// Make user nullable
   final List<PostModel> _posts;
-// Make user nullable
   @override
   List<PostModel> get posts {
     if (_posts is EqualUnmodifiableListView) return _posts;
@@ -186,6 +235,14 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
   final bool isAltView;
   @override
   final bool hasAltProfile;
+  @override
+  @JsonKey()
+  final bool isLoading;
+  @override
+  @JsonKey()
+  final bool hasMorePosts;
+  @override
+  final PostModel? lastPost;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -204,7 +261,10 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       ..add(DiagnosticsProperty('isCurrentUser', isCurrentUser))
       ..add(DiagnosticsProperty('isFollowing', isFollowing))
       ..add(DiagnosticsProperty('isAltView', isAltView))
-      ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile));
+      ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile))
+      ..add(DiagnosticsProperty('isLoading', isLoading))
+      ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
+      ..add(DiagnosticsProperty('lastPost', lastPost));
   }
 
   @override
@@ -221,7 +281,13 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
             (identical(other.isAltView, isAltView) ||
                 other.isAltView == isAltView) &&
             (identical(other.hasAltProfile, hasAltProfile) ||
-                other.hasAltProfile == hasAltProfile));
+                other.hasAltProfile == hasAltProfile) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.hasMorePosts, hasMorePosts) ||
+                other.hasMorePosts == hasMorePosts) &&
+            (identical(other.lastPost, lastPost) ||
+                other.lastPost == lastPost));
   }
 
   @override
@@ -232,11 +298,14 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       isCurrentUser,
       isFollowing,
       isAltView,
-      hasAltProfile);
+      hasAltProfile,
+      isLoading,
+      hasMorePosts,
+      lastPost);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, lastPost: $lastPost)';
   }
 }
 
@@ -254,10 +323,15 @@ abstract mixin class _$ProfileStateCopyWith<$Res>
       bool isCurrentUser,
       bool isFollowing,
       bool isAltView,
-      bool hasAltProfile});
+      bool hasAltProfile,
+      bool isLoading,
+      bool hasMorePosts,
+      PostModel? lastPost});
 
   @override
   $UserModelCopyWith<$Res>? get user;
+  @override
+  $PostModelCopyWith<$Res>? get lastPost;
 }
 
 /// @nodoc
@@ -279,6 +353,9 @@ class __$ProfileStateCopyWithImpl<$Res>
     Object? isFollowing = null,
     Object? isAltView = null,
     Object? hasAltProfile = null,
+    Object? isLoading = null,
+    Object? hasMorePosts = null,
+    Object? lastPost = freezed,
   }) {
     return _then(_ProfileState(
       user: freezed == user
@@ -305,6 +382,18 @@ class __$ProfileStateCopyWithImpl<$Res>
           ? _self.hasAltProfile
           : hasAltProfile // ignore: cast_nullable_to_non_nullable
               as bool,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hasMorePosts: null == hasMorePosts
+          ? _self.hasMorePosts
+          : hasMorePosts // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastPost: freezed == lastPost
+          ? _self.lastPost
+          : lastPost // ignore: cast_nullable_to_non_nullable
+              as PostModel?,
     ));
   }
 
@@ -319,6 +408,20 @@ class __$ProfileStateCopyWithImpl<$Res>
 
     return $UserModelCopyWith<$Res>(_self.user!, (value) {
       return _then(_self.copyWith(user: value));
+    });
+  }
+
+  /// Create a copy of ProfileState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PostModelCopyWith<$Res>? get lastPost {
+    if (_self.lastPost == null) {
+      return null;
+    }
+
+    return $PostModelCopyWith<$Res>(_self.lastPost!, (value) {
+      return _then(_self.copyWith(lastPost: value));
     });
   }
 }

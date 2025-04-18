@@ -517,9 +517,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Add this GoRoute entry to your routes array in the goRouterProvider
-// Place it before or after the post route
-
       GoRoute(
         path: '/gallery/:postId',
         name: 'gallery',
