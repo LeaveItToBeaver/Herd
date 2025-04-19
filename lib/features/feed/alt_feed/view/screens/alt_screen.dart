@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
@@ -160,16 +161,17 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
         ],
       ),
       // Use PostListWidget instead of direct ListView.builder
-      body: altFeedState.error != null
-          ? _buildErrorWidget(altFeedState.error!, () {
-              ref.read(altFeedControllerProvider.notifier).refreshFeed();
-            })
-          : altFeedState.posts.isEmpty && !altFeedState.isLoading
-              ? null
+      body: altFeedState.isLoading && altFeedState.posts.isEmpty
+          ? _buildLoadingWidget()
+          : altFeedState.error != null
+              ? _buildErrorWidget(context, altFeedState.error!, () {
+                  ref.read(altFeedControllerProvider.notifier).refreshFeed();
+                })
               : PostListWidget(
                   posts: altFeedState.posts,
-                  isLoading: altFeedState.isLoading,
-                  hasError: false,
+                  isLoading:
+                      altFeedState.isLoading && altFeedState.posts.isEmpty,
+                  hasError: altFeedState.error != null,
                   hasMorePosts: altFeedState.hasMorePosts,
                   scrollController: _scrollController,
                   onRefresh: () => ref
@@ -182,133 +184,67 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   emptyMessage: 'No alt posts yet',
                   emptyActionLabel: 'Create a alt post',
                   onEmptyAction: () {
-                    // Navigate to create post screen with isAlt=true
+                    // Navigate to create post screen with isAlt=true context.pushNamed
+                    context.pushNamed(
+                      'create',
+                      queryParameters: {'isAlt': 'true'},
+                    );
                   },
                 ),
     );
   }
 
-  /// Build the main body of the feed based on state
-  Widget _buildBody(AltFeedState state) {
-    // Show error if any
-    if (state.error != null) {
-      return _buildErrorWidget(state.error!, () {
-        ref.read(altFeedControllerProvider.notifier).refreshFeed();
-      });
-    }
-
-    // Show loading indicator if loading initially with no posts
-    if (state.isLoading && state.posts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Show empty state if no posts and not loading
-    // if (state.posts.isEmpty && !state.isLoading) {
-    //   return _buildEmptyFeed();
-    // }
-
-    // Show posts with pull-to-refresh
-    return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(altFeedControllerProvider.notifier).refreshFeed(),
-      child: ListView.builder(
-        controller: _scrollController,
-        itemCount: state.posts.length + (state.isLoading ? 2 : 1),
-        itemBuilder: (context, index) {
-          print("DEBUG UI: Building item at index $index");
-          // Bottom loading indicator (before the padding)
-          if (index == state.posts.length && state.isLoading) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          // Bottom padding at the very end
-          if (index == state.posts.length ||
-              (index == state.posts.length + 1 && state.isLoading)) {
-            return const BottomNavPadding();
-          }
-
-          // Regular post
-          return PostWidget(post: state.posts[index], isCompact: false);
-        },
-      ),
+  Widget _buildLoadingWidget() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: 100),
+        Center(child: CircularProgressIndicator()),
+        SizedBox(height: 100),
+      ],
     );
   }
 
-  /// Empty feed state widget
-  // Widget _buildEmptyFeed() {
-  //   return Center(
-  //     child: Column(
-  //       mainAxisAlignment: MainAxisAlignment.center,
-  //       children: [
-  //         Icon(
-  //           Icons.lock,
-  //           size: 64,
-  //           color: Colors.blue.withOpacity(0.5),
-  //         ),
-  //         const SizedBox(height: 16),
-  //         const Text(
-  //           'No alt posts yet',
-  //           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //         ),
-  //         const SizedBox(height: 8),
-  //         const Text(
-  //           'Be the first to create a alt post!',
-  //           textAlign: TextAlign.center,
-  //         ),
-  //         const SizedBox(height: 24),
-  //         ElevatedButton.icon(
-  //           icon: const Icon(Icons.edit),
-  //           label: const Text('Create a alt post'),
-  //           onPressed: () {
-  //             // Navigate to create post screen with isAlt=true
-  //           },
-  //           style: ElevatedButton.styleFrom(
-  //             backgroundColor: Colors.blue,
-  //             foregroundColor: Colors.white,
-  //           ),
-  //         ),
-  //         const BottomNavPadding(),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   /// Error widget with retry button
-  Widget _buildErrorWidget(Object error, VoidCallback onRetry) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 60,
+  Widget _buildErrorWidget(
+      BuildContext context, Object error, VoidCallback onRetry) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 100),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 60,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load feed',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text('Try Again'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load alt feed',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('Try Again'),
-            ),
-            const BottomNavPadding(),
-          ],
+          ),
         ),
-      ),
+        const BottomNavPadding(),
+      ],
     );
   }
 

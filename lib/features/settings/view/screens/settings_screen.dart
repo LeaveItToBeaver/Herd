@@ -195,16 +195,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'Account${_isUpdatingPreference ? ' (Saving...)' : ''}',
                     isInitiallyExpanded: false,
                     children: [
-                      ListTile(
-                        leading: const Icon(Icons.person),
-                        title: const Text('Account Settings'),
-                        subtitle: const Text('Manage your account details'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/editProfile', extra: {
-                          'user': ref
-                              .read(userProvider(ref.read(authProvider)!.uid)),
-                          'isPublic': true,
-                        }),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final userId = ref.read(authProvider)?.uid;
+                          if (userId == null) return const SizedBox.shrink();
+
+                          final userAsync = ref.watch(userProvider(userId));
+
+                          return ListTile(
+                            leading: const Icon(Icons.person),
+                            title: const Text('Account Settings'),
+                            subtitle: const Text('Manage your account details'),
+                            trailing: userAsync.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.chevron_right),
+                            onTap: userAsync.hasValue && userAsync.value != null
+                                ? () => context.push('/editProfile', extra: {
+                                      'user': userAsync.value,
+                                      'isPublic': true,
+                                    })
+                                : null,
+                          );
+                        },
                       ),
                       ListTile(
                         leading: const Icon(Icons.visibility),

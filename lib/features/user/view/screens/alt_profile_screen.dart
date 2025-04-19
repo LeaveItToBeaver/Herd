@@ -101,7 +101,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   ),
                   flexibleSpace: RepaintBoundary(
                     child: CoverImageBlurEffect(
-                      coverImageUrl: profile.user?.coverImageURL,
+                      coverImageUrl: profile.user?.altCoverImageURL,
                       dominantColor: _dominantColor,
                       scrollController: _scrollController,
                     ),
@@ -117,11 +117,23 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          context.push('/editProfile', extra: {
-                            'user': profile.user!,
+                        onPressed: () async {
+                          // Navigate to edit profile and wait for the result
+                          final result =
+                              await context.push('/editProfile', extra: {
+                            'user': profile.user,
                             'isPublic': false,
                           });
+
+                          // Force refresh the profile when returning from edit screen
+                          if (result == true || result != null) {
+                            ref
+                                .read(profileControllerProvider.notifier)
+                                .loadProfile(
+                                  widget.userId,
+                                  isAltView: true,
+                                );
+                          }
                         },
                       ),
                       IconButton(
@@ -471,6 +483,10 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       ),
                     ),
                   ),
+                // ElevatedButton(
+                //   onPressed: () => ref.refresh(canCreateHerdProvider),
+                //   child: Text('Refresh Eligibility Check'),
+                // ),
                 BottomNavPadding(),
               ],
             );

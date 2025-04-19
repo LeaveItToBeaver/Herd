@@ -29,7 +29,9 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
   final TextEditingController _usernameController = TextEditingController();
   File? _profileImage;
   File? _coverImage;
+  final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
+  late bool _isSaving = false;
 
   @override
   void initState() {
@@ -39,27 +41,49 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
   }
 
   void _saveChanges() async {
-    ref
-        .read(editAltProfileProvider(widget.user).notifier)
-        .bioChanged(_bioController.text);
-    ref
-        .read(editAltProfileProvider(widget.user).notifier)
-        .usernameChanged(_usernameController.text);
-    await ref.read(editAltProfileProvider(widget.user).notifier).submit();
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isSaving = true;
+      });
 
-    // Check if still mounted immediately after the async operation
-    if (!context.mounted) return;
+      try {
+        ref
+            .read(editAltProfileProvider(widget.user).notifier)
+            .bioChanged(_bioController.text);
+        ref
+            .read(editAltProfileProvider(widget.user).notifier)
+            .usernameChanged(_usernameController.text);
+        await ref.read(editAltProfileProvider(widget.user).notifier).submit();
 
-    // Now we can safely use context
-    if (ref.read(editAltProfileProvider(widget.user)).errorMessage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Alt profile updated successfully.")),
-      );
+        // Check if still mounted immediately after the async operation
+        if (!context.mounted) return;
 
-      context.pop();
+        // Now we can safely use context
+        if (ref.read(editAltProfileProvider(widget.user)).errorMessage ==
+            null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Alt profile updated successfully.")),
+          );
 
-      if (widget.isInitialSetup) {
-        context.go('/altFeed');
+          // Return true to indicate the profile was updated
+          context.pop(true);
+
+          if (widget.isInitialSetup) {
+            context.go('/altFeed');
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update profile')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
     }
   }
