@@ -48,9 +48,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  bool _isMounted = true; // Track mounted state
+
+  @override
+  void initState() {
+    super.initState();
+    _isMounted = true;
+  }
 
   @override
   void dispose() {
+    _isMounted = false; // Set to false when disposed
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -62,59 +70,70 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final password = passwordController.text.trim();
 
     // Reset form state and set loading
-    ref.read(loginFormProvider.notifier).state =
-        LoginFormState(isLoading: true);
+    if (_isMounted) {
+      ref.read(loginFormProvider.notifier).state =
+          LoginFormState(isLoading: true);
+    }
 
     // Validate inputs
     if (email.isEmpty) {
-      ref.read(loginFormProvider.notifier).state = LoginFormState(
-        emailError: 'Email is required',
-      );
+      if (_isMounted) {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          emailError: 'Email is required',
+        );
+      }
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
-      ref.read(loginFormProvider.notifier).state = LoginFormState(
-        emailError: 'Please enter a valid email',
-      );
+      if (_isMounted) {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          emailError: 'Please enter a valid email',
+        );
+      }
       return;
     }
 
     if (password.isEmpty) {
-      ref.read(loginFormProvider.notifier).state = LoginFormState(
-        passwordError: 'Password is required',
-      );
+      if (_isMounted) {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          passwordError: 'Password is required',
+        );
+      }
       return;
     }
 
     if (password.length < 6) {
-      ref.read(loginFormProvider.notifier).state = LoginFormState(
-        passwordError: 'Password must be at least 6 characters',
-      );
+      if (_isMounted) {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          passwordError: 'Password must be at least 6 characters',
+        );
+      }
       return;
     }
 
     try {
-      final auth = ref.read(authProvider.notifier);
-      final userCredential = await auth.signIn(email, password);
+      // Store references to providers before any awaits
+      final authNotifier = ref.read(authProvider.notifier);
+      final userNotifier = ref.read(currentUserProvider.notifier);
+
+      final userCredential = await authNotifier.signIn(email, password);
 
       if (userCredential.user != null) {
         // Wait for Firestore data to be loaded
-        await ref.read(currentUserProvider.notifier).fetchCurrentUser();
+        await userNotifier.fetchCurrentUser();
 
-        if (mounted) {
+        if (mounted && _isMounted) {
           context.go('/profile');
         }
-      } else if (mounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          emailError: 'Login failed. Please try again.',
-        );
-      } else {
+      } else if (mounted && _isMounted) {
         ref.read(loginFormProvider.notifier).state = LoginFormState(
           emailError: 'Login failed. Please try again.',
         );
       }
     } catch (e) {
+      if (!_isMounted) return; // Exit if widget is no longer mounted
+
       String errorMessage = 'An error occurred';
 
       // Handle specific error cases
@@ -135,14 +154,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         errorMessage = 'This login method is not allowed';
       }
 
-      ref.read(loginFormProvider.notifier).state = LoginFormState(
-        emailError:
-            e.toString().contains('user-not-found') ? errorMessage : null,
-        passwordError:
-            e.toString().contains('wrong-password') ? errorMessage : null,
-      );
+      if (_isMounted) {
+        ref.read(loginFormProvider.notifier).state = LoginFormState(
+          emailError:
+              e.toString().contains('user-not-found') ? errorMessage : null,
+          passwordError:
+              e.toString().contains('wrong-password') ? errorMessage : null,
+        );
+      }
 
-      if (mounted) {
+      if (mounted && _isMounted) {
         // Show error in snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,7 +178,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
     } finally {
-      if (mounted) {
+      if (mounted && _isMounted) {
         ref.read(loginFormProvider.notifier).state = LoginFormState();
       }
     }
@@ -220,10 +241,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         });
 
                         try {
-                          await ref
-                              .read(authProvider.notifier)
-                              .resetPassword(email);
-                          if (mounted) {
+                          // Store reference before await
+                          final authNotifier = ref.read(authProvider.notifier);
+                          await authNotifier.resetPassword(email);
+
+                          if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(

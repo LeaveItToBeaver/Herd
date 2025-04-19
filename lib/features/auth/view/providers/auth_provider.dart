@@ -18,30 +18,20 @@ class AuthNotifier extends StateNotifier<User?> {
 
   Future<UserCredential> signIn(String email, String password) async {
     try {
-      final userCredential = await _auth.signInWithEmailAndPassword(
+      return await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      state = userCredential.user;
-      return userCredential;
     } on FirebaseAuthException catch (e, stack) {
-      // Log the specific Firebase Auth exception
       await _logger.logException(
-          errorMessage: e.message ?? 'Unknown authentication error',
-          stackTrace: stack.toString(),
-          errorCode: e.code,
-          action: 'signIn',
-          route: 'LoginScreen',
-          errorDetails: {'email': email});
-      throw e.message ?? 'An error occurred';
-    } catch (e, stack) {
-      // Log generic exceptions
-      await _logger.logException(
-          errorMessage: e.toString(),
-          stackTrace: stack.toString(),
-          action: 'signIn',
-          route: 'LoginScreen');
-      throw 'An error occurred';
+        errorMessage: e.message ?? 'Auth error',
+        stackTrace: stack.toString(),
+        errorCode: e.code,
+        action: 'signIn',
+        route: 'LoginScreen',
+        errorDetails: {'email': email},
+      );
+      rethrow; // rethrow the FirebaseAuthException itself
     }
   }
 

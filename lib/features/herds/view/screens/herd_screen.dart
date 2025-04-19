@@ -64,11 +64,13 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
 
   @override
   Widget build(BuildContext context) {
+    final memberAv = ref.watch(isHerdMemberProvider(widget.herdId));
     final herdAsyncValue = ref.watch(herdProvider(widget.herdId));
     final isCurrentUserMember = ref.watch(isHerdMemberProvider(widget.herdId));
     final isCurrentUserModerator =
         ref.watch(isHerdModeratorProvider(widget.herdId));
     final herdFeedState = ref.watch(herdFeedControllerProvider(widget.herdId));
+    final isMember = memberAv.maybeWhen(data: (m) => m, orElse: () => false);
 
     return Scaffold(
       body: herdAsyncValue.when(
@@ -175,35 +177,49 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                     ],
                                   ),
                                 ),
-                                isCurrentUserMember.when(
-                                  loading: () =>
-                                      const CircularProgressIndicator(),
-                                  error: (_, __) => Container(),
-                                  data: (isMember) => ElevatedButton(
-                                    onPressed: () {
-                                      if (isMember) {
-                                        ref
-                                            .read(herdRepositoryProvider)
-                                            .leaveHerd(
-                                              herd.id,
-                                              ref.read(authProvider)!.uid,
-                                            );
-                                      } else {
-                                        ref
-                                            .read(herdRepositoryProvider)
-                                            .joinHerd(
-                                              herd.id,
-                                              ref.read(authProvider)!.uid,
-                                            );
-                                      }
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isMember
-                                          ? Colors.grey
-                                          : Theme.of(context).primaryColor,
-                                    ),
-                                    child: Text(isMember ? 'Leave' : 'Join'),
+                                ElevatedButton(
+                                  // disable while loading
+                                  onPressed: memberAv.isLoading
+                                      ? null
+                                      : () async {
+                                          final repo =
+                                              ref.read(herdRepositoryProvider);
+                                          final uid =
+                                              ref.read(authProvider)!.uid;
+                                          if (isMember) {
+                                            await repo.leaveHerd(
+                                                widget.herdId, uid);
+                                          } else {
+                                            await repo.joinHerd(
+                                                widget.herdId, uid);
+                                          }
+                                          // force‑refresh both the “am I a member?” flag and the member list
+                                          ref.invalidate(isHerdMemberProvider(
+                                              widget.herdId));
+                                          ref.invalidate(herdMembersProvider(
+                                              widget.herdId));
+                                          ref.invalidate(
+                                              herdProvider(widget.herdId));
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isMember
+                                        ? Colors.white
+                                        : Theme.of(context).colorScheme.primary,
+                                    foregroundColor: isMember
+                                        ? Colors.red
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
                                   ),
+                                  child: memberAv.isLoading
+                                      // show a little spinner if you really want to indicate “loading…”
+                                      ? SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        )
+                                      : Text(isMember ? 'Leave' : 'Join'),
                                 ),
                               ],
                             ),
@@ -306,63 +322,57 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                 ),
 
                 // Members tab
-                FutureBuilder<List<String>>(
-                  future:
-                      ref.read(herdRepositoryProvider).getHerdMembers(herd.id),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+                ref.watch(herdMembersProvider(widget.herdId)).when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (err, st) =>
+                          Center(child: Text('Error loading members: $err')),
+                      data: (memberIds) {
+                        // remove any accidental duplicates:
+                        final uniqueIds = memberIds.toSet().toList();
 
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    }
+                        if (uniqueIds.isEmpty) {
+                          return const Center(child: Text('No members yet'));
+                        }
 
-                    final memberIds = snapshot.data ?? [];
-
-                    if (memberIds.isEmpty) {
-                      return const Center(child: Text('No members yet'));
-                    }
-
-                    return ListView.builder(
-                      itemCount: memberIds.length,
-                      itemBuilder: (context, index) {
-                        return FutureBuilder(
-                          future: ref
-                              .read(userRepositoryProvider)
-                              .getUserById(memberIds[index]),
-                          builder: (context, userSnapshot) {
-                            if (!userSnapshot.hasData ||
-                                userSnapshot.data == null) {
-                              return const ListTile(
-                                leading: CircleAvatar(),
-                                title: Text('Loading...'),
-                              );
-                            }
-
-                            final user = userSnapshot.data!;
-
-                            return ListTile(
-                              leading: UserProfileImage(
-                                  radius: 40.0,
-                                  profileImageUrl: user.profileImageURL),
-                              title: Text(user.username ?? 'User'),
-                              subtitle: herd.moderatorIds.contains(user.id)
-                                  ? const Text('Moderator')
-                                  : null,
-                              onTap: () {
-                                context.pushNamed(
-                                  'altProfile',
-                                  pathParameters: {'id': user.id},
+                        return ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: uniqueIds.length,
+                          itemBuilder: (context, idx) {
+                            final memberId = uniqueIds[idx];
+                            return FutureBuilder(
+                              // you can keep your existing getUserById FutureBuilder here
+                              future: ref
+                                  .read(userRepositoryProvider)
+                                  .getUserById(memberId),
+                              builder: (context, snap) {
+                                if (!snap.hasData) {
+                                  return const ListTile(
+                                    leading: CircleAvatar(),
+                                    title: Text('Loading…'),
+                                  );
+                                }
+                                final user = snap.data!;
+                                return ListTile(
+                                  leading: UserProfileImage(
+                                    radius: 20,
+                                    profileImageUrl: user.altProfileImageURL,
+                                  ),
+                                  title: Text(user.username ?? 'User'),
+                                  subtitle: herd.moderatorIds.contains(user.id)
+                                      ? const Text('Moderator')
+                                      : null,
+                                  onTap: () => context.pushNamed(
+                                    'altProfile',
+                                    pathParameters: {'id': user.id},
+                                  ),
                                 );
                               },
                             );
                           },
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
               ],
             ),
           );
