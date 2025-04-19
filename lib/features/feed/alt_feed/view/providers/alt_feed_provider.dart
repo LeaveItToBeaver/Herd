@@ -43,6 +43,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   }
 
   /// Load initial alt feed posts
+  /// Load initial alt feed posts
   Future<void> loadInitialPosts(
       {String? overrideUserId, bool forceRefresh = false}) async {
     try {
@@ -71,7 +72,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
             isLoading: false,
             hasMorePosts: cachedPosts.length >= pageSize,
             lastPost: cachedPosts.isNotEmpty ? cachedPosts.last : null,
-            fromCache: true, // New field to indicate cache source
+            fromCache: true,
           );
           return;
         }
@@ -103,11 +104,15 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         }
       }
 
-      // Use the global alt feed as fallback
-      final posts = await repository.getGlobalAltFeed(limit: pageSize);
+      // Get from user feed collection directly
+      final posts = await repository.getAltFeed(
+        userId: effectiveUserId,
+        limit: pageSize,
+        includeHerdPosts: _showHerdPosts,
+      );
 
-      // Cache the global feed results
-      await cacheManager.cacheFeed(posts, 'global', isAlt: true);
+      // Cache the results
+      await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
 
       state = state.copyWith(
         posts: posts,
@@ -151,6 +156,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
           feedType: 'alt',
           limit: pageSize,
           lastHotScore: lastPost.hotScore,
+          lastPostId: lastPost.id,
         );
 
         if (morePosts.isEmpty) {
@@ -176,10 +182,13 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         print('Falling back to direct Firestore query: $e');
       }
 
-      // Use the global alt feed for pagination
-      final morePosts = await repository.getGlobalAltFeed(
+      // Get from user feed collection directly
+      final morePosts = await repository.getAltFeed(
+        userId: userId!,
         limit: pageSize,
         lastHotScore: lastPost.hotScore,
+        lastPostId: lastPost.id,
+        includeHerdPosts: _showHerdPosts,
       );
 
       if (morePosts.isEmpty) {

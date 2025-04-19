@@ -905,7 +905,7 @@ class PostRepository {
     });
   }
 
-  // Get only user's public posts with pagination
+  /// Get public posts for a user's profile
   Future<List<PostModel>> getFutureUserPublicPosts(
     String userId, {
     int limit = 20,
@@ -913,39 +913,93 @@ class PostRepository {
     String? lastPostId,
   }) async {
     try {
-      debugPrint('Fetching public profile posts for user: $userId');
-
-      // Query the main posts collection for public posts by this user
-      Query<Map<String, dynamic>> query = _posts
+      // Query directly from posts collection (not userFeeds)
+      Query<Map<String, dynamic>> postsQuery = _firestore
+          .collection('posts')
           .where('authorId', isEqualTo: userId)
-          .where('herdId', isNull: true) // Exclude herd posts
-          .where('isAlt', isEqualTo: false) // Only public posts
+          .where('isAlt', isEqualTo: false)
           .orderBy('hotScore', descending: true);
 
-      // Apply pagination if needed
-      if (lastHotScore != null && lastPostId != null) {
-        query = query.startAfter([lastHotScore, lastPostId]);
+      // Apply pagination if provided
+      if (lastHotScore != null) {
+        postsQuery = postsQuery.startAfter([lastHotScore]);
       }
 
       // Apply limit
-      query = query.limit(limit);
+      postsQuery = postsQuery.limit(limit);
 
       // Execute query
-      final snapshot = await query.get();
+      final snapshot = await postsQuery.get();
 
-      // Debug logging
-      debugPrint('Found ${snapshot.docs.length} public posts for user profile');
+      return snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+          .toList();
+    } catch (e, stackTrace) {
+      debugPrint('Error getting user public posts: $e');
+      rethrow;
+    }
+  }
 
-      // Convert to PostModel objects
-      List<PostModel> posts = snapshot.docs
+  /// Get alt posts for a user's profile (includes posts from both altPosts and herdPosts)
+  Future<List<PostModel>> getFutureUserAltProfilePosts(
+    String userId, {
+    int limit = 20,
+    double? lastHotScore,
+    String? lastPostId,
+  }) async {
+    try {
+      // First, query alt posts
+      Query<Map<String, dynamic>> altPostsQuery = _firestore
+          .collection('altPosts')
+          .where('authorId', isEqualTo: userId)
+          .orderBy('hotScore', descending: true);
+
+      // Apply limit (we'll fetch more to merge with herd posts)
+      altPostsQuery = altPostsQuery.limit(limit);
+
+      // Execute query
+      final altSnapshot = await altPostsQuery.get();
+      final altPosts = altSnapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
 
-      return posts;
+      // Second, query the user's herd posts
+      // We need to find herds the user is a member of first
+      final userHerdsQuery = _firestore
+          .collection('herdMembers')
+          .where('members', arrayContains: userId);
+
+      final herdsSnapshot = await userHerdsQuery.get();
+
+      // Fetch posts from each herd
+      List<PostModel> herdPosts = [];
+      for (final herdDoc in herdsSnapshot.docs) {
+        final herdId = herdDoc.id;
+
+        final herdPostsQuery = _firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .where('authorId', isEqualTo: userId)
+            .orderBy('hotScore', descending: true)
+            .limit(limit);
+
+        final herdPostsSnapshot = await herdPostsQuery.get();
+
+        herdPosts.addAll(herdPostsSnapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+            .toList());
+      }
+
+      // Combine and sort posts
+      final allPosts = [...altPosts, ...herdPosts];
+      allPosts.sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
+
+      // Apply final limit after combining
+      return allPosts.take(limit).toList();
     } catch (e, stackTrace) {
-      debugPrint('Error getting public profile posts: $e');
-      debugPrint(stackTrace.toString());
-      return []; // Return empty list on error
+      debugPrint('Error getting user alt posts: $e');
+      rethrow;
     }
   }
 
@@ -1021,52 +1075,6 @@ class PostRepository {
     }
 
     return mediaItems;
-  }
-
-  // Get only user's alt posts=
-  Future<List<PostModel>> getFutureUserAltProfilePosts(
-    String userId, {
-    int limit = 20,
-    double? lastHotScore,
-    String? lastPostId,
-  }) async {
-    try {
-      debugPrint('Fetching alt profile posts for user: $userId');
-
-      // Query the userFeeds/{userId}/feed collection for alt posts by this author
-      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-          .collection('userFeeds')
-          .doc(userId)
-          .collection('feed')
-          .where('authorId', isEqualTo: userId) // Posts by this user
-          .where('feedType', isEqualTo: 'alt') // Only alt posts
-          .orderBy('hotScore', descending: true);
-
-      // Apply pagination if needed
-      if (lastHotScore != null && lastPostId != null) {
-        query = query.startAfter([lastHotScore, lastPostId]);
-      }
-
-      // Apply limit
-      query = query.limit(limit);
-
-      // Execute query
-      final snapshot = await query.get();
-
-      // Debug logging
-      debugPrint('Found ${snapshot.docs.length} alt posts for user profile');
-
-      // Convert to PostModel objects
-      List<PostModel> posts = snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-          .toList();
-
-      return posts;
-    } catch (e, stackTrace) {
-      debugPrint('Error getting alt profile posts: $e');
-      debugPrint(stackTrace.toString());
-      return []; // Return empty list on error
-    }
   }
 
   /// Liking and Disliking Posts ///
