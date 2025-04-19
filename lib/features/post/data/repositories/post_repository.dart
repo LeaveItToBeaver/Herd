@@ -949,6 +949,80 @@ class PostRepository {
     }
   }
 
+  Future<List<PostMediaModel>> uploadProcessedMediaFiles({
+    required List<Map<String, dynamic>> processedMedia,
+    required String postId,
+    required String userId,
+    required bool isAlt,
+  }) async {
+    List<PostMediaModel> mediaItems = [];
+
+    for (var mediaData in processedMedia) {
+      File file = mediaData['file'];
+      String mediaType = mediaData['mediaType'];
+      int index = mediaData['index'] ?? 0;
+      String? thumbnailUrl;
+
+      // Generate path based on privacy
+      final String basePath = isAlt
+          ? 'users/$userId/alt/posts/$postId'
+          : 'users/$userId/posts/$postId';
+
+      // Upload the main media file
+      final String fileName = '$index-${path.basename(file.path)}';
+      final String mediaPath = '$basePath/$fileName';
+
+      final mainRef = _storage.ref().child(mediaPath);
+
+      // Set appropriate content type
+      final extension = path.extension(file.path).toLowerCase();
+      final contentType = _getContentType(extension);
+
+      final SettableMetadata metadata = SettableMetadata(
+        contentType: contentType,
+        customMetadata: {
+          'isAlt': isAlt.toString(),
+          'mediaType': mediaType,
+        },
+      );
+
+      final uploadTask = mainRef.putFile(file, metadata);
+      final snapshot = await uploadTask;
+      final String mainUrl = await snapshot.ref.getDownloadURL();
+
+      // For videos, upload the thumbnail too
+      if (mediaType == 'video' && mediaData['thumbnailFile'] != null) {
+        final File thumbnailFile = mediaData['thumbnailFile'];
+        final String thumbName = '$index-thumbnail.jpg';
+        final String thumbPath = '$basePath/$thumbName';
+
+        final thumbRef = _storage.ref().child(thumbPath);
+        final thumbMetadata = SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {
+            'isAlt': isAlt.toString(),
+            'mediaType': 'thumbnail',
+            'for': mediaType,
+          },
+        );
+
+        final thumbUploadTask = thumbRef.putFile(thumbnailFile, thumbMetadata);
+        final thumbSnapshot = await thumbUploadTask;
+        thumbnailUrl = await thumbSnapshot.ref.getDownloadURL();
+      }
+
+      // Add to media items
+      mediaItems.add(PostMediaModel(
+        id: index.toString(),
+        url: mainUrl,
+        thumbnailUrl: thumbnailUrl,
+        mediaType: mediaType,
+      ));
+    }
+
+    return mediaItems;
+  }
+
   // Get only user's alt posts=
   Future<List<PostModel>> getFutureUserAltProfilePosts(
     String userId, {

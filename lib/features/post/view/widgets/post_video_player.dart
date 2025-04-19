@@ -1,7 +1,8 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+
+import '../../../../core/utils/router.dart';
 
 enum VideoLoadingState {
   initial,
@@ -20,7 +21,9 @@ class PostVideoPlayer extends StatefulWidget {
   final bool allowFullScreen;
   final bool showOptions;
   final Color controlsColor;
+  final bool muted;
   final bool allowPlaybackSpeedControl;
+  final void Function(double aspectRatio)? onAspectRatio;
 
   const PostVideoPlayer({
     super.key,
@@ -29,10 +32,12 @@ class PostVideoPlayer extends StatefulWidget {
     this.looping = false,
     this.showControls = true,
     this.aspectRatio = 16 / 9,
+    this.onAspectRatio,
     this.fit = BoxFit.contain,
     this.allowFullScreen = true,
     this.showOptions = true,
     this.controlsColor = Colors.white,
+    this.muted = true,
     this.allowPlaybackSpeedControl = true,
   });
 
@@ -40,8 +45,8 @@ class PostVideoPlayer extends StatefulWidget {
   State<PostVideoPlayer> createState() => _PostVideoPlayerState();
 }
 
-class _PostVideoPlayerState extends State<PostVideoPlayer> {
-  late VideoPlayerController _videoPlayerController;
+class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
+  VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   VideoLoadingState _loadingState = VideoLoadingState.initial;
   String? _errorMessage;
@@ -53,11 +58,26 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
   void didUpdateWidget(PostVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) {
       _disposeControllers();
       _initializePlayer();
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // called when a pushed route has been popped and this one is visible again
+    if (_videoPlayerController != null && widget.autoPlay) {
+      _videoPlayerController!.play();
     }
   }
 
@@ -68,19 +88,29 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
         _errorMessage = null;
       });
 
-      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-      await _videoPlayerController.initialize();
+      _videoPlayerController =
+          VideoPlayerController.networkUrl(Uri.parse(widget.url));
+      await _videoPlayerController?.initialize();
+
+      _videoPlayerController =
+          VideoPlayerController.networkUrl(Uri.parse(widget.url));
+      await _videoPlayerController!.initialize();
+
+      // right here, grab the real ratio …
+      final realRatio = _videoPlayerController!.value.aspectRatio;
+      widget.onAspectRatio?.call(realRatio);
 
       // Set the video volume as per the device's current volume
-      await _videoPlayerController.setVolume(1.0);
+      final muted = widget.muted;
+      await _videoPlayerController?.setVolume(muted ? 0 : 1);
 
       setState(() {
         // Calculate the actual aspect ratio from the video
-        final videoAspectRatio = _videoPlayerController.value.aspectRatio;
+        final videoAspectRatio = _videoPlayerController?.value.aspectRatio;
 
         _chewieController = ChewieController(
-          videoPlayerController: _videoPlayerController,
-          aspectRatio: videoAspectRatio.isFinite && videoAspectRatio > 0
+          videoPlayerController: _videoPlayerController!,
+          aspectRatio: videoAspectRatio!.isFinite && videoAspectRatio > 0
               ? videoAspectRatio
               : widget.aspectRatio,
           autoPlay: widget.autoPlay,
@@ -144,13 +174,14 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _disposeControllers();
     super.dispose();
   }
 
   void _disposeControllers() {
     _chewieController?.dispose();
-    _videoPlayerController.dispose();
+    _videoPlayerController?.dispose();
   }
 
   @override
@@ -177,7 +208,8 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade400, size: 48),
+                  Icon(Icons.error_outline,
+                      color: Colors.red.shade400, size: 48),
                   const SizedBox(height: 16),
                   const Text(
                     'Failed to load video',

@@ -492,6 +492,43 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   List<File> _mediaFiles = [];
   int _currentMediaIndex = 0;
 
+  // Add to your CreatePostScreen class
+  Future<List<Map<String, dynamic>>> _processMediaFiles() async {
+    List<Map<String, dynamic>> processedMedia = [];
+
+    for (int i = 0; i < _mediaFiles.length; i++) {
+      final file = _mediaFiles[i];
+      final extension = file.path.toLowerCase().substring(
+            file.path.lastIndexOf('.'),
+          );
+
+      final isVideo =
+          ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
+
+      if (isVideo) {
+        // Generate thumbnail for video
+        final thumbnailFile =
+            await ImageHelper.generateVideoThumbnailFile(file);
+
+        processedMedia.add({
+          'file': file,
+          'thumbnailFile': thumbnailFile,
+          'mediaType': 'video',
+          'index': i,
+        });
+      } else {
+        // Regular image
+        processedMedia.add({
+          'file': file,
+          'mediaType': ImageHelper.isGif(file) ? 'gif' : 'image',
+          'index': i,
+        });
+      }
+    }
+
+    return processedMedia;
+  }
+
   Widget _mediaPicker(BuildContext context) {
     return Column(
       children: [
@@ -502,7 +539,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
             try {
               // Use the image picker to select multiple images
-              final pickedFiles = await ImageHelper.pickMultipleMediaFiles(
+              final pickedFiles = await ImageHelper.pickMediaFilesWithVideo(
                 context: context,
               );
 
@@ -848,10 +885,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     try {
       debugPrint("Submitting post with ${_mediaFiles.length} media files");
 
+      final processedMedia = await _processMediaFiles();
+
       final postId = await ref.read(postControllerProvider.notifier).createPost(
             title: _title,
             content: _content,
-            // Pass the list of media files, not just the first one
+            processedMedia: processedMedia,
             mediaFiles: _mediaFiles,
             userId: currentUser.id,
             isAlt: _isAlt,

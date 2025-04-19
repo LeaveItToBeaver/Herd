@@ -1,4 +1,3 @@
-// lib/features/herds/view/screens/edit_herd_screen.dart
 import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
@@ -385,7 +384,7 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
         // Go back to the herd page
         context.pop();
         // Refresh herd view
-        context.pushNamed('herd', pathParameters: {'id': widget.herd.id});
+        ref.invalidate(herdProvider(widget.herd.id));
       }
     } catch (e) {
       if (mounted) {
