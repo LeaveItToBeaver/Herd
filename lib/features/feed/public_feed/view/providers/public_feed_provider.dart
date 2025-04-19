@@ -36,14 +36,13 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   bool get _isActive => !_disposed;
 
   /// Load initial public feed posts
+  /// Load initial public feed posts
   Future<void> loadInitialPosts({String? overrideUserId}) async {
     try {
       // Don't reload if already loading
       if (state.isLoading || _disposed) return;
 
       if (_isActive) state = state.copyWith(isLoading: true, error: null);
-
-      state = state.copyWith(isLoading: true, error: null);
 
       final effectiveUserId = overrideUserId ?? userId ?? '';
       if (effectiveUserId.isEmpty) {
@@ -54,33 +53,9 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         return;
       }
 
-      // Try to get posts from the cloud function first
-      try {
-        final posts = await repository.getFeedFromFunction(
-          userId: userId,
-          feedType: 'public',
-          limit: pageSize,
-          lastHotScore: state.lastPost?.hotScore,
-          lastPostId: state.lastPost?.id,
-        );
-
-        if (_isActive) {
-          state = state.copyWith(
-            posts: posts,
-            isLoading: false,
-            hasMorePosts: posts.length >= pageSize,
-            lastPost: posts.isNotEmpty ? posts.last : null,
-          );
-        }
-        return;
-      } catch (e) {
-        // If cloud function fails, fall back to direct Firestore query
-        print('Falling back to direct Firestore query: $e');
-        if (_disposed) return;
-      }
-
+      // Get posts from repository
       final posts = await repository.getPublicFeed(
-        userId: userId,
+        userId: effectiveUserId,
         limit: pageSize,
       );
 
