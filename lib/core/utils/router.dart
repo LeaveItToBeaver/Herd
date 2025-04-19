@@ -34,43 +34,37 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isLoggedIn = user != null;
-      final isGoingToAuth = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/signup' ||
-          state.matchedLocation == '/emailVerification' ||
-          state.matchedLocation == '/resetPassword' ||
-          state.matchedLocation == '/splash';
+      final user = ref.read(authProvider);
+      final currentPath = state.uri.path;
+      final isAuthRoute = [
+        '/login',
+        '/signup',
+        '/emailVerification',
+        '/resetPassword',
+        '/splash',
+      ].contains(currentPath);
 
-      if (kDebugMode) {
-        print('Redirect debug:');
-        print('- Matched location: ${state.matchedLocation}');
-        print('- Is logged in: $isLoggedIn');
-        print('- Is going to auth page: $isGoingToAuth');
-        print('- Current feed type: $currentFeed');
+      // 1) Not signed in → must go to login/signup
+      if (user == null) {
+        return isAuthRoute ? null : '/login';
       }
 
-      // Allow access to auth pages when not logged in
-      if (!isLoggedIn) {
-        // If on auth page, allow it
-        if (isGoingToAuth) {
-          return null;
-        }
-        // If trying to access protected routes, redirect to login
-        return '/login';
+      // 2) Signed in but email *not* verified → force /emailVerification
+      if (!user.emailVerified) {
+        return (currentPath == '/emailVerification')
+            ? null
+            : '/emailVerification';
       }
 
-      if (state.matchedLocation == '/') {
-        if (isLoggedIn) {
-          // Send to appropriate feed based on current feed type
-          return currentFeed == FeedType.alt ? '/altFeed' : '/publicFeed';
-        } else {
-          // Not logged in, send to login
-          return '/login';
-        }
+      // 3) Signed in & verified → proceed with your existing logic
+      //    (e.g. redirect "/" → either /publicFeed or /altFeed)
+      if (currentPath == '/') {
+        return ref.read(currentFeedProvider) == FeedType.alt
+            ? '/altFeed'
+            : '/publicFeed';
       }
 
-      // Allow all other navigation
-      return null;
+      return null; // all other routes permitted
     },
     routes: [
       GoRoute(

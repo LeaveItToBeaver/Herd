@@ -24,104 +24,159 @@ class _EmailVerificationScreenState
     extends ConsumerState<EmailVerificationScreen> {
   bool _isResendingEmail = false;
   bool _isVerified = false;
-  late Timer _timer;
-  int _timeLeft = 60; // Countdown for resend email option
+  Timer? _verificationPoll;
+  int _timeLeft = 60;
+  Timer? _resendCountdown;
+  bool _isMounted = true;
 
   @override
   void initState() {
     super.initState();
-    _startVerificationCheck();
-    _startResendTimer();
+    _isMounted = true;
+
+    // First, send an email verification if needed
+    _sendInitialVerificationIfNeeded();
+
+    // Poll for email verification status
+    _startVerificationPolling();
+
+    // Start the resend countdown
+    _startResendCountdown();
   }
 
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
+  Future<void> _sendInitialVerificationIfNeeded() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        print('Initial verification email sent to ${user.email}');
+      }
+    } catch (e) {
+      print('Error sending initial verification email: $e');
+    }
   }
 
-  // Start checking if the email has been verified
-  void _startVerificationCheck() {
-    _timer = Timer.periodic(
+  void _startVerificationPolling() {
+    print('Starting verification polling');
+    _verificationPoll = Timer.periodic(
       const Duration(seconds: 3),
-      (_) => _checkEmailVerified(),
-    );
-  }
+      (_) async {
+        print('Checking verification status...');
+        try {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) {
+            print('User is null during verification check');
+            return;
+          }
 
-  // Start countdown timer for resend button
-  void _startResendTimer() {
-    _timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (_timeLeft > 0) {
-          setState(() {
-            _timeLeft--;
-          });
-        } else {
-          timer.cancel();
+          // Force reload user data to get fresh emailVerified status
+          await user.reload();
+
+          // Get the user again after reload
+          final refreshedUser = FirebaseAuth.instance.currentUser;
+
+          print('Current verification status: ${refreshedUser?.emailVerified}');
+
+          if (refreshedUser?.emailVerified == true) {
+            print('Email verified successfully!');
+            _verificationPoll?.cancel();
+
+            if (_isMounted) {
+              setState(() {
+                _isVerified = true;
+              });
+
+              // Navigate after a short delay
+              Future.delayed(const Duration(seconds: 2), () {
+                if (_isMounted && mounted) {
+                  print('Navigating to profile after verification');
+                  context.go('/'); // Let router redirects handle navigation
+                }
+              });
+            }
+          }
+        } catch (e) {
+          print('Error during verification check: $e');
         }
       },
     );
   }
 
-  // Check if user's email has been verified
-  Future<void> _checkEmailVerified() async {
-    try {
-      // Reload user data
-      await FirebaseAuth.instance.currentUser?.reload();
-
-      // Check if email is verified
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user?.emailVerified ?? false) {
-        _timer.cancel();
-        setState(() {
-          _isVerified = true;
-        });
-
-        // Navigate to profile after a short delay to show success state
-        if (mounted) {
-          Future.delayed(const Duration(seconds: 2), () {
-            context.go('/profile');
-          });
-        }
+  void _startResendCountdown() {
+    _timeLeft = 60;
+    _resendCountdown?.cancel();
+    _resendCountdown = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_timeLeft <= 0) {
+        timer.cancel();
+      } else if (_isMounted) {
+        setState(() => _timeLeft--);
       }
-    } catch (e) {
-      print('Error checking email verification: $e');
-    }
+    });
+  }
+
+  @override
+  void dispose() {
+    print('Disposing EmailVerificationScreen');
+    _isMounted = false;
+    _verificationPoll?.cancel();
+    _resendCountdown?.cancel();
+    super.dispose();
   }
 
   // Resend verification email
   Future<void> _resendVerificationEmail() async {
-    setState(() {
-      _isResendingEmail = true;
-    });
+    if (_isMounted) {
+      setState(() {
+        _isResendingEmail = true;
+      });
+    }
 
     try {
-      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification email resent successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.sendEmailVerification();
+        print('Verification email resent successfully');
+
+        if (_isMounted && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification email resent successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Reset the timer
+          setState(() {
+            _timeLeft = 60;
+            _isResendingEmail = false;
+          });
+
+          // Start the countdown again
+          _startResendCountdown();
+        }
+      } else {
+        print('Cannot resend: user is null');
+        if (_isMounted && mounted) {
+          setState(() {
+            _isResendingEmail = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error: User not signed in'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
-
-      // Reset the timer
-      setState(() {
-        _timeLeft = 60;
-        _isResendingEmail = false;
-      });
-
-      // Start the countdown again
-      _startResendTimer();
     } catch (e) {
-      setState(() {
-        _isResendingEmail = false;
-      });
+      print('Error resending verification email: $e');
 
-      if (mounted) {
+      if (_isMounted && mounted) {
+        setState(() {
+          _isResendingEmail = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to resend email: ${e.toString()}'),
@@ -183,7 +238,7 @@ class _EmailVerificationScreenState
                 // Description text
                 Text(
                   _isVerified
-                      ? 'Your email has been verified successfully. You will be redirected to your profile shortly.'
+                      ? 'Your email has been verified successfully. You will be redirected shortly.'
                       : 'We\'ve sent a verification email to:\n${widget.email}\n\nPlease check your inbox and click the verification link to complete your registration.',
                   style: theme.textTheme.bodyLarge,
                   textAlign: TextAlign.center,
