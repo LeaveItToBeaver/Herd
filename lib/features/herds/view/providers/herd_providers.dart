@@ -74,17 +74,28 @@ final isHerdModeratorProvider =
 });
 
 // Provider to check if user is eligible to create herds
-final canCreateHerdProvider = FutureProvider((ref) async {
+final canCreateHerdProvider = FutureProvider.autoDispose((ref) async {
+  print("⚡ canCreateHerdProvider executing");
   final user = ref.watch(authProvider);
+  print("⚡ User ID: ${user?.uid}");
   final herdRepository = ref.watch(herdRepositoryProvider);
 
   if (user == null) return false;
 
-  // Check if user is exempt
-  if (HerdRepository.exemptUserIds.contains(user.uid)) {
-    return true;
+  // Check if user is exempt by querying the exemptUserIds collection
+  try {
+    print("⚡ Checking exemption for ${user.uid}");
+    final exemptDoc = await herdRepository.exemptUserIds().doc(user.uid).get();
+    print("⚡ Exempt doc exists: ${exemptDoc.exists}");
+    if (exemptDoc.exists) {
+      return true; // User is exempt from eligibility checks
+    }
+  } catch (e) {
+    print("⚡ Error checking exempt status: $e");
+    // Continue with regular eligibility check even if the exempt check fails
   }
 
+  // If not exempt, check regular eligibility criteria
   return herdRepository.checkUserEligibility(user.uid);
 });
 

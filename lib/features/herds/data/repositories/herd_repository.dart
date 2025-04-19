@@ -12,10 +12,6 @@ class HerdRepository {
   static const int minUserPoints = 100; // Points required to create a herd
   static const int minAccountAgeInDays =
       30; // Account must be at least this old
-  static const List<String> exemptUserIds = [
-    'O7BMlbB0PYTR0zW8IZ5SAPbKIPF3',
-    'gv7EiDzcP2b0aelyLTAbY4AyFnX2'
-  ]; // Users exempt from restrictions
 
   HerdRepository(this._firestore);
 
@@ -32,18 +28,25 @@ class HerdRepository {
   CollectionReference<Map<String, dynamic>> userHerds(String userId) =>
       _firestore.collection('userHerds').doc(userId).collection('following');
 
+  CollectionReference<Map<String, dynamic>> exemptUserIds() =>
+      _firestore.collection('exemptUserIds');
+
   // CRUD Operations for Herds
 
   /// Create a new herd
   Future<String> createHerd(HerdModel herd, String userId) async {
     try {
-      // Check if user is eligible to create a herd
-      if (!exemptUserIds.contains(userId)) {
-        bool isEligible = await checkUserEligibility(userId);
-        if (!isEligible) {
-          throw Exception('User is not eligible to create a herd');
+      await exemptUserIds().doc(userId).get().then((doc) async {
+        if (doc.exists) {
+          // User is exempt from eligibility checks
+          return;
+        } else {
+          bool isEligible = await checkUserEligibility(userId);
+          if (!isEligible) {
+            throw Exception('User is not eligible to create a herd');
+          }
         }
-      }
+      });
 
       // Create herd document with generated ID
       final docRef = await _herds.add(herd.toMap());

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/public_feed_provider.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
@@ -132,29 +133,27 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                         .read(publicFeedControllerProvider.notifier)
                         .refreshFeed();
                   })
-                : publicFeedState.posts.isEmpty
-                    ? _buildEmptyFeed(context)
-                    : PostListWidget(
-                        posts: publicFeedState.posts,
-                        isLoading: publicFeedState.isLoading &&
-                            publicFeedState.posts.isEmpty,
-                        hasError: publicFeedState.error != null,
-                        errorMessage: publicFeedState.error?.toString(),
-                        hasMorePosts: publicFeedState.hasMorePosts,
-                        scrollController: _scrollController,
-                        onRefresh: () => ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .refreshFeed(),
-                        onLoadMore: () => ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .loadMorePosts(),
-                        type: PostListType.feed,
-                        emptyMessage: 'No posts in your public feed yet',
-                        emptyActionLabel: 'Find users to follow',
-                        onEmptyAction: () {
-                          // Navigate to search screen
-                        },
-                      ),
+                : PostListWidget(
+                    posts: publicFeedState.posts,
+                    isLoading: publicFeedState.isLoading &&
+                        publicFeedState.posts.isEmpty,
+                    hasError: publicFeedState.error != null,
+                    errorMessage: publicFeedState.error?.toString(),
+                    hasMorePosts: publicFeedState.hasMorePosts,
+                    scrollController: _scrollController,
+                    onRefresh: () => ref
+                        .read(publicFeedControllerProvider.notifier)
+                        .refreshFeed(),
+                    onLoadMore: () => ref
+                        .read(publicFeedControllerProvider.notifier)
+                        .loadMorePosts(),
+                    type: PostListType.feed,
+                    emptyMessage: 'No posts in your public feed yet',
+                    emptyActionLabel: 'Find users to follow',
+                    onEmptyAction: () {
+                      context.pushNamed('search');
+                    },
+                  ),
       ),
     );
   }
