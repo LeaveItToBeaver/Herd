@@ -1,4 +1,3 @@
-// lib/features/drafts/data/repositories/draft_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
@@ -95,7 +94,7 @@ class DraftRepository {
   /// Convert a draft to a post and delete the draft
   Future<String> convertDraftToPost(String userId, String draftId) async {
     try {
-      // This method should be implemented to convert a draft to a real post
+      // TODO: This method should be implemented to convert a draft to a real post
       // This would involve creating a post in the posts collection
       // and then deleting the draft
       // Return the new post ID

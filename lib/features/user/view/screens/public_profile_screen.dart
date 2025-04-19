@@ -104,11 +104,23 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                     if (profile.isCurrentUser) ...[
                       IconButton(
                         icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          context.push('/editProfile', extra: {
-                            'user': profile.user!,
+                        onPressed: () async {
+                          // Navigate to edit profile and wait for the result
+                          final result =
+                              await context.push('/editProfile', extra: {
+                            'user': profile.user,
                             'isPublic': true,
                           });
+
+                          // Force refresh the profile when returning from edit screen
+                          if (result == true || result != null) {
+                            ref
+                                .read(profileControllerProvider.notifier)
+                                .loadProfile(
+                                  widget.userId,
+                                  isAltView: false,
+                                );
+                          }
                         },
                       ),
                       IconButton(

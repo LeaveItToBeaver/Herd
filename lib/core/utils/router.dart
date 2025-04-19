@@ -470,28 +470,83 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'editProfile',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
+          // Check if extra is a Map
+          if (state.extra is! Map<String, dynamic>) {
+            return NoTransitionPage(
+              child: Scaffold(
+                body: Center(child: Text('Invalid navigation parameters')),
+              ),
+            );
+          }
+
           final Map<String, dynamic> extra =
               state.extra as Map<String, dynamic>;
-          final user = extra['user'] as UserModel;
-          final isPublic = extra['isPublic'] as bool;
+
+          // Handle case where user might be AsyncValue<UserModel?>
+          final userParam = extra['user'];
+          final isPublic = extra['isPublic'] as bool? ?? true;
           final isInitialSetup = extra['isInitialSetup'] as bool? ?? false;
 
-          return NoTransitionPage(
-            child: GlobalOverlayManager(
-              showBottomNav: false, // Hide bottom nav for edit screens
-              showSideBubbles: false,
-              showProfileBtn: false,
-              showSearchBtn: false,
-              child: Scaffold(
-                body: SafeArea(
-                  child: isPublic
-                      ? PublicProfileEditScreen(user: user)
-                      : AltProfileEditScreen(
-                          user: user,
-                          isInitialSetup: isInitialSetup,
-                        ),
+          // Check if userParam is a UserModel directly
+          if (userParam is UserModel) {
+            return NoTransitionPage(
+              child: GlobalOverlayManager(
+                showBottomNav: false,
+                showSideBubbles: false,
+                showProfileBtn: false,
+                showSearchBtn: false,
+                child: Scaffold(
+                  body: SafeArea(
+                    child: isPublic
+                        ? PublicProfileEditScreen(user: userParam)
+                        : AltProfileEditScreen(
+                            user: userParam,
+                            isInitialSetup: isInitialSetup,
+                          ),
+                  ),
                 ),
               ),
+            );
+          }
+
+          // If it's an AsyncValue, handle it appropriately
+          if (userParam is AsyncValue<UserModel?>) {
+            return NoTransitionPage(
+              child: GlobalOverlayManager(
+                showBottomNav: false,
+                showSideBubbles: false,
+                showProfileBtn: false,
+                showSearchBtn: false,
+                child: Scaffold(
+                  body: SafeArea(
+                    child: userParam.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(child: Text('Error: $err')),
+                      data: (user) {
+                        if (user == null) {
+                          return const Center(child: Text('User not found'));
+                        }
+                        return isPublic
+                            ? PublicProfileEditScreen(user: user)
+                            : AltProfileEditScreen(
+                                user: user,
+                                isInitialSetup: isInitialSetup,
+                              );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // Fallback for unexpected user param type
+          return NoTransitionPage(
+            child: Scaffold(
+              body: Center(
+                  child:
+                      Text('Invalid user data type: ${userParam.runtimeType}')),
             ),
           );
         },
