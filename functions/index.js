@@ -1,12 +1,15 @@
 const functions = require('firebase-functions');
-const admin = require('firebase-admin');
 const { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
+const { getFirestore } = require('firebase-admin/firestore');
+const admin = require("firebase-admin");
+
 
 admin.initializeApp();
 const firestore = admin.firestore();
+const db = getFirestore();
 
 // Hot algorithm implementation for post ranking - this stays mostly the same
 const hotAlgorithm = {
@@ -211,7 +214,6 @@ async function findPostMediaItems(postId, userId, isAlt) {
   }
 }
 
-
 // 1. Trigger for public posts
 exports.distributePublicPost = onDocumentCreated(
   "posts/{postId}",
@@ -299,13 +301,6 @@ exports.distributeAltPost = onDocumentCreated(
       postData.createdAt ? postData.createdAt.toDate() : new Date()
     );
 
-    // Add feedType and hotScore
-    //    const enhancedPostData = {
-    //      ...postData,
-    //      hotScore: initialHotScore,
-    //      feedType: 'alt'
-    //    };
-
     try {
       let enhancedPostData = {
         ...postData,
@@ -322,14 +317,7 @@ exports.distributeAltPost = onDocumentCreated(
         await event.data.ref.update({ mediaItems });
       }
 
-      // For alt posts, add to global alt feed (which already happened via direct write)
-      // Just need to add to author's personal feed
-      await firestore
-        .collection("userFeeds")
-        .doc(postData.authorId)
-        .collection("feed")
-        .doc(postId)
-        .set(enhancedPostData);
+      await fanOutToUserFeeds(postId, enhancedPostData, [postData.authorId]);
 
       logger.info(`Added alt post ${postId} to author's feed`);
       return null;
@@ -423,156 +411,6 @@ exports.distributeHerdPost = onDocumentCreated(
   }
 );
 
-///**
-// * Cloud Function to populate mediaItems for all post types
-// * This runs after post creation and scans Storage for related media files
-// */
-//exports.populateMediaItems = functions.firestore
-//  .document('{postCollection}/{postId}')
-//  .onCreate(async (snapshot, context) => {
-//    const postId = context.params.postId;
-//    const collection = context.params.postCollection;
-//
-//    // Skip if this isn't a post collection we care about
-//    if (!['posts', 'altPosts'].includes(collection) && !collection.includes('herdPosts')) {
-//      logger.info(`Skipping non-post collection: ${collection}`);
-//      return null;
-//    }
-//
-//    const postData = snapshot.data();
-//
-//    // If mediaItems array already exists and has items, skip
-//    if (postData.mediaItems && Array.isArray(postData.mediaItems) && postData.mediaItems.length > 0) {
-//      logger.info(`Post ${postId} already has ${postData.mediaItems.length} media items`);
-//      return null;
-//    }
-//
-//    try {
-//      // Identify post type and user
-//      const userId = postData.authorId;
-//      const isAlt = postData.isAlt === true || collection === 'altPosts';
-//      const herdId = postData.herdId || null;
-//
-//      if (!userId) {
-//        logger.error(`Post ${postId} has no authorId`);
-//        return null;
-//      }
-//
-//      logger.info(`Processing media items for ${isAlt ? 'alt' : 'public'} post ${postId} by user ${userId}`);
-//
-//      // Determine the base storage path
-//      const baseStoragePath = isAlt
-//        ? `users/${userId}/alt/posts/${postId}`
-//        : `users/${userId}/posts/${postId}`;
-//
-//      // List all files in the post's storage directory
-//      const storageRef = admin.storage().bucket().getFiles({
-//        prefix: baseStoragePath
-//      });
-//
-//      const [files] = await storageRef;
-//
-//      if (files.length === 0) {
-//        logger.info(`No files found in storage for post ${postId}`);
-//        return null;
-//      }
-//
-//      logger.info(`Found ${files.length} files for post ${postId}`);
-//
-//      // Group files by subdirectory (each media item has fullres and possibly thumbnail)
-//      const mediaGroups = {};
-//
-//      for (const file of files) {
-//        // Extract the media ID from the path
-//        // Format: users/{userId}/[alt/]posts/{postId}-{mediaId}/[fullres|thumbnail].ext
-//        const filePath = file.name;
-//        const pathSegments = filePath.split('/');
-//        const lastSegment = pathSegments[pathSegments.length - 1];
-//
-//        // Look for the pattern postId-mediaId in the path
-//        let mediaId = '0'; // Default if we can't extract
-//        const postWithMediaPattern = new RegExp(`${postId}-(\\d+)`);
-//
-//        for (const segment of pathSegments) {
-//          const match = segment.match(postWithMediaPattern);
-//          if (match && match[1]) {
-//            mediaId = match[1];
-//            break;
-//          }
-//        }
-//
-//        if (!mediaGroups[mediaId]) {
-//          mediaGroups[mediaId] = { id: mediaId };
-//        }
-//
-//        // Determine if this is a fullres or thumbnail and get download URL
-//        if (lastSegment.includes('fullres')) {
-//          const [url] = await file.getSignedUrl({
-//            action: 'read',
-//            expires: '03-01-2500' // Far future expiration
-//          });
-//          mediaGroups[mediaId].url = url;
-//
-//          // Determine media type from extension
-//          const extension = lastSegment.split('.').pop().toLowerCase();
-//          mediaGroups[mediaId].mediaType = extension === 'gif'
-//            ? 'gif'
-//            : ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(extension)
-//              ? 'image'
-//              : ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extension)
-//                ? 'video'
-//                : 'other';
-//        }
-//        else if (lastSegment.includes('thumbnail')) {
-//          const [url] = await file.getSignedUrl({
-//            action: 'read',
-//            expires: '03-01-2500'
-//          });
-//          mediaGroups[mediaId].thumbnailUrl = url;
-//        }
-//      }
-//
-//      // Create mediaItems array from the groups
-//      const mediaItems = Object.values(mediaGroups)
-//        .filter(item => item.url) // Only include items with a URL
-//        .map(item => ({
-//          id: item.id,
-//          url: item.url,
-//          thumbnailUrl: item.thumbnailUrl || item.url, // Use main URL as fallback
-//          mediaType: item.mediaType || 'image'
-//        }));
-//
-//      if (mediaItems.length === 0) {
-//        logger.info(`No valid media items found for post ${postId}`);
-//        return null;
-//      }
-//
-//      logger.info(`Updating post ${postId} with ${mediaItems.length} media items`);
-//
-//      // Update the post with mediaItems array based on collection type
-//      if (collection === 'posts') {
-//        await snapshot.ref.update({ mediaItems });
-//      } else if (collection === 'altPosts') {
-//        await snapshot.ref.update({ mediaItems });
-//      } else if (collection.includes('herdPosts')) {
-//        // Handle herd posts - need to extract herdId from path
-//        const herdId = context.resource.name.split('/').slice(-4, -3)[0];
-//        await admin.firestore()
-//          .collection('herdPosts')
-//          .doc(herdId)
-//          .collection('posts')
-//          .doc(postId)
-//          .update({ mediaItems });
-//      }
-//
-//      logger.info(`Successfully updated post ${postId} with ${mediaItems.length} media items`);
-//      return { success: true, mediaCount: mediaItems.length };
-//
-//    } catch (error) {
-//      logger.error(`Error populating media items for post ${postId}:`, error);
-//      return { success: false, error: error.message };
-//    }
-//  });
 
 exports.populateHerdPostMediaItems = onDocumentCreated(
   "herdPosts/{herdId}/posts/{postId}",
@@ -710,7 +548,6 @@ exports.populateHerdPostMediaItems = onDocumentCreated(
     }
   });
 
-// Helper function for fan-out operations
 // Helper function for fan-out operations with minimal data
 async function fanOutToUserFeeds(postId, postData, userIds) {
   if (userIds.length === 0) return;
@@ -763,6 +600,211 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
     await batch.commit();
   }
 }
+
+/**
+ * Scheduled job to update hot scores for all post types
+ * Runs every hour to keep scores current (set to 1 minute for testing)
+ */
+exports.updateHotScores = onSchedule(
+  "every 60 minutes", // Change to "every 1 minutes" for testing
+  async (event) => {
+    // Only process posts from the last 7 days
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    try {
+      // Process regular posts
+      await updatePostTypeHotScores('posts', null, oneWeekAgo);
+
+      // Process alt posts
+      await updatePostTypeHotScores('altPosts', null, oneWeekAgo);
+
+      // Process herd posts - requires additional logic for nested collection
+      const herdsSnapshot = await firestore.collection('herdPosts').get();
+
+      for (const herdDoc of herdsSnapshot.docs) {
+        const herdId = herdDoc.id;
+        await updatePostTypeHotScores('herdPosts', herdId, oneWeekAgo);
+      }
+
+      logger.info('Hot score update completed successfully for all post types');
+      return null;
+    } catch (error) {
+      logger.error('Error updating hot scores:', error);
+      throw error;
+    }
+  }
+);
+
+/**
+ * Helper function to update hot scores for a specific post type
+ * @param {string} collectionName - The collection to update ('posts', 'altPosts')
+ * @param {string|null} herdId - For herd posts, the ID of the herd
+ * @param {Date} cutoffDate - Only process posts newer than this date
+ */
+async function updatePostTypeHotScores(collectionName, herdId, cutoffDate) {
+  // Build the correct collection reference based on post type
+  let collectionRef;
+  if (collectionName === 'herdPosts' && herdId) {
+    collectionRef = firestore.collection('herdPosts').doc(herdId).collection('posts');
+  } else {
+    collectionRef = firestore.collection(collectionName);
+  }
+
+  // Query for posts with significant engagement
+  const postsQuery = collectionRef
+    .where('createdAt', '>', cutoffDate)
+    .where('likeCount', '>', 0)
+    .orderBy('createdAt', 'asc')
+    .orderBy('likeCount', 'asc')
+    .limit(500);
+
+  const postsSnapshot = await postsQuery.get();
+
+  if (postsSnapshot.empty) {
+    logger.info(`No ${collectionName}${herdId ? ' for herd ' + herdId : ''} found for hot score update`);
+    return;
+  }
+
+  logger.info(`Updating hot scores for ${postsSnapshot.size} ${collectionName}${herdId ? ' in herd ' + herdId : ''}`);
+
+  // Process in smaller batches to avoid Firestore limits
+  const MAX_BATCH_SIZE = 200;
+  let batch = firestore.batch();
+  let operationCount = 0;
+  let updatedPosts = [];
+
+  for (const doc of postsSnapshot.docs) {
+    const postData = doc.data();
+    const netVotes = postData.likeCount - (postData.dislikeCount || 0);
+    const postId = doc.id;
+
+    const updatedHotScore = hotAlgorithm.calculateHotScore(
+      netVotes,
+      postData.createdAt.toDate()
+    );
+
+    // Only update if score has changed significantly
+    if (!postData.hotScore || Math.abs(postData.hotScore - updatedHotScore) > 0.001) {
+      batch.update(doc.ref, { hotScore: updatedHotScore });
+      updatedPosts.push({
+        id: postId,
+        hotScore: updatedHotScore,
+        sourceCollection: collectionName,
+        herdId: herdId
+      });
+      operationCount++;
+    }
+
+    // If batch is full, commit and reset
+    if (operationCount >= MAX_BATCH_SIZE) {
+      await batch.commit();
+
+      // Update user feeds for this batch
+      await updateUserFeedsForPosts(updatedPosts);
+
+      batch = firestore.batch();
+      operationCount = 0;
+      updatedPosts = [];
+    }
+  }
+
+  // Commit any remaining operations
+  if (operationCount > 0) {
+    await batch.commit();
+    await updateUserFeedsForPosts(updatedPosts);
+  }
+
+  logger.info(`Hot score update completed for ${collectionName}${herdId ? ' in herd ' + herdId : ''}`);
+}
+
+/**
+ * Helper function to update hot scores in user feeds
+ * @param {Array} updatedPosts - Array of objects containing post info
+ */
+async function updateUserFeedsForPosts(updatedPosts) {
+  if (updatedPosts.length === 0) return;
+
+  const MAX_BATCH_SIZE = 500;
+  let batch = firestore.batch();
+  let operationCount = 0;
+
+  for (const post of updatedPosts) {
+    // Find all user feeds containing this post
+    let userFeedsQuery = firestore
+      .collectionGroup("feed")
+      .where("id", "==", post.id)
+      .where("sourceCollection", "==", post.sourceCollection);
+
+    // Add herdId filter if applicable
+    if (post.sourceCollection === 'herdPosts' && post.herdId) {
+      userFeedsQuery = userFeedsQuery.where("herdId", "==", post.herdId);
+    }
+
+    const feedEntries = await userFeedsQuery.select().get();
+
+    if (feedEntries.empty) {
+      logger.info(`No user feed entries found for ${post.sourceCollection} ${post.id}`);
+      continue;
+    }
+
+    logger.info(`Updating hot score for ${post.sourceCollection} ${post.id} in ${feedEntries.size} user feeds`);
+
+    for (const doc of feedEntries.docs) {
+      batch.update(doc.ref, { hotScore: post.hotScore });
+      operationCount++;
+
+      if (operationCount >= MAX_BATCH_SIZE) {
+        await batch.commit();
+        batch = firestore.batch();
+        operationCount = 0;
+      }
+    }
+  }
+
+  if (operationCount > 0) {
+    await batch.commit();
+  }
+
+  logger.info(`User feeds updated with new hot scores for ${updatedPosts.length} posts`);
+}
+
+[
+  { path: "posts/{postId}",        sourceCollection: "posts"     },
+  { path: "altPosts/{postId}",     sourceCollection: "altPosts"  },
+  { path: "herdPosts/{herdId}/posts/{postId}", sourceCollection: "herdPosts" }
+].forEach(({ path, sourceCollection }) => {
+  exports[`syncHotScore_${sourceCollection}`] = onDocumentUpdated(
+    path,
+    async (event) => {
+      const postId = event.params.postId;
+      const after = event.data.after.data();
+      const newHotScore = after.hotScore;
+      logger.info(`Syncing hotScore=${newHotScore} for ${sourceCollection}/${postId}`);
+
+      // Find and update all feed entries
+      const feeds = await admin
+        .firestore()
+        .collectionGroup("feed")
+        .where("id", "==", postId)
+        .where("sourceCollection", "==", sourceCollection)
+        .get();
+
+      if (feeds.empty) {
+        logger.info(`No feed docs found for ${postId} in ${sourceCollection}`);
+        return;
+      }
+
+      const batch = admin.firestore().batch();
+      feeds.forEach(doc => {
+        batch.update(doc.ref, { hotScore: newHotScore });
+      });
+      await batch.commit();
+      logger.info(`Updated ${feeds.size} feed docs for ${postId}`);
+    }
+  );
+});
+
 
 /**
  * Remove post from all feeds when the post is deleted
@@ -823,73 +865,8 @@ exports.removeDeletedPost = onDocumentDeleted(
   }
 );
 
-/**
- * Update post hot scores across all feeds when a post is liked/disliked
- */
-exports.updatePostInFeeds = onDocumentUpdated(
-  "posts/{postId}",
-  async (event) => {
-    const postId = event.params.postId;
-    const beforeData = event.data.before.data();
-    const afterData = event.data.after.data();
 
-    // Only process if engagement metrics have changed
-    if (
-      beforeData.likeCount === afterData.likeCount &&
-      beforeData.dislikeCount === afterData.dislikeCount
-    ) {
-      return null;
-    }
 
-    try {
-      // Calculate new hot score
-      const netVotes = afterData.likeCount - afterData.dislikeCount;
-      const createdAt = afterData.createdAt.toDate();
-      const updatedHotScore = hotAlgorithm.calculateHotScore(netVotes, createdAt);
-
-      // Find all user feeds containing this post
-      const feedQuery = firestore
-        .collectionGroup("feed")
-        .where("__name__", "==", postId)
-        .select(); // Use select() to minimize data read
-
-      const feedEntries = await feedQuery.get();
-
-      if (feedEntries.empty) {
-        logger.info(`No feed entries found for post ${postId}`);
-        return null;
-      }
-
-      logger.info(`Updating hot score for post ${postId} in ${feedEntries.size} feeds`);
-
-      // Batch update all feeds
-      const MAX_BATCH_SIZE = 500;
-      let batch = firestore.batch();
-      let operationCount = 0;
-
-      for (const doc of feedEntries.docs) {
-        batch.update(doc.ref, { hotScore: updatedHotScore });
-        operationCount++;
-
-        if (operationCount >= MAX_BATCH_SIZE) {
-          await batch.commit();
-          batch = firestore.batch();
-          operationCount = 0;
-        }
-      }
-
-      if (operationCount > 0) {
-        await batch.commit();
-      }
-
-      logger.info(`Successfully updated post ${postId} hot score in all feeds`);
-      return null;
-    } catch (error) {
-      logger.error(`Error updating post ${postId} in feeds:`, error);
-      throw error;
-    }
-  }
-);
 
 /**
  * Handle post interactions (likes/dislikes) with the unified feed approach
@@ -1110,75 +1087,123 @@ exports.getFeed = onCall(async (request) => {
 
 // Get public feed (personalized for each user)
 async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
-  let feedQuery = firestore
-    .collection('userFeeds')
-    .doc(userId)
-    .collection('feed')
-    .where('feedType', '==', 'public')
-    .orderBy('hotScore', 'desc');
+  try {
+    // STEP 1: Query the userFeeds to get the ordered post IDs
+    let feedQuery = firestore
+      .collection('userFeeds')
+      .doc(userId)
+      .collection('feed')
+      .where('feedType', '==', 'public')
+      .orderBy('hotScore', 'desc');
 
-  // Apply pagination with validation
-  if (lastHotScore !== null && lastPostId !== null && !isNaN(lastHotScore)) {
-    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
-  }
-
-  // Apply limit
-  feedQuery = feedQuery.limit(limit);
-
-  // Execute query
-  const snapshot = await feedQuery.get();
-  const posts = snapshot.docs.map(doc => {
-    const data = doc.data();
-    // Ensure hotScore is valid here
-    if (data.hotScore === undefined || isNaN(data.hotScore)) {
-      data.hotScore = 0;
+    // Apply pagination
+    if (lastHotScore !== null && lastPostId !== null && !isNaN(lastHotScore)) {
+      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
     }
+
+    // Apply limit
+    feedQuery = feedQuery.limit(limit);
+
+    // Execute query to get feed entries
+    const feedSnapshot = await feedQuery.get();
+
+    if (feedSnapshot.empty) {
+      logger.info(`No public feed entries found for user: ${userId}`);
+      return { posts: [], lastHotScore: null, lastPostId: null };
+    }
+
+    // Extract post IDs and hot scores from feed entries
+    const postIds = [];
+    const hotScoreMap = {};
+
+    feedSnapshot.docs.forEach(doc => {
+      postIds.push(doc.id);
+      const data = doc.data();
+      hotScoreMap[doc.id] = data.hotScore || 0;
+    });
+
+    logger.info(`Found ${postIds.length} public feed entries for user: ${userId}`);
+
+    // STEP 2: Query the source of truth for complete post data
+    // Split into chunks of 10 for whereIn query limitation
+    const chunkedResults = [];
+
+    for (let i = 0; i < postIds.length; i += 10) {
+      const chunk = postIds.slice(i, i + 10);
+
+      const postsQuery = firestore
+        .collection('posts')
+        .where(admin.firestore.FieldPath.documentId(), 'in', chunk);
+
+      const postsSnapshot = await postsQuery.get();
+
+      postsSnapshot.docs.forEach(doc => {
+        chunkedResults.push({
+          id: doc.id,
+          ...doc.data(),
+          // Use hot score from user feed to maintain ordering
+          hotScore: hotScoreMap[doc.id]
+        });
+      });
+    }
+
+    // STEP 3: Sort the results by hot score to maintain original order
+    const posts = chunkedResults.sort((a, b) => b.hotScore - a.hotScore);
+
+    logger.info(`Retrieved ${posts.length} complete posts for public feed`);
+
+    // Return the results with pagination info
     return {
-      id: doc.id,
-      ...data
+      posts,
+      lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
     };
-  });
-
-  // Make sure lastHotScore isn't NaN
-  let finalLastHotScore = posts.length > 0 ? posts[posts.length - 1].hotScore : null;
-  if (finalLastHotScore !== null && isNaN(finalLastHotScore)) {
-    finalLastHotScore = 0;
+  } catch (error) {
+    logger.error(`Error getting public feed: ${error}`);
+    throw error;
   }
-
-  return {
-    posts,
-    lastHotScore: finalLastHotScore,
-    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
-  };
 }
 
 // Get alt feed (global, like Reddit's r/All)
 async function getAltFeed(limit, lastHotScore, lastPostId) {
-  // Query the global alt posts collection
-  let feedQuery = firestore
-    .collection('altPosts')
-    .orderBy('hotScore', 'desc');
+  try {
+    // Query the global alt posts collection
+    let feedQuery = firestore
+      .collection('altPosts')
+      .orderBy('hotScore', 'desc');
 
-  // Apply pagination
-  if (lastHotScore !== null && lastPostId !== null) {
-    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+    // Apply pagination
+    if (lastHotScore !== null && lastPostId !== null) {
+      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+    }
+
+    // Apply limit
+    feedQuery = feedQuery.limit(limit);
+
+    // Execute query to get complete alt posts
+    const snapshot = await feedQuery.get();
+
+    if (snapshot.empty) {
+      logger.info('No alt posts found');
+      return { posts: [], lastHotScore: null, lastPostId: null };
+    }
+
+    const posts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    logger.info(`Retrieved ${posts.length} alt posts`);
+
+    return {
+      posts,
+      lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+    };
+  } catch (error) {
+    logger.error(`Error getting alt feed: ${error}`);
+    throw error;
   }
-
-  // Apply limit
-  feedQuery = feedQuery.limit(limit);
-
-  // Execute query
-  const snapshot = await feedQuery.get();
-  const posts = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-
-  return {
-    posts,
-    lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
-    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
-  };
 }
 
 // Get herd-specific feed
@@ -1210,62 +1235,6 @@ async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
     lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
   };
 }
-
-/**
- * Scheduled job to update hot scores for recent posts
- * Runs every hour to keep scores current
- */
-exports.updateHotScores = onSchedule(
-  "every 60 minutes",
-  async (event) => {
-    // Only process posts from the last 7 days
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    try {
-      // Query for posts with significant engagement
-      const postsQuery = firestore
-        .collection('posts')
-        .where('createdAt', '>', oneWeekAgo)
-        .where('likeCount', '>', 0) // Only posts with some engagement
-        .limit(500); // Process in chunks
-
-      const postsSnapshot = await postsQuery.get();
-
-      if (postsSnapshot.empty) {
-        logger.info('No posts found for hot score update');
-        return null;
-      }
-
-      logger.info(`Updating hot scores for ${postsSnapshot.size} posts`);
-
-      // Batch update
-      const batch = firestore.batch();
-
-      for (const doc of postsSnapshot.docs) {
-        const postData = doc.data();
-        const netVotes = postData.likeCount - (postData.dislikeCount || 0);
-
-        const updatedHotScore = hotAlgorithm.calculateHotScore(
-          netVotes,
-          postData.createdAt.toDate()
-        );
-
-        // Only update if score has changed significantly
-        if (!postData.hotScore || Math.abs(postData.hotScore - updatedHotScore) > 0.001) {
-          batch.update(doc.ref, { hotScore: updatedHotScore });
-        }
-      }
-
-      await batch.commit();
-      logger.info('Hot score update completed successfully');
-      return null;
-    } catch (error) {
-      logger.error('Error updating hot scores:', error);
-      throw error;
-    }
-  }
-);
 
 /**
  * Update user feed when a follow/unfollow action occurs

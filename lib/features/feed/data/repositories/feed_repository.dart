@@ -35,7 +35,24 @@ class FeedRepository {
       // Log before querying
       debugPrint('Fetching public feed for user: $userId with limit: $limit');
 
-      // Query the user's feed collection filtering for public posts
+      // Try cloud function first
+      try {
+        final posts = await getFeedFromFunction(
+          userId: userId,
+          feedType: 'public',
+          limit: limit,
+          lastHotScore: lastHotScore,
+          lastPostId: lastPostId,
+        );
+
+        debugPrint('Retrieved ${posts.length} posts from cloud function');
+        return posts;
+      } catch (e) {
+        debugPrint('Cloud function failed, falling back to direct query: $e');
+      }
+
+      // Fall back to direct Firestore queries
+      // STEP 1: Query the user's feed collection for ordering
       Query<Map<String, dynamic>> feedQuery = firestore
           .collection('userFeeds')
           .doc(userId)
@@ -52,17 +69,49 @@ class FeedRepository {
       feedQuery = feedQuery.limit(limit);
 
       // Execute query
-      final snapshot = await feedQuery.get();
+      final feedSnapshot = await feedQuery.get();
 
-      // Log result count
-      debugPrint('Found ${snapshot.docs.length} posts in public feed');
+      if (feedSnapshot.docs.isEmpty) {
+        debugPrint('No public feed entries found');
+        return [];
+      }
 
-      // Convert to PostModel objects
-      List<PostModel> posts = snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-          .toList();
+      // Extract post IDs and hot scores
+      final postIds = feedSnapshot.docs.map((doc) => doc.id).toList();
+      final hotScoreMap = Map.fromEntries(feedSnapshot.docs
+          .map((doc) => MapEntry(doc.id, doc.data()['hotScore'] ?? 0.0)));
 
-      return posts;
+      debugPrint('Found ${postIds.length} feed entries, querying source posts');
+
+      // STEP 2: Query source of truth for complete post data
+      // Due to Firestore limitations, query in chunks of 10
+      final List<PostModel> result = [];
+
+      for (int i = 0; i < postIds.length; i += 10) {
+        final chunk = postIds.sublist(
+            i, i + 10 > postIds.length ? postIds.length : i + 10);
+
+        // Query the posts collection for complete data
+        final postsQuery = firestore
+            .collection('posts')
+            .where(FieldPath.documentId, whereIn: chunk);
+
+        final postsSnapshot = await postsQuery.get();
+
+        // Create post models with correct hot scores
+        for (final doc in postsSnapshot.docs) {
+          final data = doc.data();
+          // Use hot score from userFeed for correct ordering
+          data['hotScore'] = hotScoreMap[doc.id];
+          result.add(PostModel.fromMap(doc.id, data));
+        }
+      }
+
+      // Sort by hot score to maintain original order
+      result.sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
+
+      debugPrint('Successfully retrieved ${result.length} complete posts');
+      return result;
     } catch (e, stackTrace) {
       logError('getPublicFeed', e, stackTrace);
       rethrow;
@@ -95,18 +144,28 @@ class FeedRepository {
     }
   }
 
-  /// Get global alt feed posts (visible to everyone)
-  Future<List<PostModel>> getGlobalAltFeed({
+  /// Get alt feed posts with proper hot score ordering
+  Future<List<PostModel>> getAltFeed({
+    required String userId,
     int limit = 15,
     double? lastHotScore,
     String? lastPostId,
+    bool includeHerdPosts = true,
   }) async {
     try {
-      Query<Map<String, dynamic>> feedQuery = firestore
-          .collection('altPosts')
-          .orderBy('hotScore', descending: true);
+      // STEP 1: Query the user's feed collection for ordering
+      Query<Map<String, dynamic>> feedQuery;
 
-      // Apply pagination if lastHotScore is provided
+      if (includeHerdPosts) {
+        feedQuery = userFeedCollection(userId).where('feedType',
+            whereIn: ['alt', 'herd']).orderBy('hotScore', descending: true);
+      } else {
+        feedQuery = userFeedCollection(userId)
+            .where('feedType', isEqualTo: 'alt')
+            .orderBy('hotScore', descending: true);
+      }
+
+      // Apply pagination if provided
       if (lastHotScore != null) {
         feedQuery = feedQuery.startAfter([lastHotScore]);
       }
@@ -115,52 +174,133 @@ class FeedRepository {
       feedQuery = feedQuery.limit(limit);
 
       // Execute query
-      final snapshot = await feedQuery.get();
+      final feedSnapshot = await feedQuery.get();
 
-      // Convert to PostModel objects
-      List<PostModel> posts = snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-          .toList();
+      if (feedSnapshot.docs.isEmpty) {
+        return [];
+      }
 
-      return posts;
+      // Group entries by feed type to query appropriate collections
+      final feedEntries = feedSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'feedType': data['feedType'],
+          'herdId': data['herdId'],
+          'hotScore': data['hotScore'] ?? 0.0,
+        };
+      }).toList();
+
+      // Sort to preserve the ordering by hot score
+      final results = <PostModel>[];
+
+      // Process entries in batches due to Firestore's 'in' query limitation (max 10)
+      // Split entries by feed type
+      final altIds = <String>[];
+      final herdPostMap = <String, List<String>>{}; // herdId -> [postIds]
+
+      for (final entry in feedEntries) {
+        if (entry['feedType'] == 'alt') {
+          altIds.add(entry['id'] as String);
+        } else if (entry['feedType'] == 'herd' && entry['herdId'] != null) {
+          final herdId = entry['herdId'] as String;
+          if (!herdPostMap.containsKey(herdId)) {
+            herdPostMap[herdId] = [];
+          }
+          herdPostMap[herdId]!.add(entry['id'] as String);
+        }
+      }
+
+      // Fetch alt posts in batches of 10
+      for (int i = 0; i < altIds.length; i += 10) {
+        final end = (i + 10 < altIds.length) ? i + 10 : altIds.length;
+        final batch = altIds.sublist(i, end);
+
+        if (batch.isEmpty) continue;
+
+        final query = firestore
+            .collection('altPosts')
+            .where(FieldPath.documentId, whereIn: batch);
+
+        final snapshot = await query.get();
+
+        for (final doc in snapshot.docs) {
+          final index = feedEntries.indexWhere((e) => e['id'] == doc.id);
+          if (index >= 0) {
+            final data = doc.data();
+            // Use hot score from user feed for ordering
+            data['hotScore'] = feedEntries[index]['hotScore'];
+            results.add(PostModel.fromMap(doc.id, data));
+          }
+        }
+      }
+
+      // Fetch herd posts per herd in batches
+      for (final entry in herdPostMap.entries) {
+        final herdId = entry.key;
+        final postIds = entry.value;
+
+        for (int i = 0; i < postIds.length; i += 10) {
+          final end = (i + 10 < postIds.length) ? i + 10 : postIds.length;
+          final batch = postIds.sublist(i, end);
+
+          if (batch.isEmpty) continue;
+
+          final query = firestore
+              .collection('herdPosts')
+              .doc(herdId)
+              .collection('posts')
+              .where(FieldPath.documentId, whereIn: batch);
+
+          final snapshot = await query.get();
+
+          for (final doc in snapshot.docs) {
+            final index = feedEntries.indexWhere((e) => e['id'] == doc.id);
+            if (index >= 0) {
+              final data = doc.data();
+              // Use hot score from user feed for ordering
+              data['hotScore'] = feedEntries[index]['hotScore'];
+              results.add(PostModel.fromMap(doc.id, data));
+            }
+          }
+        }
+      }
+
+      // Sort results by hot score to maintain original order
+      results.sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
+
+      return results;
     } catch (e, stackTrace) {
-      logError('getGlobalAltFeed', e, stackTrace);
+      logError('getAltFeed', e, stackTrace);
       rethrow;
     }
   }
 
-  /// Stream alt feed posts (both global alt posts and herd posts)
   Stream<List<PostModel>> streamAltFeed({
     required String userId,
     int limit = 15,
     bool includeHerdPosts = true,
   }) {
     try {
+      Query<Map<String, dynamic>> feedQuery;
+
       if (includeHerdPosts) {
-        // Stream both alt and herd posts from user's feed
-        Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
+        feedQuery = userFeedCollection(userId)
             .where('feedType', whereIn: ['alt', 'herd'])
             .orderBy('hotScore', descending: true)
             .limit(limit);
-
-        return feedQuery.snapshots().map((snapshot) {
-          return snapshot.docs
-              .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-              .toList();
-        });
       } else {
-        // Stream only alt posts
-        Query<Map<String, dynamic>> feedQuery = userFeedCollection(userId)
+        feedQuery = userFeedCollection(userId)
             .where('feedType', isEqualTo: 'alt')
             .orderBy('hotScore', descending: true)
             .limit(limit);
-
-        return feedQuery.snapshots().map((snapshot) {
-          return snapshot.docs
-              .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-              .toList();
-        });
       }
+
+      return feedQuery.snapshots().map((snapshot) {
+        return snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.id, doc.data()))
+            .toList();
+      });
     } catch (e, stackTrace) {
       logError('streamAltFeed', e, stackTrace);
       rethrow;
@@ -182,8 +322,10 @@ class FeedRepository {
           .where('herdId', isEqualTo: herdId)
           .orderBy('hotScore', descending: true);
 
-      // Apply pagination if lastHotScore is provided
-      if (lastHotScore != null) {
+      // Apply pagination if provided
+      if (lastHotScore != null && lastPostId != null) {
+        feedQuery = feedQuery.startAfter([lastHotScore, lastPostId]);
+      } else if (lastHotScore != null) {
         feedQuery = feedQuery.startAfter([lastHotScore]);
       }
 
@@ -191,10 +333,14 @@ class FeedRepository {
       feedQuery = feedQuery.limit(limit);
 
       // Execute query
-      final snapshot = await feedQuery.get();
+      final feedSnapshot = await feedQuery.get();
+
+      if (feedSnapshot.docs.isEmpty) {
+        return [];
+      }
 
       // Convert to PostModel objects
-      List<PostModel> posts = snapshot.docs
+      List<PostModel> posts = feedSnapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
 
