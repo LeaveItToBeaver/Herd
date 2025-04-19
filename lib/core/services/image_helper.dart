@@ -7,6 +7,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class ImageHelper {
   // Maximum file size in bytes (20MB - increased from 10MB)
@@ -170,8 +172,8 @@ class ImageHelper {
         type: FileType.custom,
         allowedExtensions: allowedExtensions
             .map((e) => e.substring(1))
-            .toList(), // Remove the dot
-        allowCompression: false,
+            .toList(), // Remove the dot just for FilePicker
+        compressionQuality: 85,
       );
 
       if (result != null && result.files.single.path != null) {
@@ -181,7 +183,8 @@ class ImageHelper {
         final size = await file.length();
         if (size > maxFileSize) {
           if (context.mounted) {
-            _showErrorDialog(context, 'File size must be less than 20MB');
+            _showErrorDialog(
+                context, 'File size must be less than 20MB, sorry. :(');
           }
           return null;
         }
@@ -296,5 +299,158 @@ class ImageHelper {
         ],
       ),
     );
+  }
+
+  static Future<File?> generateVideoThumbnailFile(File videoFile) async {
+    try {
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.storage,
+      ].request();
+      final thumbnailBytes = await VideoThumbnail.thumbnailData(
+        video: videoFile.path,
+        imageFormat: ImageFormat.JPEG,
+        maxWidth: 512,
+        quality: 75,
+      );
+
+      if (thumbnailBytes == null) return null;
+
+      // Create a file for the thumbnail
+      final tempDir = await getTemporaryDirectory();
+      final thumbnailFile = File(
+          '${tempDir.path}/${path.basenameWithoutExtension(videoFile.path)}_thumb.jpg');
+      await thumbnailFile.writeAsBytes(thumbnailBytes);
+
+      return thumbnailFile;
+    } catch (e) {
+      debugPrint('Error generating video thumbnail: $e');
+      return null;
+    }
+  }
+
+  static Future<List<File>?> pickMediaFilesWithVideo({
+    required BuildContext context,
+    int maxFiles = 10,
+  }) async {
+    try {
+      // Ask user which type of media they want to select
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select media'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo),
+                title: const Text('Image(s)'),
+                onTap: () => Navigator.pop(context, 'image'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Video'),
+                onTap: () => Navigator.pop(context, 'video'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (choice == null) return null;
+
+      if (choice == 'image') {
+        final picker = ImagePicker();
+        final pickedFiles = await picker.pickMultiImage();
+        if (pickedFiles.isNotEmpty) {
+          return pickedFiles.map((xFile) => File(xFile.path)).toList();
+        }
+      } else if (choice == 'video') {
+        final picker = ImagePicker();
+        final pickedVideo = await picker.pickVideo(source: ImageSource.gallery);
+        if (pickedVideo != null) {
+          return [File(pickedVideo.path)];
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error picking media: $e');
+      return null;
+    }
+  }
+
+  static Future<List<File>?> pickMultipleMediaFilesWithVideos({
+    required BuildContext context,
+    int maxFiles = 10,
+  }) async {
+    try {
+      // Use FilePicker for both images and videos
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowMultiple: true,
+        allowedExtensions: allowedExtensions
+            .map((e) => e.substring(1))
+            .toList(), // Remove the dot for FilePicker
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        // Convert to File objects
+        final files = result.files
+            .where((file) => file.path != null)
+            .map((file) => File(file.path!))
+            .toList();
+
+        // Validate each file
+        List<File> validFiles = [];
+        for (var file in files) {
+          // Check file size
+          final size = await file.length();
+          if (size > maxFileSize) {
+            if (context.mounted) {
+              _showErrorDialog(context,
+                  'File ${path.basename(file.path)} exceeds 20MB limit');
+            }
+            continue;
+          }
+
+          // Check extension
+          final extension = file.path.toLowerCase().substring(
+                file.path.lastIndexOf('.'),
+              );
+          if (!allowedExtensions.contains(extension)) {
+            if (context.mounted) {
+              _showErrorDialog(context,
+                  'File ${path.basename(file.path)} has unsupported format');
+            }
+            continue;
+          }
+
+          validFiles.add(file);
+        }
+
+        if (validFiles.isEmpty) {
+          return null;
+        }
+
+        if (validFiles.length > maxFiles) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Maximum of $maxFiles files allowed. Only the first $maxFiles will be used.'),
+            ),
+          );
+          return validFiles.sublist(0, maxFiles);
+        }
+
+        return validFiles;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error picking multiple media: $e');
+      if (context.mounted) {
+        _showErrorDialog(context, 'Failed to pick media: $e');
+      }
+      return null;
+    }
   }
 }

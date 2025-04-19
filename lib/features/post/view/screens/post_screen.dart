@@ -384,9 +384,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         int commentCount = post.commentCount;
 
         // Initialize video if this is a video post
-        if (post.mediaType == 'video' && post.imageUrl != null) {
+        if (post.mediaType == 'video' && post.mediaURL != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _initializeVideo(post.imageUrl!);
+            _initializeVideo(post.mediaURL!);
           });
         }
 

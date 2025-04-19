@@ -18,16 +18,19 @@ import '../../features/post/view/screens/edit_post_screen.dart';
 import '../../features/post/view/screens/fullscreen_gallery_screen.dart';
 import '../../features/user/data/models/user_model.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(authProvider);
   final currentFeed = ref.watch(currentFeedProvider);
-
   // Create a key for the navigator inside ShellRoute
   final rootNavigatorKey = GlobalKey<NavigatorState>();
   final shellNavigatorKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
+    observers: [routeObserver],
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
