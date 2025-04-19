@@ -28,6 +28,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     required String userId,
     required String title,
     required String content,
+    List<Map<String, dynamic>>? processedMedia,
     List<File>? mediaFiles,
     bool isAlt = false,
     bool isNSFW = false, // Added NSFW parameter

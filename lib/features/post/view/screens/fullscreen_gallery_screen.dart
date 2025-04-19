@@ -1,10 +1,12 @@
 // lib/features/post/view/screens/fullscreen_gallery_screen.dart
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:video_player/video_player.dart';
 
 class FullscreenGalleryScreen extends ConsumerStatefulWidget {
   final List<PostMediaModel> mediaItems;
@@ -29,18 +31,48 @@ class _FullscreenGalleryScreenState
   bool _isSharing = false;
   bool _showControls = true;
   int _currentIndex = 0;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool _videoReady = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+
+    // Initialize video controller if the first item is a video
+    if (widget.mediaItems[_currentIndex].mediaType == 'video') {
+      _initFullscreenVideo(widget.mediaItems[_currentIndex].url);
+    }
   }
 
   @override
   void dispose() {
+    _chewieController?.dispose();
+    _videoController?.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initFullscreenVideo(String url) async {
+    // if already initialized for this URL, skip
+    if (_chewieController?.videoPlayerController.dataSource == url) return;
+
+    _chewieController?.dispose();
+    _videoController?.dispose();
+    _videoController = VideoPlayerController.networkUrl(Uri.parse(url));
+    await _videoController!.initialize();
+    _chewieController = ChewieController(
+      videoPlayerController: _videoController!,
+      autoPlay: true, // autoplay in fullscreen
+      looping: false,
+      showControls: true, // still show play/pause
+      allowFullScreen: false, // already fullscreen
+      aspectRatio: _videoController!.value.aspectRatio,
+    );
+    setState(() => _videoReady = true);
+    if (mounted) setState(() => _videoReady = true);
   }
 
   Future<void> _shareMedia(PostMediaModel media) async {
@@ -139,7 +171,16 @@ class _FullscreenGalleryScreenState
               onPageChanged: (index) {
                 setState(() {
                   _currentIndex = index;
+                  _videoReady = false;
                 });
+
+                final item = widget.mediaItems[index];
+                if (item.mediaType == 'video') {
+                  _initFullscreenVideo(item.url);
+                } else {
+                  _chewieController?.dispose();
+                  _videoController?.dispose();
+                }
               },
               itemBuilder: (context, index) {
                 final mediaItem = widget.mediaItems[index];
@@ -148,7 +189,11 @@ class _FullscreenGalleryScreenState
                   maxScale: 3.0,
                   child: Center(
                     child: mediaItem.mediaType == 'video'
-                        ? _buildVideoViewer(mediaItem)
+                        ? (_videoReady && _chewieController != null
+                            ? Chewie(controller: _chewieController!)
+                            : const Center(
+                                child: CircularProgressIndicator(),
+                              ))
                         : _buildImageViewer(mediaItem),
                   ),
                 );
@@ -259,29 +304,6 @@ class _FullscreenGalleryScreenState
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildVideoViewer(PostMediaModel mediaItem) {
-    // In a real implementation, you'd use VideoPlayer here
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          color: Colors.black,
-          child: const Center(
-            child: Text(
-              'Video Player Would Go Here',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-        Icon(
-          Icons.play_circle_filled,
-          size: 80,
-          color: Colors.white.withOpacity(0.8),
-        ),
-      ],
     );
   }
 }

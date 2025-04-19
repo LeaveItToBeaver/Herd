@@ -5,6 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
+import 'package:herdapp/features/post/view/widgets/post_video_player.dart';
 
 class MediaCarouselWidget extends StatefulWidget {
   final List<PostMediaModel> mediaItems;
@@ -109,7 +110,20 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
   }
 
   Widget _buildImageItem(PostMediaModel mediaItem, int index) {
-    // Validate URL - don't try to load empty URLs
+    // If this is a video item without a valid thumbnail,
+    // return a placeholder widget.
+    if (mediaItem.mediaType == 'video') {
+      if (mediaItem.thumbnailUrl == null || mediaItem.thumbnailUrl!.isEmpty) {
+        return Container(
+          color: Colors.black87,
+          child: const Center(
+            child: Icon(Icons.error, size: 48, color: Colors.red),
+          ),
+        );
+      }
+    }
+
+    // Use the thumbnail if available; otherwise, fall back to the URL.
     final String imageUrl = widget.isFullscreen
         ? (mediaItem.url.isNotEmpty
             ? mediaItem.url
@@ -120,24 +134,12 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                 ? mediaItem.url
                 : 'https://via.placeholder.com/400'));
 
-    debugPrint('Loading image: $imageUrl');
-
     return GestureDetector(
       onTap: () => widget.onMediaTap?.call(mediaItem, index),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(widget.isFullscreen ? 0 : 10),
-          // Remove shadow for smoother swiping
-          // boxShadow: widget.isFullscreen
-          //     ? null
-          //     : [
-          //         BoxShadow(
-          //           color: Colors.black.withOpacity(0.2),
-          //           blurRadius: 5,
-          //           offset: const Offset(0, 3),
-          //         ),
-          //       ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(widget.isFullscreen ? 0 : 10),
@@ -154,7 +156,7 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                   memCacheHeight: 1024,
                   memCacheWidth: 1024,
                   imageUrl: imageUrl,
-                  fit: BoxFit.contain, // Changed from cover to contain
+                  fit: BoxFit.contain,
                   width: double.infinity,
                   placeholder: (context, url) => Container(
                     color: Colors.grey[200],
@@ -163,8 +165,7 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                   errorWidget: (context, url, error) => Container(
                     color: Colors.grey[200],
                     child: const Center(
-                      child: Icon(Icons.error, color: Colors.red),
-                    ),
+                        child: Icon(Icons.error, color: Colors.red)),
                   ),
                 ),
         ),
@@ -203,50 +204,30 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
   }
 
   Widget _buildVideoItem(PostMediaModel mediaItem, int index) {
-    return GestureDetector(
-      onTap: () => widget.onMediaTap?.call(mediaItem, index),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.isFullscreen ? 0 : 10),
-              color: Colors.black87,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(widget.isFullscreen ? 0 : 10),
-              child: Center(
-                child: Icon(
-                  Icons.play_circle_fill,
-                  size: 64,
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'VIDEO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    if (!widget.isFullscreen) {
+      return SizedBox(
+        width: double.infinity,
+        child: PostVideoPlayer(
+          key: ValueKey('video-${mediaItem.id}'),
+          url: mediaItem.url,
+          autoPlay: true,
+          looping: true,
+          showControls: true,
+          allowFullScreen: true,
+          muted: true,
+        ),
+      );
+    } else {
+      // fullscreen playback
+      return PostVideoPlayer(
+        key: ValueKey('video-${mediaItem.id}'),
+        url: mediaItem.url,
+        autoPlay: true,
+        looping: true,
+        showControls: true,
+        allowFullScreen: true,
+      );
+    }
   }
 
   String _generateCacheKey(String url) {
