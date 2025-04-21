@@ -23,7 +23,7 @@ class AltProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late ScrollController _scrollController;
   Color _dominantColor = Colors.transparent;
@@ -33,7 +33,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // Initialize with a default value (2 tabs)
+    _tabController = TabController(length: 2, vsync: this);
     _scrollController = ScrollController();
 
     // Load user profile data
@@ -52,6 +53,18 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  // Initialize tab controller based on user
+  void _initTabController(bool isCurrentUser) {
+    // 3 tabs for current user, 2 for other users
+    final tabCount = isCurrentUser ? 3 : 2;
+
+    // Create a new tab controller with the appropriate number of tabs
+    _tabController = TabController(length: tabCount, vsync: this);
+
+    // We need to notify the tab controller that it needs to update
+    if (mounted) setState(() {});
   }
 
   // Add this method to determine appropriate text color based on background
@@ -75,9 +88,19 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
           return const Center(child: CircularProgressIndicator());
         }
 
+        // Initialize tab controller after we know if it's the current user
+        // Only initialize if not already initialized with the correct count
+        final isCurrentUser = profile.isCurrentUser;
+        final requiredTabCount = isCurrentUser ? 3 : 2;
+        if (_tabController.length != requiredTabCount) {
+          // Dispose the old controller first
+          _tabController.dispose();
+          _tabController = TabController(length: requiredTabCount, vsync: this);
+        }
+
         // Check if this is the current user viewing their own profile
         // AND they don't have a alt profile set up yet
-        if (profile.isCurrentUser && !profile.hasAltProfile) {
+        if (isCurrentUser && !profile.hasAltProfile) {
           return _buildCreateAltProfileView(profile);
         }
 
@@ -107,7 +130,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                     ),
                   ),
                   actions: [
-                    if (profile.isCurrentUser) ...[
+                    if (isCurrentUser) ...[
                       TextButton.icon(
                         icon: const Icon(Icons.notifications),
                         label: const Text('Notifications'),
@@ -210,11 +233,24 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                                     'Alt Posts', altPosts.length.toString()),
                                 _buildStatColumn('Connections',
                                     profile.user?.friends?.toString() ?? '0'),
-                                _buildStatColumn('Herds', '0'),
+                                Consumer(
+                                  builder: (context, ref, child) {
+                                    final herdCount = ref.watch(
+                                        userHerdCountProvider(widget.userId));
+                                    return _buildStatColumn(
+                                      'Herds',
+                                      herdCount.when(
+                                        data: (count) => count.toString(),
+                                        loading: () => '...',
+                                        error: (_, __) => '0',
+                                      ),
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                             const SizedBox(height: 16),
-                            if (!profile.isCurrentUser)
+                            if (!isCurrentUser)
                               SizedBox(
                                 width: double.infinity,
                                 child: AltConnectionButton(
@@ -227,7 +263,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   ),
                 ),
 
-                // Tab Bar (as a sticky header)
+                // Tab Bar (as a sticky header) - Dynamically show tabs based on user
                 SliverPersistentHeader(
                   delegate: _SliverAppBarDelegate(
                     TabBar(
@@ -236,10 +272,11 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       unselectedLabelColor:
                           Theme.of(context).colorScheme.onSurfaceVariant,
                       indicatorColor: Theme.of(context).colorScheme.primary,
-                      tabs: const [
-                        Tab(text: 'Alt Posts'),
-                        Tab(text: 'Herds'),
-                        Tab(text: 'About'),
+                      tabs: [
+                        const Tab(text: 'Alt Posts'),
+                        const Tab(text: 'About'),
+                        // Only show Herds tab for current user
+                        if (isCurrentUser) const Tab(text: 'Herds'),
                       ],
                     ),
                   ),
@@ -257,13 +294,13 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   userId: widget.userId,
                 ),
 
-                // Herd tab
-                _buildHerdsSection(profile),
-
                 // About tab
                 SingleChildScrollView(
                   child: _buildAboutSection(profile),
                 ),
+
+                // Herds tab - Only for current user
+                if (isCurrentUser) _buildHerdsSection(profile),
               ],
             ),
           ),
@@ -436,7 +473,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
   Widget _buildHerdsSection(ProfileState profile) {
     return Consumer(
       builder: (context, ref, child) {
-        final userHerdsAsyncValue = ref.watch(userHerdsProvider);
+        final userHerdsAsyncValue =
+            ref.watch(profileUserHerdsProvider(widget.userId));
 
         return userHerdsAsyncValue.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -447,8 +485,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      // Refresh herds data
-                      ref.refresh(userHerdsProvider);
+                      // Refresh herds data for this specific user
+                      ref.refresh(profileUserHerdsProvider(widget.userId));
                     },
                     child: herds.isEmpty
                         ? ListView(
@@ -465,7 +503,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                         : _buildHerdsList(herds),
                   ),
                 ),
-                // Add Create Herd button at the bottom if needed
+                // Only show Create Herd button for current user
                 if (profile.isCurrentUser)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -483,10 +521,6 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       ),
                     ),
                   ),
-                // ElevatedButton(
-                //   onPressed: () => ref.refresh(canCreateHerdProvider),
-                //   child: Text('Refresh Eligibility Check'),
-                // ),
                 BottomNavPadding(),
               ],
             );
@@ -531,7 +565,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         return ListTile(
           leading: UserProfileImage(
               radius: 40.0, profileImageUrl: herd.profileImageURL),
-          title: Text('h/${herd.name}'),
+          title: Text(herd.name),
           subtitle: Text('${herd.memberCount} members'),
           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
           onTap: () {

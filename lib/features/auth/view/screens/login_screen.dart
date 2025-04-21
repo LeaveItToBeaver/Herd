@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -131,40 +132,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           emailError: 'Login failed. Please try again.',
         );
       }
-    } catch (e) {
-      if (!_isMounted) return; // Exit if widget is no longer mounted
+    } on FirebaseAuthException catch (e) {
+      if (!_isMounted) return;
+
+      // Debug: Print the exact code and message
+      print("Firebase Auth Error Code: ${e.code}");
+      print("Firebase Auth Error Message: ${e.message}");
 
       String errorMessage = 'An error occurred';
 
-      // Handle specific error cases
-      if (e.toString().contains('user-not-found')) {
-        errorMessage = 'No account found with this email';
-      } else if (e.toString().contains('wrong-password')) {
-        errorMessage = 'Incorrect password';
-      } else if (e.toString().contains('invalid-email')) {
-        errorMessage = 'Invalid email format';
-      } else if (e.toString().contains('too-many-requests')) {
-        errorMessage = 'Too many attempts. Please try again later';
-      } else if (e
-          .toString()
-          .contains('account-exists-with-different-credential')) {
-        errorMessage =
-            'An account already exists with a different sign-in method';
-      } else if (e.toString().contains('operation-not-allowed')) {
-        errorMessage = 'This login method is not allowed';
+      // Handle specific error codes
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'No account found with this email';
+          break;
+        case 'wrong-password':
+        case 'invalid-credential': // Add this case
+          errorMessage = 'Incorrect password';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Invalid email format';
+          break;
+        case 'too-many-requests':
+          errorMessage = 'Too many attempts. Please try again later';
+          break;
+        case 'account-exists-with-different-credential':
+          errorMessage =
+              'An account already exists with a different sign-in method';
+          break;
+        case 'operation-not-allowed':
+          errorMessage = 'This login method is not allowed';
+          break;
+        default:
+          errorMessage = 'Authentication failed';
       }
 
       if (_isMounted) {
+        // Set field-specific errors
+        bool isEmailError =
+            e.code == 'user-not-found' || e.code == 'invalid-email';
+        bool isPasswordError =
+            e.code == 'wrong-password' || e.code == 'invalid-credential';
+
         ref.read(loginFormProvider.notifier).state = LoginFormState(
-          emailError:
-              e.toString().contains('user-not-found') ? errorMessage : null,
-          passwordError:
-              e.toString().contains('wrong-password') ? errorMessage : null,
+          emailError: isEmailError ? errorMessage : null,
+          passwordError: isPasswordError ? errorMessage : null,
         );
       }
 
+      // Show error in snackbar
       if (mounted && _isMounted) {
-        // Show error in snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -176,10 +193,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         );
-      }
-    } finally {
-      if (mounted && _isMounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState();
       }
     }
   }
@@ -293,7 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const AppLogo(size: 80),
                   const SizedBox(height: 24),
                   Text(
-                    'Welcome Back',
+                    'Welcome!',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,

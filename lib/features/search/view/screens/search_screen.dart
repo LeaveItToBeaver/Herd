@@ -27,7 +27,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   @override
   void initState() {
     super.initState();
-    // Add two new tabs for Public and Alt profiles
     _tabController = TabController(length: 5, vsync: this);
 
     // Listen to tab changes and update search type
@@ -419,7 +418,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     }
     // For alt profiles
     else {
-      final String displayName = user.altUsername ?? 'Anonymous';
+      final String displayName = user.username ?? 'Anonymous';
       final String? imageUrl = user.altProfileImageURL;
       final bool isPrivate = user.altIsPrivateAccount;
       final hasProfileImage = imageUrl != null && imageUrl.isNotEmpty;
