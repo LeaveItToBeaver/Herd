@@ -24,6 +24,12 @@ class _CacheSettingsScreenState extends ConsumerState<CacheSettingsScreen> {
     _loadSettings();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadSettings(); // Refresh stats whenever screen is revisited
+  }
+
   Future<void> _loadSettings() async {
     setState(() {
       _isLoading = true;

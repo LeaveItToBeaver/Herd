@@ -17,6 +17,7 @@ import '../../features/post/data/models/post_media_model.dart';
 import '../../features/post/view/screens/edit_post_screen.dart';
 import '../../features/post/view/screens/fullscreen_gallery_screen.dart';
 import '../../features/user/data/models/user_model.dart';
+import '../../features/user/view/widgets/user_list_screen.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -687,6 +688,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 );
               },
             ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/userList',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return UserListScreen(
+            userId: extra['userId'] as String,
+            listType: extra['listType'] as String,
+            title: extra['title'] as String,
           );
         },
       ),

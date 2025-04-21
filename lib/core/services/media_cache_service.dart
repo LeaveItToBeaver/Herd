@@ -1,5 +1,3 @@
-// In lib/core/services/media_cache_service.dart
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -85,137 +83,136 @@ class MediaCacheService {
   }
 
   // 1. Add to MediaCacheService class
-Future<void> prefetchBatchedMediaItems(List<PostMediaModel> mediaItems) async {
-  if (mediaItems.isEmpty) return;
-  
-  try {
-    // Limit to max 3 concurrent prefetch operations
-    final int maxConcurrent = 3;
-    final int totalItems = mediaItems.length;
-    
-    // Process in small batches to avoid overwhelming the system
-    for (int i = 0; i < totalItems; i += maxConcurrent) {
-      final int end = (i + maxConcurrent < totalItems) ? i + maxConcurrent : totalItems;
-      final batch = mediaItems.sublist(i, end);
-      
-      // Process thumbnails first (they're smaller)
-      final thumbnailFutures = <Future>[];
-      for (final media in batch) {
-        if (media.thumbnailUrl != null && media.thumbnailUrl!.isNotEmpty) {
-          thumbnailFutures.add(
-            getCachedMediaPath(
-              media.thumbnailUrl!,
-              mediaType: 'thumbnail',
-            ) ??
-            cacheMediaFromUrl(
-              media.thumbnailUrl!,
-              mediaType: 'thumbnail',
-            )
-          );
-        }
-      }
-      
-      // Wait for all thumbnails in this batch to complete
-      await Future.wait(thumbnailFutures);
-      
-      // Then process full resolution media
-      final mediaFutures = <Future>[];
-      for (final media in batch) {
-        if (media.url.isNotEmpty) {
-          final isCached = await getCachedMediaPath(
-            media.url,
-            mediaType: media.mediaType,
-          ) != null;
+  Future<void> prefetchBatchedMediaItems(
+      List<PostMediaModel> mediaItems) async {
+    if (mediaItems.isEmpty) return;
 
-          if (!isCached) {
-            mediaFutures.add(
-              cacheMediaFromUrl(
-                media.url,
-                mediaType: media.mediaType,
-              )
-            );
+    try {
+      // Limit to max 3 concurrent prefetch operations
+      final int maxConcurrent = 3;
+      final int totalItems = mediaItems.length;
+
+      // Process in small batches to avoid overwhelming the system
+      for (int i = 0; i < totalItems; i += maxConcurrent) {
+        final int end =
+            (i + maxConcurrent < totalItems) ? i + maxConcurrent : totalItems;
+        final batch = mediaItems.sublist(i, end);
+
+        // Process thumbnails first (they're smaller)
+        final thumbnailFutures = <Future>[];
+        for (final media in batch) {
+          if (media.thumbnailUrl != null && media.thumbnailUrl!.isNotEmpty) {
+            thumbnailFutures.add(getCachedMediaPath(
+                  media.thumbnailUrl!,
+                  mediaType: 'thumbnail',
+                ) ??
+                cacheMediaFromUrl(
+                  media.thumbnailUrl!,
+                  mediaType: 'thumbnail',
+                ));
           }
         }
+
+        // Wait for all thumbnails in this batch to complete
+        await Future.wait(thumbnailFutures);
+
+        // Then process full resolution media
+        final mediaFutures = <Future>[];
+        for (final media in batch) {
+          if (media.url.isNotEmpty) {
+            final isCached = await getCachedMediaPath(
+                  media.url,
+                  mediaType: media.mediaType,
+                ) !=
+                null;
+
+            if (!isCached) {
+              mediaFutures.add(cacheMediaFromUrl(
+                media.url,
+                mediaType: media.mediaType,
+              ));
+            }
+          }
+        }
+
+        // Wait for full media in this batch to complete
+        await Future.wait(mediaFutures);
+
+        // Small delay between batches to allow system to process buffers
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-      
-      // Wait for full media in this batch to complete
-      await Future.wait(mediaFutures);
-      
-      // Small delay between batches to allow system to process buffers
-      await Future.delayed(const Duration(milliseconds: 100));
+
+      // After all processing, clear Flutter's image cache to prevent buffer issues
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    } catch (e) {
+      debugPrint('Error during batch prefetch: $e');
     }
-    
-    // After all processing, clear Flutter's image cache to prevent buffer issues
-    PaintingBinding.instance.imageCache.clear();
-    PaintingBinding.instance.imageCache.clearLiveImages();
-    
-  } catch (e) {
-    debugPrint('Error during batch prefetch: $e');
   }
-}
 
 // 2. Add this to the bottom of your MediaCacheService class
 // Provider for this service
-static final mediaCacheServiceProvider = Provider<MediaCacheService>((ref) {
-  return MediaCacheService();
-});
+  static final mediaCacheServiceProvider = Provider<MediaCacheService>((ref) {
+    return MediaCacheService();
+  });
 
 // 3. Add this method to MediaCacheService
-Future<Map<String, dynamic>> getCacheStats() async {
-  try {
-    if (!_initialized) await initialize();
+  Future<Map<String, dynamic>> getCacheStats() async {
+    try {
+      if (!_initialized) await initialize();
 
-    int imageCount = 0;
-    int videoCount = 0;
-    int thumbnailCount = 0;
-    int totalSize = 0;
+      int imageCount = 0;
+      int videoCount = 0;
+      int thumbnailCount = 0;
+      int totalSize = 0;
 
-    if (await _imageDir!.exists()) {
-      final imageFiles = await _imageDir!.list().toList();
-      imageCount = imageFiles.where((e) => e is File).length;
-      for (final entity in imageFiles) {
-        if (entity is File) {
-          totalSize += await entity.length();
+      if (await _imageDir!.exists()) {
+        final imageFiles = await _imageDir!.list().toList();
+        imageCount = imageFiles.where((e) => e is File).length;
+        for (final entity in imageFiles) {
+          if (entity is File) {
+            totalSize += await entity.length();
+          }
         }
       }
-    }
 
-    if (await _videoDir!.exists()) {
-      final videoFiles = await _videoDir!.list().toList();
-      videoCount = videoFiles.where((e) => e is File).length;
-      for (final entity in videoFiles) {
-        if (entity is File) {
-          totalSize += await entity.length();
+      if (await _videoDir!.exists()) {
+        final videoFiles = await _videoDir!.list().toList();
+        videoCount = videoFiles.where((e) => e is File).length;
+        for (final entity in videoFiles) {
+          if (entity is File) {
+            totalSize += await entity.length();
+          }
         }
       }
-    }
 
-    if (await _thumbnailDir!.exists()) {
-      final thumbnailFiles = await _thumbnailDir!.list().toList();
-      thumbnailCount = thumbnailFiles.where((e) => e is File).length;
-      for (final entity in thumbnailFiles) {
-        if (entity is File) {
-          totalSize += await entity.length();
+      if (await _thumbnailDir!.exists()) {
+        final thumbnailFiles = await _thumbnailDir!.list().toList();
+        thumbnailCount = thumbnailFiles.where((e) => e is File).length;
+        for (final entity in thumbnailFiles) {
+          if (entity is File) {
+            totalSize += await entity.length();
+          }
         }
       }
-    }
 
-    return {
-      'totalSize': totalSize,
-      'totalSizeFormatted': '${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB',
-      'imageCount': imageCount,
-      'videoCount': videoCount,
-      'thumbnailCount': thumbnailCount,
-      'totalCount': imageCount + videoCount + thumbnailCount,
-      'inMemoryCacheSize': _mediaMetadataCache.length,
-    };
-  } catch (e) {
-    debugPrint('Error getting cache stats: $e');
-    return {
-      'error': e.toString(),
-    };
+      return {
+        'totalSize': totalSize,
+        'totalSizeFormatted':
+            '${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB',
+        'imageCount': imageCount,
+        'videoCount': videoCount,
+        'thumbnailCount': thumbnailCount,
+        'totalCount': imageCount + videoCount + thumbnailCount,
+        'inMemoryCacheSize': _mediaMetadataCache.length,
+      };
+    } catch (e) {
+      debugPrint('Error getting cache stats: $e');
+      return {
+        'error': e.toString(),
+      };
+    }
   }
-}
 
   /// Check if a media item is cached and return the local file path if it is
   Future<String?> getCachedMediaPath(String url,
@@ -278,6 +275,7 @@ Future<Map<String, dynamic>> getCacheStats() async {
       return null;
     }
   }
+
   /// Get extension from URL
   String _getExtensionFromUrl(String url) {
     try {

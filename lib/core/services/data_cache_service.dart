@@ -1,4 +1,3 @@
-// lib/core/services/data_cache_service.dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -709,15 +708,17 @@ class DataCacheService {
 
       int postCount = 0;
       int feedCount = 0;
-      List<String> postFiles = [];
-      List<String> feedFiles = [];
+      List<String> postFilePaths = [];
+      List<String> feedFilePaths = [];
 
       try {
         if (await _postDir!.exists()) {
           final postEntities = await _postDir!.list().toList();
-          postFiles =
-              postEntities.whereType<File>().map((e) => e.path).toList();
+          // Filter to only include files and count them
+          final postFiles = postEntities.whereType<File>().toList();
           postCount = postFiles.length;
+          // Map to paths if needed
+          postFilePaths = postFiles.map((e) => e.path).toList();
         }
       } catch (e) {
         debugPrint('Error counting post files: $e');
@@ -726,9 +727,11 @@ class DataCacheService {
       try {
         if (await _feedDir!.exists()) {
           final feedEntities = await _feedDir!.list().toList();
-          feedFiles =
-              feedEntities.whereType<File>().map((e) => e.path).toList();
+          // Filter to only include files and count them
+          final feedFiles = feedEntities.whereType<File>().toList();
           feedCount = feedFiles.length;
+          // Map to paths if needed
+          feedFilePaths = feedFiles.map((e) => e.path).toList();
         }
       } catch (e) {
         debugPrint('Error counting feed files: $e');
@@ -740,8 +743,8 @@ class DataCacheService {
         'totalCount': postCount + feedCount,
         'inMemoryPostCacheSize': _postCache.length,
         'inMemoryFeedCacheSize': _feedCache.length,
-        'postFiles': postFiles,
-        'feedFiles': feedFiles,
+        'postFilePaths': postFilePaths, // Changed from postFiles
+        'feedFilePaths': feedFilePaths, // Changed from feedFiles
       };
     } catch (e) {
       debugPrint('Error getting data cache stats: $e');

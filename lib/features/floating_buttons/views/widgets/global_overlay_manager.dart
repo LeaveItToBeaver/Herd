@@ -125,7 +125,10 @@ class FloatingButtonsColumn extends ConsumerWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
               ),
-              child: const Icon(Icons.person, color: Colors.white),
+              child: Icon(Icons.person,
+                  color: currentFeed == FeedType.alt
+                      ? Colors.purpleAccent
+                      : Colors.white),
               onPressed: () {
                 final navService = ref.read(navigationServiceProvider);
                 if (!navService.canNavigate) return;
@@ -365,12 +368,14 @@ class BottomNavOverlay extends ConsumerWidget {
 class SideBubblesOverlay extends ConsumerWidget {
   final bool showProfileBtn;
   final bool showSearchBtn;
+  final bool showNotificationsBtn;
 
   const SideBubblesOverlay({
-    Key? key,
+    super.key,
     this.showProfileBtn = true,
     this.showSearchBtn = true,
-  }) : super(key: key);
+    this.showNotificationsBtn = true,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -393,6 +398,23 @@ class SideBubblesOverlay extends ConsumerWidget {
           backgroundColor: Colors.black,
           onTap: () {
             context.pushNamed('search');
+          },
+        ),
+      );
+    }
+
+    if (showNotificationsBtn) {
+      bubbles.add(
+        _buildBubble(
+          context: context,
+          child: const Icon(
+            Icons.notifications,
+            color: Colors.white,
+            size: 24,
+          ),
+          backgroundColor: Colors.black,
+          onTap: () {
+            context.pushNamed('notifications');
           },
         ),
       );
