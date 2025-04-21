@@ -189,11 +189,32 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                           if (isMember) {
                                             await repo.leaveHerd(
                                                 widget.herdId, uid);
+                                            // Invalidate for the current user
+                                            ref.invalidate(
+                                                profileUserHerdsProvider(uid));
+                                            ref.invalidate(
+                                                userHerdCountProvider(uid));
                                           } else {
                                             await repo.joinHerd(
                                                 widget.herdId, uid);
+                                            // Invalidate for the current user
+                                            ref.invalidate(
+                                                profileUserHerdsProvider(uid));
+                                            ref.invalidate(
+                                                userHerdCountProvider(uid));
                                           }
-                                          // force‑refresh both the “am I a member?” flag and the member list
+
+                                          // Also invalidate for the herd creator if different
+                                          if (herd.creatorId != uid) {
+                                            ref.invalidate(
+                                                profileUserHerdsProvider(
+                                                    herd.creatorId));
+                                            ref.invalidate(
+                                                userHerdCountProvider(
+                                                    herd.creatorId));
+                                          }
+
+                                          // Existing invalidations
                                           ref.invalidate(isHerdMemberProvider(
                                               widget.herdId));
                                           ref.invalidate(herdMembersProvider(

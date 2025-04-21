@@ -175,6 +175,7 @@ class HerdRepository {
       await userHerds(userId).doc(herdId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': false,
+        'name': herd.name, // Add this field with the herd name
       });
 
       // Increment member count
@@ -320,15 +321,13 @@ class HerdRepository {
   }
 
   /// Get all herds a user follows
-// Fixed version of the getUserHerds method to avoid naming conflict
   Future<List<HerdModel>> getUserHerds(String userId) async {
     try {
-      // Get all herds the user follows
+      // Get all herds the user follows WITHOUT ordering by name
       final snapshot = await userHerds(userId).get();
 
       // Get full herd details for each followed herd
-      List<HerdModel> followedHerds =
-          []; // Changed variable name from userHerds to followedHerds
+      List<HerdModel> followedHerds = [];
       for (var doc in snapshot.docs) {
         final herdDoc = await _herds.doc(doc.id).get();
         if (herdDoc.exists) {
@@ -336,8 +335,8 @@ class HerdRepository {
         }
       }
 
-      // Sort by member count (most popular first)
-      followedHerds.sort((a, b) => b.memberCount.compareTo(a.memberCount));
+      // Sort by name or any other field in memory
+      followedHerds.sort((a, b) => a.name.compareTo(b.name));
 
       return followedHerds;
     } catch (e, stackTrace) {
@@ -395,24 +394,20 @@ class HerdRepository {
   }
 
   /// Search for herds by name or description
-  Future<List<HerdModel>> searchHerds(String query, {int limit = 10}) async {
+  Future<List<HerdModel>> searchHerds(String query, {int limit = 20}) async {
     try {
-      // For simplicity, we'll search by name containing the query
-      // In a production app, consider using Algolia or Firebase Extensions for better search
       final queryLower = query.toLowerCase();
+      // First get a larger set of herds to filter through
+      final snapshot = await _herds.limit(50).get();
 
-      final snapshot = await _herds
-          .orderBy('name')
-          .startAt([queryLower])
-          .endAt([queryLower + '\uf8ff'])
-          .limit(limit)
-          .get();
-
-      // Convert to HerdModel objects
+      // Filter the herds client-side for any that contain the query string
       List<HerdModel> herds = snapshot.docs
           .map((doc) => HerdModel.fromMap(doc.id, doc.data()))
+          .where((herd) =>
+              herd.name.toLowerCase().contains(queryLower) ||
+              (herd.description?.toLowerCase().contains(queryLower) ?? false))
+          .take(limit)
           .toList();
-
       return herds;
     } catch (e, stackTrace) {
       logError('searchHerds', e, stackTrace);

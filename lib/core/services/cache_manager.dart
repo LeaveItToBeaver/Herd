@@ -104,35 +104,8 @@ class CacheManager {
 
     _isPrefetching = true;
     try {
-      // Prioritize thumbnails first for faster initial loading
-      for (final media in mediaItems) {
-        if (media.thumbnailUrl != null && media.thumbnailUrl!.isNotEmpty) {
-          await _mediaCache.getCachedMediaPath(
-                media.thumbnailUrl!,
-                mediaType: 'thumbnail',
-              ) ??
-              await _mediaCache.cacheMediaFromUrl(
-                media.thumbnailUrl!,
-                mediaType: 'thumbnail',
-              );
-        }
-      }
-
-      // Then cache the full resolution media
-      for (final media in mediaItems) {
-        if (media.url.isNotEmpty) {
-          final isCached = await _mediaCache.getCachedMediaPath(
-                media.url,
-                mediaType: media.mediaType,
-              ) !=
-              null;
-
-          if (!isCached) {
-            await _mediaCache.cacheMediaFromUrl(media.url,
-                mediaType: media.mediaType);
-          }
-        }
-      }
+      // Use the new batched prefetch method from MediaCacheService
+      await _mediaCache.prefetchBatchedMediaItems(mediaItems);
     } catch (e) {
       debugPrint('Error during prefetch: $e');
     } finally {

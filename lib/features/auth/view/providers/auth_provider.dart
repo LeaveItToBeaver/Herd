@@ -23,15 +23,29 @@ class AuthNotifier extends StateNotifier<User?> {
         password: password,
       );
     } on FirebaseAuthException catch (e, stack) {
-      await _logger.logException(
-        errorMessage: e.message ?? 'Auth error',
-        stackTrace: stack.toString(),
-        errorCode: e.code,
-        action: 'signIn',
-        route: 'LoginScreen',
-        errorDetails: {'email': email},
-      );
-      rethrow; // rethrow the FirebaseAuthException itself
+      // For debugging - print the actual error code
+      print("Firebase Auth Error Code: ${e.code}");
+      print("Firebase Auth Error Message: ${e.message}");
+
+      // Try to log the exception but safely
+      try {
+        _logger.logException(
+          errorMessage: e.message ?? 'Auth error',
+          stackTrace: stack.toString(),
+          errorCode: e.code,
+          action: 'signIn',
+          route: 'LoginScreen',
+          errorDetails: {'email': email},
+        ).catchError((loggingError) {
+          print('Error logging exception: $loggingError');
+          return null;
+        });
+      } catch (loggingError) {
+        print('Error logging exception: $loggingError');
+      }
+
+      // Always rethrow the original auth exception
+      rethrow;
     }
   }
 

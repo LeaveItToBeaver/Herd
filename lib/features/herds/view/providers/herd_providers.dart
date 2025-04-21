@@ -31,6 +31,20 @@ final herdProvider = FutureProvider.family<HerdModel?, String>((ref, herdId) {
   return herdRepository.getHerd(herdId);
 });
 
+// Provider for a specific user's followed herds
+final profileUserHerdsProvider =
+    FutureProvider.family<List<HerdModel>, String>((ref, userId) {
+  final herdRepository = ref.watch(herdRepositoryProvider);
+  return herdRepository.getUserHerds(userId);
+});
+
+// Count of herds a specific user is in
+final userHerdCountProvider =
+    FutureProvider.family<int, String>((ref, userId) async {
+  final herds = await ref.watch(profileUserHerdsProvider(userId).future);
+  return herds.length;
+});
+
 // Stream provider for a specific herd's posts
 final herdPostsProvider =
     StreamProvider.family<List<PostModel>, String>((ref, herdId) {
