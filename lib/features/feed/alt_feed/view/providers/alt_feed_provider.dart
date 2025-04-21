@@ -63,10 +63,12 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 
       // Try to load from cache if not forcing refresh
       if (!forceRefresh) {
+        debugPrint('🔎 Checking cache for alt feed: user=$effectiveUserId');
         final cachedPosts =
             await cacheManager.getFeed(effectiveUserId, isAlt: true);
 
         if (cachedPosts.isNotEmpty) {
+          debugPrint('✅ Retrieved ${cachedPosts.length} posts from cache');
           state = state.copyWith(
             posts: cachedPosts,
             isLoading: false,
@@ -76,6 +78,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
           );
           return;
         }
+        debugPrint('⚠️ No cached posts found');
+      } else {
+        debugPrint('🔄 Force refresh requested, skipping cache');
       }
 
       // Try cloud function first if no cache or forcing refresh
@@ -88,6 +93,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 
         // Cache the results
         await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
+        await cacheManager.getCacheStats();
 
         state = state.copyWith(
           posts: posts,

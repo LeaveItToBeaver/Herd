@@ -194,11 +194,20 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildStatColumn(
-                                    'Posts', filteredPosts.length.toString()),
-                                _buildStatColumn('Followers',
-                                    profile.user?.followers?.toString() ?? '0'),
-                                _buildStatColumn('Following',
-                                    profile.user?.following?.toString() ?? '0'),
+                                    'Posts',
+                                    filteredPosts.length.toString(),
+                                    profile.isCurrentUser,
+                                    'posts'),
+                                _buildStatColumn(
+                                    'Followers',
+                                    profile.user?.followers?.toString() ?? '0',
+                                    profile.isCurrentUser,
+                                    'followers'),
+                                _buildStatColumn(
+                                    'Following',
+                                    profile.user?.following?.toString() ?? '0',
+                                    profile.isCurrentUser,
+                                    'following'),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -357,23 +366,41 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
     }
   }
 
-  Widget _buildStatColumn(String label, String count) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          count,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
+  Widget _buildStatColumn(
+      String label, String count, bool isCurrentUser, String statType) {
+    return GestureDetector(
+      onTap: () {
+        // Only navigate if it's followers or following and there are users to show
+        if ((statType == 'followers' || statType == 'following') &&
+            count != '0' &&
+            (isCurrentUser || statType == 'followers')) {
+          context.push(
+            '/userList',
+            extra: {
+              'userId': widget.userId,
+              'listType': statType,
+              'title': label,
+            },
+          );
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            count,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 
