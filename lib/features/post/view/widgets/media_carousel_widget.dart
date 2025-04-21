@@ -31,12 +31,103 @@ class MediaCarouselWidget extends StatefulWidget {
 
 class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
   int _currentIndex = 0;
+  final List<CachedNetworkImageProvider> _imageProviders = [];
+  bool _isDisposed = false;
+  bool _didInitializeImages = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Don't call precacheImage here - moved to didChangeDependencies
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Prefetch media after the widget is built
-    _prefetchMedia();
+    // Only initialize images once to avoid repeated cache operations
+    if (!_didInitializeImages) {
+      _limitedPrefetchMedia();
+      _didInitializeImages = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(MediaCarouselWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If media items changed, clear and recreate the providers
+    if (oldWidget.mediaItems != widget.mediaItems) {
+      _clearImageProviders();
+      // Reset flag so images will be prefetched again
+      _didInitializeImages = false;
+      // Trigger prefetch on next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _limitedPrefetchMedia();
+          _didInitializeImages = true;
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _clearImageProviders();
+    super.dispose();
+  }
+
+  void _clearImageProviders() {
+    // Clear image providers and ensure they're released
+    for (var provider in _imageProviders) {
+      // Explicitly evict the image from cache
+      provider.evict().then((_) {
+        // Additional cleanup
+        if (!_isDisposed) {
+          PaintingBinding.instance.imageCache.clear();
+          PaintingBinding.instance.imageCache.clearLiveImages();
+        }
+      });
+    }
+    _imageProviders.clear();
+  }
+
+  // Only prefetch visible and immediately adjacent images
+  void _limitedPrefetchMedia() {
+    if (widget.mediaItems.isEmpty || !mounted) return;
+
+    // Only prefetch current + adjacent images (max 3)
+    final startIdx = (_currentIndex - 1).clamp(0, widget.mediaItems.length - 1);
+    final endIdx = (_currentIndex + 1).clamp(0, widget.mediaItems.length - 1);
+
+    for (int i = startIdx; i <= endIdx; i++) {
+      final media = widget.mediaItems[i];
+
+      // Skip video items
+      if (media.mediaType == 'video') continue;
+
+      // Prefetch the main image if it's an image
+      if (media.url.isNotEmpty) {
+        final provider = CachedNetworkImageProvider(
+          media.url,
+          cacheKey: _generateCacheKey(media.url),
+        );
+        _imageProviders.add(provider);
+        // Now it's safe to call precacheImage since we're in didChangeDependencies
+        precacheImage(provider, context);
+      }
+
+      // Also prefetch thumbnail if available and different from main URL
+      if (media.thumbnailUrl != null &&
+          media.thumbnailUrl!.isNotEmpty &&
+          media.thumbnailUrl != media.url) {
+        final thumbnailProvider = CachedNetworkImageProvider(
+          media.thumbnailUrl!,
+          cacheKey: _generateCacheKey(media.thumbnailUrl!),
+        );
+        _imageProviders.add(thumbnailProvider);
+        precacheImage(thumbnailProvider, context);
+      }
+    }
   }
 
   @override
@@ -51,17 +142,25 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
           itemCount: widget.mediaItems.length,
           options: CarouselOptions(
             height: widget.height,
-            viewportFraction: 1.0, // Set to full width for better swiping
-            enlargeCenterPage:
-                false, // Disable for better swipe detection and sizing
+            viewportFraction: 1.0,
+            enlargeCenterPage: false,
             enableInfiniteScroll: widget.mediaItems.length > 1,
             autoPlay: widget.autoPlay,
-            scrollPhysics:
-                const PageScrollPhysics(), // Important for proper page behavior
+            scrollPhysics: const PageScrollPhysics(),
             onPageChanged: (index, reason) {
+              if (_isDisposed) return;
+
               setState(() {
                 _currentIndex = index;
               });
+
+              // Only prefetch when page changes - this is now safe
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _limitedPrefetchMedia();
+                }
+              });
+
               debugPrint(
                   "Carousel page changed to $index of ${widget.mediaItems.length}, reason: $reason");
             },
@@ -99,6 +198,19 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
   }
 
   Widget _buildMediaItem(PostMediaModel mediaItem, int index) {
+    // Only build the currently visible item and adjacent ones
+    final isNearCurrent = (index - _currentIndex).abs() <= 1;
+
+    // For non-visible items far from current, return a placeholder
+    if (!isNearCurrent) {
+      return Container(
+        color: Colors.grey.shade200,
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     // Determine what type of media to build
     if (mediaItem.mediaType == 'video') {
       return _buildVideoItem(mediaItem, index);
@@ -153,11 +265,13 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                 )
               : CachedNetworkImage(
                   cacheKey: _generateCacheKey(imageUrl),
-                  memCacheHeight: 1024,
-                  memCacheWidth: 1024,
+                  memCacheHeight: 1024, // Limit memory cache size
+                  memCacheWidth: 1024, // Limit memory cache size
+                  maxWidthDiskCache: 1200, // Limit disk cache size
                   imageUrl: imageUrl,
                   fit: BoxFit.contain,
                   width: double.infinity,
+                  fadeInDuration: const Duration(milliseconds: 300),
                   placeholder: (context, url) => Container(
                     color: Colors.grey[200],
                     child: const Center(child: CircularProgressIndicator()),
@@ -204,44 +318,48 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
   }
 
   Widget _buildVideoItem(PostMediaModel mediaItem, int index) {
-    if (!widget.isFullscreen) {
-      return SizedBox(
-        width: double.infinity,
-        child: PostVideoPlayer(
-          key: ValueKey('video-${mediaItem.id}'),
-          url: mediaItem.url,
-          autoPlay: true,
-          looping: true,
-          showControls: true,
-          allowFullScreen: true,
-          muted: true,
+    // Only initialize videos when they are visible to avoid memory leaks
+    if (index != _currentIndex) {
+      // Show thumbnail instead when video is not in focus
+      return GestureDetector(
+        onTap: () => widget.onMediaTap?.call(mediaItem, index),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            _buildImageItem(mediaItem, index),
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+          ],
         ),
       );
-    } else {
-      // fullscreen playback
-      return PostVideoPlayer(
-        key: ValueKey('video-${mediaItem.id}'),
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: PostVideoPlayer(
+        key: ValueKey('video-${mediaItem.id}-$index'),
         url: mediaItem.url,
-        autoPlay: true,
-        looping: true,
+        autoPlay: false, // Don't auto-play to reduce resource usage
+        looping: false, // Don't loop to ensure video stops
         showControls: true,
         allowFullScreen: true,
-      );
-    }
+        muted: true,
+      ),
+    );
   }
 
   String _generateCacheKey(String url) {
     return md5.convert(utf8.encode(url)).toString();
-  }
-
-  void _prefetchMedia() {
-    for (final media in widget.mediaItems) {
-      if (media.url.isNotEmpty) {
-        precacheImage(CachedNetworkImageProvider(media.url), context);
-      }
-      if (media.thumbnailUrl != null && media.thumbnailUrl!.isNotEmpty) {
-        precacheImage(CachedNetworkImageProvider(media.thumbnailUrl!), context);
-      }
-    }
   }
 }

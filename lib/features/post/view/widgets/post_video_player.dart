@@ -50,6 +50,7 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
   ChewieController? _chewieController;
   VideoLoadingState _loadingState = VideoLoadingState.initial;
   String? _errorMessage;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -74,114 +75,140 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
   }
 
   @override
+  void didPushNext() {
+    // When we navigate away, pause the video to save resources
+    _videoPlayerController?.pause();
+    super.didPushNext();
+  }
+
+  @override
   void didPopNext() {
-    // called when a pushed route has been popped and this one is visible again
-    if (_videoPlayerController != null && widget.autoPlay) {
+    // When we come back, only play if autoPlay was set
+    if (_videoPlayerController != null && widget.autoPlay && !_isDisposed) {
       _videoPlayerController!.play();
     }
+    super.didPopNext();
   }
 
   Future<void> _initializePlayer() async {
+    if (_isDisposed) return;
+
     try {
       setState(() {
         _loadingState = VideoLoadingState.loading;
         _errorMessage = null;
       });
 
-      _videoPlayerController =
-          VideoPlayerController.networkUrl(Uri.parse(widget.url));
-      await _videoPlayerController?.initialize();
+      // Make sure we dispose any existing controllers before creating new ones
+      _disposeControllers();
 
       _videoPlayerController =
           VideoPlayerController.networkUrl(Uri.parse(widget.url));
+
       await _videoPlayerController!.initialize();
+      if (_isDisposed) return;
 
-      // right here, grab the real ratio …
+      // Get the real aspect ratio
       final realRatio = _videoPlayerController!.value.aspectRatio;
       widget.onAspectRatio?.call(realRatio);
 
       // Set the video volume as per the device's current volume
       final muted = widget.muted;
       await _videoPlayerController?.setVolume(muted ? 0 : 1);
+      if (_isDisposed) return;
 
-      setState(() {
-        // Calculate the actual aspect ratio from the video
-        final videoAspectRatio = _videoPlayerController?.value.aspectRatio;
+      // Calculate the actual aspect ratio from the video
+      final videoAspectRatio = _videoPlayerController?.value.aspectRatio;
 
-        _chewieController = ChewieController(
-          videoPlayerController: _videoPlayerController!,
-          aspectRatio: videoAspectRatio!.isFinite && videoAspectRatio > 0
-              ? videoAspectRatio
-              : widget.aspectRatio,
-          autoPlay: widget.autoPlay,
-          looping: widget.looping,
-          showControls: widget.showControls,
-          allowFullScreen: widget.allowFullScreen,
-          showOptions: widget.showOptions,
-          allowPlaybackSpeedChanging: widget.allowPlaybackSpeedControl,
-          materialProgressColors: ChewieProgressColors(
-            playedColor: widget.controlsColor,
-            handleColor: widget.controlsColor,
-            backgroundColor: Colors.grey.shade700,
-            bufferedColor: widget.controlsColor.withOpacity(0.5),
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController!,
+        aspectRatio: videoAspectRatio!.isFinite && videoAspectRatio > 0
+            ? videoAspectRatio
+            : widget.aspectRatio,
+        autoPlay: widget.autoPlay,
+        looping: widget.looping,
+        showControls: widget.showControls,
+        allowFullScreen: widget.allowFullScreen,
+        showOptions: widget.showOptions,
+        allowPlaybackSpeedChanging: widget.allowPlaybackSpeedControl,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: widget.controlsColor,
+          handleColor: widget.controlsColor,
+          backgroundColor: Colors.grey.shade700,
+          bufferedColor: widget.controlsColor.withOpacity(0.5),
+        ),
+        placeholder: Container(
+          color: Colors.black,
+          child: const Center(
+            child: CircularProgressIndicator(color: Colors.white),
           ),
-          placeholder: Container(
-            color: Colors.black,
-            child: const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
-          ),
-          errorBuilder: (context, errorMessage) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error, color: Colors.red.shade400, size: 42),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Error loading video',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  if (errorMessage != null) ...[
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        errorMessage,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 12,
-                        ),
-                        textAlign: TextAlign.center,
+        ),
+        errorBuilder: (context, errorMessage) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error, color: Colors.red.shade400, size: 42),
+                const SizedBox(height: 12),
+                Text(
+                  'Error loading video',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      errorMessage,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 12,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  ],
+                  ),
                 ],
-              ),
-            );
-          },
-        );
+              ],
+            ),
+          );
+        },
+      );
 
-        _loadingState = VideoLoadingState.loaded;
-      });
+      if (!_isDisposed) {
+        setState(() {
+          _loadingState = VideoLoadingState.loaded;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _loadingState = VideoLoadingState.error;
-        _errorMessage = e.toString();
-      });
+      debugPrint("Video initialization error: $e");
+      if (!_isDisposed) {
+        setState(() {
+          _loadingState = VideoLoadingState.error;
+          _errorMessage = e.toString();
+        });
+      }
     }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     routeObserver.unsubscribe(this);
     _disposeControllers();
     super.dispose();
   }
 
   void _disposeControllers() {
-    _chewieController?.dispose();
-    _videoPlayerController?.dispose();
+    // Clean up resources in correct order
+    if (_chewieController != null) {
+      _chewieController!.dispose();
+      _chewieController = null;
+    }
+
+    if (_videoPlayerController != null) {
+      _videoPlayerController!.dispose();
+      _videoPlayerController = null;
+    }
   }
 
   @override
