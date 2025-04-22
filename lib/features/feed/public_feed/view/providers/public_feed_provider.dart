@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/state/public_feed_state.dart';
 
+import '../../../../../core/services/cache_manager.dart';
 import '../../../data/repositories/feed_repository.dart';
 
 // Repository provider with Firebase Functions
@@ -14,16 +16,22 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
   );
 });
 
+final publicFeedCacheManagerProvider = Provider<CacheManager>((ref) {
+  return CacheManager();
+});
+
 // ===== PUBLIC FEED CONTROLLERS =====
 
 /// Controller for public feed with pagination
 class PublicFeedController extends StateNotifier<PublicFeedState> {
   final FeedRepository repository;
+  final CacheManager cacheManager;
   final String userId;
   final int pageSize;
   bool _disposed = false;
 
-  PublicFeedController(this.repository, this.userId, {this.pageSize = 20})
+  PublicFeedController(this.repository, this.userId, this.cacheManager,
+      {this.pageSize = 20})
       : super(PublicFeedState.initial());
 
   @override
@@ -36,8 +44,8 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   bool get _isActive => !_disposed;
 
   /// Load initial public feed posts
-  /// Load initial public feed posts
-  Future<void> loadInitialPosts({String? overrideUserId}) async {
+  Future<void> loadInitialPosts(
+      {String? overrideUserId, bool forceRefresh = false}) async {
     try {
       // Don't reload if already loading
       if (state.isLoading || _disposed) return;
@@ -53,20 +61,70 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         return;
       }
 
-      // Get posts from repository
+      if (!forceRefresh) {
+        debugPrint('🔎 Checking cache for alt feed: user=$effectiveUserId');
+        final cachedPosts =
+            await cacheManager.getFeed(effectiveUserId, isAlt: true);
+
+        if (cachedPosts.isNotEmpty) {
+          debugPrint('✅ Retrieved ${cachedPosts.length} posts from cache');
+          state = state.copyWith(
+            posts: cachedPosts,
+            isLoading: false,
+            hasMorePosts: cachedPosts.length >= pageSize,
+            lastPost: cachedPosts.isNotEmpty ? cachedPosts.last : null,
+            fromCache: true,
+          );
+          return;
+        }
+        debugPrint('⚠️ No cached posts found');
+      } else {
+        debugPrint('🔄 Force refresh requested, skipping cache');
+      }
+
+      try {
+        // Get posts from repository
+        final posts = await repository.getPublicFeed(
+          userId: effectiveUserId,
+          limit: pageSize,
+        );
+
+        // Cache the results
+        await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
+        await cacheManager.getCacheStats();
+
+        if (_isActive) {
+          state = state.copyWith(
+            posts: posts,
+            isLoading: false,
+            hasMorePosts: posts.length >= pageSize,
+            lastPost: posts.isNotEmpty ? posts.last : null,
+            fromCache: false,
+          );
+        }
+      } catch (e) {
+        // Fall back to direct Firestore query
+        if (kDebugMode) {
+          print('Falling back to direct Firestore query: $e');
+        }
+      }
+
+      // Get from user feed collection directly
       final posts = await repository.getPublicFeed(
         userId: effectiveUserId,
         limit: pageSize,
       );
 
-      if (_isActive) {
-        state = state.copyWith(
-          posts: posts,
-          isLoading: false,
-          hasMorePosts: posts.length >= pageSize,
-          lastPost: posts.isNotEmpty ? posts.last : null,
-        );
-      }
+      // Cache the results
+      await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
+
+      state = state.copyWith(
+        posts: posts,
+        isLoading: false,
+        hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
+        fromCache: false,
+      );
     } catch (e) {
       if (_isActive) {
         state = state.copyWith(
@@ -284,5 +342,6 @@ final publicFeedControllerProvider =
   final repository = ref.watch(feedRepositoryProvider);
   final user = ref.watch(authProvider);
 
-  return PublicFeedController(repository, user!.uid);
+  return PublicFeedController(
+      repository, user!.uid, ref.watch(publicFeedCacheManagerProvider));
 });

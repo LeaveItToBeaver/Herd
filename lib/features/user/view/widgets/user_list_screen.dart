@@ -12,11 +12,11 @@ class UserListScreen extends ConsumerWidget {
   final String title;
 
   const UserListScreen({
-    Key? key,
+    super.key,
     required this.userId,
     required this.listType,
     required this.title,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

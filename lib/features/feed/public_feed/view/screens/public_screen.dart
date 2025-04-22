@@ -67,7 +67,9 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
 
       final currentUser = ref.read(authProvider);
       // Trigger the initial fetch of posts
-      ref.read(publicFeedControllerProvider.notifier).loadInitialPosts();
+      ref.read(publicFeedControllerProvider.notifier).loadInitialPosts(
+            overrideUserId: currentUser?.uid,
+          );
     });
 
     _scrollController.addListener(_scrollListener);

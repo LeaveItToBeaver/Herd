@@ -43,7 +43,6 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   }
 
   /// Load initial alt feed posts
-  /// Load initial alt feed posts
   Future<void> loadInitialPosts(
       {String? overrideUserId, bool forceRefresh = false}) async {
     try {
