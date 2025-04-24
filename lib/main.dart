@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -16,19 +18,27 @@ void main() async {
   unawaited(MobileAds.instance.initialize());
 
   await Firebase.initializeApp();
-  await FirebaseAppCheck.instance.activate(
-    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
-    // Set androidProvider to `AndroidProvider.debug`
-    androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.appAttest,
-  );
 
-  await FirebaseAppCheck.instance.activate(
-    // Use provider for Android
-    androidProvider: AndroidProvider.debug,
-    // Use provider for iOS/macOS
-    appleProvider: AppleProvider.debug,
-  );
+  // Detect iOS Simulator via environment var
+   final bool isiOSSimulator = Platform.isIOS
+     && Platform.environment.containsKey('SIMULATOR_DEVICE_NAME');
+
+   final appleProvider = isiOSSimulator
+     ? AppleProvider.debug  // simulator → debug
+     : AppleProvider.appAttest; // real device → App Attest
+
+   await FirebaseAppCheck.instance.activate(
+     webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+     androidProvider: AndroidProvider.debug,
+     appleProvider: appleProvider,
+   );
+
+  // await FirebaseAppCheck.instance.activate(
+  //   // Use provider for Android
+  //   androidProvider: AndroidProvider.debug,
+  //   // Use provider for iOS/macOS
+  //   appleProvider: AppleProvider.debug,
+  // );
 
   // This will pre-warm the cache system
   unawaited(CacheManager.bootstrapCache());

@@ -70,7 +70,7 @@ class DefaultFirebaseOptions {
     projectId: 'herdapp-54e26',
     databaseURL: 'https://herdapp-54e26-default-rtdb.firebaseio.com',
     storageBucket: 'herdapp-54e26.firebasestorage.app',
-    androidClientId: '756626341076-kc0t97l6spt0icpbag2s5nj3375spa97.apps.googleusercontent.com',
+    androidClientId: '756626341076-jn6jghdhj72n31pv63cp5etgllkv3m9h.apps.googleusercontent.com',
     iosClientId: '756626341076-62b4fai9c7950ju4vj35dtngs8qs7pti.apps.googleusercontent.com',
     iosBundleId: 'com.herdco.herdapp',
   );
