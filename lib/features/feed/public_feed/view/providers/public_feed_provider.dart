@@ -62,9 +62,9 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
       }
 
       if (!forceRefresh) {
-        debugPrint('🔎 Checking cache for alt feed: user=$effectiveUserId');
+        debugPrint('🔎 Checking cache for public feed: user=$effectiveUserId');
         final cachedPosts =
-            await cacheManager.getFeed(effectiveUserId, isAlt: true);
+            await cacheManager.getFeed(effectiveUserId, isAlt: false);
 
         if (cachedPosts.isNotEmpty) {
           debugPrint('✅ Retrieved ${cachedPosts.length} posts from cache');
