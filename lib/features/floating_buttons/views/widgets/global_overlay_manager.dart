@@ -72,7 +72,7 @@ class GlobalOverlayManager extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: navBarRightPadding,
-                bottom: 8, // Small margin from bottom edge
+                bottom: 20, // Small margin from bottom edge
                 child: BottomNavOverlay(currentFeedType: currentFeedType),
               ),
 
@@ -80,7 +80,7 @@ class GlobalOverlayManager extends StatelessWidget {
             if (!showSideBubbles && showAnyButtons)
               Positioned(
                 right: 8,
-                bottom: 8,
+                bottom: 20,
                 child: FloatingButtonsColumn(
                   showProfileBtn: showProfileBtn,
                   showSearchBtn: showSearchBtn,
