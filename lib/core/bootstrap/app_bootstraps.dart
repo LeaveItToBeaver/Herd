@@ -114,9 +114,9 @@ class BootstrapWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
   const BootstrapWrapper({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<BootstrapWrapper> createState() => _BootstrapWrapperState();
