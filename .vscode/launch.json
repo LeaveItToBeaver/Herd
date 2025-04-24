@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Flutter",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart"
+        },
+        {
             "name": "herd3",
             "request": "launch",
             "type": "dart"
@@ -20,6 +26,12 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
+        },
+        {
+            "name": "Flutter (Jason's iPhone)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "00008101-000938821A52001E" 
         }
     ]
 }
