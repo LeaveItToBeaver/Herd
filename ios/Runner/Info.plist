@@ -36,6 +36,8 @@
 	<string>Main</string>
 	<key>UIStatusBarStyle</key>
 	<string></string>
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>This app needs access to the photo library to allow users to select photos for their profile or posts.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
