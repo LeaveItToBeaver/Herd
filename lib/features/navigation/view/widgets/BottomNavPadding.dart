@@ -9,7 +9,7 @@ class BottomNavPadding extends StatelessWidget {
 
   const BottomNavPadding({
     super.key,
-    this.height = 70.0,
+    this.height = 75.0,
   });
 
   @override

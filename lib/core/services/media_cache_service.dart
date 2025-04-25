@@ -168,7 +168,7 @@ class MediaCacheService {
 
       if (await _imageDir!.exists()) {
         final imageFiles = await _imageDir!.list().toList();
-        imageCount = imageFiles.where((e) => e is File).length;
+        imageCount = imageFiles.whereType<File>().length;
         for (final entity in imageFiles) {
           if (entity is File) {
             totalSize += await entity.length();
@@ -178,7 +178,7 @@ class MediaCacheService {
 
       if (await _videoDir!.exists()) {
         final videoFiles = await _videoDir!.list().toList();
-        videoCount = videoFiles.where((e) => e is File).length;
+        videoCount = videoFiles.whereType<File>().length;
         for (final entity in videoFiles) {
           if (entity is File) {
             totalSize += await entity.length();
@@ -188,7 +188,7 @@ class MediaCacheService {
 
       if (await _thumbnailDir!.exists()) {
         final thumbnailFiles = await _thumbnailDir!.list().toList();
-        thumbnailCount = thumbnailFiles.where((e) => e is File).length;
+        thumbnailCount = thumbnailFiles.whereType<File>().length;
         for (final entity in thumbnailFiles) {
           if (entity is File) {
             totalSize += await entity.length();

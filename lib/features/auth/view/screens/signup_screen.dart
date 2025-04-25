@@ -655,8 +655,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 60,
-                                    backgroundColor:
-                                        theme.colorScheme.surfaceVariant,
+                                    backgroundColor: theme
+                                        .colorScheme.surfaceContainerHighest,
                                     backgroundImage:
                                         formState.profileImage != null
                                             ? FileImage(formState.profileImage!)
@@ -798,7 +798,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 selected: isSelected,
                                 onSelected: (_) => _toggleInterest(interest),
                                 backgroundColor:
-                                    theme.colorScheme.surfaceVariant,
+                                    theme.colorScheme.surfaceContainerHighest,
                                 selectedColor:
                                     theme.colorScheme.primaryContainer,
                                 checkmarkColor: theme.colorScheme.primary,

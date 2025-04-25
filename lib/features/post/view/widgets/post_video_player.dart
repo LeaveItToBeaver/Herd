@@ -154,7 +154,7 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
                   'Error loading video',
                   style: const TextStyle(color: Colors.white),
                 ),
-                if (errorMessage != null) ...[
+                ...[
                   const SizedBox(height: 4),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

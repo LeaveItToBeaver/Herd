@@ -69,7 +69,7 @@ class DataCacheService {
     final prefix = 'feed';
     final type = herdId != null ? 'herd' : (isAlt ? 'alt' : 'public');
     final herdSuffix = herdId != null ? '_$herdId' : '';
-    return '${prefix}_${type}_${userId}$herdSuffix';
+    return '${prefix}_${type}_$userId$herdSuffix';
   }
 
   /// Cache a post
@@ -445,8 +445,9 @@ class DataCacheService {
           allKeys.where((key) => key.startsWith('data_cache_post_')).toList();
 
       for (final key in postKeys) {
-        if (key == 'data_cache_post_access_list')
+        if (key == 'data_cache_post_access_list') {
           continue; // Skip the access list key
+        }
 
         try {
           final jsonData = prefs.getString(key);
@@ -490,8 +491,9 @@ class DataCacheService {
           allKeys.where((key) => key.startsWith('data_cache_feed_')).toList();
 
       for (final key in feedKeys) {
-        if (key == 'data_cache_feed_access_list')
+        if (key == 'data_cache_feed_access_list') {
           continue; // Skip the access list key
+        }
 
         try {
           final jsonData = prefs.getString(key);

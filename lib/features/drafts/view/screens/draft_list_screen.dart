@@ -9,7 +9,7 @@ import '../providers/draft_provider.dart';
 import 'edit_draft_screen.dart';
 
 class DraftsListScreen extends ConsumerWidget {
-  const DraftsListScreen({Key? key}) : super(key: key);
+  const DraftsListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

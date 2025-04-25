@@ -164,7 +164,7 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
+            child: SizedBox(
               height: 2,
               child: LinearProgressIndicator(
                 backgroundColor: Colors.transparent,
@@ -418,7 +418,7 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
             Text(
               'Pull to refresh',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onBackground.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
               ),
               textAlign: TextAlign.center,
             ),

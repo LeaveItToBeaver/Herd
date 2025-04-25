@@ -12,13 +12,13 @@ class SaveDraftDialog extends ConsumerWidget {
   final String? herdName;
 
   const SaveDraftDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.content,
     required this.isAlt,
     this.herdId,
     this.herdName,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

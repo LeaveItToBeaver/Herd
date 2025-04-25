@@ -402,6 +402,7 @@ abstract class UserModel with _$UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => toMap();
 
   // Add a method to determine if a user can be safely deleted
@@ -490,10 +491,12 @@ abstract class UserModel with _$UserModel {
     if (firstName.isEmpty) incomplete['firstName'] = 'First name is required';
     if (lastName.isEmpty) incomplete['lastName'] = 'Last name is required';
     if (bio == null || bio!.isEmpty) incomplete['bio'] = 'Add a short bio';
-    if (profileImageURL == null)
+    if (profileImageURL == null) {
       incomplete['profileImage'] = 'Add a profile picture';
-    if (interests.isEmpty)
+    }
+    if (interests.isEmpty) {
       incomplete['interests'] = 'Add at least one interest';
+    }
 
     return incomplete;
   }

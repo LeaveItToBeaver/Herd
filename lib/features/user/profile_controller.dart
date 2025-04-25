@@ -145,7 +145,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         hasMorePosts: morePosts.length >= pageSize,
         lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
       ));
-    } catch (e, stack) {
+    } catch (e) {
       debugPrint("DEBUG: Error loading more posts: $e");
       // Keep the current posts but set loading to false
       state = AsyncValue.data(currentState.copyWith(isLoading: false));

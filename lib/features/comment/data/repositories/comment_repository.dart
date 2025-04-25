@@ -234,7 +234,7 @@ class CommentRepository {
       // Then get all replies that have this path as prefix
       final querySnapshot = await commentsCollectionForPost(postId)
           .where('path', isGreaterThanOrEqualTo: parentPath)
-          .where('path', isLessThan: parentPath + '\uf8ff')
+          .where('path', isLessThan: '$parentPath\uf8ff')
           .orderBy('path')
           .orderBy('timestamp')
           .get();

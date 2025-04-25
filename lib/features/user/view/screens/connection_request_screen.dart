@@ -105,11 +105,11 @@ class ConnectionRequestItem extends StatelessWidget {
   final VoidCallback onReject;
 
   const ConnectionRequestItem({
-    Key? key,
+    super.key,
     required this.request,
     required this.onAccept,
     required this.onReject,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -128,16 +128,16 @@ class ConnectionRequestItem extends StatelessWidget {
                   radius: 24,
                   backgroundColor: Colors.grey[200],
                   backgroundImage: request.requesterProfileImageURL != null &&
-                      request.requesterProfileImageURL!.isNotEmpty
+                          request.requesterProfileImageURL!.isNotEmpty
                       ? NetworkImage(request.requesterProfileImageURL!)
                       : null,
                   child: request.requesterProfileImageURL == null ||
-                      request.requesterProfileImageURL!.isEmpty
+                          request.requesterProfileImageURL!.isEmpty
                       ? Icon(
-                    Icons.person,
-                    color: Colors.grey[400],
-                    size: 24,
-                  )
+                          Icons.person,
+                          color: Colors.grey[400],
+                          size: 24,
+                        )
                       : null,
                 ),
                 const SizedBox(width: 16),

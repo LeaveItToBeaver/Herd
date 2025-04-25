@@ -25,11 +25,35 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
   File? _coverImage;
   final ImagePicker _picker = ImagePicker();
 
+  final List<String> availableInterests = [
+    'Technology',
+    'Science',
+    'Art',
+    'Music',
+    'Sports',
+    'Gaming',
+    'Reading',
+    'Writing',
+    'Cooking',
+    'Travel',
+    'Photography',
+    'Film',
+    'Fashion',
+    'Fitness',
+    'Nature',
+    'Politics',
+    'Education',
+    'Business',
+    'Finance',
+    'Health'
+  ];
+
   late String _name;
   late String _description;
   late String _rules;
   late String _faq;
   late bool _isPrivate;
+  late List<String> _selectedInterests;
   bool _isSubmitting = false;
 
   @override
@@ -41,6 +65,19 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
     _rules = widget.herd.rules;
     _faq = widget.herd.faq;
     _isPrivate = widget.herd.isPrivate;
+
+    // Initialize interests from herd
+    _selectedInterests = List<String>.from(widget.herd.interests ?? []);
+  }
+
+  void _toggleInterest(String interest) {
+    setState(() {
+      if (_selectedInterests.contains(interest)) {
+        _selectedInterests.remove(interest);
+      } else {
+        _selectedInterests.add(interest);
+      }
+    });
   }
 
   @override
@@ -220,6 +257,54 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
 
                 if (isCreator) const SizedBox(height: 16),
 
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Herd Interests',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Choose interests that define what your herd is about',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Interest chips
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: availableInterests.map((interest) {
+                          final isSelected =
+                              _selectedInterests.contains(interest);
+                          return FilterChip(
+                            label: Text(interest),
+                            selected: isSelected,
+                            onSelected: (_) => _toggleInterest(interest),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            selectedColor:
+                                Theme.of(context).colorScheme.primaryContainer,
+                            checkmarkColor:
+                                Theme.of(context).colorScheme.primary,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+
                 // Privacy toggle (only for creators)
                 if (isCreator)
                   SwitchListTile(
@@ -319,6 +404,7 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
       final Map<String, dynamic> updateData = {
         'name': _name,
         'description': _description,
+        'interests': _selectedInterests, // Add this line to include interests
       };
 
       // Only creators can update these fields

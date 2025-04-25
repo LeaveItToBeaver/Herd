@@ -36,7 +36,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   File? _postMedia;
   bool _isSubmitting = false;
   late bool _isAlt;
-  late bool _isDraft = false;
+  late final bool _isDraft = false;
   late bool _hasMedia = false;
   late bool _isNSFW = false;
   final bool _isVideo = false;
@@ -44,7 +44,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   String? _selectedHerdName;
   String? _selectHerdProfileImageUrl;
   bool _hasEnteredContent = false;
-  bool _isHerdPost = false;
+  final bool _isHerdPost = false;
 
   @override
   void initState() {
@@ -416,7 +416,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                             child: Text(
                               _selectedHerdId != null
                                   ? '$_selectedHerdName'
-                                  : 'Personal post (no herd)',
+                                  : 'Personal post',
                               style: TextStyle(
                                 color: _selectedHerdId != null
                                     ? Colors.blue
@@ -475,9 +475,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               onPressed: _isSubmitting
                   ? null
                   : () {
-                      if (currentUser != null) {
-                        _submitForm(context, currentUser);
-                      }
+                      _submitForm(context, currentUser);
                     },
             ),
           ),
@@ -534,8 +532,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       children: [
         GestureDetector(
           onTap: () async {
-            if (_isSubmitting)
+            if (_isSubmitting) {
               return; // Prevent changing media while submitting
+            }
 
             try {
               // Use the image picker to select multiple images

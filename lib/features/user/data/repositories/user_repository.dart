@@ -133,7 +133,7 @@ class UserRepository {
 
       // Filter based on feed type
       if (profileType == FeedType.alt) {
-        if (user.username == null || user.username!.isEmpty) continue;
+        if (user.username.isEmpty) continue;
       } else {
         if (user.firstName.isEmpty && user.lastName.isEmpty) continue;
       }
