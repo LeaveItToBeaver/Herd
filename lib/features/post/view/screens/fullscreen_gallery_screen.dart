@@ -14,11 +14,11 @@ class FullscreenGalleryScreen extends ConsumerStatefulWidget {
   final String postId;
 
   const FullscreenGalleryScreen({
-    Key? key,
+    super.key,
     required this.mediaItems,
     required this.initialIndex,
     required this.postId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<FullscreenGalleryScreen> createState() =>

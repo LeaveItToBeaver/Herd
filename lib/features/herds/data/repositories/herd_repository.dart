@@ -405,7 +405,7 @@ class HerdRepository {
           .map((doc) => HerdModel.fromMap(doc.id, doc.data()))
           .where((herd) =>
               herd.name.toLowerCase().contains(queryLower) ||
-              (herd.description?.toLowerCase().contains(queryLower) ?? false))
+              (herd.description.toLowerCase().contains(queryLower) ?? false))
           .take(limit)
           .toList();
       return herds;

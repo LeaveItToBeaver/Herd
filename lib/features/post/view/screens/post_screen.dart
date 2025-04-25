@@ -480,7 +480,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                         ),
                       ),
                       // Edit/delete menu for post owner
-                      if (currentUser?.id == post.authorId)
+                      if (currentUser.id == post.authorId)
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert),
                           onSelected: (value) {
@@ -707,7 +707,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         ))
         .value;
 
-    if (user == null || post == null || user.userId != post.authorId) {
+    if (post == null || user.userId != post.authorId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You can only delete your own posts')),
       );
@@ -886,7 +886,6 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
   ImageProvider? _getCurrentUserProfileImage() {
     final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) return null;
 
     final profileImageUrl = widget.isAlt
         ? (currentUser.safeAltProfileImageURL ??

@@ -31,7 +31,7 @@ class CachedVideoPlayer extends ConsumerStatefulWidget {
   final VoidCallback? onVideoFinished;
 
   const CachedVideoPlayer({
-    Key? key,
+    super.key,
     required this.videoUrl,
     this.thumbnailUrl,
     this.autoPlay = false,
@@ -46,7 +46,7 @@ class CachedVideoPlayer extends ConsumerStatefulWidget {
     this.placeholder,
     this.errorWidget,
     this.onVideoFinished,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CachedVideoPlayer> createState() => _CachedVideoPlayerState();
@@ -108,12 +108,10 @@ class _CachedVideoPlayerState extends ConsumerState<CachedVideoPlayer> {
       );
 
       // If not cached, download and cache it
-      if (_localVideoPath == null) {
-        _localVideoPath = await cacheService.cacheMediaFromUrl(
-          widget.videoUrl,
-          mediaType: 'video',
-        );
-      }
+      _localVideoPath ??= await cacheService.cacheMediaFromUrl(
+        widget.videoUrl,
+        mediaType: 'video',
+      );
 
       // If we have a local path, use File source, otherwise use network source
       if (_localVideoPath != null) {

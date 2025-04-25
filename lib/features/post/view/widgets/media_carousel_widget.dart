@@ -16,14 +16,14 @@ class MediaCarouselWidget extends StatefulWidget {
   final bool isFullscreen;
 
   const MediaCarouselWidget({
-    Key? key,
+    super.key,
     required this.mediaItems,
     this.autoPlay = false,
     this.height = 250.0,
     this.showIndicator = true,
     this.onMediaTap,
     this.isFullscreen = false,
-  }) : super(key: key);
+  });
 
   @override
   State<MediaCarouselWidget> createState() => _MediaCarouselWidgetState();

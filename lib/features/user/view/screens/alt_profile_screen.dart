@@ -26,9 +26,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   late ScrollController _scrollController;
-  Color _dominantColor = Colors.transparent;
-  double _scrollProgress = 0.0;
-  List<Color> _imageColors = [];
+  final Color _dominantColor = Colors.transparent;
+  final double _scrollProgress = 0.0;
+  final List<Color> _imageColors = [];
 
   @override
   void initState() {
@@ -232,7 +232,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                                 _buildStatColumn(
                                     'Alt Posts', altPosts.length.toString()),
                                 _buildStatColumn('Connections',
-                                    profile.user?.friends?.toString() ?? '0'),
+                                    profile.user?.friends.toString() ?? '0'),
                                 Consumer(
                                   builder: (context, ref, child) {
                                     final herdCount = ref.watch(

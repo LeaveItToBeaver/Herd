@@ -15,10 +15,10 @@ class CommentListWidget extends ConsumerStatefulWidget {
   final bool isAltPost;
 
   const CommentListWidget({
-    Key? key,
+    super.key,
     required this.postId,
     this.isAltPost = false,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CommentListWidget> createState() => _CommentListWidgetState();

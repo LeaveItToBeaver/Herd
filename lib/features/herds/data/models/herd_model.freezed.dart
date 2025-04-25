@@ -18,6 +18,7 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
   String get id;
   String get name;
   String get description;
+  List<String> get interests;
   String get rules;
   String get faq;
   DateTime? get createdAt;
@@ -44,6 +45,7 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('id', id))
       ..add(DiagnosticsProperty('name', name))
       ..add(DiagnosticsProperty('description', description))
+      ..add(DiagnosticsProperty('interests', interests))
       ..add(DiagnosticsProperty('rules', rules))
       ..add(DiagnosticsProperty('faq', faq))
       ..add(DiagnosticsProperty('createdAt', createdAt))
@@ -66,6 +68,7 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            const DeepCollectionEquality().equals(other.interests, interests) &&
             (identical(other.rules, rules) || other.rules == rules) &&
             (identical(other.faq, faq) || other.faq == faq) &&
             (identical(other.createdAt, createdAt) ||
@@ -94,6 +97,7 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
       id,
       name,
       description,
+      const DeepCollectionEquality().hash(interests),
       rules,
       faq,
       createdAt,
@@ -108,7 +112,7 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HerdModel(id: $id, name: $name, description: $description, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate)';
+    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate)';
   }
 }
 
@@ -121,6 +125,7 @@ abstract mixin class $HerdModelCopyWith<$Res> {
       {String id,
       String name,
       String description,
+      List<String> interests,
       String rules,
       String faq,
       DateTime? createdAt,
@@ -149,6 +154,7 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
     Object? id = null,
     Object? name = null,
     Object? description = null,
+    Object? interests = null,
     Object? rules = null,
     Object? faq = null,
     Object? createdAt = freezed,
@@ -174,6 +180,10 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
           ? _self.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      interests: null == interests
+          ? _self.interests
+          : interests // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       rules: null == rules
           ? _self.rules
           : rules // ignore: cast_nullable_to_non_nullable
@@ -229,6 +239,7 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       {required this.id,
       required this.name,
       required this.description,
+      final List<String> interests = const [],
       this.rules = '',
       this.faq = '',
       this.createdAt,
@@ -240,7 +251,8 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       this.postCount = 0,
       final Map<String, dynamic> customization = const {},
       this.isPrivate = false})
-      : _moderatorIds = moderatorIds,
+      : _interests = interests,
+        _moderatorIds = moderatorIds,
         _customization = customization,
         super._();
 
@@ -250,6 +262,15 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
   final String name;
   @override
   final String description;
+  final List<String> _interests;
+  @override
+  @JsonKey()
+  List<String> get interests {
+    if (_interests is EqualUnmodifiableListView) return _interests;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_interests);
+  }
+
   @override
   @JsonKey()
   final String rules;
@@ -307,6 +328,7 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('id', id))
       ..add(DiagnosticsProperty('name', name))
       ..add(DiagnosticsProperty('description', description))
+      ..add(DiagnosticsProperty('interests', interests))
       ..add(DiagnosticsProperty('rules', rules))
       ..add(DiagnosticsProperty('faq', faq))
       ..add(DiagnosticsProperty('createdAt', createdAt))
@@ -329,6 +351,8 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            const DeepCollectionEquality()
+                .equals(other._interests, _interests) &&
             (identical(other.rules, rules) || other.rules == rules) &&
             (identical(other.faq, faq) || other.faq == faq) &&
             (identical(other.createdAt, createdAt) ||
@@ -357,6 +381,7 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       id,
       name,
       description,
+      const DeepCollectionEquality().hash(_interests),
       rules,
       faq,
       createdAt,
@@ -371,7 +396,7 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HerdModel(id: $id, name: $name, description: $description, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate)';
+    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate)';
   }
 }
 
@@ -387,6 +412,7 @@ abstract mixin class _$HerdModelCopyWith<$Res>
       {String id,
       String name,
       String description,
+      List<String> interests,
       String rules,
       String faq,
       DateTime? createdAt,
@@ -415,6 +441,7 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
     Object? id = null,
     Object? name = null,
     Object? description = null,
+    Object? interests = null,
     Object? rules = null,
     Object? faq = null,
     Object? createdAt = freezed,
@@ -440,6 +467,10 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
           ? _self.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      interests: null == interests
+          ? _self._interests
+          : interests // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       rules: null == rules
           ? _self.rules
           : rules // ignore: cast_nullable_to_non_nullable

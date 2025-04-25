@@ -139,7 +139,7 @@ class PostRepository {
             .collection('altPosts')
             .doc(postId)
             .set(postWithTypeAndId.toMap());
-        debugPrint('Alt post created with ID: ${postId}');
+        debugPrint('Alt post created with ID: $postId');
       } else if (post.herdId != null && post.herdId!.isNotEmpty) {
         // Save to herdPosts collection
         await _firestore
@@ -149,14 +149,14 @@ class PostRepository {
             .doc(postId)
             .set(postWithTypeAndId.toMap());
         debugPrint(
-            'Herd post created with ID: ${postId} in herd: ${post.herdId}');
+            'Herd post created with ID: $postId in herd: ${post.herdId}');
       } else {
         // Save to regular posts collection
         await _firestore
             .collection('posts')
             .doc(postId)
             .set(postWithTypeAndId.toMap());
-        debugPrint('Public post created with ID: ${postId}');
+        debugPrint('Public post created with ID: $postId');
       }
       debugPrint(
           "✅ Post created successfully with ${mediaItems.length} media items");
@@ -934,7 +934,7 @@ class PostRepository {
       return snapshot.docs
           .map((doc) => PostModel.fromMap(doc.id, doc.data()))
           .toList();
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('Error getting user public posts: $e');
       rethrow;
     }
@@ -997,7 +997,7 @@ class PostRepository {
 
       // Apply final limit after combining
       return allPosts.take(limit).toList();
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('Error getting user alt posts: $e');
       rethrow;
     }

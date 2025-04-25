@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 
 class CacheSettingsScreen extends ConsumerStatefulWidget {
-  const CacheSettingsScreen({Key? key}) : super(key: key);
+  const CacheSettingsScreen({super.key});
 
   @override
   ConsumerState<CacheSettingsScreen> createState() =>
@@ -279,7 +279,7 @@ class _CacheSettingsScreenState extends ConsumerState<CacheSettingsScreen> {
                                   min: 50,
                                   max: 1000,
                                   divisions: 19,
-                                  label: '${_maxCacheSizeMB} MB',
+                                  label: '$_maxCacheSizeMB MB',
                                   onChanged: (value) {
                                     setState(() {
                                       _maxCacheSizeMB = value.round();
@@ -290,7 +290,7 @@ class _CacheSettingsScreenState extends ConsumerState<CacheSettingsScreen> {
                               SizedBox(
                                 width: 60,
                                 child: Text(
-                                  '${_maxCacheSizeMB} MB',
+                                  '$_maxCacheSizeMB MB',
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold),
                                 ),

@@ -60,7 +60,7 @@ abstract class PostModel with _$PostModel {
 
         // Convert the list items using map() instead of a for loop
         mediaItems = rawItems
-            .where((item) => item is Map) // Filter out non-Map items
+            .whereType<Map>() // Filter out non-Map items
             .map((item) {
               // Convert each item to Map<String, dynamic>
               final mediaMap = item is Map<String, dynamic>
