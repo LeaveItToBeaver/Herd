@@ -342,8 +342,12 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
   }
 
   Future<void> loadMoreReplies() async {
-    if (state == null || state!.isLoading || !state!.hasMore || _postId == null)
+    if (state == null ||
+        state!.isLoading ||
+        !state!.hasMore ||
+        _postId == null) {
       return;
+    }
 
     try {
       state = state!.copyWith(isLoading: true);

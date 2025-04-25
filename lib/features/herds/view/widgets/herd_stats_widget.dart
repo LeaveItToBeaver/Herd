@@ -8,11 +8,11 @@ class HerdStats extends StatelessWidget {
   final VoidCallback? onEditPressed;
 
   const HerdStats({
-    Key? key,
+    super.key,
     required this.herd,
     required this.isCreatorOrMod,
     this.onEditPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -12,9 +12,9 @@ class EditDraftScreen extends ConsumerStatefulWidget {
   final DraftPostModel draft;
 
   const EditDraftScreen({
-    Key? key,
+    super.key,
     required this.draft,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<EditDraftScreen> createState() => _EditDraftScreenState();

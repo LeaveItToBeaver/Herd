@@ -26,8 +26,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
   late TabController _tabController;
   late ScrollController _scrollController;
   final Color _dominantColor = Colors.transparent;
-  List<Color> _imageColors = [];
-  int _colorIndex = 0;
+  final List<Color> _imageColors = [];
+  final int _colorIndex = 0;
 
   @override
   void initState() {
@@ -200,12 +200,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                     'posts'),
                                 _buildStatColumn(
                                     'Followers',
-                                    profile.user?.followers?.toString() ?? '0',
+                                    profile.user?.followers.toString() ?? '0',
                                     profile.isCurrentUser,
                                     'followers'),
                                 _buildStatColumn(
                                     'Following',
-                                    profile.user?.following?.toString() ?? '0',
+                                    profile.user?.following.toString() ?? '0',
                                     profile.isCurrentUser,
                                     'following'),
                               ],
@@ -225,7 +225,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                     backgroundColor: profile.isFollowing
                                         ? Theme.of(context)
                                             .colorScheme
-                                            .surfaceVariant
+                                            .surfaceContainerHighest
                                         : Theme.of(context).colorScheme.primary,
                                     foregroundColor: profile.isFollowing
                                         ? Theme.of(context)

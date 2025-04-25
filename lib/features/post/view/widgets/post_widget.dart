@@ -81,8 +81,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     final theme = Theme.of(context);
     final user = ref.read(currentUserProvider);
     _showNSFWContent = user.allowNSFW ?? false;
-    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
+    // final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
+    //     PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
 
     // Format the timestamp here, so it's always available
     final formattedTimestamp = _formatTimestamp(widget.post.createdAt);
@@ -95,7 +95,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       ),
       child: Container(
         margin: EdgeInsets.symmetric(
-            vertical: 8, horizontal: widget.isCompact ? 8 : 12),
+            vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
@@ -150,7 +150,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
               // Post Content
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -176,7 +176,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     ],
 
                     // Either media or text content with NSFW blur option
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 4),
 
                     // NSFW content handling
                     widget.post.isNSFW && !_showNSFWContent
@@ -185,10 +185,14 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                             ? _buildMediaPreview(widget.post)
                             : _buildContentText(theme)),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 4),
 
                     // Action row
-                    _buildActionBar(interactionState, theme),
+                    _buildActionBar(
+                      ref.read(postInteractionsWithPrivacyProvider(PostParams(
+                          id: widget.post.id, isAlt: widget.post.isAlt))),
+                      theme,
+                    )
                   ],
                 ),
               ),
@@ -291,8 +295,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
             // Use appropriate name based on post privacy
             final displayName = widget.post.isAlt
-                ? (user.username ?? 'Anonymous')
-                : '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim();
+                ? (user.username)
+                : '${user.firstName} ${user.lastName}'.trim();
 
             return Row(
               children: [
@@ -438,9 +442,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     data: (user) {
                       final displayName = user != null
                           ? (widget.post.isAlt
-                              ? (user.username ?? 'Anonymous')
-                              : '${user.firstName ?? ''} ${user.lastName ?? ''}'
-                                  .trim())
+                              ? (user.username)
+                              : '${user.firstName} ${user.lastName}'.trim())
                           : 'Anonymous';
 
                       return GestureDetector(
@@ -631,8 +634,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   bool _shouldShowMedia() {
-    return (widget.post.mediaItems != null &&
-            widget.post.mediaItems.isNotEmpty) ||
+    return (widget.post.mediaItems.isNotEmpty) ||
         (widget.post.mediaThumbnailURL != null &&
             widget.post.mediaThumbnailURL!.isNotEmpty) ||
         (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty);
@@ -719,23 +721,40 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       child: Row(
         children: [
           // Like button - always show
-          _buildActionButton(
-            interactionState.isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-            interactionState.totalLikes.toString(),
-            color: interactionState.isLiked ? Colors.green : null,
-            onPressed:
-                interactionState.isLoading ? null : () => _handleLikePost(),
+          Consumer(
+            builder: (context, ref, child) {
+              final likeState = ref.watch(postInteractionsWithPrivacyProvider(
+                      PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
+                  .select((state) =>
+                      (state.isLiked, state.totalRawLikes, state.isLoading)));
+
+              return _buildActionButton(
+                likeState.$1 ? Icons.thumb_up : Icons.thumb_up_outlined,
+                '${likeState.$2}',
+                color: likeState.$1 ? Colors.green : null,
+                onPressed: likeState.$3 ? null : () => _handleLikePost(),
+              );
+            },
           ),
 
-          // Dislike button - always show for consistency
-          _buildActionButton(
-            interactionState.isDisliked
-                ? Icons.thumb_down
-                : Icons.thumb_down_outlined,
-            '',
-            color: interactionState.isDisliked ? Colors.red : null,
-            onPressed:
-                interactionState.isLoading ? null : () => _handleDislikePost(),
+          Consumer(
+            builder: (context, ref, child) {
+              final dislikeState = ref.watch(
+                  postInteractionsWithPrivacyProvider(PostParams(
+                          id: widget.post.id, isAlt: widget.post.isAlt))
+                      .select((state) => (
+                            state.isDisliked,
+                            state.totalRawDislikes,
+                            state.isLoading
+                          )));
+
+              return _buildActionButton(
+                dislikeState.$1 ? Icons.thumb_down : Icons.thumb_down_outlined,
+                '',
+                color: dislikeState.$1 ? Colors.red : null,
+                onPressed: dislikeState.$3 ? null : () => _handleDislikePost(),
+              );
+            },
           ),
 
           // Comment button - always show
@@ -874,7 +893,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   void _showDeleteConfirmation(BuildContext context) {
     final user = ref.read(currentUserProvider);
     final userId = user.userId;
-    if (user == null || userId != widget.post.authorId) {
+    if (userId != widget.post.authorId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You can only delete your own posts')),
       );

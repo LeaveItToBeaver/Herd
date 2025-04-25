@@ -99,10 +99,10 @@ class FloatingButtonsColumn extends ConsumerWidget {
   final bool showSearchBtn;
 
   const FloatingButtonsColumn({
-    Key? key,
+    super.key,
     required this.showProfileBtn,
     required this.showSearchBtn,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

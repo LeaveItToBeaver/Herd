@@ -150,9 +150,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               ),
               // Position search bar at the bottom with padding for nav bar
               _buildSearchBar(),
-              BottomNavPadding(
-                height: 65.0,
-              ),
+              BottomNavPadding(),
             ],
           ),
         ),

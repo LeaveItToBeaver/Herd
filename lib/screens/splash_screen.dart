@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 
-import '../features/user/view/screens/public_profile_screen.dart';
-
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
 

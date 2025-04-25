@@ -644,7 +644,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     List<PostMediaModel> mediaItems = [];
 
                     // Check for new media items format first
-                    if (post.mediaItems != null && post.mediaItems.isNotEmpty) {
+                    if (post.mediaItems.isNotEmpty) {
                       mediaItems = post.mediaItems;
                     }
                     // Fall back to legacy format

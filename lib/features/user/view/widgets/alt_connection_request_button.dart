@@ -8,12 +8,13 @@ class AltConnectionButton extends ConsumerStatefulWidget {
   final String targetUserId;
 
   const AltConnectionButton({
-    Key? key,
+    super.key,
     required this.targetUserId,
-  }) : super(key: key);
+  });
 
   @override
-  ConsumerState<AltConnectionButton> createState() => _AltConnectionButtonState();
+  ConsumerState<AltConnectionButton> createState() =>
+      _AltConnectionButtonState();
 }
 
 class _AltConnectionButtonState extends ConsumerState<AltConnectionButton> {

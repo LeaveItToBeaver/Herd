@@ -10,9 +10,9 @@ class EditPostScreen extends ConsumerStatefulWidget {
   final PostModel post;
 
   const EditPostScreen({
-    Key? key,
+    super.key,
     required this.post,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<EditPostScreen> createState() => _EditPostScreenState();

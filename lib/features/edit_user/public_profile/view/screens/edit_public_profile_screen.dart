@@ -324,7 +324,7 @@ class _PublicProfileEditScreenState
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceVariant
+                              color: theme.colorScheme.surfaceContainerHighest
                                   .withOpacity(0.3),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(

@@ -29,6 +29,42 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
   File? _coverImage;
   bool _isSubmitting = false;
 
+  final List<String> availableInterests = [
+    'Technology',
+    'Science',
+    'Art',
+    'Music',
+    'Sports',
+    'Gaming',
+    'Reading',
+    'Writing',
+    'Cooking',
+    'Travel',
+    'Photography',
+    'Film',
+    'Fashion',
+    'Fitness',
+    'Nature',
+    'Politics',
+    'Education',
+    'Business',
+    'Finance',
+    'Health'
+  ];
+
+  List<String> _selectedInterests = [];
+
+  // Add toggle method
+  void _toggleInterest(String interest) {
+    setState(() {
+      if (_selectedInterests.contains(interest)) {
+        _selectedInterests.remove(interest);
+      } else {
+        _selectedInterests.add(interest);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider);
@@ -169,7 +205,53 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                 ),
 
                 const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Select Herd Interests',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Choose interests that define what your herd is about',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
 
+                      // Interest chips
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: availableInterests.map((interest) {
+                          final isSelected =
+                              _selectedInterests.contains(interest);
+                          return FilterChip(
+                            label: Text(interest),
+                            selected: isSelected,
+                            onSelected: (_) => _toggleInterest(interest),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            selectedColor:
+                                Theme.of(context).colorScheme.primaryContainer,
+                            checkmarkColor:
+                                Theme.of(context).colorScheme.primary,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
                 // Privacy toggle
                 SwitchListTile(
                   title: const Text('Private Herd'),
@@ -251,6 +333,7 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
         id: '', // Will be set by the repository
         name: _name,
         description: _description,
+        interests: _selectedInterests,
         creatorId: userId,
         isPrivate: _isPrivate,
       );

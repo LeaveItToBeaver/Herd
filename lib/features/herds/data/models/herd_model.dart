@@ -12,6 +12,7 @@ abstract class HerdModel with _$HerdModel {
     required String id,
     required String name,
     required String description,
+    @Default([]) List<String> interests,
     @Default('') String rules,
     @Default('') String faq,
     DateTime? createdAt,
@@ -31,6 +32,7 @@ abstract class HerdModel with _$HerdModel {
       id: id,
       name: map['name'] ?? '',
       description: map['description'] ?? '',
+      interests: List<String>.from(map['interests'] ?? []),
       rules: map['rules'] ?? '',
       faq: map['faq'] ?? '',
       createdAt: _parseDateTime(map['createdAt']),
@@ -61,9 +63,12 @@ abstract class HerdModel with _$HerdModel {
     return {
       'name': name,
       'description': description,
+      'interests': interests,
       'rules': rules,
       'faq': faq,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
       'creatorId': creatorId,
       'profileImageURL': profileImageURL,
       'coverImageURL': coverImageURL,

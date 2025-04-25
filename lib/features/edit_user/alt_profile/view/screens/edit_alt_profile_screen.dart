@@ -14,10 +14,10 @@ class AltProfileEditScreen extends ConsumerStatefulWidget {
   final bool isInitialSetup;
 
   const AltProfileEditScreen({
-    Key? key,
+    super.key,
     required this.user,
     this.isInitialSetup = false,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<AltProfileEditScreen> createState() =>

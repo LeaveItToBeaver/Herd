@@ -8,12 +8,12 @@ class DateSelector extends StatefulWidget {
   final String? errorText;
 
   const DateSelector({
-    Key? key,
+    super.key,
     this.initialDate,
     required this.onDateSelected,
     required this.labelText,
     this.errorText,
-  }) : super(key: key);
+  });
 
   @override
   State<DateSelector> createState() => _DateSelectorState();

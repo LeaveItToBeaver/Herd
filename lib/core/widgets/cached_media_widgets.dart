@@ -30,7 +30,7 @@ class CachedMediaImage extends ConsumerStatefulWidget {
   final bool allowLongPressActions;
 
   const CachedMediaImage({
-    Key? key,
+    super.key,
     required this.imageUrl,
     this.thumbnailUrl,
     this.width,
@@ -44,7 +44,7 @@ class CachedMediaImage extends ConsumerStatefulWidget {
     this.enableFadeInTransition = true,
     this.fadeInDuration = const Duration(milliseconds: 300),
     this.allowLongPressActions = true,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CachedMediaImage> createState() => _CachedMediaImageState();
@@ -98,12 +98,10 @@ class _CachedMediaImageState extends ConsumerState<CachedMediaImage> {
       );
 
       // If not cached, try caching it
-      if (cachedPath == null) {
-        cachedPath = await cacheService.cacheMediaFromUrl(
-          widget.imageUrl,
-          mediaType: widget.mediaType,
-        );
-      }
+      cachedPath ??= await cacheService.cacheMediaFromUrl(
+        widget.imageUrl,
+        mediaType: widget.mediaType,
+      );
 
       // If we have a thumbnail URL and no high-res image yet, use thumbnail as fallback
       if (cachedPath == null &&
@@ -114,12 +112,10 @@ class _CachedMediaImageState extends ConsumerState<CachedMediaImage> {
           mediaType: 'thumbnail',
         );
 
-        if (cachedPath == null) {
-          cachedPath = await cacheService.cacheMediaFromUrl(
-            widget.thumbnailUrl!,
-            mediaType: 'thumbnail',
-          );
-        }
+        cachedPath ??= await cacheService.cacheMediaFromUrl(
+          widget.thumbnailUrl!,
+          mediaType: 'thumbnail',
+        );
       }
 
       if (mounted) {
