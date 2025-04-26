@@ -320,7 +320,7 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
     }
 
     final altPostsSnapshot =
-        await _firestore.collection('globalAltPosts').limit(50).get();
+        await _firestore.collection('altPosts').limit(50).get();
 
     for (final postDoc in altPostsSnapshot.docs) {
       final postId = postDoc.id;

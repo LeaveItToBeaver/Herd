@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 
 import '../../../post/data/models/post_model.dart';
 import '../../../post/view/widgets/post_widget.dart';
@@ -113,7 +114,7 @@ class PostsTabView extends ConsumerWidget {
                 },
               ),
               const SliverToBoxAdapter(
-                child: SizedBox(height: 20),
+                child: BottomNavPadding(),
               ),
             ],
           ),

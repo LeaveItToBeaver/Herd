@@ -63,7 +63,7 @@ class MyApp extends ConsumerWidget {
       // builder: (BuildContext context, Widget? child) {
       //   return AppScaffold(child: child!);
       // },
-      title: 'HERD app',
+      title: 'Herd app',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
