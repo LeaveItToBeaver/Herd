@@ -92,10 +92,10 @@ function sanitizeData(obj) {
 
     // Check if this is a mediaItems array
     if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' &&
-        (obj[0].url || obj[0].thumbnailUrl) && obj[0].mediaType) {
+      (obj[0].url || obj[0].thumbnailUrl) && obj[0].mediaType) {
       // This is a mediaItems array - filter out items without URLs
       return obj.filter(item => item && (item.url || item.thumbnailUrl))
-                .map(item => sanitizeData(item));
+        .map(item => sanitizeData(item));
     }
 
     // For any other array, just sanitize each item
@@ -567,7 +567,7 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
     herdId: postData.herdId || null,
     // Reference fields that help identify where to look up the full post
     sourceCollection: postData.isAlt ? 'altPosts' :
-                     (postData.herdId ? 'herdPosts' : 'posts'),
+      (postData.herdId ? 'herdPosts' : 'posts'),
     // Store the hotScore to maintain sort order without recalculating
     hotScore: postData.hotScore || 0
   };
@@ -770,8 +770,8 @@ async function updateUserFeedsForPosts(updatedPosts) {
 }
 
 [
-  { path: "posts/{postId}",        sourceCollection: "posts"     },
-  { path: "altPosts/{postId}",     sourceCollection: "altPosts"  },
+  { path: "posts/{postId}", sourceCollection: "posts" },
+  { path: "altPosts/{postId}", sourceCollection: "altPosts" },
   { path: "herdPosts/{herdId}/posts/{postId}", sourceCollection: "herdPosts" }
 ].forEach(({ path, sourceCollection }) => {
   exports[`syncHotScore_${sourceCollection}`] = onDocumentUpdated(
@@ -1246,48 +1246,67 @@ exports.handleFollowAction = onDocumentCreated(
     const followerId = event.params.followerId;
 
     try {
-      // When someone follows a user, add the followed user's recent public posts to follower's feed
-      const recentPostsQuery = firestore
+      logger.info(`Follow action: ${followerId} is now following ${followedId}`);
+
+      // Query all public posts from the followed user (not just recent ones)
+      const postsQuery = firestore
         .collection('posts')
         .where('authorId', '==', followedId)
         .where('isAlt', '==', false) // Only public posts
         .orderBy('createdAt', 'desc')
-        .limit(20); // Limit to recent posts
+        .limit(50); // Increased from 20 to get more historical posts
 
-      const postsSnapshot = await recentPostsQuery.get();
+      const postsSnapshot = await postsQuery.get();
 
       if (postsSnapshot.empty) {
         logger.info(`No public posts found for user ${followedId}`);
         return null;
       }
 
+      logger.info(`Found ${postsSnapshot.size} posts from ${followedId} to add to ${followerId}'s feed`);
+
       // Batch add posts to follower's feed
       const batch = firestore.batch();
 
       for (const doc of postsSnapshot.docs) {
         const postData = doc.data();
+        const postId = doc.id;
 
-        // Add feedType metadata
-        const enhancedPostData = {
-          ...postData,
+        // Calculate hotScore if it doesn't exist
+        const hotScore = postData.hotScore || hotAlgorithm.calculateHotScore(
+          (postData.likeCount || 0) - (postData.dislikeCount || 0),
+          postData.createdAt.toDate()
+        );
+
+        // Create minimal version of post data for the feed
+        const feedPostData = {
+          id: postId,
+          authorId: postData.authorId,
+          authorName: postData.authorName || null,
+          authorUsername: postData.authorUsername || null,
+          authorProfileImageURL: postData.authorProfileImageURL || null,
+          content: postData.content,
+          createdAt: postData.createdAt,
+          likeCount: postData.likeCount || 0,
+          dislikeCount: postData.dislikeCount || 0,
+          commentCount: postData.commentCount || 0,
           feedType: 'public',
-          hotScore: postData.hotScore || hotAlgorithm.calculateHotScore(
-            postData.likeCount - (postData.dislikeCount || 0),
-            postData.createdAt.toDate()
-          )
+          hotScore: hotScore,
+          mediaItems: postData.mediaItems || [],
+          sourceCollection: 'posts'
         };
 
         const feedRef = firestore
           .collection('userFeeds')
           .doc(followerId)
           .collection('feed')
-          .doc(doc.id);
+          .doc(postId);
 
-        batch.set(feedRef, enhancedPostData);
+        batch.set(feedRef, feedPostData);
       }
 
       await batch.commit();
-      logger.info(`Added ${postsSnapshot.size} posts to feed of user ${followerId}`);
+      logger.info(`Successfully added ${postsSnapshot.size} posts to feed of user ${followerId}`);
       return null;
     } catch (error) {
       logger.error(`Error handling follow action (${followerId} → ${followedId}):`, error);
@@ -1337,6 +1356,187 @@ exports.handleUnfollowAction = onDocumentDeleted(
     }
   }
 );
+
+// Add this function to your index.js file
+exports.retroactivelyFillUserFeeds = onCall({
+  enforceAppCheck: false,
+  timeoutSeconds: 540, // 9 minutes, close to the max timeout
+}, async (request) => {
+  // Admin-only check (you should implement proper admin verification)
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required');
+  }
+
+  const callerUid = request.auth.uid;
+
+  // Verify admin status (implement this based on your admin structure)
+  const adminDoc = await firestore.collection('admins').doc(callerUid).get();
+  if (!adminDoc.exists) {
+    throw new HttpsError('permission-denied', 'Admin access required');
+  }
+
+  const { batchSize = 50, startAfterUid = null } = request.data;
+
+  try {
+    // Setup query to get users in batches
+    let usersQuery = firestore.collection('users');
+
+    // Optional pagination
+    if (startAfterUid) {
+      const startAfterDoc = await firestore.collection('users').doc(startAfterUid).get();
+      if (startAfterDoc.exists) {
+        usersQuery = usersQuery.startAfter(startAfterDoc);
+      }
+    }
+
+    // Get batch of users
+    const usersSnapshot = await usersQuery.limit(batchSize).get();
+
+    if (usersSnapshot.empty) {
+      return {
+        success: true,
+        message: 'No users found to process',
+        processedCount: 0,
+        lastProcessedUid: null,
+        complete: true
+      };
+    }
+
+    logger.info(`Processing ${usersSnapshot.size} users for feed backfill`);
+
+    let processedCount = 0;
+    let lastProcessedUid = null;
+
+    // Process each user
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      lastProcessedUid = userId;
+
+      // Get users this person is following
+      const followingSnapshot = await firestore
+        .collection('following')
+        .doc(userId)
+        .collection('userFollowing')
+        .get();
+
+      if (followingSnapshot.empty) {
+        logger.info(`User ${userId} is not following anyone, skipping`);
+        processedCount++;
+        continue;
+      }
+
+      // Get existing feed entries to avoid duplicates
+      const existingFeedSnapshot = await firestore
+        .collection('userFeeds')
+        .doc(userId)
+        .collection('feed')
+        .get();
+
+      // Create a Set of existing post IDs for fast lookup
+      const existingPostIds = new Set();
+      existingFeedSnapshot.forEach(doc => existingPostIds.add(doc.id));
+
+      // Process each followed user
+      for (const followingDoc of followingSnapshot.docs) {
+        const followedUserId = followingDoc.id;
+
+        // Get posts from followed user that aren't already in the feed
+        const postsSnapshot = await firestore
+          .collection('posts')
+          .where('authorId', '==', followedUserId)
+          .where('isAlt', '==', false)
+          .orderBy('createdAt', 'desc')
+          .limit(100)
+          .get();
+
+        if (postsSnapshot.empty) {
+          continue;
+        }
+
+        // Prepare batch write
+        const batch = firestore.batch();
+        let addedCount = 0;
+
+        for (const postDoc of postsSnapshot.docs) {
+          const postId = postDoc.id;
+          const postData = postDoc.data();
+
+          // Skip if already in feed
+          if (existingPostIds.has(postId)) {
+            continue;
+          }
+
+          // Calculate hot score
+          const netVotes = (postData.likeCount || 0) - (postData.dislikeCount || 0);
+          const hotScore = hotAlgorithm.calculateHotScore(
+            netVotes,
+            postData.createdAt?.toDate() || new Date()
+          );
+
+          // Create feed entry
+          const feedRef = firestore
+            .collection('userFeeds')
+            .doc(userId)
+            .collection('feed')
+            .doc(postId);
+
+          batch.set(feedRef, {
+            id: postId,
+            authorId: postData.authorId,
+            authorName: postData.authorName || null,
+            authorUsername: postData.authorUsername || null,
+            authorProfileImageURL: postData.authorProfileImageURL || null,
+            content: postData.content || '',
+            createdAt: postData.createdAt,
+            feedType: 'public',
+            hotScore: hotScore,
+            likeCount: postData.likeCount || 0,
+            dislikeCount: postData.dislikeCount || 0,
+            commentCount: postData.commentCount || 0,
+            mediaItems: postData.mediaItems || [],
+            sourceCollection: 'posts'
+          });
+
+          addedCount++;
+          existingPostIds.add(postId); // Mark as processed
+
+          // Commit in batches of 500 (Firestore limit)
+          if (addedCount % 500 === 0) {
+            await batch.commit();
+            logger.info(`Committed batch of 500 posts for user ${userId}`);
+            batch = firestore.batch(); // Create a new batch
+          }
+        }
+
+        // Commit any remaining operations
+        if (addedCount % 500 !== 0) {
+          await batch.commit();
+        }
+
+        logger.info(`Added ${addedCount} posts from ${followedUserId} to ${userId}'s feed`);
+      }
+
+      processedCount++;
+      logger.info(`Completed processing user ${userId} (${processedCount} of ${usersSnapshot.size})`);
+    }
+
+    const isComplete = usersSnapshot.size < batchSize;
+
+    return {
+      success: true,
+      processedCount,
+      lastProcessedUid,
+      complete: isComplete,
+      message: isComplete
+        ? 'All users processed successfully'
+        : 'Batch completed, more users remain'
+    };
+
+  } catch (error) {
+    logger.error(`Error in retroactivelyFillUserFeeds:`, error);
+    throw new HttpsError('internal', error.message);
+  }
+});
 
 /**
  * Handle alt connection creation - add alt posts to new connection's feed
@@ -1647,11 +1847,11 @@ exports.catchAndLogExceptions = onCall(async (request) => {
       action,
       appInfo
     } = request.data;
-  
+
     if (!errorMessage) {
       throw new HttpsError("invalid-argument", 'Error Message is required');
     }
-  
+
     const errorDoc = {
       errorMessage,
       stackTrace: stackTrace || 'No stack trace provided',
@@ -1661,13 +1861,13 @@ exports.catchAndLogExceptions = onCall(async (request) => {
       action: action || 'No action provided',
       appInfo: appInfo || 'No appInfo provided',
       timeStamp: admin.firestore.FieldValue.serverTimestamp(),
-      authContext: request.auth ?{
+      authContext: request.auth ? {
         uid: request.data.uid,
         email: request.auth.token.email,
         emailVerified: request.auth.token.email_verified,
       } : null,
     };
-  
+
     logger.error(`App Exception: ${errorMessage}`, {
       stackTrace,
       errorCode,
@@ -1675,11 +1875,11 @@ exports.catchAndLogExceptions = onCall(async (request) => {
       route,
       action
     });
-  
+
     const docRef = await firestore
       .collection("appExceptions")
       .add(errorDoc);
-  
+
   } catch (error) {
     logger.error(`Error in exception logging function`, error);
     throw new HttpsError('internal', `failed to log exception ${error.message}`);

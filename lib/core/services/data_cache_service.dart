@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:path_provider/path_provider.dart';
@@ -82,10 +83,14 @@ class DataCacheService {
       // Save to in-memory cache
       _postCache[key] = post;
 
-      // Save to disk - Sanitize the map before encoding
-      final Map<String, dynamic> sanitizedMap =
-          _sanitizeFieldValues(post.toMap());
-      final jsonData = jsonEncode(sanitizedMap);
+      // --- MODIFICATION START ---
+      // Convert Timestamps BEFORE encoding
+      final Map<String, dynamic> postMap = post.toMap();
+      final Map<String, dynamic> encodableMap =
+          _convertTimestampsForEncoding(postMap) as Map<String, dynamic>;
+      // --- MODIFICATION END ---
+
+      final jsonData = jsonEncode(encodableMap); // Encode the converted map
       final file = File('${_postDir!.path}/$key.json');
       await file.writeAsBytes(utf8.encode(jsonData));
 
@@ -95,49 +100,12 @@ class DataCacheService {
       debugPrint('✅ Cached post ${post.id}');
     } catch (e) {
       debugPrint('❌ Error caching post: $e');
-    }
-  }
-
-  /// Sanitize Firestore FieldValue objects from a map for JSON serialization
-  Map<String, dynamic> _sanitizeFieldValues(Map<String, dynamic> map) {
-    final result = <String, dynamic>{};
-
-    for (final entry in map.entries) {
-      if (entry.value is Map<String, dynamic>) {
-        // Recursively handle nested maps
-        result[entry.key] = _sanitizeFieldValues(entry.value);
-      } else if (entry.value.toString().contains('FieldValue')) {
-        // Convert FieldValue to current timestamp
-        if (entry.key == 'createdAt' || entry.key == 'updatedAt') {
-          result[entry.key] = DateTime.now().millisecondsSinceEpoch;
-        } else {
-          // For other FieldValues like increment/decrement, use a default
-          result[entry.key] = 0;
-        }
-      } else if (entry.value is List) {
-        // Handle lists (including lists of maps)
-        final list = entry.value as List;
-        final sanitizedList = <dynamic>[];
-
-        for (final item in list) {
-          if (item is Map<String, dynamic>) {
-            sanitizedList.add(_sanitizeFieldValues(item));
-          } else if (item.toString().contains('FieldValue')) {
-            // Skip or use default for FieldValue in lists
-            sanitizedList.add(null);
-          } else {
-            sanitizedList.add(item);
-          }
-        }
-
-        result[entry.key] = sanitizedList;
-      } else {
-        // Direct assignment for regular values
-        result[entry.key] = entry.value;
+      // Add more specific error logging if needed
+      if (e is JsonUnsupportedObjectError) {
+        debugPrint(
+            '❌ Problematic object during JSON encode: ${e.unsupportedObject}');
       }
     }
-
-    return result;
   }
 
   /// Cache a feed (list of posts)]
@@ -184,6 +152,7 @@ class DataCacheService {
       // Check memory cache first
       if (_postCache.containsKey(key)) {
         await _updateLastAccessed(key, isPost: true);
+        debugPrint('Retrieved post $postId from memory cache');
         return _postCache[key];
       }
 
@@ -191,21 +160,46 @@ class DataCacheService {
       final file = File('${_postDir!.path}/$key.json');
       if (await file.exists()) {
         final jsonData = await file.readAsString();
-        final Map<String, dynamic> map = jsonDecode(jsonData);
-        final post = PostModel.fromMap(postId, map);
+        final dynamic decodedJson = jsonDecode(jsonData); // Decode first
 
-        // Update memory cache
-        _postCache[key] = post;
+        // --- MODIFICATION START ---
+        // Convert milliseconds back to Timestamps AFTER decoding
+        final dynamic dataWithTimestamps =
+            _convertTimestampsAfterDecoding(decodedJson);
+        // --- MODIFICATION END ---
 
-        // Update last accessed
-        await _updateLastAccessed(key, isPost: true);
+        // Ensure the result is a map before passing to fromMap
+        if (dataWithTimestamps is Map<String, dynamic>) {
+          final post = PostModel.fromMap(postId, dataWithTimestamps);
 
-        return post;
+          // Update memory cache
+          _postCache[key] = post;
+
+          // Update last accessed
+          await _updateLastAccessed(key, isPost: true);
+          debugPrint('Retrieved post $postId from disk cache');
+          return post;
+        } else {
+          debugPrint(
+              '❌ Error: Decoded cached data for post $postId is not a valid map.');
+          // Optionally delete the corrupted cache file
+          // await file.delete();
+          // await _deletePost(key); // Also remove metadata
+          return null;
+        }
       }
-
+      debugPrint('Post $postId not found in cache');
       return null;
     } catch (e) {
-      debugPrint('Error getting cached post: $e');
+      debugPrint('❌ Error getting cached post $postId: $e');
+      // Handle potential decoding errors more gracefully
+      final key = _generatePostKey(postId, isAlt);
+      final file = File('${_postDir!.path}/$key.json');
+      if (await file.exists()) {
+        // Consider deleting corrupted file
+        // await file.delete();
+        // await _deletePost(key);
+      }
       return null;
     }
   }
@@ -759,5 +753,42 @@ class DataCacheService {
         'inMemoryFeedCacheSize': _feedCache.length,
       };
     }
+  }
+
+  /// Converts Firestore Timestamps to millisecondsSinceEpoch for JSON encoding.
+  dynamic _convertTimestampsForEncoding(dynamic item) {
+    if (item is Map<String, dynamic>) {
+      // Recursively process maps
+      return item.map(
+          (key, value) => MapEntry(key, _convertTimestampsForEncoding(value)));
+    } else if (item is List) {
+      // Recursively process lists
+      return item.map(_convertTimestampsForEncoding).toList();
+    } else if (item is Timestamp) {
+      // Convert Timestamp to milliseconds
+      return {'_isTimestamp': true, 'value': item.millisecondsSinceEpoch};
+    }
+    // Return other types as is
+    return item;
+  }
+
+  /// Converts millisecondsSinceEpoch back to Firestore Timestamps after JSON decoding.
+  dynamic _convertTimestampsAfterDecoding(dynamic item) {
+    if (item is Map<String, dynamic>) {
+      // Check if it's our special Timestamp representation
+      if (item.containsKey('_isTimestamp') &&
+          item['_isTimestamp'] == true &&
+          item.containsKey('value')) {
+        return Timestamp.fromMillisecondsSinceEpoch(item['value']);
+      }
+      // Otherwise, recursively process the map
+      return item.map((key, value) =>
+          MapEntry(key, _convertTimestampsAfterDecoding(value)));
+    } else if (item is List) {
+      // Recursively process lists
+      return item.map(_convertTimestampsAfterDecoding).toList();
+    }
+    // Return other types as is
+    return item;
   }
 }

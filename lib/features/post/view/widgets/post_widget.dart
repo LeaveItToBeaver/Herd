@@ -32,7 +32,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     with AutomaticKeepAliveClientMixin {
   bool _hasInitializedInteraction = false;
   bool _isExpanded = false;
-  bool _showNSFWContent = false;
+  bool _isNsfwRevealed = false;
 
   @override
   bool get wantKeepAlive => true; // Keep widget state when scrolling
@@ -80,11 +80,25 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
     final theme = Theme.of(context);
     final user = ref.read(currentUserProvider);
-    _showNSFWContent = user.allowNSFW ?? false;
+    final bool userAllowsNsfw = user.allowNSFW ?? false;
+    final bool userPrefersBlur = user.blurNSFW ?? true;
     // final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
     //     PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
 
     // Format the timestamp here, so it's always available
+
+    final bool shouldShowOverlay = widget.post.isNSFW &&
+        userAllowsNsfw && // User must allow NSFW
+        userPrefersBlur && // User must prefer blurring
+        !_isNsfwRevealed; // This post hasn't been revealed yet
+
+    // Determine if the actual content should be shown
+    final bool shouldShowContent =
+        !widget.post.isNSFW || // Always show if not NSFW
+            (userAllowsNsfw && // Or if user allows NSFW AND
+                (!userPrefersBlur || // they don't prefer blurring OR
+                    _isNsfwRevealed)); // this post has been revealed
+
     final formattedTimestamp = _formatTimestamp(widget.post.createdAt);
 
     return GestureDetector(
@@ -178,12 +192,20 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     // Either media or text content with NSFW blur option
                     const SizedBox(height: 4),
 
-                    // NSFW content handling
-                    widget.post.isNSFW && !_showNSFWContent
-                        ? _buildNSFWOverlay()
-                        : (_shouldShowMedia()
-                            ? _buildMediaPreview(widget.post)
-                            : _buildContentText(theme)),
+                    // --- NSFW Content Handling Logic ---
+                    if (widget.post.isNSFW && !userAllowsNsfw)
+                      // Case 1: Post is NSFW, but user settings hide it completely
+                      _buildNsfwHiddenMessage()
+                    else if (shouldShowOverlay)
+                      // Case 2: Post is NSFW, user allows it, prefers blur, and it's not revealed yet
+                      _buildNSFWOverlay()
+                    else if (shouldShowContent)
+                      // Case 3: Show the actual content (media or text)
+                      _buildActualContent(theme)
+                    else
+                      // Fallback (should ideally not be reached with correct logic)
+                      const SizedBox.shrink(),
+                    // --- End NSFW Content Handling ---
 
                     const SizedBox(height: 4),
 
@@ -203,41 +225,79 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     );
   }
 
-// Add this method for NSFW content overlay
+  Widget _buildActualContent(ThemeData theme) {
+    return _shouldShowMedia()
+        ? _buildMediaPreview(widget.post)
+        : _buildContentText(theme);
+  }
+
   Widget _buildNSFWOverlay() {
     return GestureDetector(
       onTap: () {
+        // Correctly update the state variable for revealing THIS post
         setState(() {
-          _showNSFWContent = true;
+          _isNsfwRevealed = true;
         });
       },
       child: Container(
-        height: 200,
+        height: 200, // Or adjust height as needed
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          // Consider using a blur effect instead of just grey
+          color: Colors.grey.shade700.withOpacity(0.85),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.visibility_off, size: 48, color: Colors.red),
+            const Icon(Icons.visibility_off, size: 48, color: Colors.white70),
             const SizedBox(height: 16),
             const Text(
               'NSFW Content',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: Colors.red,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Tap to view',
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: Colors.white70),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNsfwHiddenMessage() {
+    return Container(
+      height: 150, // Or adjust height
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.block, size: 40, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'NSFW Content Hidden',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Adjust your settings to view',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -757,15 +817,30 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             },
           ),
 
-          // Comment button - always show
-          _buildActionButton(
-            Icons.chat_bubble_outline,
-            interactionState.totalComments.toString(),
-            onPressed: () => context.pushNamed(
-              'post',
-              pathParameters: {'id': widget.post.id},
-              queryParameters: {'isAlt': widget.post.isAlt.toString()},
-            ),
+          Consumer(
+            builder: (context, ref, child) {
+              // Watch the specific post stream for real-time updates
+              final postAsyncValue = ref.watch(postProvider(widget.post.id));
+              // Get the latest comment count, defaulting to the initial post data
+              // or the interaction state if available and potentially more up-to-date
+              final commentCount = postAsyncValue.when(
+                data: (post) =>
+                    post?.commentCount ?? interactionState.totalComments,
+                loading: () =>
+                    interactionState.totalComments, // Use state while loading
+                error: (_, __) =>
+                    interactionState.totalComments, // Use state on error
+              );
+              return _buildActionButton(
+                Icons.chat_bubble_outline,
+                commentCount.toString(), // Use the potentially updated count
+                onPressed: () => context.pushNamed(
+                  'post',
+                  pathParameters: {'id': widget.post.id},
+                  queryParameters: {'isAlt': widget.post.isAlt.toString()},
+                ),
+              );
+            },
           ),
 
           // Spacer

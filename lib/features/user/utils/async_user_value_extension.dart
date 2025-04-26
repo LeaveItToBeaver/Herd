@@ -20,6 +20,8 @@ extension AsyncUserValueExtension on AsyncValue<UserModel?> {
 
   bool? get allowNSFW => whenOrNull(data: (user) => user?.allowNSFW);
 
+  bool? get blurNSFW => whenOrNull(data: (user) => user?.blurNSFW);
+
   // Apply a function if user exists (for more complex operations)
   T? mapIfUser<T>(T Function(UserModel user) fn) {
     return whenOrNull(data: (user) => user != null ? fn(user) : null);

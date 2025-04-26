@@ -16,6 +16,7 @@ abstract class ProfileState with _$ProfileState {
     required bool hasAltProfile,
     @Default(false) bool isLoading,
     @Default(true) bool hasMorePosts,
+    @Default('') String currentUserId,
     PostModel? lastPost,
   }) = _ProfileState;
 
@@ -28,6 +29,7 @@ abstract class ProfileState with _$ProfileState {
         hasAltProfile: false,
         isLoading: false,
         hasMorePosts: true,
+        currentUserId: '',
         lastPost: null,
       );
 }
