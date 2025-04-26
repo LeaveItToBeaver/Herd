@@ -33,6 +33,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     try {
       // Get current user for comparison
       final currentUser = ref.read(authProvider);
+      final currentUserId = currentUser?.uid ?? '';
 
       // Determine if we're viewing the alt or public profile
       final currentFeed = ref.read(currentFeedProvider);
@@ -94,6 +95,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         hasAltProfile: hasAltProfile,
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
+        currentUserId: currentUserId,
       ));
     } catch (e, stack) {
       debugPrint("DEBUG: Profile loading error: $e");
@@ -153,26 +155,44 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
   }
 
   Future<void> toggleFollow(bool currentlyFollowing) async {
-    final currentUser = ref.read(authProvider);
-    if (currentUser == null) return;
+    final currentState = state;
+    if (!currentState.hasValue) return;
 
-    final currentState = state.value;
-    if (currentState == null || currentState.user == null) return;
+    final profile = currentState.value!;
+    if (profile.user == null) return;
+
+    final currentUserId = profile.currentUserId;
+    if (currentUserId.isEmpty) {
+      debugPrint("DEBUG: Current user ID is empty, cannot toggle follow.");
+      return;
+    }
+
+    final targetUserId = profile.user!.id;
+
+    // Optimistically update UI state
+    state = AsyncValue.data(profile.copyWith(
+      isFollowing: !currentlyFollowing,
+      user: profile.user!.copyWith(
+        followers: currentlyFollowing
+            ? profile.user!.followers - 1
+            : profile.user!.followers + 1,
+      ),
+    ));
 
     try {
+      // Perform API call in background
       if (currentlyFollowing) {
-        await _userRepository.unfollowUser(
-            currentUser.uid, currentState.user!.id);
+        await _userRepository.unfollowUser(currentUserId, targetUserId);
       } else {
-        await _userRepository.followUser(
-            currentUser.uid, currentState.user!.id);
+        await _userRepository.followUser(currentUserId, targetUserId);
       }
 
-      // Reload profile with same view type
-      await loadProfile(currentState.user!.id,
-          isAltView: currentState.isAltView);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // No need to update state again since we already did it optimistically
+    } catch (e) {
+      debugPrint("DEBUG: Follow/unfollow error: $e");
+      // If API call fails, revert back to previous state
+      state = currentState;
+      // You might want to show an error message here
     }
   }
 

@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../../core/services/image_helper.dart';
 import '../providers/edit_public_profile_notifier.dart';
 
 class PublicProfileEditScreen extends ConsumerStatefulWidget {
@@ -95,7 +97,11 @@ class _PublicProfileEditScreenState
   }
 
   Future<void> _pickProfileImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    final image = await ImageHelper.pickImageFromGallery(
+      context: context,
+      cropStyle: CropStyle.circle,
+      title: 'Profile Image',
+    );
     if (image != null) {
       setState(() {
         _profileImage = File(image.path);
@@ -107,7 +113,11 @@ class _PublicProfileEditScreenState
   }
 
   Future<void> _pickCoverImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    final image = await ImageHelper.pickImageFromGallery(
+      context: context,
+      cropStyle: CropStyle.rectangle,
+      title: 'Profile Cover Image',
+    );
     if (image != null) {
       setState(() {
         _coverImage = File(image.path);

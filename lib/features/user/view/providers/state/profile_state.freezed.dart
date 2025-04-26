@@ -23,6 +23,7 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
   bool get hasAltProfile;
   bool get isLoading;
   bool get hasMorePosts;
+  String get currentUserId;
   PostModel? get lastPost;
 
   /// Create a copy of ProfileState
@@ -45,6 +46,7 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile))
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
+      ..add(DiagnosticsProperty('currentUserId', currentUserId))
       ..add(DiagnosticsProperty('lastPost', lastPost));
   }
 
@@ -67,6 +69,8 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
                 other.isLoading == isLoading) &&
             (identical(other.hasMorePosts, hasMorePosts) ||
                 other.hasMorePosts == hasMorePosts) &&
+            (identical(other.currentUserId, currentUserId) ||
+                other.currentUserId == currentUserId) &&
             (identical(other.lastPost, lastPost) ||
                 other.lastPost == lastPost));
   }
@@ -82,11 +86,12 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       hasAltProfile,
       isLoading,
       hasMorePosts,
+      currentUserId,
       lastPost);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, lastPost: $lastPost)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost)';
   }
 }
 
@@ -105,6 +110,7 @@ abstract mixin class $ProfileStateCopyWith<$Res> {
       bool hasAltProfile,
       bool isLoading,
       bool hasMorePosts,
+      String currentUserId,
       PostModel? lastPost});
 
   $UserModelCopyWith<$Res>? get user;
@@ -131,6 +137,7 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
     Object? hasAltProfile = null,
     Object? isLoading = null,
     Object? hasMorePosts = null,
+    Object? currentUserId = null,
     Object? lastPost = freezed,
   }) {
     return _then(_self.copyWith(
@@ -166,6 +173,10 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
           ? _self.hasMorePosts
           : hasMorePosts // ignore: cast_nullable_to_non_nullable
               as bool,
+      currentUserId: null == currentUserId
+          ? _self.currentUserId
+          : currentUserId // ignore: cast_nullable_to_non_nullable
+              as String,
       lastPost: freezed == lastPost
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
@@ -214,6 +225,7 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       required this.hasAltProfile,
       this.isLoading = false,
       this.hasMorePosts = true,
+      this.currentUserId = '',
       this.lastPost})
       : _posts = posts;
 
@@ -242,6 +254,9 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
   @JsonKey()
   final bool hasMorePosts;
   @override
+  @JsonKey()
+  final String currentUserId;
+  @override
   final PostModel? lastPost;
 
   /// Create a copy of ProfileState
@@ -264,6 +279,7 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       ..add(DiagnosticsProperty('hasAltProfile', hasAltProfile))
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
+      ..add(DiagnosticsProperty('currentUserId', currentUserId))
       ..add(DiagnosticsProperty('lastPost', lastPost));
   }
 
@@ -286,6 +302,8 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
                 other.isLoading == isLoading) &&
             (identical(other.hasMorePosts, hasMorePosts) ||
                 other.hasMorePosts == hasMorePosts) &&
+            (identical(other.currentUserId, currentUserId) ||
+                other.currentUserId == currentUserId) &&
             (identical(other.lastPost, lastPost) ||
                 other.lastPost == lastPost));
   }
@@ -301,11 +319,12 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       hasAltProfile,
       isLoading,
       hasMorePosts,
+      currentUserId,
       lastPost);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, lastPost: $lastPost)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost)';
   }
 }
 
@@ -326,6 +345,7 @@ abstract mixin class _$ProfileStateCopyWith<$Res>
       bool hasAltProfile,
       bool isLoading,
       bool hasMorePosts,
+      String currentUserId,
       PostModel? lastPost});
 
   @override
@@ -355,6 +375,7 @@ class __$ProfileStateCopyWithImpl<$Res>
     Object? hasAltProfile = null,
     Object? isLoading = null,
     Object? hasMorePosts = null,
+    Object? currentUserId = null,
     Object? lastPost = freezed,
   }) {
     return _then(_ProfileState(
@@ -390,6 +411,10 @@ class __$ProfileStateCopyWithImpl<$Res>
           ? _self.hasMorePosts
           : hasMorePosts // ignore: cast_nullable_to_non_nullable
               as bool,
+      currentUserId: null == currentUserId
+          ? _self.currentUserId
+          : currentUserId // ignore: cast_nullable_to_non_nullable
+              as String,
       lastPost: freezed == lastPost
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable

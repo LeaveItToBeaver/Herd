@@ -486,7 +486,7 @@ class CommentRepository {
 
         // Update post comment count
         await _firestore
-            .collection(isAltPost ? 'globalAltPosts' : 'posts')
+            .collection(isAltPost ? 'altPosts' : 'posts')
             .doc(postId)
             .update({
           'commentCount': FieldValue.increment(-1),
