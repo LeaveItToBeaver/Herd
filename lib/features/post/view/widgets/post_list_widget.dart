@@ -57,6 +57,8 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
     super.initState();
     _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_scrollListener);
+    debugPrint(
+        'PostListWidget initialized with hasMorePosts=${widget.hasMorePosts}');
   }
 
   @override
@@ -70,12 +72,61 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
   }
 
   void _scrollListener() {
-    if (widget.onLoadMore != null &&
-        widget.hasMorePosts &&
-        !widget.isLoading &&
-        _scrollController.position.pixels >
-            _scrollController.position.maxScrollExtent * 0.8) {
-      widget.onLoadMore!();
+    // GUARD: Check if the controller is attached before doing anything.
+    if (!_scrollController.hasClients) {
+      // Optionally log this, but it can be noisy during initial builds/rebuilds
+      // debugPrint('ScrollListener: Controller not attached, skipping.');
+      return;
+    }
+
+    final position = _scrollController.position; // Now safer to access
+    final extentAfter = position.extentAfter;
+    final threshold = position.maxScrollExtent * 0.2;
+
+    final bool canLoadMore = widget.onLoadMore != null && widget.hasMorePosts;
+    final bool notLoading = !widget.isLoading;
+    final bool nearBottom =
+        extentAfter < threshold && position.maxScrollExtent > 0;
+
+    // Log current state during scroll events
+    //Limit logging frequency if needed (e.g., only log near bottom)
+    // if (position.maxScrollExtent > 0 &&
+    //     extentAfter < position.maxScrollExtent * 0.5) {
+    //   debugPrint(
+    //       'ScrollListener Check: canLoadMore=$canLoadMore (hasMore=${widget.hasMorePosts}), notLoading=$notLoading, nearBottom=$nearBottom (extentAfter=${extentAfter.toStringAsFixed(1)}, threshold=${threshold.toStringAsFixed(1)})');
+    // }
+
+    if (canLoadMore && notLoading && nearBottom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // GUARD: Re-check attachment and mounted status inside the callback
+        if (!mounted || !_scrollController.hasClients) {
+          debugPrint(
+              'PostFrameCallback: Widget unmounted or controller detached, skipping load more.');
+          return;
+        }
+
+        // Access position only after confirming attachment
+        final currentPosition = _scrollController.position;
+        final currentExtentAfter = currentPosition.extentAfter;
+        // Re-calculate threshold based on potentially updated maxScrollExtent
+        final currentThreshold = currentPosition.maxScrollExtent * 0.2;
+        final currentNearBottom = currentExtentAfter < currentThreshold &&
+            currentPosition.maxScrollExtent > 0;
+
+        // Re-check all conditions before triggering
+        if (widget.onLoadMore != null &&
+            widget.hasMorePosts &&
+            !widget
+                .isLoading && // Re-check isLoading as state might have changed
+            currentNearBottom) {
+          debugPrint('PostListWidget: Triggering onLoadMore!');
+          widget.onLoadMore!();
+        } else if (mounted) {
+          // Only log if still mounted
+          debugPrint(
+              'PostListWidget: PostFrameCallback check failed: hasMore=${widget.hasMorePosts}, isLoading=${widget.isLoading}, nearBottom=$currentNearBottom');
+        }
+      });
     }
   }
 
@@ -100,7 +151,7 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
 
     // Main post list
     Widget listContent = ListView.builder(
-      controller: _scrollController,
+      controller: widget.scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       itemCount: (widget.posts?.length ?? 0) +
           (widget.isLoading && widget.hasMorePosts ? 1 : 0) +

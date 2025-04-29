@@ -150,7 +150,6 @@ class MediaCacheService {
     }
   }
 
-// 2. Add this to the bottom of your MediaCacheService class
 // Provider for this service
   static final mediaCacheServiceProvider = Provider<MediaCacheService>((ref) {
     return MediaCacheService();

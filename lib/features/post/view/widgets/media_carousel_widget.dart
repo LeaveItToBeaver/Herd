@@ -166,8 +166,8 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
             },
           ),
           itemBuilder: (context, index, realIndex) {
-            debugPrint(
-                "Building carousel item $index of ${widget.mediaItems.length}");
+            // debugPrint(
+            //     "Building carousel item $index of ${widget.mediaItems.length}");
             final mediaItem = widget.mediaItems[index];
             return _buildMediaItem(mediaItem, index);
           },

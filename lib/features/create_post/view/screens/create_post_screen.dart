@@ -7,13 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
-import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
 import '../../../drafts/view/widgets/save_draft_dialog.dart';
 import '../../../navigation/view/widgets/BottomNavPadding.dart';
 import '../../../user/view/providers/current_user_provider.dart';
+import '../../create_post_controller.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
   final bool isAlt;

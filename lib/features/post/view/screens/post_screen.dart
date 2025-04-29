@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import '../../../comment/view/providers/comment_providers.dart';
 import '../../../comment/view/providers/reply_providers.dart';
 import '../../../comment/view/widgets/comment_list_widget.dart';
+import '../../../create_post/create_post_controller.dart';
 import '../../../user/data/models/user_model.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';

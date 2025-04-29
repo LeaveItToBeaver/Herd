@@ -1,12 +1,21 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 
 /// Base repository for feed functionality
 class FeedRepository {
   final FirebaseFirestore firestore;
   final FirebaseFunctions functions;
+
+  Map<String, dynamic>? _lastFunctionResponse;
+  bool _isUpdatingFromServer = false;
+  final _postUpdateController = StreamController<List<PostModel>>.broadcast();
+
+  Stream<List<PostModel>> get postUpdates => _postUpdateController.stream;
 
   /// Constructor that takes a Firestore instance
   FeedRepository(this.firestore, this.functions);
@@ -536,40 +545,94 @@ class FeedRepository {
   /// Get feed from the cloud function
   Future<List<PostModel>> getFeedFromFunction({
     required String userId,
-    String feedType = 'public',
-    String? herdId,
-    int limit = 20,
+    required String feedType,
+    int limit = 15,
     double? lastHotScore,
     String? lastPostId,
+    bool hybridLoad = true,
   }) async {
     try {
-      // Build the parameters for the cloud function
+      _isUpdatingFromServer = true;
+
+      // Build parameters
       final Map<String, dynamic> params = {
         'userId': userId,
         'feedType': feedType,
         'limit': limit,
       };
 
-      // Add optional parameters if they're provided
-      if (herdId != null) params['herdId'] = herdId;
+      if (lastHotScore != null) {
+        params['lastHotScore'] = lastHotScore;
+        debugPrint('Added lastHotScore to params: $lastHotScore');
+      }
+      if (lastPostId != null) {
+        params['lastPostId'] = lastPostId;
+        debugPrint('Added lastPostId to params: $lastPostId');
+      }
 
-      // Only add lastHotScore for pagination
-      if (lastHotScore != null) params['lastHotScore'] = lastHotScore;
+      // Skip cache for pagination requests
+      if (lastHotScore != null || lastPostId != null) {
+        hybridLoad = false; // Don't use cache for pagination
+      }
 
-      // For debugging
-      debugPrint('getFeedFromFunction params: $params');
+      List<PostModel> cachedPosts = [];
+
+      if (hybridLoad) {
+        if (feedType == 'alt') {
+          cachedPosts = await CacheManager().getFeed(userId, isAlt: true);
+          if (cachedPosts.isNotEmpty) {
+            debugPrint(
+                '🔄 Returning ${cachedPosts.length} cached posts immediately');
+
+            _fetchFromServerAndNotify(params, userId, feedType == 'alt');
+
+            return cachedPosts;
+          }
+        } else if (feedType == 'public') {
+          cachedPosts = await CacheManager().getFeed(userId, isAlt: false);
+          if (cachedPosts.isNotEmpty) {
+            debugPrint(
+                '🔄 Returning ${cachedPosts.length} cached posts immediately');
+
+            _fetchFromServerAndNotify(params, userId, feedType == 'alt');
+
+            return cachedPosts;
+          }
+        } else if (feedType == 'herd') {
+          cachedPosts =
+              await CacheManager().getFeed(userId, isAlt: feedType == 'herd');
+          if (cachedPosts.isNotEmpty) {
+            debugPrint(
+                '🔄 Returning ${cachedPosts.length} cached posts immediately');
+
+            _fetchFromServerAndNotify(params, userId, feedType == 'herd');
+
+            return cachedPosts;
+          }
+        }
+      }
 
       // Call the cloud function
       final result = await functions.httpsCallable('getFeed').call(params);
+      _lastFunctionResponse = result.data;
+      // *** ADD LOGGING HERE ***
+      debugPrint(
+          'FeedRepository.getFeedFromFunction: Received response data: $_lastFunctionResponse');
 
-      // Parse the results
+      // Parse the posts from the response
       final List<dynamic> postsData = result.data['posts'] ?? [];
 
       // Convert to PostModel objects
-      List<PostModel> posts = postsData
+      final List<PostModel> posts = postsData
           .map((data) =>
               PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
           .toList();
+
+      if (posts.isNotEmpty) {
+        await CacheManager().cacheFeed(posts, userId, isAlt: feedType == 'alt');
+      }
+
+      _isUpdatingFromServer = false;
 
       return posts;
     } catch (e, stackTrace) {
@@ -577,6 +640,47 @@ class FeedRepository {
       rethrow;
     }
   }
+
+  Future<void> _fetchFromServerAndNotify(
+      Map<String, dynamic> params, String userId, bool isAlt) async {
+    try {
+      final result = await functions.httpsCallable('getFeed').call(params);
+      // ADD THIS LINE to update pagination state after background fetch
+      _lastFunctionResponse = result.data;
+
+      // Parse posts and notify listeners
+      final List<dynamic> postsData = result.data['posts'] ?? [];
+      final List<PostModel> freshPosts = postsData
+          .map((data) =>
+              PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
+          .toList();
+
+      if (freshPosts.isNotEmpty) {
+        // Update cache with fresh data
+        await CacheManager().cacheFeed(freshPosts, userId, isAlt: isAlt);
+
+        // Notify listeners about the updated posts
+        _postUpdateController.add(freshPosts);
+      }
+
+      _isUpdatingFromServer = false;
+    } catch (e) {
+      _isUpdatingFromServer = false;
+      debugPrint('Background fetch error: $e');
+    }
+  }
+
+  double? get lastHotScore => _lastFunctionResponse?['lastHotScore'];
+  String? get lastPostId => _lastFunctionResponse?['lastPostId'];
+  bool get hasMorePosts {
+    final value = _lastFunctionResponse?['hasMorePosts'] ?? false;
+    debugPrint(
+        'FeedRepository.hasMorePosts getter: _lastFunctionResponse = $_lastFunctionResponse, returning = $value');
+    return value;
+  }
+
+  //bool get hasMorePosts => true;
+  bool get isUpdatingFromServer => _isUpdatingFromServer;
 
   /// Helper method to log any feed-related errors
   void logError(String operation, Object error, StackTrace? stackTrace) {

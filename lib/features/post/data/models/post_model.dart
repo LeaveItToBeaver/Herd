@@ -51,12 +51,12 @@ abstract class PostModel with _$PostModel {
   factory PostModel.fromMap(String id, Map<String, dynamic> map) {
     List<PostMediaModel> mediaItems = [];
 
-    debugPrint("mediaItems from Firestore: ${map['mediaItems']}");
+    //debugPrint("mediaItems from Firestore: ${map['mediaItems']}");
 
     if (map['mediaItems'] != null) {
       try {
         final rawItems = map['mediaItems'] as List;
-        debugPrint("Raw mediaItems type: ${rawItems.runtimeType}");
+        //debugPrint("Raw mediaItems type: ${rawItems.runtimeType}");
 
         // Convert the list items using map() instead of a for loop
         mediaItems = rawItems
@@ -80,7 +80,7 @@ abstract class PostModel with _$PostModel {
             .where((model) => model.url.isNotEmpty) // Filter out empty URLs
             .toList();
 
-        debugPrint("Successfully processed ${mediaItems.length} media items");
+        //debugPrint("Successfully processed ${mediaItems.length} media items");
       } catch (e) {
         debugPrint("Error parsing mediaItems list: $e");
       }
@@ -94,7 +94,7 @@ abstract class PostModel with _$PostModel {
           mediaType: map['mediaType'] ?? 'image',
         )
       ];
-      debugPrint("Using legacy mediaURL: ${map['mediaURL']}");
+      //debugPrint("Using legacy mediaURL: ${map['mediaURL']}");
     }
 
     return PostModel(
