@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../create_post/create_post_controller.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/view/providers/current_user_provider.dart';
 import '../../../user/view/providers/user_provider.dart';
@@ -706,7 +707,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     // Check for new media items format first
     if (post.mediaItems != null && post.mediaItems.isNotEmpty) {
       mediaItems = post.mediaItems;
-      debugPrint('Found ${mediaItems.length} media items in post');
     }
     // Fall back to legacy format
     else if (post.mediaURL != null && post.mediaURL.toString().isNotEmpty) {
@@ -719,7 +719,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           thumbnailUrl: post.mediaThumbnailURL,
           mediaType: post.mediaType ?? 'image',
         ));
-        debugPrint('Using legacy media URL: $url');
+        debugPrint('Post: ${post.id} is using legacy media URL');
       } else {
         debugPrint('Invalid legacy URL: $url');
       }
@@ -740,8 +740,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   Widget _buildMediaPreview(PostModel post) {
     List<PostMediaModel> mediaItems = getMediaItemsFromPost(post);
 
-    debugPrint("Building media preview with ${mediaItems.length} items");
-
     if (mediaItems.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -754,8 +752,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       showIndicator:
           mediaItems.length > 1, // Only show indicators if multiple items
       onMediaTap: (media, index) {
-        debugPrint("Tapped media item at index $index");
-
         // Use GoRouter to navigate to the fullscreen gallery
         context.pushNamed(
           'gallery',

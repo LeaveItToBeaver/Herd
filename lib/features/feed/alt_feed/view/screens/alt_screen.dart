@@ -67,45 +67,47 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
+      //_scrollController.addListener(_scrollListener);
+
       // Clear any current herd ID
       ref.read(currentHerdIdProvider.notifier).state = null;
 
-      // Your existing feed initialization code
       final currentUser = ref.read(authProvider);
       ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
     });
-
-    // Add scroll listener for pagination
-    _scrollController.addListener(_scrollListener);
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
+    //_scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
   }
 
   /// Listener for scroll events to trigger pagination
-  void _scrollListener() {
-    // Get the current state
-    final state = ref.read(altFeedControllerProvider);
+  // void _scrollListener() {
+  //   // Get the current state
+  //   final state = ref.read(altFeedControllerProvider);
 
-    // If already loading or no more posts, do nothing
-    if (state.isLoading || !state.hasMorePosts) return;
+  //   // If already loading or no more posts, do nothing
+  //   if (state.isLoading || !state.hasMorePosts) return;
 
-    // Check if we've scrolled near the bottom (reaching 2nd to last post)
-    final triggerFetchMoreSize = 0.8;
-    final reachedTriggerPosition = _scrollController.position.pixels >=
-        (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
+  //   // Check if we've scrolled near the bottom (reaching 2nd to last post)
+  //   final triggerFetchMoreSize = 0.8;
+  //   final reachedTriggerPosition = _scrollController.position.pixels >=
+  //       (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
 
-    if (reachedTriggerPosition) {
-      // Load more posts
-      ref.read(altFeedControllerProvider.notifier).loadMorePosts();
-    }
-  }
+  //   if (reachedTriggerPosition) {
+  //     final reachedTriggerPosition = _scrollController.position.pixels >=
+  //         (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
+  //     debugPrint(
+  //         'SCROLL: pixels=${_scrollController.position.pixels}, max=${_scrollController.position.maxScrollExtent}, triggered=$reachedTriggerPosition');
+  //     // Load more posts
+  //     ref.read(altFeedControllerProvider.notifier).loadMorePosts();
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -168,12 +170,12 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   ref.read(altFeedControllerProvider.notifier).refreshFeed();
                 })
               : PostListWidget(
-                  posts: altFeedState.posts,
-                  isLoading:
-                      altFeedState.isLoading && altFeedState.posts.isEmpty,
-                  hasError: altFeedState.error != null,
-                  hasMorePosts: altFeedState.hasMorePosts,
                   scrollController: _scrollController,
+                  posts: altFeedState.posts,
+                  isLoading: altFeedState.isLoading,
+                  hasError: altFeedState.error != null,
+                  errorMessage: altFeedState.error?.toString(),
+                  hasMorePosts: altFeedState.hasMorePosts,
                   onRefresh: () => ref
                       .read(altFeedControllerProvider.notifier)
                       .refreshFeed(),
@@ -182,7 +184,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                       .loadMorePosts(),
                   type: PostListType.feed,
                   emptyMessage: 'No alt posts yet',
-                  emptyActionLabel: 'Create a alt post',
+                  emptyActionLabel: 'Create an alt post',
                   onEmptyAction: () {
                     // Navigate to create post screen with isAlt=true context.pushNamed
                     context.pushNamed(
@@ -190,6 +192,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                       queryParameters: {'isAlt': 'true'},
                     );
                   },
+                  isRefreshing: altFeedState.isRefreshing,
                 ),
     );
   }

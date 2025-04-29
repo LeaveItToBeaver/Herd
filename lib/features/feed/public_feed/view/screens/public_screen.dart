@@ -172,47 +172,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     );
   }
 
-// Update empty feed to be scrollable
-  Widget _buildEmptyFeed(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        const SizedBox(height: 100),
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.groups_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No posts in your public feed',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Follow users or join herds to see posts here',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.search),
-                label: const Text('Find users to follow'),
-                onPressed: () {
-                  // Navigate to search screen
-                },
-              ),
-            ],
-          ),
-        ),
-        const BottomNavPadding(),
-      ],
-    );
-  }
-
 // Update error widget to be scrollable
   Widget _buildErrorWidget(
       BuildContext context, Object error, VoidCallback onRetry) {
