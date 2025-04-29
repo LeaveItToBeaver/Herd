@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
@@ -29,6 +31,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   final String userId;
   final int pageSize;
   bool _disposed = false;
+  StreamSubscription? _postUpdateSubscription;
 
   PublicFeedController(this.repository, this.userId, this.cacheManager,
       {this.pageSize = 20})
@@ -105,7 +108,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
       } catch (e) {
         // Fall back to direct Firestore query
         if (kDebugMode) {
-          print('Falling back to direct Firestore query: $e');
+          debugPrint('Falling back to direct Firestore query: $e');
         }
       }
 
@@ -182,7 +185,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         return;
       } catch (e) {
         // Fall back to direct Firestore query
-        print('Falling back to direct Firestore query: $e');
+        debugPrint('Falling back to direct Firestore query: $e');
       }
 
       final morePosts = await repository.getPublicFeed(
@@ -240,7 +243,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         return;
       } catch (e) {
         // Fall back to direct Firestore query
-        print('Falling back to direct Firestore query: $e');
+        debugPrint('Falling back to direct Firestore query: $e');
       }
 
       final posts = await repository.getPublicFeed(

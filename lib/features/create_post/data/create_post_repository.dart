@@ -16,16 +16,16 @@ class CreatePostRepostiory {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   // Collection references
-  CollectionReference<Map<String, dynamic>> get _posts =>
-      _firestore.collection('posts');
-  CollectionReference<Map<String, dynamic>> get _globalAltPosts =>
-      _firestore.collection('altPosts');
-  CollectionReference<Map<String, dynamic>> get _comments =>
-      _firestore.collection('comments');
-  CollectionReference<Map<String, dynamic>> get _likes =>
-      _firestore.collection('likes');
-  CollectionReference<Map<String, dynamic>> get _dislikes =>
-      _firestore.collection('dislikes');
+  // CollectionReference<Map<String, dynamic>> get _posts =>
+  //     _firestore.collection('posts');
+  // CollectionReference<Map<String, dynamic>> get _globalAltPosts =>
+  //     _firestore.collection('altPosts');
+  // CollectionReference<Map<String, dynamic>> get _comments =>
+  //     _firestore.collection('comments');
+  // CollectionReference<Map<String, dynamic>> get _likes =>
+  //     _firestore.collection('likes');
+  // CollectionReference<Map<String, dynamic>> get _dislikes =>
+  //     _firestore.collection('dislikes');
 
   Future<void> createPost(PostModel post, {List<File>? mediaFiles}) async {
     try {

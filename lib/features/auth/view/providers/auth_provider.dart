@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/exception_logger_provider.dart';
@@ -23,9 +24,9 @@ class AuthNotifier extends StateNotifier<User?> {
         password: password,
       );
     } on FirebaseAuthException catch (e, stack) {
-      // For debugging - print the actual error code
-      print("Firebase Auth Error Code: ${e.code}");
-      print("Firebase Auth Error Message: ${e.message}");
+      // For debugging - debugPrint the actual error code
+      debugPrint("Firebase Auth Error Code: ${e.code}");
+      debugPrint("Firebase Auth Error Message: ${e.message}");
 
       // Try to log the exception but safely
       try {
@@ -37,11 +38,11 @@ class AuthNotifier extends StateNotifier<User?> {
           route: 'LoginScreen',
           errorDetails: {'email': email},
         ).catchError((loggingError) {
-          print('Error logging exception: $loggingError');
+          debugPrint('Error logging exception: $loggingError');
           return null;
         });
       } catch (loggingError) {
-        print('Error logging exception: $loggingError');
+        debugPrint('Error logging exception: $loggingError');
       }
 
       // Always rethrow the original auth exception

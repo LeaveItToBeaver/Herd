@@ -136,8 +136,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!_isMounted) return;
 
       // Debug: Print the exact code and message
-      print("Firebase Auth Error Code: ${e.code}");
-      print("Firebase Auth Error Message: ${e.message}");
+      debugPrint("Firebase Auth Error Code: ${e.code}");
+      debugPrint("Firebase Auth Error Message: ${e.message}");
 
       String errorMessage = 'An error occurred';
 

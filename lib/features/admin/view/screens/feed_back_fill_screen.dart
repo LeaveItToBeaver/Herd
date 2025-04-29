@@ -3,10 +3,10 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FeedBackfillScreen extends ConsumerStatefulWidget {
-  const FeedBackfillScreen({Key? key}) : super(key: key);
+  const FeedBackfillScreen({super.key});
 
   @override
-  _FeedBackfillScreenState createState() => _FeedBackfillScreenState();
+  ConsumerState<FeedBackfillScreen> createState() => _FeedBackfillScreenState();
 }
 
 class _FeedBackfillScreenState extends ConsumerState<FeedBackfillScreen> {
@@ -141,10 +141,10 @@ class _FeedBackfillScreenState extends ConsumerState<FeedBackfillScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _isRunning ? null : _startBackfill,
-                      child: Text(_isRunning ? 'Running...' : 'Start Backfill'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                       ),
+                      child: Text(_isRunning ? 'Running...' : 'Start Backfill'),
                     ),
                   ],
                 ),

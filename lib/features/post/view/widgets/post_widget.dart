@@ -336,7 +336,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildAuthorHeader(String formattedTimestamp) {
-    print(
+    debugPrint(
         'Building author header for post ${widget.post.id}, timestamp: $formattedTimestamp');
     return Consumer(
       builder: (context, ref, child) {
@@ -436,7 +436,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildHerdHeader(String formattedTimestamp) {
-    print(
+    debugPrint(
         'Building herd header for post ${widget.post.id}, timestamp: $formattedTimestamp');
     return Consumer(
       builder: (context, ref, child) {
@@ -779,14 +779,18 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           // Like button - always show
           Consumer(
             builder: (context, ref, child) {
+              // Watch isLiked for icon state, totalLikes for the count, isLoading for disabling
               final likeState = ref.watch(postInteractionsWithPrivacyProvider(
                       PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
-                  .select((state) =>
-                      (state.isLiked, state.totalRawLikes, state.isLoading)));
+                  .select((state) => (
+                        state.isLiked,
+                        state.totalLikes,
+                        state.isLoading
+                      ))); // <-- Use totalLikes here
 
               return _buildActionButton(
                 likeState.$1 ? Icons.thumb_up : Icons.thumb_up_outlined,
-                '${likeState.$2}',
+                '${likeState.$2}', // <-- Display net likes (totalLikes)
                 color: likeState.$1 ? Colors.green : null,
                 onPressed: likeState.$3 ? null : () => _handleLikePost(),
               );
@@ -795,20 +799,23 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
           Consumer(
             builder: (context, ref, child) {
+              // Watch isDisliked for icon state, isLoading for disabling
               final dislikeState = ref.watch(
                   postInteractionsWithPrivacyProvider(PostParams(
                           id: widget.post.id, isAlt: widget.post.isAlt))
                       .select((state) => (
                             state.isDisliked,
-                            state.totalRawDislikes,
+                            // state.totalRawDislikes, // No longer needed for display here
                             state.isLoading
                           )));
 
               return _buildActionButton(
                 dislikeState.$1 ? Icons.thumb_down : Icons.thumb_down_outlined,
-                '',
+                '', // <-- Keep count empty for dislike button
                 color: dislikeState.$1 ? Colors.red : null,
-                onPressed: dislikeState.$3 ? null : () => _handleDislikePost(),
+                onPressed: dislikeState.$2
+                    ? null
+                    : () => _handleDislikePost(), // <-- Index adjusted
               );
             },
           ),

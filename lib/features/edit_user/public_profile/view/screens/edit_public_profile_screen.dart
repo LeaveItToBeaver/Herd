@@ -62,17 +62,18 @@ class _PublicProfileEditScreenState
         await ref
             .read(editPublicProfileProvider(widget.user).notifier)
             .submit();
+        if (mounted) {
+          if (ref.read(editPublicProfileProvider(widget.user)).errorMessage ==
+                  null &&
+              context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Public profile updated successfully.")),
+            );
 
-        if (ref.read(editPublicProfileProvider(widget.user)).errorMessage ==
-                null &&
-            context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Public profile updated successfully.")),
-          );
-
-          // Return true to indicate the profile was updated
-          context.pop(true);
+            // Return true to indicate the profile was updated
+            context.pop(true);
+          }
         }
       } catch (e) {
         if (mounted) {

@@ -51,8 +51,8 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
 
       try {
         // Print debug information
-        print("Saving Alt Profile changes");
-        print("Bio: ${_bioController.text}");
+        debugPrint("Saving Alt Profile changes");
+        debugPrint("Bio: ${_bioController.text}");
 
         ref
             .read(editAltProfileProvider(widget.user).notifier)
@@ -61,9 +61,9 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
             .read(editAltProfileProvider(widget.user).notifier)
             .usernameChanged(_usernameController.text);
 
-        print("About to call submit()");
+        debugPrint("About to call submit()");
         await ref.read(editAltProfileProvider(widget.user).notifier).submit();
-        print("After submit()");
+        debugPrint("After submit()");
 
         // Check if still mounted immediately after the async operation
         if (!context.mounted) return;
@@ -71,26 +71,31 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
         // Now we can safely use context
         if (ref.read(editAltProfileProvider(widget.user)).errorMessage ==
             null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Alt profile updated successfully.")),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text("Alt profile updated successfully.")),
+            );
 
-          // Return true to indicate the profile was updated
-          context.pop(true);
+            // Return true to indicate the profile was updated
+            context.pop(true);
 
-          if (widget.isInitialSetup) {
-            context.go('/altFeed');
+            if (widget.isInitialSetup) {
+              context.go('/altFeed');
+            }
           }
         } else {
-          // Show error if there is one
-          final error =
-              ref.read(editAltProfileProvider(widget.user)).errorMessage;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update profile: $error')),
-          );
+          if (mounted) {
+            // Show error if there is one
+            final error =
+                ref.read(editAltProfileProvider(widget.user)).errorMessage;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to update profile: $error')),
+            );
+          }
         }
       } catch (e) {
-        print("Error saving alt profile: $e");
+        debugPrint("Error saving alt profile: $e");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to update profile: $e')),
@@ -104,7 +109,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
         }
       }
     } else {
-      print("Form validation failed");
+      debugPrint("Form validation failed");
     }
   }
 

@@ -116,7 +116,7 @@ abstract class PostModel with _$PostModel {
       commentCount: map['commentCount'] ?? 0,
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
-      hotScore: map['hotScore']?.toDouble(),
+      hotScore: (map['hotScore'] as num?)?.toDouble(),
       herdId: map['herdId'],
       herdName: map['herdName'],
       herdProfileImageURL: map['herdProfileImageURL'],
@@ -160,7 +160,7 @@ abstract class PostModel with _$PostModel {
       }
     }
 
-    print('Unhandled timestamp format: $value (${value.runtimeType})');
+    debugPrint('Unhandled timestamp format: $value (${value.runtimeType})');
     return null;
   }
 
