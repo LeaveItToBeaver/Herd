@@ -49,23 +49,23 @@ class _EmailVerificationScreenState
       final user = FirebaseAuth.instance.currentUser;
       if (user != null && !user.emailVerified) {
         await user.sendEmailVerification();
-        print('Initial verification email sent to ${user.email}');
+        debugPrint('Initial verification email sent to ${user.email}');
       }
     } catch (e) {
-      print('Error sending initial verification email: $e');
+      debugPrint('Error sending initial verification email: $e');
     }
   }
 
   void _startVerificationPolling() {
-    print('Starting verification polling');
+    debugPrint('Starting verification polling');
     _verificationPoll = Timer.periodic(
       const Duration(seconds: 3),
       (_) async {
-        print('Checking verification status...');
+        debugPrint('Checking verification status...');
         try {
           final user = FirebaseAuth.instance.currentUser;
           if (user == null) {
-            print('User is null during verification check');
+            debugPrint('User is null during verification check');
             return;
           }
 
@@ -75,10 +75,11 @@ class _EmailVerificationScreenState
           // Get the user again after reload
           final refreshedUser = FirebaseAuth.instance.currentUser;
 
-          print('Current verification status: ${refreshedUser?.emailVerified}');
+          debugPrint(
+              'Current verification status: ${refreshedUser?.emailVerified}');
 
           if (refreshedUser?.emailVerified == true) {
-            print('Email verified successfully!');
+            debugPrint('Email verified successfully!');
             _verificationPoll?.cancel();
 
             if (_isMounted) {
@@ -89,14 +90,14 @@ class _EmailVerificationScreenState
               // Navigate after a short delay
               Future.delayed(const Duration(seconds: 2), () {
                 if (_isMounted && mounted) {
-                  print('Navigating to profile after verification');
+                  debugPrint('Navigating to profile after verification');
                   context.go('/'); // Let router redirects handle navigation
                 }
               });
             }
           }
         } catch (e) {
-          print('Error during verification check: $e');
+          debugPrint('Error during verification check: $e');
         }
       },
     );
@@ -116,7 +117,7 @@ class _EmailVerificationScreenState
 
   @override
   void dispose() {
-    print('Disposing EmailVerificationScreen');
+    debugPrint('Disposing EmailVerificationScreen');
     _isMounted = false;
     _verificationPoll?.cancel();
     _resendCountdown?.cancel();
@@ -135,7 +136,7 @@ class _EmailVerificationScreenState
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.sendEmailVerification();
-        print('Verification email resent successfully');
+        debugPrint('Verification email resent successfully');
 
         if (_isMounted && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -155,7 +156,7 @@ class _EmailVerificationScreenState
           _startResendCountdown();
         }
       } else {
-        print('Cannot resend: user is null');
+        debugPrint('Cannot resend: user is null');
         if (_isMounted && mounted) {
           setState(() {
             _isResendingEmail = false;
@@ -170,7 +171,7 @@ class _EmailVerificationScreenState
         }
       }
     } catch (e) {
-      print('Error resending verification email: $e');
+      debugPrint('Error resending verification email: $e');
 
       if (_isMounted && mounted) {
         setState(() {

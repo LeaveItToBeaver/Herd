@@ -8,4 +8,4 @@ analyzer:
     - custom_lint
   errors:
     invalid_annotation_target: ignore
-    unused_field: ignore ignore
+    unused_field: ignore

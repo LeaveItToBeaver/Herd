@@ -13,7 +13,6 @@ import 'package:image_cropper/image_cropper.dart';
 import '../providers/reply_providers.dart';
 
 // TODO: Add GIF picker functionality - Eh almost done
-// TODO: Add media upload functionality - done
 // TODO: Add comment editing functionality - Need to test
 // TODO: Add comment deletion functionality - Need to test
 // TODO: Add comment reporting functionality
@@ -378,7 +377,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
       // Clear input
       _replyController.clear();
       setState(() => _mediaFile = null);
-      FocusScope.of(context).unfocus();
+      if (mounted) FocusScope.of(context).unfocus();
 
       // Refresh the thread
       ref.invalidate(repliesProvider(widget.postId));

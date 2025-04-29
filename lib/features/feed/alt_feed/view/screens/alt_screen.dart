@@ -43,7 +43,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
       // Only refresh posts that are likely visible
       final visibleStartIndex = 0;
       // Estimate how many items might be visible (typical screen shows 3-5 posts)
-      final visibleEndIndex = math.min(5, state.posts.length - 1);
+      final visibleEndIndex = math.min(10, state.posts.length - 1);
 
       // Only update those posts that are likely visible
       for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
@@ -67,15 +67,13 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      //_scrollController.addListener(_scrollListener);
-
-      // Clear any current herd ID
       ref.read(currentHerdIdProvider.notifier).state = null;
 
       final currentUser = ref.read(authProvider);
       ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
+      _refreshVisiblePostInteractions();
     });
   }
 

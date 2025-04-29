@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 
 import '../../../post/data/models/post_model.dart';
-import '../../../post/view/widgets/post_widget.dart';
 import '../../profile_controller.dart';
 import '../providers/state/profile_state.dart';
 
