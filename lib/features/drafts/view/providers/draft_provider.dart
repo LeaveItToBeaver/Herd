@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/drafts/data/models/draft_post_model.dart';
 import 'package:herdapp/features/drafts/data/repositories/draft_repository.dart';
-import 'package:herdapp/features/post/view/providers/post_provider.dart';
+
+import '../../../create_post/create_post_controller.dart';
 
 // Repository provider
 final draftRepositoryProvider = Provider<DraftRepository>((ref) {

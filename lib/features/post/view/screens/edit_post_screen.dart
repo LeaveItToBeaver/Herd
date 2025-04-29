@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
-import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
+
+import '../../../create_post/create_post_controller.dart';
 
 class EditPostScreen extends ConsumerStatefulWidget {
   final PostModel post;

@@ -8,6 +8,7 @@ export 'package:herdapp/features/comment/data/repositories/comment_repository.da
 //Comment
 //export 'package:herdapp/features/comment/view/providers/comment_providers.dart';
 export 'package:herdapp/features/comment/view/providers/state/comment_state.dart';
+export 'package:herdapp/features/create_post/view/providers/state/create_post_state.dart';
 export 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
 export 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 //Feed
@@ -18,7 +19,6 @@ export 'package:herdapp/features/navigation/view/providers/bottom_nav_bar_provid
 export 'package:herdapp/features/post/data/repositories/post_repository.dart';
 //Post
 export 'package:herdapp/features/post/view/providers/post_provider.dart';
-export 'package:herdapp/features/post/view/providers/state/create_post_state.dart';
 export 'package:herdapp/features/post/view/providers/state/post_interaction_notifier.dart';
 export 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 export 'package:herdapp/features/post/view/providers/state/post_state.dart';

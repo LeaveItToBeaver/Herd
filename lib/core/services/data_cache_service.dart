@@ -83,28 +83,28 @@ class DataCacheService {
       // Save to in-memory cache
       _postCache[key] = post;
 
-      // --- MODIFICATION START ---
       // Convert Timestamps BEFORE encoding
       final Map<String, dynamic> postMap = post.toMap();
-      final Map<String, dynamic> encodableMap =
-          _convertTimestampsForEncoding(postMap) as Map<String, dynamic>;
-      // --- MODIFICATION END ---
 
-      final jsonData = jsonEncode(encodableMap); // Encode the converted map
-      final file = File('${_postDir!.path}/$key.json');
-      await file.writeAsBytes(utf8.encode(jsonData));
+      try {
+        final Map<String, dynamic> encodableMap =
+            _convertTimestampsForEncoding(postMap) as Map<String, dynamic>;
 
-      // Update metadata
-      await _savePostMetadata(key, post.id, post.isAlt);
+        final jsonData = jsonEncode(encodableMap);
+        final file = File('${_postDir!.path}/$key.json');
+        await file.writeAsBytes(utf8.encode(jsonData));
 
-      debugPrint('✅ Cached post ${post.id}');
-    } catch (e) {
-      debugPrint('❌ Error caching post: $e');
-      // Add more specific error logging if needed
-      if (e is JsonUnsupportedObjectError) {
-        debugPrint(
-            '❌ Problematic object during JSON encode: ${e.unsupportedObject}');
+        // Update metadata
+        await _savePostMetadata(key, post.id, post.isAlt);
+
+        _logCacheOperation('stored', post.id);
+      } catch (e) {
+        _logCacheOperation('encode error', post.id, success: false);
+        debugPrint('Error encoding post for cache: $e');
       }
+    } catch (e) {
+      _logCacheOperation('write error', post.id, success: false);
+      debugPrint('Error caching post: $e');
     }
   }
 
@@ -142,6 +142,12 @@ class DataCacheService {
     }
   }
 
+  void _logCacheOperation(String operation, String postId,
+      {bool success = true}) {
+    final status = success ? '✅' : '❌';
+    debugPrint('$status Cache $operation: $postId');
+  }
+
   /// Get a post from cache
   Future<PostModel?> getPost(String postId, {bool isAlt = false}) async {
     if (!_initialized) await initialize();
@@ -152,54 +158,44 @@ class DataCacheService {
       // Check memory cache first
       if (_postCache.containsKey(key)) {
         await _updateLastAccessed(key, isPost: true);
-        debugPrint('Retrieved post $postId from memory cache');
+        _logCacheOperation('hit', postId);
         return _postCache[key];
       }
 
       // Check disk cache
       final file = File('${_postDir!.path}/$key.json');
       if (await file.exists()) {
-        final jsonData = await file.readAsString();
-        final dynamic decodedJson = jsonDecode(jsonData); // Decode first
+        try {
+          final jsonData = await file.readAsString();
+          final dynamic decodedJson = jsonDecode(jsonData);
 
-        // --- MODIFICATION START ---
-        // Convert milliseconds back to Timestamps AFTER decoding
-        final dynamic dataWithTimestamps =
-            _convertTimestampsAfterDecoding(decodedJson);
-        // --- MODIFICATION END ---
+          final dynamic dataWithTimestamps =
+              _convertTimestampsAfterDecoding(decodedJson);
 
-        // Ensure the result is a map before passing to fromMap
-        if (dataWithTimestamps is Map<String, dynamic>) {
-          final post = PostModel.fromMap(postId, dataWithTimestamps);
+          if (dataWithTimestamps is Map<String, dynamic>) {
+            final post = PostModel.fromMap(postId, dataWithTimestamps);
 
-          // Update memory cache
-          _postCache[key] = post;
+            // Update memory cache
+            _postCache[key] = post;
 
-          // Update last accessed
-          await _updateLastAccessed(key, isPost: true);
-          debugPrint('Retrieved post $postId from disk cache');
-          return post;
-        } else {
-          debugPrint(
-              '❌ Error: Decoded cached data for post $postId is not a valid map.');
-          // Optionally delete the corrupted cache file
-          // await file.delete();
-          // await _deletePost(key); // Also remove metadata
-          return null;
+            await _updateLastAccessed(key, isPost: true);
+            _logCacheOperation('loaded from disk', postId);
+            return post;
+          } else {
+            _logCacheOperation('invalid data', postId, success: false);
+          }
+        } catch (e) {
+          _logCacheOperation('read error', postId, success: false);
+          debugPrint('Error reading cached post: $e');
         }
+      } else {
+        _logCacheOperation('not found', postId, success: false);
       }
-      debugPrint('Post $postId not found in cache');
+
       return null;
     } catch (e) {
-      debugPrint('❌ Error getting cached post $postId: $e');
-      // Handle potential decoding errors more gracefully
-      final key = _generatePostKey(postId, isAlt);
-      final file = File('${_postDir!.path}/$key.json');
-      if (await file.exists()) {
-        // Consider deleting corrupted file
-        // await file.delete();
-        // await _deletePost(key);
-      }
+      _logCacheOperation('error', postId, success: false);
+      debugPrint('Error getting cached post: $e');
       return null;
     }
   }

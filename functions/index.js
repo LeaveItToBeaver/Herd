@@ -29,11 +29,25 @@ const hotAlgorithm = {
       const timeSinceCreation = Math.max(1, (Date.now() - createdAt.getTime()) / 1000);
       const timeDecay = Math.pow(timeSinceCreation, -0.5) * sanitizedDecayFactor;
 
-      // Calculate final score and check for NaN
-      const score = sign * magnitude * timeDecay;
+      // Calculate hours since creation
+      const hoursOld = timeSinceCreation / 3600;
+
+      // Apply new boost factor for fresh posts (first 12 hours)
+      const newBoostFactor = Math.min(24, hoursOld) <= 12 ? 2.0 : 1.0;
+
+      // Apply age penalty for posts older than 24 hours
+      const agePenalty = hoursOld > 24 ? Math.pow(24 / hoursOld, 1.5) : 1.0;
+
+      // Calculate final score with new factors
+      const score = sign * magnitude * timeDecay * newBoostFactor * agePenalty;
 
       // Debug logging (before return)
-      logger.info(`Hot score calculation: netVotes=${sanitizedNetVotes}, timeDecay=${timeDecay}, score=${score}`);
+      logger.info(`Hot score calculation: netVotes=${sanitizedNetVotes},
+        timeDecay=${timeDecay},
+        hoursOld=${hoursOld.toFixed(2)},
+        newBoostFactor=${newBoostFactor},
+        agePenalty=${agePenalty.toFixed(4)},
+        score=${score}`);
 
       return isNaN(score) ? 0 : score;
     } catch (error) {
@@ -606,7 +620,7 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
  * Runs every hour to keep scores current (set to 1 minute for testing)
  */
 exports.updateHotScores = onSchedule(
-  "every 60 minutes", // Change to "every 1 minutes" for testing
+  "every 30 minutes", // Change to "every 1 minutes" for testing
   async (event) => {
     // Only process posts from the last 7 days
     const oneWeekAgo = new Date();
@@ -1022,7 +1036,7 @@ exports.getFeed = onCall(async (request) => {
   const {
     feedType = 'public',
     herdId = null,
-    limit = 20,
+    limit = 15,
     lastHotScore = null,
     lastPostId = null
   } = request.data;
@@ -1047,17 +1061,21 @@ exports.getFeed = onCall(async (request) => {
     if (feedType === 'public') {
       logger.info(`Getting public feed for user: ${userId}`);
       postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+      logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
     }
     else if (feedType === 'alt') {
-      logger.info(`Getting alt feed, lastHotScore: ${lastHotScore}`);
+      logger.info(`Getting alt feed, lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}, for user: ${userId}`);
       postsResult = await getAltFeed(limit, lastHotScore, lastPostId);
+      logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
     }
     else if (herdId) {
       logger.info(`Getting herd feed for herd: ${herdId}`);
       postsResult = await getHerdFeed(herdId, limit, lastHotScore, lastPostId);
+      logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
     } else {
       logger.info(`Defaulting to public feed for user: ${userId}`);
       postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+      logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
     }
 
     logger.info(`Feed query returned ${postsResult.posts?.length || 0} posts`);
@@ -1075,7 +1093,8 @@ exports.getFeed = onCall(async (request) => {
     const sanitizedResult = sanitizeData({
       posts: postsResult.posts,
       lastHotScore: postsResult.lastHotScore,
-      lastPostId: postsResult.lastPostId
+      lastPostId: postsResult.lastPostId,
+      hasMorePosts: postsResult.hasMorePosts
     });
 
     return sanitizedResult;
@@ -1094,11 +1113,14 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
       .doc(userId)
       .collection('feed')
       .where('feedType', '==', 'public')
-      .orderBy('hotScore', 'desc');
+      .orderBy('hotScore', 'desc')
+      .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
 
     // Apply pagination
-    if (lastHotScore !== null && lastPostId !== null && !isNaN(lastHotScore)) {
-      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+    if (lastHotScore !== null && lastPostId !== null) {
+      logger.info(`Attempting to paginate public feed with lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
+      // Use startAfter with an array of values to match the orderBy fields
+      feedQuery = feedQuery.startAt(lastHotScore, lastPostId);
     }
 
     // Apply limit
@@ -1156,7 +1178,8 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
     return {
       posts,
       lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
-      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
+      hasMorePosts: posts.length >= limit
     };
   } catch (error) {
     logger.error(`Error getting public feed: ${error}`);
@@ -1170,11 +1193,14 @@ async function getAltFeed(limit, lastHotScore, lastPostId) {
     // Query the global alt posts collection
     let feedQuery = firestore
       .collection('altPosts')
-      .orderBy('hotScore', 'desc');
+      .orderBy('hotScore', 'desc')
+      .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
 
     // Apply pagination
     if (lastHotScore !== null && lastPostId !== null) {
-      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+      logger.info(`Attempting to paginate alt feed with lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
+      // Use startAfter with an array of values to match the orderBy fields 
+      feedQuery = feedQuery.startAt(lastHotScore, lastPostId);
     }
 
     // Apply limit
@@ -1198,7 +1224,8 @@ async function getAltFeed(limit, lastHotScore, lastPostId) {
     return {
       posts,
       lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
-      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+      lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
+      hasMorePosts: posts.length >= limit
     };
   } catch (error) {
     logger.error(`Error getting alt feed: ${error}`);
@@ -1212,11 +1239,12 @@ async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
     .collection('herdPosts')
     .doc(herdId)
     .collection('posts')
-    .orderBy('hotScore', 'desc');
+    .orderBy('hotScore', 'desc')
+    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
 
   // Apply pagination
   if (lastHotScore !== null && lastPostId !== null) {
-    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+    feedQuery = feedQuery.startAt(lastHotScore, lastPostId);
   }
 
   // Apply limit
@@ -1232,7 +1260,8 @@ async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
   return {
     posts,
     lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
-    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null
+    lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
+    hasMorePosts: posts.length >= limit
   };
 }
 

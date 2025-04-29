@@ -1,13 +1,13 @@
 export 'package:herdapp/features/auth/view/screens/login_screen.dart';
 export 'package:herdapp/features/auth/view/screens/signup_screen.dart';
 export 'package:herdapp/features/comment/view/screens/comment_thread_screen.dart';
+export 'package:herdapp/features/create_post/view/screens/create_post_screen.dart';
 export 'package:herdapp/features/edit_user/alt_profile/view/screens/edit_alt_profile_screen.dart';
 export 'package:herdapp/features/edit_user/public_profile/view/screens/edit_public_profile_screen.dart';
 export 'package:herdapp/features/edit_user/view/screens/edit_profile_screen.dart';
 export 'package:herdapp/features/feed/alt_feed/view/screens/alt_screen.dart';
 export 'package:herdapp/features/feed/public_feed/view/screens/public_screen.dart';
 export 'package:herdapp/features/notifications/view/screens/notification_screen.dart';
-export 'package:herdapp/features/post/view/screens/create_post_screen.dart';
 export 'package:herdapp/features/post/view/screens/post_screen.dart';
 export 'package:herdapp/features/search/view/screens/search_screen.dart';
 export 'package:herdapp/features/settings/view/screens/settings_screen.dart';

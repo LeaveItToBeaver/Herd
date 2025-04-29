@@ -139,6 +139,12 @@ class CacheManager {
     }
   }
 
+  void _logCacheOperation(String operation, String postId,
+      {bool success = true}) {
+    final status = success ? '✅' : '❌';
+    debugPrint('$status Cache $operation: $postId');
+  }
+
   Future<void> cachePost(PostModel post) async {
     if (!enableDataCache) return; // Skip if data cache is disabled
     await _dataCache.cachePost(post);
