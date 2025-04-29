@@ -620,7 +620,7 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
  * Runs every hour to keep scores current (set to 1 minute for testing)
  */
 exports.updateHotScores = onSchedule(
-  "every 30 minutes", // Change to "every 1 minutes" for testing
+  "every 10 minutes", // Change to "every 1 minutes" for testing
   async (event) => {
     // Only process posts from the last 7 days
     const oneWeekAgo = new Date();
@@ -1007,6 +1007,8 @@ exports.handlePostInteraction = onCall({
         netVotes,
         postData.createdAt.toDate()
       );
+
+      logger.info(`Updated hot score for post ${postId}: ${updatedHotScore}`);
 
       transaction.update(postRef, { hotScore: updatedHotScore });
 
