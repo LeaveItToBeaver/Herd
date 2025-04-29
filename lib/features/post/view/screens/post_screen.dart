@@ -102,7 +102,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         });
       }
     } catch (e) {
-      print('Error initializing video: $e');
+      debugPrint('Error initializing video: $e');
       // Show an error snackbar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

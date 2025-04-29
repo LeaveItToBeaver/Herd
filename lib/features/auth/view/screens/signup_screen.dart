@@ -131,7 +131,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     } catch (e) {
       // Silently fail - device info is not critical
       if (kDebugMode) {
-        print('Failed to collect device info: $e');
+        debugPrint('Failed to collect device info: $e');
       }
     }
   }
@@ -173,7 +173,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
       return result.docs.isEmpty;
     } catch (e) {
-      print('Error checking username availability: $e');
+      debugPrint('Error checking username availability: $e');
       return false;
     }
   }
@@ -363,7 +363,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             .copyWith(profileImage: File(pickedFile.path));
       }
     } catch (e) {
-      print('Error picking image: $e');
+      debugPrint('Error picking image: $e');
     }
   }
 

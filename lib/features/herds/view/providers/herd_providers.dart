@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/herds/view/providers/state/herd_feed_state.dart';
@@ -89,23 +90,23 @@ final isHerdModeratorProvider =
 
 // Provider to check if user is eligible to create herds
 final canCreateHerdProvider = FutureProvider.autoDispose((ref) async {
-  print("⚡ canCreateHerdProvider executing");
+  debugPrint("⚡ canCreateHerdProvider executing");
   final user = ref.watch(authProvider);
-  print("⚡ User ID: ${user?.uid}");
+  debugPrint("⚡ User ID: ${user?.uid}");
   final herdRepository = ref.watch(herdRepositoryProvider);
 
   if (user == null) return false;
 
   // Check if user is exempt by querying the exemptUserIds collection
   try {
-    print("⚡ Checking exemption for ${user.uid}");
+    debugPrint("⚡ Checking exemption for ${user.uid}");
     final exemptDoc = await herdRepository.exemptUserIds().doc(user.uid).get();
-    print("⚡ Exempt doc exists: ${exemptDoc.exists}");
+    debugPrint("⚡ Exempt doc exists: ${exemptDoc.exists}");
     if (exemptDoc.exists) {
       return true; // User is exempt from eligibility checks
     }
   } catch (e) {
-    print("⚡ Error checking exempt status: $e");
+    debugPrint("⚡ Error checking exempt status: $e");
     // Continue with regular eligibility check even if the exempt check fails
   }
 

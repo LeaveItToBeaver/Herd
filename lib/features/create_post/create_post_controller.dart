@@ -14,11 +14,11 @@ import '../post/data/models/post_model.dart';
 
 class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   final UserRepository _userRepository;
-  final CreatePostRepostiory _CreatePostRepository;
+  final CreatePostRepostiory _createPostRepository;
   final PostRepository _postRepository;
 
   CreatePostController(
-      this._userRepository, this._postRepository, this._CreatePostRepository)
+      this._userRepository, this._postRepository, this._createPostRepository)
       : super(AsyncValue.data(CreatePostState.initial()));
 
   Future<String> createPost({
@@ -44,13 +44,13 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       if (user == null) throw Exception("User not found");
 
       // 2. Generate post ID
-      postId = _CreatePostRepository.generatePostId();
+      postId = _createPostRepository.generatePostId();
 
       if (mediaFiles != null && mediaFiles.isNotEmpty) {
         debugPrint("Creating post with ${mediaFiles.length} media files");
         try {
           // Upload multiple media
-          mediaItems = await _CreatePostRepository.uploadMultipleMediaFiles(
+          mediaItems = await _createPostRepository.uploadMultipleMediaFiles(
             mediaFiles: mediaFiles,
             postId: postId,
             userId: userId,
@@ -108,7 +108,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       );
 
       // 5. Save post to Firestore
-      await _CreatePostRepository.createPost(post);
+      await _createPostRepository.createPost(post);
 
       if (herdId.isNotEmpty) {
         final herdRepository = HerdRepository(FirebaseFirestore.instance);
@@ -223,9 +223,9 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
   void debugAltPosts(String userId) async {
     final altPosts = await _postRepository.getFutureUserPublicPosts(userId);
-    print('Alt posts count: ${altPosts.length}');
+    debugPrint('Alt posts count: ${altPosts.length}');
     for (var post in altPosts) {
-      print('Post ID: ${post.id}, isAlt: ${post.isAlt}');
+      debugPrint('Post ID: ${post.id}, isAlt: ${post.isAlt}');
     }
   }
 

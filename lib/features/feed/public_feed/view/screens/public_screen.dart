@@ -37,12 +37,12 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       final currentUserAsync = ref.read(currentUserProvider);
       final userId = currentUserAsync.userId;
 
-      if (currentUserAsync.exists || state.posts.isEmpty) return;
+      if (userId == null || state.posts.isEmpty) return; // Corrected line
 
       // Only refresh posts that are likely visible
       final visibleStartIndex = 0;
       // Estimate how many items might be visible (typical screen shows 3-5 posts)
-      final visibleEndIndex = math.min(5, state.posts.length - 1);
+      final visibleEndIndex = math.min(10, state.posts.length - 1);
 
       // Only update those posts that are likely visible
       for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
@@ -52,7 +52,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
               .read(postInteractionsWithPrivacyProvider(
                       PostParams(id: post.id, isAlt: post.isAlt))
                   .notifier)
-              .initializeState(userId!);
+              .initializeState(userId);
         }
       }
     });
@@ -71,34 +71,33 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             overrideUserId: currentUser?.uid,
           );
     });
-
-    _scrollController.addListener(_scrollListener);
+    _refreshVisiblePostInteractions();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
+    //_scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _scrollListener() {
-    // Get the current state
-    final state = ref.read(publicFeedControllerProvider);
+  // void _scrollListener() {
+  //   // Get the current state
+  //   final state = ref.read(publicFeedControllerProvider);
 
-    // If already loading or no more posts, do nothing
-    if (state.isLoading || !state.hasMorePosts) return;
+  //   // If already loading or no more posts, do nothing
+  //   if (state.isLoading || !state.hasMorePosts) return;
 
-    // Check if we've scrolled near the bottom (reaching 2nd to last post)
-    final triggerFetchMoreSize = 0.8;
-    final reachedTriggerPosition = _scrollController.position.pixels >=
-        (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
+  //   // Check if we've scrolled near the bottom (reaching 2nd to last post)
+  //   final triggerFetchMoreSize = 0.8;
+  //   final reachedTriggerPosition = _scrollController.position.pixels >=
+  //       (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
 
-    if (reachedTriggerPosition) {
-      // Load more posts
-      ref.read(publicFeedControllerProvider.notifier).loadMorePosts();
-    }
-  }
+  //   if (reachedTriggerPosition) {
+  //     // Load more posts
+  //     ref.read(publicFeedControllerProvider.notifier).loadMorePosts();
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -136,13 +135,13 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                         .refreshFeed();
                   })
                 : PostListWidget(
+                    scrollController: _scrollController,
                     posts: publicFeedState.posts,
                     isLoading: publicFeedState.isLoading &&
                         publicFeedState.posts.isEmpty,
                     hasError: publicFeedState.error != null,
                     errorMessage: publicFeedState.error?.toString(),
                     hasMorePosts: publicFeedState.hasMorePosts,
-                    scrollController: _scrollController,
                     onRefresh: () => ref
                         .read(publicFeedControllerProvider.notifier)
                         .refreshFeed(),
@@ -155,6 +154,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                     onEmptyAction: () {
                       context.pushNamed('search');
                     },
+                    isRefreshing: publicFeedState.isRefreshing,
                   ),
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../feed/providers/feed_type_provider.dart';
@@ -253,7 +254,7 @@ class UserRepository {
           .map((doc) => UserModel.fromMap(doc.id, doc.data()))
           .toList();
     } catch (e) {
-      print('Error searching by username: $e');
+      debugPrint('Error searching by username: $e');
       return [];
     }
   }
@@ -506,7 +507,7 @@ class UserRepository {
         'status': 'pending'
       });
     } catch (e) {
-      print('Error requesting alt connection: $e');
+      debugPrint('Error requesting alt connection: $e');
       rethrow;
     }
   }
@@ -548,7 +549,7 @@ class UserRepository {
           .doc(requesterId)
           .update({'altFriends': FieldValue.increment(1)});
     } catch (e) {
-      print('Error accepting alt connection: $e');
+      debugPrint('Error accepting alt connection: $e');
       rethrow;
     }
   }
@@ -563,7 +564,7 @@ class UserRepository {
           .doc(requesterId)
           .update({'status': 'rejected'});
     } catch (e) {
-      print('Error rejecting alt connection: $e');
+      debugPrint('Error rejecting alt connection: $e');
       rethrow;
     }
   }
@@ -595,7 +596,7 @@ class UserRepository {
 
       return doc.exists;
     } catch (e) {
-      print('Error checking alt connection request: $e');
+      debugPrint('Error checking alt connection request: $e');
       return false;
     }
   }
@@ -612,7 +613,7 @@ class UserRepository {
 
       return doc.exists;
     } catch (e) {
-      print('Error checking alt connection: $e');
+      debugPrint('Error checking alt connection: $e');
       return false;
     }
   }
@@ -638,7 +639,7 @@ class UserRepository {
 
       return snapshot.count ?? 0;
     } catch (e) {
-      print('Error getting alt connection count: $e');
+      debugPrint('Error getting alt connection count: $e');
       return 0;
     }
   }
