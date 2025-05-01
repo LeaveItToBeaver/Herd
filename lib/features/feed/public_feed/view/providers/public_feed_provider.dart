@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:async' show StreamSubscription, unawaited;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -6,8 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/state/public_feed_state.dart';
+import 'package:herdapp/features/post/data/models/post_model.dart';
 
 import '../../../../../core/services/cache_manager.dart';
+import '../../../../post/view/providers/post_provider.dart';
 import '../../../data/repositories/feed_repository.dart';
 
 // Repository provider with Firebase Functions
@@ -30,10 +32,12 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   final CacheManager cacheManager;
   final String userId;
   final int pageSize;
+  final Ref ref; // Add this
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
   PublicFeedController(this.repository, this.userId, this.cacheManager,
+      this.ref, // Add this parameter
       {this.pageSize = 20})
       : super(PublicFeedState.initial());
 
@@ -46,6 +50,30 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   /// Check if controller is still active
   bool get _isActive => !_disposed;
 
+  void _safeUpdateState(PublicFeedState newState) {
+    if (_isActive) {
+      state = newState;
+    }
+  }
+
+// In both AltFeedController and PublicFeedController:
+  Future<void> _batchInitializePostInteractions(List<PostModel> posts) async {
+    if (posts.isEmpty || userId == null) return;
+
+    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+
+    for (final post in posts) {
+      // Initialize each post's interaction state proactively
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: post.id, isAlt: post.isAlt))
+              .notifier)
+          .initializeState(userId!);
+    }
+
+    debugPrint('✅ Interactions batch initialization complete');
+  }
+
   /// Load initial public feed posts
   Future<void> loadInitialPosts(
       {String? overrideUserId, bool forceRefresh = false}) async {
@@ -53,87 +81,60 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
       // Don't reload if already loading
       if (state.isLoading || _disposed) return;
 
-      if (_isActive) state = state.copyWith(isLoading: true, error: null);
+      _safeUpdateState(state.copyWith(isLoading: true, error: null));
 
       final effectiveUserId = overrideUserId ?? userId ?? '';
       if (effectiveUserId.isEmpty) {
-        state = state.copyWith(
+        _safeUpdateState(state.copyWith(
           isLoading: false,
           error: Exception('User ID is required'),
-        );
+        ));
         return;
       }
 
-      if (!forceRefresh) {
-        debugPrint('🔎 Checking cache for public feed: user=$effectiveUserId');
-        final cachedPosts =
-            await cacheManager.getFeed(effectiveUserId, isAlt: false);
-
-        if (cachedPosts.isNotEmpty) {
-          debugPrint('✅ Retrieved ${cachedPosts.length} posts from cache');
-          state = state.copyWith(
-            posts: cachedPosts,
-            isLoading: false,
-            hasMorePosts: cachedPosts.length >= pageSize,
-            lastPost: cachedPosts.isNotEmpty ? cachedPosts.last : null,
-            fromCache: true,
-          );
-          return;
-        }
-        debugPrint('⚠️ No cached posts found');
-      } else {
-        debugPrint('🔄 Force refresh requested, skipping cache');
-      }
-
+      List<PostModel> posts = [];
       try {
         // Get posts from repository
-        final posts = await repository.getPublicFeed(
+        posts = await repository.getPublicFeed(
           userId: effectiveUserId,
           limit: pageSize,
         );
 
-        // Cache the results
-        await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
-        await cacheManager.getCacheStats();
-
-        if (_isActive) {
-          state = state.copyWith(
-            posts: posts,
-            isLoading: false,
-            hasMorePosts: posts.length >= pageSize,
-            lastPost: posts.isNotEmpty ? posts.last : null,
-            fromCache: false,
-          );
-        }
+        // Cache the results (don't await this to avoid delays)
+        unawaited(cacheManager.cacheFeed(posts, effectiveUserId, isAlt: false));
+        unawaited(cacheManager.getCacheStats());
       } catch (e) {
         // Fall back to direct Firestore query
         if (kDebugMode) {
           debugPrint('Falling back to direct Firestore query: $e');
         }
+
+        // Get from user feed collection directly
+        posts = await repository.getPublicFeed(
+          userId: effectiveUserId,
+          limit: pageSize,
+        );
+
+        // Cache the results (don't await this)
+        unawaited(cacheManager.cacheFeed(posts, effectiveUserId, isAlt: false));
       }
 
-      // Get from user feed collection directly
-      final posts = await repository.getPublicFeed(
-        userId: effectiveUserId,
-        limit: pageSize,
-      );
-
-      // Cache the results
-      await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
-
-      state = state.copyWith(
+      // Final state update with safety check
+      _safeUpdateState(state.copyWith(
         posts: posts,
         isLoading: false,
+        isRefreshing: false,
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
-        fromCache: false,
-      );
+        fromCache: !forceRefresh && posts.isNotEmpty,
+      ));
+      await _batchInitializePostInteractions(posts);
     } catch (e) {
       if (_isActive) {
-        state = state.copyWith(
+        _safeUpdateState(state.copyWith(
           isLoading: false,
           error: e,
-        );
+        ));
       }
     }
   }
@@ -176,12 +177,14 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         // Merge the new posts with existing ones
         final allPosts = [...state.posts, ...morePosts];
 
-        state = state.copyWith(
+        _safeUpdateState(state.copyWith(
           posts: allPosts,
           isLoading: false,
           hasMorePosts: morePosts.length >= pageSize,
           lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
-        );
+        ));
+        await _batchInitializePostInteractions(allPosts);
+
         return;
       } catch (e) {
         // Fall back to direct Firestore query
@@ -206,12 +209,13 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
       // Merge the new posts with existing ones
       final allPosts = [...state.posts, ...morePosts];
 
-      state = state.copyWith(
+      _safeUpdateState(state.copyWith(
         posts: allPosts,
         isLoading: false,
         hasMorePosts: morePosts.length >= pageSize,
         lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
-      );
+      ));
+      await _batchInitializePostInteractions(allPosts);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -223,7 +227,9 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   /// Refresh the feed (pull-to-refresh)
   Future<void> refreshFeed() async {
     try {
-      state = state.copyWith(isRefreshing: true, error: null);
+      if (_disposed) return;
+
+      _safeUpdateState(state.copyWith(isRefreshing: true, error: null));
 
       // Try cloud function first
       try {
@@ -233,44 +239,57 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           limit: pageSize,
         );
 
-        state = state.copyWith(
+        if (!_isActive) return; // Check if still active
+
+        _safeUpdateState(state.copyWith(
           posts: posts,
           isRefreshing: false,
           isLoading: false,
           hasMorePosts: posts.length >= pageSize,
           lastPost: posts.isNotEmpty ? posts.last : null,
-        );
+        ));
+        await _batchInitializePostInteractions(posts);
         return;
       } catch (e) {
         // Fall back to direct Firestore query
         debugPrint('Falling back to direct Firestore query: $e');
       }
 
+      if (!_isActive) return; // Check again
+
       final posts = await repository.getPublicFeed(
         userId: userId,
         limit: pageSize,
       );
 
-      state = state.copyWith(
+      if (!_isActive) return; // Check again after await
+
+      _safeUpdateState(state.copyWith(
         posts: posts,
         isRefreshing: false,
         isLoading: false,
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
-      );
+      ));
     } catch (e) {
-      state = state.copyWith(
-        isRefreshing: false,
-        isLoading: false,
-        error: e,
-      );
+      if (_isActive) {
+        _safeUpdateState(state.copyWith(
+          isRefreshing: false,
+          isLoading: false,
+          error: e,
+        ));
+      }
     }
   }
 
   /// Handle post like
   Future<void> likePost(String postId) async {
     try {
+      if (_disposed) return;
+
       await repository.interactWithPost(postId, 'like');
+
+      if (!_isActive) return; // Check if still active after await
 
       // Optimistically update the UI
       final updatedPosts = state.posts.map((post) {
@@ -296,17 +315,23 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         return post;
       }).toList();
 
-      state = state.copyWith(posts: updatedPosts);
+      _safeUpdateState(state.copyWith(posts: updatedPosts));
     } catch (e) {
       // Refresh on error to ensure UI is in sync
-      refreshFeed();
+      if (_isActive) {
+        refreshFeed();
+      }
     }
   }
 
   /// Handle post dislike
   Future<void> dislikePost(String postId) async {
     try {
+      if (_disposed) return;
+
       await repository.interactWithPost(postId, 'dislike');
+
+      if (!_isActive) return; // Check if still active after await
 
       // Optimistically update the UI
       final updatedPosts = state.posts.map((post) {
@@ -331,10 +356,12 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
         return post;
       }).toList();
 
-      state = state.copyWith(posts: updatedPosts);
+      _safeUpdateState(state.copyWith(posts: updatedPosts));
     } catch (e) {
       // Refresh on error to ensure UI is in sync
-      refreshFeed();
+      if (_isActive) {
+        refreshFeed();
+      }
     }
   }
 }
@@ -346,5 +373,5 @@ final publicFeedControllerProvider =
   final user = ref.watch(authProvider);
 
   return PublicFeedController(
-      repository, user!.uid, ref.watch(publicFeedCacheManagerProvider));
+      repository, user!.uid, ref.watch(publicFeedCacheManagerProvider), ref);
 });

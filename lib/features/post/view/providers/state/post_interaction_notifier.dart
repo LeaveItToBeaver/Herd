@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/repositories/post_repository.dart';
 import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
@@ -11,7 +12,12 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     required this.postId,
   }) : super(PostInteractionState.initial());
   Future<void> initializeState(String userId) async {
-    return loadInteractionStatus(userId);
+    debugPrint(
+        '🔄 Initializing interaction state for post: $postId, user: $userId');
+    final result = await loadInteractionStatus(userId);
+    debugPrint(
+        '✅ Interaction loaded for post: $postId, isLiked: ${state.isLiked}');
+    return result;
   }
 
   Future<void> loadInteractionStatus(String userId) async {

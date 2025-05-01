@@ -116,7 +116,9 @@ abstract class PostModel with _$PostModel {
       commentCount: map['commentCount'] ?? 0,
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
-      hotScore: (map['hotScore'] as num?)?.toDouble(),
+      hotScore: (map['hotScore'] is int)
+          ? (map['hotScore'] as int).toDouble()
+          : (map['hotScore'] as num?)?.toDouble(),
       herdId: map['herdId'],
       herdName: map['herdName'],
       herdProfileImageURL: map['herdProfileImageURL'],
