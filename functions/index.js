@@ -1171,6 +1171,17 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
       });
     }
 
+      const userInteractions = await getUserInteractionsForPosts(userId, posts.map(post => post.id));
+
+      // Add user-specific data to each post
+      const enrichedPosts = posts.map(post => {
+        return {
+          ...post,
+          isLiked: userInteractions[post.id]?.isLiked || false,
+          isDisliked: userInteractions[post.id]?.isDisliked || false
+        };
+      });
+
     // STEP 3: Sort the results by hot score to maintain original order
     const posts = chunkedResults.sort((a, b) => b.hotScore - a.hotScore);
 
@@ -1265,6 +1276,28 @@ async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
     lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
     hasMorePosts: posts.length >= limit
   };
+}
+
+async function getUserInteractionsForPosts(userId, postIds) {
+  // Batch get user interactions for all posts
+  const interactionsRef = firestore.collection('userInteractions').doc(userId);
+  const interactionsSnapshot = await interactionsRef.get();
+
+  if (!interactionsSnapshot.exists) {
+    return {};
+  }
+
+  const interactions = interactionsSnapshot.data() || {};
+  const result = {};
+
+  // Filter to just the posts we care about
+  postIds.forEach(postId => {
+    if (interactions[postId]) {
+      result[postId] = interactions[postId];
+    }
+  });
+
+  return result;
 }
 
 /**

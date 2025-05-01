@@ -61,6 +61,13 @@ class DataCacheService {
     }
   }
 
+  bool _isValidJsonString(String? str) {
+    if (str == null || str.trim().isEmpty) {
+      return false;
+    }
+    return true;
+  }
+
   /// Generate a unique cache key for a post or feed
   String _generatePostKey(String postId, bool isAlt) {
     return 'post_${isAlt ? 'alt' : 'public'}_$postId';
@@ -441,7 +448,7 @@ class DataCacheService {
 
         try {
           final jsonData = prefs.getString(key);
-          if (jsonData != null) {
+          if (jsonData != null && _isValidJsonString(jsonData)) {
             try {
               final metadata = jsonDecode(jsonData) as Map<String, dynamic>;
               final cacheKey = metadata['key'] as String;
@@ -487,7 +494,7 @@ class DataCacheService {
 
         try {
           final jsonData = prefs.getString(key);
-          if (jsonData != null) {
+          if (jsonData != null && _isValidJsonString(jsonData)) {
             try {
               final metadata = jsonDecode(jsonData) as Map<String, dynamic>;
               final cacheKey = metadata['key'] as String;
@@ -763,6 +770,10 @@ class DataCacheService {
     } else if (item is Timestamp) {
       // Convert Timestamp to milliseconds
       return {'_isTimestamp': true, 'value': item.millisecondsSinceEpoch};
+    } else if (item is FieldValue) {
+      // Handle FieldValue objects (like increments, server timestamps)
+      // Replace with a placeholder or null since they can't be serialized
+      return {'_isFieldValue': true, 'type': item.runtimeType.toString()};
     }
     // Return other types as is
     return item;

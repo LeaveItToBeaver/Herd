@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,8 +26,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   }
 
   void _refreshVisiblePostInteractions() {
-    // Later, we must implement a central interaction store
-    // to avoid multiple calls to the same post
     if (!mounted) return;
 
     Future.microtask(() {
@@ -37,23 +33,16 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       final currentUserAsync = ref.read(currentUserProvider);
       final userId = currentUserAsync.userId;
 
-      if (userId == null || state.posts.isEmpty) return; // Corrected line
+      if (userId == null || state.posts.isEmpty) return;
 
-      // Only refresh posts that are likely visible
-      final visibleStartIndex = 0;
-      // Estimate how many items might be visible (typical screen shows 3-5 posts)
-      final visibleEndIndex = math.min(10, state.posts.length - 1);
-
-      // Only update those posts that are likely visible
-      for (int i = visibleStartIndex; i <= visibleEndIndex; i++) {
-        if (i < state.posts.length) {
-          final post = state.posts[i];
-          ref
-              .read(postInteractionsWithPrivacyProvider(
-                      PostParams(id: post.id, isAlt: post.isAlt))
-                  .notifier)
-              .initializeState(userId);
-        }
+      // Initialize all posts, not just estimated visible ones
+      for (int i = 0; i < state.posts.length; i++) {
+        final post = state.posts[i];
+        ref
+            .read(postInteractionsWithPrivacyProvider(
+                    PostParams(id: post.id, isAlt: post.isAlt))
+                .notifier)
+            .initializeState(userId);
       }
     });
   }
@@ -66,7 +55,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       if (!mounted) return;
 
       final currentUser = ref.read(authProvider);
-      // Trigger the initial fetch of posts
       ref.read(publicFeedControllerProvider.notifier).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
@@ -80,24 +68,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     _scrollController.dispose();
     super.dispose();
   }
-
-  // void _scrollListener() {
-  //   // Get the current state
-  //   final state = ref.read(publicFeedControllerProvider);
-
-  //   // If already loading or no more posts, do nothing
-  //   if (state.isLoading || !state.hasMorePosts) return;
-
-  //   // Check if we've scrolled near the bottom (reaching 2nd to last post)
-  //   final triggerFetchMoreSize = 0.8;
-  //   final reachedTriggerPosition = _scrollController.position.pixels >=
-  //       (_scrollController.position.maxScrollExtent * triggerFetchMoreSize);
-
-  //   if (reachedTriggerPosition) {
-  //     // Load more posts
-  //     ref.read(publicFeedControllerProvider.notifier).loadMorePosts();
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {

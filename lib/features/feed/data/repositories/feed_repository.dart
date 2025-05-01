@@ -670,7 +670,12 @@ class FeedRepository {
     }
   }
 
-  double? get lastHotScore => _lastFunctionResponse?['lastHotScore'];
+  double? get lastHotScore {
+    final value = _lastFunctionResponse?['lastHotScore'];
+    if (value == null) return null;
+    return (value is int) ? value.toDouble() : value as double;
+  }
+
   String? get lastPostId => _lastFunctionResponse?['lastPostId'];
   bool get hasMorePosts {
     final value = _lastFunctionResponse?['hasMorePosts'] ?? false;

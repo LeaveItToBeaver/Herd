@@ -9,6 +9,7 @@ import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_sta
 
 import '../../../../../core/services/cache_manager.dart';
 import '../../../../post/data/models/post_model.dart';
+import '../../../../post/view/providers/post_provider.dart';
 import '../../../data/repositories/feed_repository.dart';
 
 // Repository provider with Firebase Functions
@@ -31,12 +32,14 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   final CacheManager cacheManager;
   final String? userId;
   final int pageSize;
+  final Ref ref; // Add this
   bool _showHerdPosts = true;
+  bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
   bool get showHerdPosts => _showHerdPosts;
 
-  AltFeedController(this.repository, this.userId, this.cacheManager,
+  AltFeedController(this.repository, this.userId, this.cacheManager, this.ref,
       {this.pageSize = 15})
       : super(AltFeedState.initial()) {
     // Listen for post updates from repository
@@ -51,8 +54,34 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 
   @override
   void dispose() {
+    _disposed = true;
     _postUpdateSubscription?.cancel();
     super.dispose();
+  }
+
+  bool get _isActive => !_disposed;
+
+  void _safeUpdateState(AltFeedState newState) {
+    if (_isActive) {
+      state = newState;
+    }
+  }
+
+  Future<void> _batchInitializePostInteractions(List<PostModel> posts) async {
+    if (posts.isEmpty || userId == null) return;
+
+    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+
+    for (final post in posts) {
+      // Initialize each post's interaction state proactively
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: post.id, isAlt: post.isAlt))
+              .notifier)
+          .initializeState(userId!);
+    }
+
+    debugPrint('✅ Interactions batch initialization complete');
   }
 
   void _handlePostUpdates(List<PostModel> updatedPosts) {
@@ -97,10 +126,10 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 
       final effectiveUserId = overrideUserId ?? userId ?? '';
       if (effectiveUserId.isEmpty) {
-        state = state.copyWith(
+        _safeUpdateState(state.copyWith(
           isLoading: false,
           error: Exception('User ID is required'),
-        );
+        ));
         return;
       }
 
@@ -112,7 +141,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         hybridLoad: !forceRefresh,
       );
 
-      state = state.copyWith(
+      _safeUpdateState(state.copyWith(
         posts: posts,
         isLoading: false,
         isRefreshing: false,
@@ -120,13 +149,15 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
         fromCache: !forceRefresh && posts.isNotEmpty,
-      );
+      ));
+      await _batchInitializePostInteractions(posts);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        isRefreshing: false,
-        error: e,
-      );
+      if (_isActive) {
+        _safeUpdateState(state.copyWith(
+          isLoading: false,
+          error: e,
+        ));
+      }
     }
   }
 
@@ -295,6 +326,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
           hasMorePosts: gotFullPage, // Use the local calculation
           lastPost: uniqueNewPosts.isNotEmpty ? uniqueNewPosts.last : lastPost,
         );
+        await _batchInitializePostInteractions(allPosts);
 
         debugPrint(
             'AltFeedController: State updated. New state.hasMorePosts = ${state.hasMorePosts}'); // Log after update
@@ -482,8 +514,5 @@ final altFeedControllerProvider =
   final user = ref.watch(authProvider);
 
   return AltFeedController(
-    repository,
-    user?.uid,
-    ref.watch(altFeedCacheManagerProvider),
-  );
+      repository, user?.uid, ref.watch(altFeedCacheManagerProvider), ref);
 });

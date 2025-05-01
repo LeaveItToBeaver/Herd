@@ -41,11 +41,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   @override
   void initState() {
     super.initState();
-    // Schedule the initialization outside of the build method
-    // This uses a microtask to ensure it happens after the current build
-    Future.microtask(() {
-      _initializePostInteraction();
-    });
+
+    _hasInitializedInteraction = true;
   }
 
   void _initializePostInteraction() {
@@ -790,7 +787,9 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
               return _buildActionButton(
                 likeState.$1 ? Icons.thumb_up : Icons.thumb_up_outlined,
-                '${likeState.$2}', // <-- Display net likes (totalLikes)
+                likeState.$3
+                    ? '...'
+                    : '${likeState.$2}', // Show "..." during loading
                 color: likeState.$1 ? Colors.green : null,
                 onPressed: likeState.$3 ? null : () => _handleLikePost(),
               );
