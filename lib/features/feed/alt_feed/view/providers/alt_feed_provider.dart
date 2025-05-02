@@ -32,7 +32,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   final CacheManager cacheManager;
   final String? userId;
   final int pageSize;
-  final Ref ref; // Add this
+  final Ref ref;
   bool _showHerdPosts = true;
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
@@ -360,6 +360,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
           hasMorePosts: morePosts.length >= pageSize,
           lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
         );
+        await _batchInitializePostInteractions(allPosts);
       }
     } catch (e) {
       state = state.copyWith(

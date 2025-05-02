@@ -18,6 +18,7 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
   String get id;
   String get postId;
   String get authorId;
+  String get authorName;
   String get content;
   DateTime get timestamp;
   String? get parentId;
@@ -25,6 +26,8 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
   int get depth;
   String? get authorUsername;
   String? get authorProfileImage;
+  String? get authorAltProfileImage;
+  bool get isAuthorAlt;
   bool get isAltPost;
   String? get mediaUrl;
   int get likeCount;
@@ -50,6 +53,7 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('id', id))
       ..add(DiagnosticsProperty('postId', postId))
       ..add(DiagnosticsProperty('authorId', authorId))
+      ..add(DiagnosticsProperty('authorName', authorName))
       ..add(DiagnosticsProperty('content', content))
       ..add(DiagnosticsProperty('timestamp', timestamp))
       ..add(DiagnosticsProperty('parentId', parentId))
@@ -57,6 +61,8 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('depth', depth))
       ..add(DiagnosticsProperty('authorUsername', authorUsername))
       ..add(DiagnosticsProperty('authorProfileImage', authorProfileImage))
+      ..add(DiagnosticsProperty('authorAltProfileImage', authorAltProfileImage))
+      ..add(DiagnosticsProperty('isAuthorAlt', isAuthorAlt))
       ..add(DiagnosticsProperty('isAltPost', isAltPost))
       ..add(DiagnosticsProperty('mediaUrl', mediaUrl))
       ..add(DiagnosticsProperty('likeCount', likeCount))
@@ -74,6 +80,8 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
             (identical(other.postId, postId) || other.postId == postId) &&
             (identical(other.authorId, authorId) ||
                 other.authorId == authorId) &&
+            (identical(other.authorName, authorName) ||
+                other.authorName == authorName) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
@@ -85,6 +93,10 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
                 other.authorUsername == authorUsername) &&
             (identical(other.authorProfileImage, authorProfileImage) ||
                 other.authorProfileImage == authorProfileImage) &&
+            (identical(other.authorAltProfileImage, authorAltProfileImage) ||
+                other.authorAltProfileImage == authorAltProfileImage) &&
+            (identical(other.isAuthorAlt, isAuthorAlt) ||
+                other.isAuthorAlt == isAuthorAlt) &&
             (identical(other.isAltPost, isAltPost) ||
                 other.isAltPost == isAltPost) &&
             (identical(other.mediaUrl, mediaUrl) ||
@@ -101,28 +113,32 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      postId,
-      authorId,
-      content,
-      timestamp,
-      parentId,
-      path,
-      depth,
-      authorUsername,
-      authorProfileImage,
-      isAltPost,
-      mediaUrl,
-      likeCount,
-      dislikeCount,
-      replyCount,
-      hotnessScore);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        postId,
+        authorId,
+        authorName,
+        content,
+        timestamp,
+        parentId,
+        path,
+        depth,
+        authorUsername,
+        authorProfileImage,
+        authorAltProfileImage,
+        isAuthorAlt,
+        isAltPost,
+        mediaUrl,
+        likeCount,
+        dislikeCount,
+        replyCount,
+        hotnessScore
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorProfileImage: $authorProfileImage, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
+    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, authorName: $authorName, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorProfileImage: $authorProfileImage, authorAltProfileImage: $authorAltProfileImage, isAuthorAlt: $isAuthorAlt, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
   }
 }
 
@@ -136,6 +152,7 @@ abstract mixin class $CommentModelCopyWith<$Res> {
       {String id,
       String postId,
       String authorId,
+      String authorName,
       String content,
       DateTime timestamp,
       String? parentId,
@@ -143,6 +160,8 @@ abstract mixin class $CommentModelCopyWith<$Res> {
       int depth,
       String? authorUsername,
       String? authorProfileImage,
+      String? authorAltProfileImage,
+      bool isAuthorAlt,
       bool isAltPost,
       String? mediaUrl,
       int likeCount,
@@ -166,6 +185,7 @@ class _$CommentModelCopyWithImpl<$Res> implements $CommentModelCopyWith<$Res> {
     Object? id = null,
     Object? postId = null,
     Object? authorId = null,
+    Object? authorName = null,
     Object? content = null,
     Object? timestamp = null,
     Object? parentId = freezed,
@@ -173,6 +193,8 @@ class _$CommentModelCopyWithImpl<$Res> implements $CommentModelCopyWith<$Res> {
     Object? depth = null,
     Object? authorUsername = freezed,
     Object? authorProfileImage = freezed,
+    Object? authorAltProfileImage = freezed,
+    Object? isAuthorAlt = null,
     Object? isAltPost = null,
     Object? mediaUrl = freezed,
     Object? likeCount = null,
@@ -192,6 +214,10 @@ class _$CommentModelCopyWithImpl<$Res> implements $CommentModelCopyWith<$Res> {
       authorId: null == authorId
           ? _self.authorId
           : authorId // ignore: cast_nullable_to_non_nullable
+              as String,
+      authorName: null == authorName
+          ? _self.authorName
+          : authorName // ignore: cast_nullable_to_non_nullable
               as String,
       content: null == content
           ? _self.content
@@ -221,6 +247,14 @@ class _$CommentModelCopyWithImpl<$Res> implements $CommentModelCopyWith<$Res> {
           ? _self.authorProfileImage
           : authorProfileImage // ignore: cast_nullable_to_non_nullable
               as String?,
+      authorAltProfileImage: freezed == authorAltProfileImage
+          ? _self.authorAltProfileImage
+          : authorAltProfileImage // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isAuthorAlt: null == isAuthorAlt
+          ? _self.isAuthorAlt
+          : isAuthorAlt // ignore: cast_nullable_to_non_nullable
+              as bool,
       isAltPost: null == isAltPost
           ? _self.isAltPost
           : isAltPost // ignore: cast_nullable_to_non_nullable
@@ -256,6 +290,7 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
       {required this.id,
       required this.postId,
       required this.authorId,
+      required this.authorName,
       required this.content,
       required this.timestamp,
       this.parentId,
@@ -263,6 +298,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
       this.depth = 0,
       this.authorUsername,
       this.authorProfileImage,
+      this.authorAltProfileImage,
+      this.isAuthorAlt = false,
       this.isAltPost = false,
       this.mediaUrl,
       this.likeCount = 0,
@@ -280,6 +317,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
   @override
   final String authorId;
   @override
+  final String authorName;
+  @override
   final String content;
   @override
   final DateTime timestamp;
@@ -294,6 +333,11 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
   final String? authorUsername;
   @override
   final String? authorProfileImage;
+  @override
+  final String? authorAltProfileImage;
+  @override
+  @JsonKey()
+  final bool isAuthorAlt;
   @override
   @JsonKey()
   final bool isAltPost;
@@ -333,6 +377,7 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('id', id))
       ..add(DiagnosticsProperty('postId', postId))
       ..add(DiagnosticsProperty('authorId', authorId))
+      ..add(DiagnosticsProperty('authorName', authorName))
       ..add(DiagnosticsProperty('content', content))
       ..add(DiagnosticsProperty('timestamp', timestamp))
       ..add(DiagnosticsProperty('parentId', parentId))
@@ -340,6 +385,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('depth', depth))
       ..add(DiagnosticsProperty('authorUsername', authorUsername))
       ..add(DiagnosticsProperty('authorProfileImage', authorProfileImage))
+      ..add(DiagnosticsProperty('authorAltProfileImage', authorAltProfileImage))
+      ..add(DiagnosticsProperty('isAuthorAlt', isAuthorAlt))
       ..add(DiagnosticsProperty('isAltPost', isAltPost))
       ..add(DiagnosticsProperty('mediaUrl', mediaUrl))
       ..add(DiagnosticsProperty('likeCount', likeCount))
@@ -357,6 +404,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
             (identical(other.postId, postId) || other.postId == postId) &&
             (identical(other.authorId, authorId) ||
                 other.authorId == authorId) &&
+            (identical(other.authorName, authorName) ||
+                other.authorName == authorName) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
@@ -368,6 +417,10 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
                 other.authorUsername == authorUsername) &&
             (identical(other.authorProfileImage, authorProfileImage) ||
                 other.authorProfileImage == authorProfileImage) &&
+            (identical(other.authorAltProfileImage, authorAltProfileImage) ||
+                other.authorAltProfileImage == authorAltProfileImage) &&
+            (identical(other.isAuthorAlt, isAuthorAlt) ||
+                other.isAuthorAlt == isAuthorAlt) &&
             (identical(other.isAltPost, isAltPost) ||
                 other.isAltPost == isAltPost) &&
             (identical(other.mediaUrl, mediaUrl) ||
@@ -384,28 +437,32 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      postId,
-      authorId,
-      content,
-      timestamp,
-      parentId,
-      path,
-      depth,
-      authorUsername,
-      authorProfileImage,
-      isAltPost,
-      mediaUrl,
-      likeCount,
-      dislikeCount,
-      replyCount,
-      hotnessScore);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        postId,
+        authorId,
+        authorName,
+        content,
+        timestamp,
+        parentId,
+        path,
+        depth,
+        authorUsername,
+        authorProfileImage,
+        authorAltProfileImage,
+        isAuthorAlt,
+        isAltPost,
+        mediaUrl,
+        likeCount,
+        dislikeCount,
+        replyCount,
+        hotnessScore
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorProfileImage: $authorProfileImage, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
+    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, authorName: $authorName, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorProfileImage: $authorProfileImage, authorAltProfileImage: $authorAltProfileImage, isAuthorAlt: $isAuthorAlt, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
   }
 }
 
@@ -421,6 +478,7 @@ abstract mixin class _$CommentModelCopyWith<$Res>
       {String id,
       String postId,
       String authorId,
+      String authorName,
       String content,
       DateTime timestamp,
       String? parentId,
@@ -428,6 +486,8 @@ abstract mixin class _$CommentModelCopyWith<$Res>
       int depth,
       String? authorUsername,
       String? authorProfileImage,
+      String? authorAltProfileImage,
+      bool isAuthorAlt,
       bool isAltPost,
       String? mediaUrl,
       int likeCount,
@@ -452,6 +512,7 @@ class __$CommentModelCopyWithImpl<$Res>
     Object? id = null,
     Object? postId = null,
     Object? authorId = null,
+    Object? authorName = null,
     Object? content = null,
     Object? timestamp = null,
     Object? parentId = freezed,
@@ -459,6 +520,8 @@ class __$CommentModelCopyWithImpl<$Res>
     Object? depth = null,
     Object? authorUsername = freezed,
     Object? authorProfileImage = freezed,
+    Object? authorAltProfileImage = freezed,
+    Object? isAuthorAlt = null,
     Object? isAltPost = null,
     Object? mediaUrl = freezed,
     Object? likeCount = null,
@@ -478,6 +541,10 @@ class __$CommentModelCopyWithImpl<$Res>
       authorId: null == authorId
           ? _self.authorId
           : authorId // ignore: cast_nullable_to_non_nullable
+              as String,
+      authorName: null == authorName
+          ? _self.authorName
+          : authorName // ignore: cast_nullable_to_non_nullable
               as String,
       content: null == content
           ? _self.content
@@ -507,6 +574,14 @@ class __$CommentModelCopyWithImpl<$Res>
           ? _self.authorProfileImage
           : authorProfileImage // ignore: cast_nullable_to_non_nullable
               as String?,
+      authorAltProfileImage: freezed == authorAltProfileImage
+          ? _self.authorAltProfileImage
+          : authorAltProfileImage // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isAuthorAlt: null == isAuthorAlt
+          ? _self.isAuthorAlt
+          : isAuthorAlt // ignore: cast_nullable_to_non_nullable
+              as bool,
       isAltPost: null == isAltPost
           ? _self.isAltPost
           : isAltPost // ignore: cast_nullable_to_non_nullable

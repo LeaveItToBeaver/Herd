@@ -6,6 +6,7 @@ part 'post_interaction_state.freezed.dart';
 @freezed
 abstract class PostInteractionState with _$PostInteractionState {
   const factory PostInteractionState(
+      // Add post model
       {@Default(0) int totalLikes, // Net likes (likes - dislikes)
       @Default(0) int totalRawLikes, // Raw like count
       @Default(0) int totalComments, // Total comments
