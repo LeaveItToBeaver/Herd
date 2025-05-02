@@ -110,13 +110,22 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                 GestureDetector(
                   onTap: () =>
                       _navigateToUserProfile(context, widget.comment.authorId),
-                  child: Text(
-                    widget.comment.authorUsername ?? 'Unknown',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
+                  child: widget.comment.isAltPost
+                      ? Text(
+                          widget.comment.authorUsername ?? 'Unknown',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        )
+                      : Text(
+                          widget.comment.authorName ?? 'Unknown',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.blue,
+                          ),
+                        ),
                 ),
                 if (widget.isAltPost) ...[
                   const SizedBox(width: 4),
@@ -297,7 +306,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                                     ? 'Hide replies'
                                     : '${widget.comment.replyCount} replies',
                                 style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey),
+                                    fontSize: 12, color: Colors.indigo),
                               ),
                             ],
                           ),

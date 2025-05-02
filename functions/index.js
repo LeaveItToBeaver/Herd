@@ -27,20 +27,28 @@ const hotAlgorithm = {
       const sign = Math.sign(sanitizedNetVotes);
       const magnitude = Math.log10(Math.max(1, Math.abs(sanitizedNetVotes)));
       const timeSinceCreation = Math.max(1, (Date.now() - createdAt.getTime()) / 1000);
-      const timeDecay = Math.pow(timeSinceCreation, -0.5) * sanitizedDecayFactor;
+      const timeDecay = Math.pow(timeSinceCreation, -0.7) * sanitizedDecayFactor;
 
       // Calculate hours since creation
       const hoursOld = timeSinceCreation / 3600;
 
       // Apply new boost factor for fresh posts (first 12 hours)
-      const newBoostFactor = Math.min(24, hoursOld) <= 12 ? 2.0 : 1.0;
+      const newBoostFactor =
+        hoursOld <= 1 ? 5.0 :   // First hour: 5x boost
+          hoursOld <= 3 ? 4.0 :   // Hours 1-3: 4x boost
+            hoursOld <= 6 ? 3.0 :   // Hours 3-6: 3x boost
+              hoursOld <= 12 ? 2.0 :  // Hours 6-12: 2x boost
+                1.0;
 
       // Apply age penalty for posts older than 24 hours
-      const agePenalty = hoursOld > 24 ? Math.pow(24 / hoursOld, 1.5) : 1.0;
+      const agePenalty = hoursOld > 12 ? Math.pow(12 / hoursOld, 2.0) : 1.0;
 
       // Calculate final score with new factors
       const score = sign * magnitude * timeDecay * newBoostFactor * agePenalty;
 
+      if (hoursOld > 72) {
+        return 0; // Zero score for posts older than 3 days
+      }
       // Debug logging (before return)
       logger.info(`Hot score calculation: netVotes=${sanitizedNetVotes},
         timeDecay=${timeDecay},
@@ -620,7 +628,7 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
  * Runs every hour to keep scores current (set to 1 minute for testing)
  */
 exports.updateHotScores = onSchedule(
-  "every 10 minutes", // Change to "every 1 minutes" for testing
+  "every 5 minutes", // Change to "every 1 minutes" for testing
   async (event) => {
     // Only process posts from the last 7 days
     const oneWeekAgo = new Date();
@@ -629,16 +637,21 @@ exports.updateHotScores = onSchedule(
     try {
       // Process regular posts
       await updatePostTypeHotScores('posts', null, oneWeekAgo);
+      logger.info('Hot score update completed for regular posts');
 
       // Process alt posts
       await updatePostTypeHotScores('altPosts', null, oneWeekAgo);
+      logger.info('Hot score update completed for alt posts');
 
       // Process herd posts - requires additional logic for nested collection
       const herdsSnapshot = await firestore.collection('herdPosts').get();
 
+      logger.info(`Found ${herdsSnapshot.size} herds for hot score update`);
+
       for (const herdDoc of herdsSnapshot.docs) {
         const herdId = herdDoc.id;
         await updatePostTypeHotScores('herdPosts', herdId, oneWeekAgo);
+        logger.info(`Hot score update completed for herd ${herdId}`);
       }
 
       logger.info('Hot score update completed successfully for all post types');
@@ -878,8 +891,6 @@ exports.removeDeletedPost = onDocumentDeleted(
     }
   }
 );
-
-
 
 
 /**
@@ -1171,16 +1182,16 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
       });
     }
 
-      const userInteractions = await getUserInteractionsForPosts(userId, posts.map(post => post.id));
+    const userInteractions = await getUserInteractionsForPosts(userId, posts.map(post => post.id));
 
-      // Add user-specific data to each post
-      const enrichedPosts = posts.map(post => {
-        return {
-          ...post,
-          isLiked: userInteractions[post.id]?.isLiked || false,
-          isDisliked: userInteractions[post.id]?.isDisliked || false
-        };
-      });
+    // Add user-specific data to each post
+    const enrichedPosts = posts.map(post => {
+      return {
+        ...post,
+        isLiked: userInteractions[post.id]?.isLiked || false,
+        isDisliked: userInteractions[post.id]?.isDisliked || false
+      };
+    });
 
     // STEP 3: Sort the results by hot score to maintain original order
     const posts = chunkedResults.sort((a, b) => b.hotScore - a.hotScore);

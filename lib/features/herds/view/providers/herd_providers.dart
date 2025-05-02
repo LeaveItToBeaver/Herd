@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/herds/view/providers/state/herd_feed_state.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
+import 'package:herdapp/features/post/view/providers/post_provider.dart';
 
 import '../../../../core/services/cache_manager.dart';
 import '../../data/models/herd_model.dart';
@@ -123,8 +124,10 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
   final String herdId;
   final int pageSize;
   bool _disposed = false;
+  final Ref ref;
 
-  HerdFeedController(this.repository, this.herdId, {this.pageSize = 20})
+  HerdFeedController(this.repository, this.herdId, this.ref,
+      {this.pageSize = 20})
       : super(HerdFeedState.initial());
 
   @override
@@ -164,6 +167,24 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
     }
   }
 
+  Future<void> _batchInitializePostInteractions(
+      String userId, List<PostModel> posts) async {
+    if (posts.isEmpty || userId == null) return;
+
+    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+
+    for (final post in posts) {
+      // Initialize each post's interaction state proactively
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: post.id, isAlt: post.isAlt))
+              .notifier)
+          .initializeState(userId!);
+    }
+
+    debugPrint('✅ Interactions batch initialization complete');
+  }
+
   Future<void> loadMorePosts() async {
     try {
       if (state.isLoading || !state.hasMorePosts || state.lastPost == null) {
@@ -181,6 +202,9 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
         lastPostId: lastPost.id,
       );
 
+      final currentUser = ref.read(authProvider);
+      final userId = currentUser?.uid;
+
       // Combine with existing posts
       final allPosts = [...state.posts, ...morePosts];
 
@@ -190,6 +214,9 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
         hasMorePosts: morePosts.length >= pageSize,
         lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
       );
+      if (userId != null) {
+        await _batchInitializePostInteractions(userId, allPosts);
+      }
     } catch (e) {
       // Keep existing posts but set loading to false
       state = state.copyWith(
@@ -208,6 +235,9 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
         limit: pageSize,
       );
 
+      final currentUser = ref.read(authProvider);
+      final userId = currentUser?.uid;
+
       state = state.copyWith(
         posts: posts,
         isRefreshing: false,
@@ -215,6 +245,9 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
       );
+      if (userId != null) {
+        await _batchInitializePostInteractions(userId, posts);
+      }
     } catch (e) {
       state = state.copyWith(
         isRefreshing: false,
@@ -233,6 +266,6 @@ final herdFeedControllerProvider =
     StateNotifierProvider.family<HerdFeedController, HerdFeedState, String>(
   (ref, herdId) {
     final repository = ref.watch(herdRepositoryProvider);
-    return HerdFeedController(repository, herdId);
+    return HerdFeedController(repository, herdId, ref);
   },
 );

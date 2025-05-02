@@ -886,6 +886,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       final processedMedia = await _processMediaFiles();
 
+      ref.read(postControllerProvider.notifier).reset(); // Reset the state
+
       final postId = await ref.read(postControllerProvider.notifier).createPost(
             title: _title,
             content: _content,
@@ -916,7 +918,23 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
         );
 
-        // Navigate to the post
+        // Clear the state
+        setState(() {
+          _title = '';
+          _content = '';
+          _mediaFiles.clear();
+          _postMedia = null;
+          _hasMedia = false;
+          _isNSFW = false;
+          _isAlt = false;
+          _selectedHerdId = null;
+          _selectedHerdName = null;
+        });
+
+        // Reset the form state before or after navigation?
+        // _formKey.currentState?.reset(); // Reset the form state
+        // This might be unnecessary since we are already clearing the state above
+
         context.pushNamed(
           'post',
           pathParameters: {'id': postId},

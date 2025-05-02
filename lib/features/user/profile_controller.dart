@@ -21,6 +21,24 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     return ProfileState.initial();
   }
 
+  Future<void> _batchInitializePostInteractions(
+      String userId, List<PostModel> posts) async {
+    if (posts.isEmpty || userId == null) return;
+
+    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+
+    for (final post in posts) {
+      // Initialize each post's interaction state proactively
+      ref
+          .read(postInteractionsWithPrivacyProvider(
+                  PostParams(id: post.id, isAlt: post.isAlt))
+              .notifier)
+          .initializeState(userId!);
+    }
+
+    debugPrint('✅ Interactions batch initialization complete');
+  }
+
   Future<void> loadProfile(String userId, {bool? isAltView}) async {
     // Validate userId
     if (userId.isEmpty) {
@@ -97,6 +115,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         lastPost: posts.isNotEmpty ? posts.last : null,
         currentUserId: currentUserId,
       ));
+      await _batchInitializePostInteractions(currentUserId, posts);
     } catch (e, stack) {
       debugPrint("DEBUG: Profile loading error: $e");
       state = AsyncValue.error(e, stack);
@@ -115,6 +134,8 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     try {
       // Set loading state
       state = AsyncValue.data(currentState.copyWith(isLoading: true));
+      final currentUser = ref.read(authProvider);
+      final currentUserId = currentUser?.uid ?? '';
 
       // Get pagination parameters
       final lastPost = currentState.lastPost!;
@@ -147,6 +168,7 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
         hasMorePosts: morePosts.length >= pageSize,
         lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
       ));
+      await _batchInitializePostInteractions(currentUserId, allPosts);
     } catch (e) {
       debugPrint("DEBUG: Error loading more posts: $e");
       // Keep the current posts but set loading to false
