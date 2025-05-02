@@ -9,10 +9,12 @@ part 'comment_model.g.dart';
 abstract class CommentModel with _$CommentModel {
   const CommentModel._(); // For custom methods
 
+  // Add variables for public and private comments
   const factory CommentModel({
     required String id,
     required String postId,
     required String authorId,
+    required String authorName,
     required String content,
     required DateTime timestamp,
     String? parentId,
@@ -20,6 +22,8 @@ abstract class CommentModel with _$CommentModel {
     @Default(0) int depth,
     String? authorUsername,
     String? authorProfileImage,
+    String? authorAltProfileImage,
+    @Default(false) bool isAuthorAlt,
     @Default(false) bool isAltPost,
     String? mediaUrl,
     @Default(0) int likeCount,
@@ -44,6 +48,9 @@ abstract class CommentModel with _$CommentModel {
       depth: data['depth'] ?? 0,
       authorUsername: data['authorUsername'],
       authorProfileImage: data['authorProfileImage'],
+      authorAltProfileImage: data['authorAltProfileImage'],
+      isAuthorAlt: data['isAuthorAlt'] ?? false,
+      authorName: data['authorName'] ?? '',
       isAltPost: data['isAltPost'] ?? false,
       mediaUrl: data['mediaUrl'],
       likeCount: data['likeCount'] ?? 0,
@@ -54,8 +61,9 @@ abstract class CommentModel with _$CommentModel {
   }
 
   Map<String, dynamic> toFirestore() {
-    return toJson()..addAll({
-      'timestamp': Timestamp.fromDate(timestamp),
-    });
+    return toJson()
+      ..addAll({
+        'timestamp': Timestamp.fromDate(timestamp),
+      });
   }
 }
