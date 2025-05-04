@@ -50,11 +50,13 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     }
   }
 
-  Future<void> likePost(String userId, {required bool isAlt}) async {
+  Future<void> likePost(String userId,
+      {required bool isAlt, String? feedType, String? herdId}) async {
     try {
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;
 
+      // Update state optimistically
       final newLikeCount =
           wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
       final newDislikeCount =
@@ -68,10 +70,16 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
         totalLikes: newLikeCount - newDislikeCount,
       );
 
-      // Call the API without updating state for loading
-      await repository.likePost(postId: postId, userId: userId, isAlt: isAlt);
+      // Use the feedType to determine which collection to update
+      String effectiveFeedType = feedType ?? (isAlt ? 'alt' : 'public');
 
-      // We don't need to update state again if the API call succeeded
+      // Call repository with the feed type information
+      await repository.likePost(
+          postId: postId,
+          userId: userId,
+          isAlt: isAlt,
+          feedType: effectiveFeedType,
+          herdId: herdId);
     } catch (e) {
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;
@@ -93,7 +101,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
     }
   }
 
-  Future<void> dislikePost(String userId, {required bool isAlt}) async {
+  Future<void> dislikePost(String userId,
+      {required bool isAlt, required String feedType, String? herdId}) async {
     try {
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;
