@@ -2,6 +2,7 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:video_player/video_player.dart';
 
@@ -596,6 +597,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                     ref: ref,
                     postId: widget.postId,
                     isAlt: widget.isAlt,
+                    herdId: post.herdId,
                   ),
                 ],
               ),
@@ -605,8 +607,6 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       },
     );
   }
-
-  // In post_widget.dart and post_screen.dart, update the media item conversion:
 
   List<PostMediaModel> getMediaItemsFromPost(dynamic post) {
     List<PostMediaModel> mediaItems = [];
@@ -807,6 +807,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     required WidgetRef ref,
     required String postId,
     required bool isAlt,
+    String? herdId,
   }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
         PostParams(id: postId, isAlt: isAlt)));
@@ -825,7 +826,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 color: interactionState.isLiked ? Colors.green : Colors.grey),
             onPressed: interactionState.isLoading
                 ? null
-                : () => _handleLikePost(context, ref, postId),
+                : () => _handleLikePost(context, ref, postId, isAlt, herdId),
           ),
           // Display net likes (which can be negative)
           Text(
@@ -843,46 +844,33 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 color: interactionState.isDisliked ? Colors.red : Colors.grey),
             onPressed: interactionState.isLoading
                 ? null
-                : () => _handleDislikePost(context, ref, postId),
+                : () => _handleDislikePost(context, ref, postId, isAlt, herdId),
           ),
         ],
       ),
     );
   }
 
-  void _handleLikePost(BuildContext context, WidgetRef ref, String postId) {
-    final user = ref.read(currentUserProvider);
-    final userId = user.userId;
-
-    if (userId != null) {
-      ref
-          .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: postId, isAlt: widget.isAlt))
-              .notifier)
-          .likePost(userId, isAlt: widget.isAlt);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to like posts.')),
-      );
-    }
+  void _handleLikePost(
+      context, WidgetRef ref, String postId, bool isAlt, String? herdId) {
+    LikeDislikeHelper.handleLikePost(
+      context: context,
+      ref: ref,
+      postId: postId,
+      isAlt: isAlt,
+      herdId: herdId,
+    );
   }
 
-  void _handleDislikePost(BuildContext context, WidgetRef ref, String postId) {
-    final user = ref.read(currentUserProvider);
-    final userId = user.userId;
-
-    if (userId != null) {
-      ref
-          .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: postId, isAlt: widget.isAlt))
-              .notifier)
-          .dislikePost(userId, isAlt: widget.isAlt);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('You must be logged in to dislike posts.')),
-      );
-    }
+  void _handleDislikePost(
+      context, WidgetRef ref, String postId, bool isAlt, String? herdId) {
+    LikeDislikeHelper.handleDislikePost(
+      context: context,
+      ref: ref,
+      postId: postId,
+      isAlt: isAlt,
+      herdId: herdId,
+    );
   }
 
   ImageProvider? _getCurrentUserProfileImage() {

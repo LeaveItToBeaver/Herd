@@ -260,6 +260,7 @@ class HerdRepository {
   }
 
   /// Get posts from a herd with pagination
+  /// Get posts from a herd with pagination
   Future<List<PostModel>> getHerdPosts({
     required String herdId,
     int limit = 15,
@@ -267,26 +268,103 @@ class HerdRepository {
     String? lastPostId,
   }) async {
     try {
-      // Query for posts in the herd with pagination
-      Query<Map<String, dynamic>> query =
-          herdPosts(herdId).orderBy('hotScore', descending: true);
+      // STEP 1: Query for herd post references first
+      Query<Map<String, dynamic>> herdPostsQuery = _firestore
+          .collection('herdPosts')
+          .doc(herdId)
+          .collection('posts')
+          .orderBy('hotScore', descending: true);
 
-      // Apply pagination if lastHotScore is provided
+      // Add a second orderBy - must use a separate call
+      herdPostsQuery = herdPostsQuery.orderBy(FieldPath.documentId);
+
+      // Apply pagination if provided
       if (lastHotScore != null && lastPostId != null) {
-        query = query.startAfter([lastHotScore, lastPostId]);
+        // Fixed startAfter to use the correct format
+        herdPostsQuery = herdPostsQuery.startAfter([lastHotScore, lastPostId]);
       }
 
       // Apply limit
-      query = query.limit(limit);
+      herdPostsQuery = herdPostsQuery.limit(limit);
 
-      final snapshot = await query.get();
+      // Execute query to get references
+      final refSnapshot = await herdPostsQuery.get();
 
-      // Convert to PostModel objects
-      List<PostModel> posts = snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.id, doc.data()))
-          .toList();
+      // Fixed empty check
+      if (refSnapshot.docs.isEmpty) {
+        return [];
+      }
 
-      return posts;
+      // STEP 2: Extract post IDs and source collection references
+      final postRefs = refSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'sourceCollection': data['sourceCollection'] ?? 'altPosts',
+          'hotScore': data['hotScore'] ?? 0.0,
+        };
+      }).toList();
+
+      // STEP 3: Fetch complete post data
+      List<PostModel> completePosts = [];
+
+      // Process in batches of 10 (Firestore limitation for 'in' queries)
+      for (int i = 0; i < postRefs.length; i += 10) {
+        final end = (i + 10 < postRefs.length) ? i + 10 : postRefs.length;
+        final batch = postRefs.sublist(i, end);
+
+        // Get post IDs for this batch
+        final batchIds = batch.map((ref) => ref['id'] as String).toList();
+
+        if (batchIds.isEmpty) continue;
+
+        // Most posts will be in altPosts collection, so query there first
+        final altPostsQuery = _firestore
+            .collection('altPosts')
+            .where(FieldPath.documentId, whereIn: batchIds);
+
+        final altPostsSnapshot = await altPostsQuery.get();
+
+        // Create a modifiable copy of batchIds
+        final remainingIds = List<String>.from(batchIds);
+
+        // Process found posts
+        for (final doc in altPostsSnapshot.docs) {
+          final postData = doc.data();
+          // Find the original hot score from the reference
+          final refIndex = batch.indexWhere((ref) => ref['id'] == doc.id);
+          if (refIndex >= 0) {
+            postData['hotScore'] = batch[refIndex]['hotScore'];
+          }
+          completePosts.add(PostModel.fromMap(doc.id, postData));
+          // Remove from IDs to check in other collections
+          remainingIds.remove(doc.id);
+        }
+
+        // If any posts weren't found in altPosts, check posts collection
+        if (remainingIds.isNotEmpty) {
+          final publicPostsQuery = _firestore
+              .collection('posts')
+              .where(FieldPath.documentId, whereIn: remainingIds);
+
+          final publicPostsSnapshot = await publicPostsQuery.get();
+
+          for (final doc in publicPostsSnapshot.docs) {
+            final postData = doc.data();
+            final refIndex = batch.indexWhere((ref) => ref['id'] == doc.id);
+            if (refIndex >= 0) {
+              postData['hotScore'] = batch[refIndex]['hotScore'];
+            }
+            completePosts.add(PostModel.fromMap(doc.id, postData));
+          }
+        }
+      }
+
+      // Sort by original hot score to maintain order
+      completePosts
+          .sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
+
+      return completePosts;
     } catch (e, stackTrace) {
       logError('getHerdPosts', e, stackTrace);
       rethrow;

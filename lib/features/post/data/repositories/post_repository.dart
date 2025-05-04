@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 
 import '../../../user/data/repositories/user_repository.dart';
@@ -615,68 +616,102 @@ class PostRepository {
   }
 
   /// Liking and Disliking Posts ///
-  Future<void> likePost(
-      {required String postId,
-      required String userId,
-      required bool isAlt}) async {
+  Future<void> likePost({
+    required String postId,
+    required String userId,
+    required bool isAlt,
+    String? feedType,
+    String? herdId,
+  }) async {
     try {
-      // Call the Cloud Function to handle like/unlike
-      if (isAlt) {
-        // For alt posts, use the alt-specific Cloud Function
-        await _functions.httpsCallable('handlePostInteraction').call({
-          'postId': postId,
-          'interactionType': 'like',
-          'feedType': 'alt',
-        });
-      } else {
-        // For public posts, use the regular Cloud Function
-        await _functions.httpsCallable('handlePostInteraction').call({
-          'postId': postId,
-          'interactionType': 'like',
-          'feedType': 'public',
-        });
+      // Determine the effective feed type if not provided
+      final effectiveFeedType = feedType ?? (isAlt ? 'alt' : 'public');
+
+      // Add herdId to the parameters when it's a herd post
+      final params = {
+        'postId': postId,
+        'interactionType': 'like',
+        'feedType': effectiveFeedType,
+      };
+
+      // Only add herdId if it's provided and it's a herd post
+      if (effectiveFeedType == 'herd' && herdId != null) {
+        params['herdId'] = herdId;
       }
 
-      // Process result if needed
-      debugPrint('Like operation completed via Cloud Function');
-    } on FirebaseFunctionsException catch (error) {
-      debugPrint('Error in Cloud Function: ${error.message}');
-      // Fall back to direct implementation if needed
-      await _directLikePost(postId: postId, userId: userId);
+      // Call the Cloud Function with the parameters
+      await _functions.httpsCallable('handlePostInteraction').call(params);
     } catch (e) {
       debugPrint('Error liking post: $e');
       rethrow;
     }
   }
 
-  Future<void> dislikePost(
-      {required String postId,
-      required String userId,
-      required bool isAlt}) async {
+  Future<void> dislikePost({
+    required String postId,
+    required String userId,
+    required bool isAlt,
+    String? feedType,
+    String? herdId,
+  }) async {
     try {
-      if (isAlt) {
-        // For alt posts, use the alt-specific Cloud Function
-        await _functions.httpsCallable('handlePostInteraction').call({
-          'postId': postId,
-          'interactionType': 'dislike',
-          'feedType': 'alt',
-        });
-      } else {
-        // For public posts, use the regular Cloud Function
-        await _functions.httpsCallable('handlePostInteraction').call({
-          'postId': postId,
-          'interactionType': 'dislike',
-          'feedType': 'public',
-        });
+      // Determine the effective feed type if not provided
+      final effectiveFeedType = feedType ?? (isAlt ? 'alt' : 'public');
+
+      // Add herdId to the parameters when it's a herd post
+      final params = {
+        'postId': postId,
+        'interactionType': 'dislike',
+        'feedType': effectiveFeedType,
+      };
+
+      // Only add herdId if it's provided and it's a herd post
+      if (effectiveFeedType == 'herd' && herdId != null) {
+        params['herdId'] = herdId;
       }
-      // Process result if needed
-      debugPrint('Like operation completed via Cloud Function');
-    } on FirebaseFunctionsException catch (error) {
-      debugPrint('Error in Cloud Function: ${error.message}');
-      // Fall back to direct implementation if needed
-      await _directDislikePost(postId: postId, userId: userId);
+
+      // Call the Cloud Function with the parameters
+      await _functions.httpsCallable('handlePostInteraction').call(params);
     } catch (e) {
-      debugPrint('Error liking post: $e');
+      debugPrint('Error disliking post: $e');
+      rethrow;
+    }
+  }
+
+  Future<String> createHerdPost({
+    required PostModel post,
+    required String herdId,
+    required String userId,
+  }) async {
+    try {
+      // Set the correct post attributes
+      final postWithHerdId = post.copyWith(
+          herdId: herdId,
+          isAlt:
+              true, // All herd posts are considered alt posts in the new structure
+          feedType: 'herd');
+
+      // For consistency, create the same document ID for both locations
+      final postRef = _firestore
+          .collection('herdPosts')
+          .doc(herdId)
+          .collection('posts')
+          .doc();
+
+      final postId = postRef.id;
+
+      // The actual post creation is handled by the Firebase functions
+      // which implement our new structure, so we just need to create
+      // the initial document
+
+      await postRef.set({
+        ...postWithHerdId.toMap(),
+        'id': postId,
+      });
+
+      return postId;
+    } catch (e) {
+      debugPrint('Error creating herd post: $e');
       rethrow;
     }
   }

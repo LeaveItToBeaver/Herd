@@ -144,6 +144,7 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
 
       if (_isActive) state = state.copyWith(isLoading: true, error: null);
 
+      // Use the updated repository method to get joined posts
       final posts = await repository.getHerdPosts(
         herdId: herdId,
         limit: pageSize,
@@ -156,6 +157,12 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
           hasMorePosts: posts.length >= pageSize,
           lastPost: posts.isNotEmpty ? posts.last : null,
         );
+      }
+
+      // Initialize interactions for visible posts
+      final currentUser = ref.read(authProvider);
+      if (currentUser?.uid != null && posts.isNotEmpty) {
+        await _batchInitializePostInteractions(currentUser!.uid, posts);
       }
     } catch (e) {
       if (_isActive) {

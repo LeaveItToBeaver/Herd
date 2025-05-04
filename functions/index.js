@@ -364,51 +364,50 @@ exports.distributeHerdPost = onDocumentCreated(
       return null;
     }
 
-    // Calculate initial hot score
-    const initialHotScore = hotAlgorithm.calculateHotScore(
-      0,
-      postData.createdAt ? postData.createdAt.toDate() : new Date()
-    );
-
-    // Add feedType and hotScore
-    //    const enhancedPostData = {
-    //      ...postData,
-    //      hotScore: initialHotScore,
-    //      feedType: 'herd',
-    //      herdId: herdId  // Ensure herdId is always set
-    //    };
-
     try {
       // Get herd details to check if private
       const herdDoc = await firestore.collection("herds").doc(herdId).get();
       const herdData = herdDoc.data();
       const isPrivateHerd = herdData?.isPrivate || false;
 
+      // Calculate initial hot score
+      const initialHotScore = hotAlgorithm.calculateHotScore(
+        0,
+        postData.createdAt ? postData.createdAt.toDate() : new Date()
+      );
+
+      // Add feedType and hotScore
       let enhancedPostData = {
         ...postData,
         hotScore: initialHotScore,
         feedType: 'herd',
-        herdId: herdId
+        herdId: herdId,
+        herdName: herdData?.name || '',
+        herdProfileImageURL: herdData?.profileImageURL || ''
       };
 
-      // Find all media items associated with this post
+      // Find media items
       const mediaItems = await findPostMediaItems(postId, postData.authorId, false);
-
       if (mediaItems && mediaItems.length > 0) {
-        logger.info(`Found ${mediaItems.length} media items for post ${postId}`);
         enhancedPostData.mediaItems = mediaItems;
-
-        // Update the source post with media items
-        await event.data.ref.update({ mediaItems });
       }
 
+      // REFACTORED APPROACH: Store complete data only in altPosts
+      await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
 
+      // REFACTORED APPROACH: Store only minimal reference data in herdPosts
+      const minimalPostData = {
+        id: postId,
+        authorId: postData.authorId,
+        createdAt: postData.createdAt,
+        hotScore: initialHotScore,
+        sourcePostRef: 'altPosts/' + postId  // Reference to the source of truth
+      };
 
-      // Add herd name and image to post data for easier rendering
-      enhancedPostData.herdName = herdData?.name || '';
-      enhancedPostData.herdProfileImageURL = herdData?.profileImageURL || '';
+      // Update the herd post document with minimal data
+      await event.data.ref.update(minimalPostData);
 
-      // Fan out to herd members
+      // Fan out minimal references to herd members' feeds
       const herdMembersSnapshot = await firestore
         .collection("herdMembers")
         .doc(herdId)
@@ -416,15 +415,8 @@ exports.distributeHerdPost = onDocumentCreated(
         .get();
 
       const herdMemberIds = herdMembersSnapshot.docs.map(doc => doc.id);
-      await fanOutToUserFeeds(postId, enhancedPostData, herdMemberIds);
+      await fanOutReferencesToUserFeeds(postId, minimalPostData, herdMemberIds);
 
-      // For public herds, add to the global alt feed for discovery
-      if (!isPrivateHerd) {
-        await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
-        logger.info(`Added herd post ${postId} to global alt feed (public herd)`);
-      }
-
-      logger.info(`Distributed herd post ${postId} to ${herdMemberIds.length} members`);
       return null;
     } catch (error) {
       logger.error(`Error distributing herd post ${postId}:`, error);
@@ -433,6 +425,47 @@ exports.distributeHerdPost = onDocumentCreated(
   }
 );
 
+// Helper function for fan-out operations with minimal reference data
+async function fanOutReferencesToUserFeeds(postId, minimalPostData, userIds) {
+  if (userIds.length === 0) return;
+
+  // Extract only the minimal necessary reference data
+  const referenceData = {
+    id: postId,
+    authorId: minimalPostData.authorId,
+    createdAt: minimalPostData.createdAt,
+    hotScore: minimalPostData.hotScore || 0,
+    feedType: 'herd',
+    herdId: minimalPostData.herdId,
+    sourceCollection: 'altPosts',  // Where to find the full post data
+  };
+
+  // Batch processing
+  const MAX_BATCH_SIZE = 500;
+  let batch = firestore.batch();
+  let operationCount = 0;
+
+  for (const userId of userIds) {
+    const userFeedRef = firestore
+      .collection("userFeeds")
+      .doc(userId)
+      .collection("feed")
+      .doc(postId);
+
+    batch.set(userFeedRef, referenceData);
+    operationCount++;
+
+    if (operationCount >= MAX_BATCH_SIZE) {
+      await batch.commit();
+      batch = firestore.batch();
+      operationCount = 0;
+    }
+  }
+
+  if (operationCount > 0) {
+    await batch.commit();
+  }
+}
 
 exports.populateHerdPostMediaItems = onDocumentCreated(
   "herdPosts/{herdId}/posts/{postId}",
@@ -903,7 +936,8 @@ exports.handlePostInteraction = onCall({
     const {
       postId,
       interactionType,
-      feedType
+      feedType,
+      herdId
     } = request.data;
 
     // Validate authentication
@@ -911,17 +945,42 @@ exports.handlePostInteraction = onCall({
       throw new HttpsError('unauthenticated', 'User must be logged in');
     }
 
+    if (feedType === 'herd' && !herdId) {
+      throw new HttpsError('invalid-argument', 'herdId is required for herd posts');
+    }
+
+
     const userId = request.auth.uid;
 
     let postRef;
 
-    if (feedType === 'public') {
+    // If it's a herd post, we need to first find out where the full data is stored
+    if (feedType === 'herd') {
+      // First get the reference data from herdPosts
+      const herdPostRefDoc = await firestore
+        .collection('herdPosts')
+        .doc(herdId)
+        .collection('posts')
+        .doc(postId)
+        .get();
+
+      if (!herdPostRefDoc.exists) {
+        throw new HttpsError('not-found', 'Post reference not found');
+      }
+
+      // Extract the source collection from the reference data
+      const sourceCollection = herdPostRefDoc.data().sourceCollection || 'altPosts';
+
+      // Set reference to the actual full post data
+      postRef = firestore.collection(sourceCollection).doc(postId);
+    }
+    else if (feedType === 'public') {
       postRef = firestore.collection('posts').doc(postId);
-    } else if (feedType === 'alt') {
+    }
+    else if (feedType === 'alt') {
       postRef = firestore.collection('altPosts').doc(postId);
-    } else if (feedType === 'herd') {
-      postRef = firestore.collection('herdPosts').doc(herdId).collection('posts').doc(postId);
-    } else {
+    }
+    else {
       throw new HttpsError('invalid-argument', 'Invalid feed type');
     }
 

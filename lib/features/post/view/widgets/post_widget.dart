@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -776,49 +777,41 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           // Like button - always show
           Consumer(
             builder: (context, ref, child) {
-              // Watch isLiked for icon state, totalLikes for the count, isLoading for disabling
-              final likeState = ref.watch(postInteractionsWithPrivacyProvider(
-                      PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
-                  .select((state) => (
-                        state.isLiked,
-                        state.totalLikes,
-                        state.isLoading
-                      ))); // <-- Use totalLikes here
+              // Use PostParams with herdId to get the correct interaction state
+              final params =
+                  PostParams(id: widget.post.id, isAlt: widget.post.isAlt);
+
+              final likeState = ref.watch(
+                  postInteractionsWithPrivacyProvider(params).select((state) =>
+                      (state.isLiked, state.totalLikes, state.isLoading)));
 
               return _buildActionButton(
                 likeState.$1 ? Icons.thumb_up : Icons.thumb_up_outlined,
-                likeState.$3
-                    ? '...'
-                    : '${likeState.$2}', // Show "..." during loading
+                likeState.$3 ? '...' : '${likeState.$2}',
                 color: likeState.$1 ? Colors.green : null,
                 onPressed: likeState.$3 ? null : () => _handleLikePost(),
               );
             },
           ),
 
+          // Dislike button
           Consumer(
             builder: (context, ref, child) {
-              // Watch isDisliked for icon state, isLoading for disabling
+              final params =
+                  PostParams(id: widget.post.id, isAlt: widget.post.isAlt);
+
               final dislikeState = ref.watch(
-                  postInteractionsWithPrivacyProvider(PostParams(
-                          id: widget.post.id, isAlt: widget.post.isAlt))
-                      .select((state) => (
-                            state.isDisliked,
-                            // state.totalRawDislikes, // No longer needed for display here
-                            state.isLoading
-                          )));
+                  postInteractionsWithPrivacyProvider(params)
+                      .select((state) => (state.isDisliked, state.isLoading)));
 
               return _buildActionButton(
                 dislikeState.$1 ? Icons.thumb_down : Icons.thumb_down_outlined,
-                '', // <-- Keep count empty for dislike button
+                '', // No count displayed for dislikes
                 color: dislikeState.$1 ? Colors.red : null,
-                onPressed: dislikeState.$2
-                    ? null
-                    : () => _handleDislikePost(), // <-- Index adjusted
+                onPressed: dislikeState.$2 ? null : () => _handleDislikePost(),
               );
             },
           ),
-
           Consumer(
             builder: (context, ref, child) {
               // Watch the specific post stream for real-time updates
@@ -917,37 +910,23 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   void _handleLikePost() {
-    final user = ref.read(currentUserProvider);
-    final userId = user.userId;
-
-    if (userId != null) {
-      ref
-          .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
-              .notifier)
-          .likePost(userId, isAlt: widget.post.isAlt);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to like posts')),
-      );
-    }
+    LikeDislikeHelper.handleLikePost(
+      context: context,
+      ref: ref,
+      postId: widget.post.id,
+      isAlt: widget.post.isAlt,
+      herdId: widget.post.herdId,
+    );
   }
 
   void _handleDislikePost() {
-    final user = ref.read(currentUserProvider);
-    final userId = user.userId;
-
-    if (userId != null) {
-      ref
-          .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
-              .notifier)
-          .dislikePost(userId, isAlt: widget.post.isAlt);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to dislike posts')),
-      );
-    }
+    LikeDislikeHelper.handleDislikePost(
+      context: context,
+      ref: ref,
+      postId: widget.post.id,
+      isAlt: widget.post.isAlt,
+      herdId: widget.post.herdId,
+    );
   }
 
   void _sharePost() {
