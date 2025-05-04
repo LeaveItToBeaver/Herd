@@ -6,22 +6,32 @@ import '../../user/view/providers/current_user_provider.dart';
 import '../view/providers/post_provider.dart';
 
 class LikeDislikeHelper {
-  // Static methods that don't depend on class instance
   static void handleLikePost({
     required BuildContext context,
     required WidgetRef ref,
     required String postId,
     required bool isAlt,
+    String? herdId,
   }) {
     final user = ref.read(currentUserProvider);
     final userId = user.userId;
 
-    if (user.userId != null) {
+    if (userId != null) {
+      // Determine the correct feedType based on post properties
+      final String feedType;
+      if (herdId != null && herdId.isNotEmpty) {
+        feedType = 'herd';
+      } else if (isAlt) {
+        feedType = 'alt';
+      } else {
+        feedType = 'public';
+      }
+
       ref
           .read(postInteractionsWithPrivacyProvider(
                   PostParams(id: postId, isAlt: isAlt))
               .notifier)
-          .likePost(userId!, isAlt: isAlt);
+          .likePost(userId, isAlt: isAlt, feedType: feedType, herdId: herdId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to like posts.')),
@@ -34,16 +44,28 @@ class LikeDislikeHelper {
     required WidgetRef ref,
     required String postId,
     required bool isAlt,
+    String? herdId,
   }) {
     final user = ref.read(currentUserProvider);
     final userId = user.userId;
 
     if (userId != null) {
+      // Determine the correct feedType based on post properties
+      final String feedType;
+      if (herdId != null && herdId.isNotEmpty) {
+        feedType = 'herd';
+      } else if (isAlt) {
+        feedType = 'alt';
+      } else {
+        feedType = 'public';
+      }
+
       ref
           .read(postInteractionsWithPrivacyProvider(
                   PostParams(id: postId, isAlt: isAlt))
               .notifier)
-          .dislikePost(userId, isAlt: isAlt);
+          .dislikePost(userId,
+              isAlt: isAlt, feedType: feedType, herdId: herdId);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -52,13 +74,14 @@ class LikeDislikeHelper {
     }
   }
 
-  // Helper method to build the UI for like/dislike buttons
+  // Helper method to build the UI for like/dislike buttons - you can keep this as is
   static Widget buildLikeDislikeButtons({
     required BuildContext context,
     required WidgetRef ref,
     required int likes,
     required String postId,
     required bool isAlt,
+    String? herdId,
   }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
         PostParams(id: postId, isAlt: isAlt)));
@@ -83,6 +106,7 @@ class LikeDislikeHelper {
               ref: ref,
               postId: postId,
               isAlt: isAlt,
+              herdId: herdId,
             ),
           ),
           Text(displayLikes.toString()),
@@ -97,6 +121,7 @@ class LikeDislikeHelper {
               ref: ref,
               postId: postId,
               isAlt: isAlt,
+              herdId: herdId,
             ),
           ),
         ],
