@@ -2,7 +2,9 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
+import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:video_player/video_player.dart';
 
@@ -21,11 +23,13 @@ import 'edit_post_screen.dart';
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
   final bool isAlt;
+  final String? herdId;
 
   const PostScreen({
     super.key,
     required this.postId,
     this.isAlt = false,
+    this.herdId,
   });
 
   @override
@@ -49,7 +53,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
         // Use the updated provider with PostParams
         ref
             .read(postInteractionsWithPrivacyProvider(
-                    PostParams(id: widget.postId, isAlt: widget.isAlt))
+                    // Pass params needed by interactions provider
+                    PostParams(
+                        id: widget.postId,
+                        isAlt: widget.isAlt,
+                        herdId: widget.herdId))
                 .notifier)
             .initializeState(userId);
       }
@@ -116,14 +124,19 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 // In your PostScreen widget
   @override
   Widget build(BuildContext context) {
-    final postAsyncValue = ref.watch(widget.isAlt
-        ? postProviderWithPrivacy(
-            PostParams(id: widget.postId, isAlt: widget.isAlt))
-        : postProvider(widget.postId));
+    final staticPostAsyncValue = ref.watch(staticPostProvider(PostParams(
+        id: widget.postId,
+        isAlt: widget
+            .isAlt))); // Don't pass herdId if static provider doesn't need it
     final currentUserAsync = ref.watch(currentUserProvider);
     final currentUser = currentUserAsync.userOrNull;
 
+    // We still need PostParams for the interaction provider later
+    final interactionParams = PostParams(
+        id: widget.postId, isAlt: widget.isAlt, herdId: widget.herdId);
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: widget.isAlt ? Colors.blue : Colors.white,
         title: LayoutBuilder(builder: (context, constraints) {
@@ -135,7 +148,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                   child: Icon(Icons.lock, size: 20),
                 ),
               Expanded(
-                child: postAsyncValue.when(
+                child: staticPostAsyncValue.when(
                   data: (post) => Text(
                     post?.title ?? 'Post',
                     overflow: TextOverflow.ellipsis,
@@ -165,17 +178,21 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       ),
 
       // Main content with RefreshIndicator for pull-to-refresh
-      body: postAsyncValue.when(
+      body: staticPostAsyncValue.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
         data: (post) {
           if (post == null) {
             return const Center(child: Text('Post not found.'));
           }
+          if (currentUser == null) {
+            return const Center(
+                child: Text('User not found.')); // Handle missing user
+          }
 
           // Wrap with RefreshIndicator for pull-to-refresh
           return RefreshIndicator(
-            onRefresh: () => _refreshPost(),
+            onRefresh: () => _refreshPost(interactionParams),
             child: SingleChildScrollView(
               // Important: physics needed for RefreshIndicator to work
               physics: const AlwaysScrollableScrollPhysics(),
@@ -242,7 +259,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                     ),
 
                   // Post content
-                  _buildPostContent(postAsyncValue, currentUser!),
+                  _buildPostContent(post, currentUser!),
 
                   // Comments section header
                   Padding(
@@ -270,45 +287,34 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
-  Future<void> _refreshPost() async {
+  Future<void> _refreshPost(PostParams interactionParams) async {
+    // Accept params
     try {
-      // Show a loading indicator
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Refreshing...'),
           duration: Duration(milliseconds: 800)));
 
-      // Force invalidate all related providers
-      if (widget.isAlt) {
-        ref.refresh(postProviderWithPrivacy(
-            PostParams(id: widget.postId, isAlt: true)));
-      } else {
-        ref.refresh(postProvider(widget.postId));
-      }
+      // 1. Invalidate the static provider to force a re-fetch
+      ref.invalidate(staticPostProvider(
+          PostParams(id: widget.postId, isAlt: widget.isAlt)));
 
-      // Force reload comments
+      // 2. Reload comments (no change needed here)
       await ref.read(commentsProvider(widget.postId).notifier).loadComments();
       await ref.read(repliesProvider(widget.postId).notifier).loadReplies();
 
-      // Reload interaction data
+      // 3. Reload interaction data
       final user = ref.read(currentUserProvider);
       final userId = user.userId;
       if (userId != null) {
-        // Use the existing interaction provider
-        ref.invalidate(postInteractionsWithPrivacyProvider(
-            PostParams(id: widget.postId, isAlt: widget.isAlt)));
-
-        // Initialize the interaction state
+        // Invalidate and re-initialize the interactions provider
+        ref.invalidate(postInteractionsWithPrivacyProvider(interactionParams));
         await ref
-            .read(postInteractionsWithPrivacyProvider(
-                    PostParams(id: widget.postId, isAlt: widget.isAlt))
-                .notifier)
+            .read(
+                postInteractionsWithPrivacyProvider(interactionParams).notifier)
             .initializeState(userId);
       }
 
-      // Force UI update
-      if (mounted) {
-        setState(() {});
-      }
+      // No need for setState({}) here as provider invalidation triggers rebuilds
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -371,235 +377,388 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
-  Widget _buildPostContent(
-      AsyncValue<dynamic> postAsyncValue, UserModel currentUser) {
-    return postAsyncValue.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('Error: $error')),
-      data: (post) {
-        if (post == null) {
-          return const Center(child: Text('Post not found.'));
-        }
+  Widget _buildPostContent(PostModel post, UserModel currentUser) {
+    final theme = Theme.of(context);
 
-        final userAsyncValue = ref.watch(userProvider(post.authorId));
-        int postLikes = post.likeCount;
-        int commentCount = post.commentCount;
+    debugPrint(
+        'Building _buildPostContent UI for post ${post.id}'); // Should print less often now
 
-        // Initialize video if this is a video post
-        if (post.mediaType == 'video' && post.mediaURL != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _initializeVideo(post.mediaURL!);
-          });
-        }
+    // Initialize video logic (needs adjustment if it relied on AsyncValue lifecycle)
+    // Consider moving initialization to initState or based on the staticPostProvider's data state
+    // This needs careful handling to avoid re-initializing on every build.
+    // Maybe trigger _initializeVideo only when the post.mediaURL changes.
+    // For now, keep the existing logic but be aware it might run frequently.
+    if (post.mediaType == 'video' &&
+        post.mediaURL != null &&
+        !_isVideoInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _initializeVideo(post.mediaURL!);
+      });
+    } else if (post.mediaType != 'video' && _isVideoInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _disposeVideoControllers();
+        // Consider setState if _isVideoInitialized needs update for UI
+      });
+    }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            userAsyncValue.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, stack) => Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text('Error: $error'),
-              ),
-              data: (user) {
-                if (user == null) {
-                  return const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Text('User not found'),
-                  );
-                }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Consumer(builder: (context, ref, child) {
+          // Watch the provider for the specific author of this post
+          final userAsyncValue = ref.watch(userProvider(post.authorId));
 
-                // Determine which profile image to use based on privacy
-                final profileImageUrl = post.isAlt
-                    ? user.altProfileImageURL ?? user.profileImageURL
-                    : user.profileImageURL;
-
-                return Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
+          // Handle loading, error, and data states for the author's details
+          return userAsyncValue.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(12.0),
+              // Show a simple loading indicator or a shimmer placeholder
+              child: Row(
+                children: [
+                  CircleAvatar(radius: 25, backgroundColor: Colors.grey),
+                  SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          // Navigate to appropriate profile
-                          if (post.isAlt) {
-                            context.pushNamed(
-                              'altProfile',
-                              pathParameters: {'id': user.id},
-                            );
-                          } else {
-                            context.pushNamed(
-                              'publicProfile',
-                              pathParameters: {'id': user.id},
-                            );
-                          }
-                        },
-                        child: CircleAvatar(
-                          radius: 25,
-                          backgroundImage: profileImageUrl != null
-                              ? NetworkImage(profileImageUrl)
-                              : const AssetImage(
-                                      'assets/images/default_avatar.png')
-                                  as ImageProvider,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                // Navigate to appropriate profile
-                                if (post.isAlt) {
-                                  context.pushNamed(
-                                    'altProfile',
-                                    pathParameters: {'id': user.id},
-                                  );
-                                } else {
-                                  context.pushNamed(
-                                    'publicProfile',
-                                    pathParameters: {'id': user.id},
-                                  );
-                                }
-                              },
-                              child: Text(
-                                user.username ?? 'Anonymous',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Text(
-                              _formatTimestamp(post.createdAt),
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Edit/delete menu for post owner
-                      if (currentUser.id == post.authorId)
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert),
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      EditPostScreen(post: post),
-                                ),
-                              );
-                            } else if (value == 'delete') {
-                              _showDeleteConfirmation(context, post.id);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem<String>(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('Edit Post'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Delete Post',
-                                      style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                      SizedBox(
+                          height: 8,
+                          width: 100,
+                          child: LinearProgressIndicator()),
+                      SizedBox(height: 4),
+                      SizedBox(
+                          height: 8,
+                          width: 60,
+                          child: LinearProgressIndicator()),
                     ],
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // Post content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Post title
-                  Text(
-                    post.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Post content text
-                  Text(
-                    post.content,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Media content (if any)
-                  if (_hasMedia(post)) ...[
-                    post.isNSFW && !_showNSFWContent
-                        ? _buildNSFWContentOverlay()
-                        : _buildMedia(post),
-                  ],
                 ],
               ),
             ),
+            error: (error, stack) => Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(children: [
+                const CircleAvatar(radius: 25, child: Icon(Icons.error)),
+                const SizedBox(width: 10),
+                Text('Error loading author: $error'),
+              ]),
+            ),
+            data: (user) {
+              // Handle the case where the author user might not be found
+              if (user == null) {
+                return const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: Row(children: [
+                    CircleAvatar(radius: 25, child: Icon(Icons.person_off)),
+                    SizedBox(width: 10),
+                    Text('Author not found'),
+                  ]),
+                );
+              }
 
-            const SizedBox(height: 12),
+              // --- Build the actual author header using 'user', 'post', and 'currentUser' ---
+              // Determine which profile image to use based on post privacy (isAlt)
+              final profileImageUrl = post.isAlt
+                  ? user.altProfileImageURL ??
+                      user.profileImageURL // Fallback to public if alt is null
+                  : user.profileImageURL;
 
-            // Reaction buttons
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
-                  bottom: BorderSide(color: Colors.grey.shade200),
+              return Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        // Navigate to appropriate profile using user.id
+                        context.pushNamed(
+                          post.isAlt ? 'altProfile' : 'publicProfile',
+                          pathParameters: {'id': user.id},
+                        );
+                      },
+                      child: CircleAvatar(
+                        radius: 25,
+                        backgroundImage: profileImageUrl != null &&
+                                profileImageUrl.isNotEmpty
+                            ? NetworkImage(profileImageUrl)
+                            : const AssetImage(
+                                    'assets/images/default_avatar.png')
+                                as ImageProvider,
+                        // Add error builder for NetworkImage if needed
+                        onBackgroundImageError: (_, __) {
+                          // Optionally handle image load errors
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              // Navigate to appropriate profile using user.id
+                              context.pushNamed(
+                                post.isAlt ? 'altProfile' : 'publicProfile',
+                                pathParameters: {'id': user.id},
+                              );
+                            },
+                            child: Text(
+                              // Use author's username from 'user' object
+                              user.username ?? 'Anonymous',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Text(
+                            // Use post's timestamp from 'post' object
+                            _formatTimestamp(post.createdAt),
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Edit/delete menu: Show only if the logged-in user ('currentUser') is the author
+                    if (currentUser.id == post.authorId)
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            context.pushNamed(
+                              'editPost',
+                              pathParameters: {'id': post.id},
+                              queryParameters: {'isAlt': post.isAlt.toString()},
+                              extra: post, // Pass the static post object
+                            );
+                          } else if (value == 'delete') {
+                            // Pass post.id from the static post object
+                            _showDeleteConfirmation(context, post.id);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<String>(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit),
+                                SizedBox(width: 8),
+                                Text('Edit Post'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete Post',
+                                    style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              );
+            }, // End of data case
+          ); // End of userAsyncValue.when
+        }),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Post title
+              Text(
+                post.title!,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              width: MediaQuery.of(context).size.width,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildActionButton(
-                    icon: Icons.share_rounded,
-                    label: 'Share',
-                    onPressed:
-                        post.isAlt ? null : () {}, // Disable for alt posts
-                    enabled: !post.isAlt,
+              const SizedBox(height: 12),
+
+              // Post content text
+              Text(
+                post.content,
+                style: const TextStyle(fontSize: 16),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Media content (if any)
+              // Pass post object which contains media info
+              if (_hasMedia(post)) ...[
+                // Use a StatefulWidget or Consumer if NSFW state needs local management
+                // Assuming _showNSFWContent is managed by the parent _PostScreenState
+                post.isNSFW && !_showNSFWContent
+                    ? _buildNSFWContentOverlay() // This depends on _showNSFWContent state
+                    : _buildMedia(post), // This depends on post data
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(color: Colors.grey.shade200),
+              bottom: BorderSide(color: Colors.grey.shade200),
+            ),
+          ),
+          // width: MediaQuery.of(context).size.width,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Share Button (conditionally enabled)
+              _buildShareButton(post.isAlt), // Pass isAlt flag
+
+              // Comment Button (using Consumer to watch comment count)
+              _buildCommentButton(post.id, post.isAlt), // Pass IDs
+
+              // Like/Dislike Buttons (already uses Consumer internally)
+              _buildLikeDislikeButtons(),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildShareButton(bool isAlt) {
+    return TextButton.icon(
+      icon: Icon(
+        Icons.share_rounded,
+        size: 24, // Adjusted size
+        color: isAlt ? Colors.grey.shade400 : Colors.grey.shade700,
+      ),
+      label: Text(
+        'Share',
+        style: TextStyle(
+          color: isAlt ? Colors.grey.shade400 : Colors.grey.shade700,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onPressed: isAlt ? null : _sharePost, // Disable for alt posts
+      style: TextButton.styleFrom(
+        minimumSize: Size.zero,
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 8), // Adjust padding
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+
+  Widget _buildCommentButton(String postId, bool isAlt) {
+    return Consumer(
+      builder: (context, ref, child) {
+        // Watch the interaction state which includes the totalComments count
+        final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
+            PostParams(id: postId, isAlt: isAlt)));
+        // Directly access the totalComments integer from the state
+        final commentCount = interactionState.totalComments;
+
+        // Convert the integer count directly to a string for display
+        // No need for .when() as commentCount is an int, not an AsyncValue
+        final countDisplay = commentCount.toString();
+
+        return TextButton.icon(
+          icon: Icon(
+            Icons.comment_rounded,
+            size: 24, // Adjusted size
+            color: Colors.grey.shade700,
+          ),
+          label: Text(
+            countDisplay, // Use the direct string representation
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          onPressed: () {
+            // Scroll to comments or open comments section
+            // TODO: Implement scroll/navigation to comments
+            debugPrint("Comment button tapped");
+          },
+          style: TextButton.styleFrom(
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 8), // Adjust padding
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLikeDislikeButtons() {
+    // Make sure PostParams uses widget.postId and widget.isAlt
+    final params = PostParams(
+        id: widget.postId, isAlt: widget.isAlt, herdId: widget.herdId);
+
+    return Consumer(
+      builder: (context, ref, child) {
+        // Use select to minimize rebuilds
+        final interactionState = ref.watch(
+            postInteractionsWithPrivacyProvider(params).select((state) => (
+                  state.isLiked,
+                  state.isDisliked,
+                  state
+                      .totalLikes, // Ensure totalLikes is updated by the provider
+                  state.isLoading
+                )));
+
+        final isLiked = interactionState.$1;
+        final isDisliked = interactionState.$2;
+        final totalLikes = interactionState.$3;
+        final isLoading = interactionState.$4;
+
+        // Use a Row or specific layout widgets
+        return Row(
+          mainAxisSize: MainAxisSize.min, // Take minimum space needed
+          children: [
+            SizedBox(
+              // Wrap IconButton in SizedBox for consistent sizing
+              width: 48, height: 48,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                  color: isLiked ? Colors.green : Colors.grey.shade700,
+                  size: 24, // Adjusted size
+                ),
+                onPressed: isLoading ? null : _handleLikePost,
+              ),
+            ),
+            SizedBox(
+              // Add SizedBox for spacing and consistent layout
+              width: 30, // Adjust width as needed
+              child: Center(
+                child: Text(
+                  totalLikes.toString(),
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w500,
                   ),
-                  _buildActionButton(
-                    icon: Icons.comment_rounded,
-                    label: commentCount.toString(),
-                    onPressed: () {
-                      // TODO: Implement opening comments section
-                    },
-                  ),
-                  _buildLikeDislikeButtons(
-                    context: context,
-                    ref: ref,
-                    postId: widget.postId,
-                    isAlt: widget.isAlt,
-                    herdId: post.herdId,
-                  ),
-                ],
+                ),
+              ),
+            ),
+            SizedBox(
+              // Wrap IconButton in SizedBox
+              width: 48, height: 48,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+                  color: isDisliked ? Colors.red : Colors.grey.shade700,
+                  size: 24, // Adjusted size
+                ),
+                onPressed: isLoading ? null : _handleDislikePost,
               ),
             ),
           ],
@@ -769,107 +928,107 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
+  Widget _buildActionButton(
+    IconData icon,
+    String count, {
+    Color? color,
     required VoidCallback? onPressed,
-    bool enabled = true,
   }) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: Icon(
+        icon,
+        size: 32,
+        color: color ?? Colors.grey.shade700,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                icon,
-                color: enabled ? Colors.black : Colors.grey,
-              ),
-              onPressed: onPressed,
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                color: enabled ? Colors.black : Colors.grey,
-              ),
-            ),
-          ],
+      label: Text(
+        count,
+        style: TextStyle(
+          color: color ?? Colors.grey.shade700,
+          fontWeight: FontWeight.w500,
         ),
       ),
-    );
-  }
-
-  Widget _buildLikeDislikeButtons({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String postId,
-    required bool isAlt,
-    String? herdId,
-  }) {
-    final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: postId, isAlt: isAlt)));
-
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(
-                interactionState.isLiked
-                    ? Icons.thumb_up
-                    : Icons.thumb_up_outlined,
-                color: interactionState.isLiked ? Colors.green : Colors.grey),
-            onPressed: interactionState.isLoading
-                ? null
-                : () => _handleLikePost(context, ref, postId, isAlt, herdId),
-          ),
-          // Display net likes (which can be negative)
-          Text(
-            interactionState.totalLikes.toString(),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: interactionState.totalLikes < 0 ? Colors.red : null,
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-                interactionState.isDisliked
-                    ? Icons.thumb_down
-                    : Icons.thumb_down_outlined,
-                color: interactionState.isDisliked ? Colors.red : Colors.grey),
-            onPressed: interactionState.isLoading
-                ? null
-                : () => _handleDislikePost(context, ref, postId, isAlt, herdId),
-          ),
-        ],
+      style: TextButton.styleFrom(
+        minimumSize: Size.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
 
-  void _handleLikePost(
-      context, WidgetRef ref, String postId, bool isAlt, String? herdId) {
+// // Update the _buildLikeDislikeButtons method
+//   Widget _buildLikeDislikeButtons() {
+//     return Consumer(
+//       builder: (context, ref, child) {
+//         final params = PostParams(
+//             id: widget.postId, isAlt: widget.isAlt, herdId: widget.herdId);
+//         // Use select to minimize rebuilds
+//         final interactionState = ref.watch(
+//             postInteractionsWithPrivacyProvider(params).select((state) => (
+//                   state.isLiked,
+//                   state.isDisliked,
+//                   state.totalLikes,
+//                   state.isLoading
+//                 )));
+//         final isLiked = interactionState.$1;
+//         final isDisliked = interactionState.$2;
+//         final totalLikes = interactionState.$3;
+//         final isLoading = interactionState.$4;
+//         // Use a Row with defined constraints
+//         return SizedBox(
+//           height: 48,
+//           child: Row(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               IconButton(
+//                 icon: Icon(
+//                   isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+//                   color: isLiked ? Colors.green : Colors.grey,
+//                 ),
+//                 onPressed: isLoading ? null : _handleLikePost,
+//               ),
+//               Text(totalLikes.toString()),
+//               IconButton(
+//                 icon: Icon(
+//                   isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+//                   color: isDisliked ? Colors.red : Colors.grey,
+//                 ),
+//                 onPressed: isLoading ? null : _handleDislikePost,
+//               ),
+//             ],
+//           ),
+//         );
+//       },
+//     );
+//   }
+
+  void _sharePost() {
+    // Only allow sharing public posts
+    if (widget.isAlt) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sharing post...')),
+    );
+    // Implement actual sharing functionality
+  }
+
+  void _handleLikePost() {
     LikeDislikeHelper.handleLikePost(
       context: context,
       ref: ref,
-      postId: postId,
-      isAlt: isAlt,
-      herdId: herdId,
+      postId: widget.postId,
+      isAlt: widget.isAlt,
+      herdId: widget.herdId,
     );
   }
 
-  void _handleDislikePost(
-      context, WidgetRef ref, String postId, bool isAlt, String? herdId) {
+  void _handleDislikePost() {
     LikeDislikeHelper.handleDislikePost(
       context: context,
       ref: ref,
-      postId: postId,
-      isAlt: isAlt,
-      herdId: herdId,
+      postId: widget.postId,
+      isAlt: widget.isAlt,
+      herdId: widget.herdId,
     );
   }
 
