@@ -42,8 +42,9 @@ final postProvider = StreamProvider.family<PostModel?, String>((ref, postId) {
 class PostParams {
   final String id;
   final bool isAlt;
+  final String? herdId;
 
-  PostParams({required this.id, required this.isAlt});
+  PostParams({required this.id, required this.isAlt, this.herdId});
 
   @override
   bool operator ==(Object other) =>
@@ -61,6 +62,13 @@ final postProviderWithPrivacy =
     StreamProvider.family<PostModel?, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.streamPost(params.id, isAlt: params.isAlt);
+});
+
+final staticPostProvider =
+    FutureProvider.family<PostModel?, PostParams>((ref, params) async {
+  final repository = ref.watch(postRepositoryProvider);
+  // Fetch the post data a single time
+  return repository.getPostById(params.id, isAlt: params.isAlt);
 });
 
 // Providers for checking like/dislike status
@@ -111,8 +119,10 @@ final commentsProvider =
 final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
     PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
   final repository = ref.watch(postRepositoryProvider);
+  // Pass the full params if notifier needs herdId, otherwise just id/isAlt
   return PostInteractionsNotifier(
     repository: repository,
     postId: params.id,
+    // Consider if the notifier needs isAlt directly or gets it from the post object later
   );
 });
