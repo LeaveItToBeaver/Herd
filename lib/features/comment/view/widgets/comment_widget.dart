@@ -61,276 +61,323 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Get interaction state to display like/dislike status
-    final interactionState = ref.watch(commentInteractionProvider(
-        (commentId: widget.comment.id, postId: widget.comment.postId)));
-    final expandedComments = ref.watch(expandedCommentsProvider);
-    final isExpanded =
-        expandedComments.expandedCommentIds.contains(widget.comment.id);
-
-    return Card(
-      margin: EdgeInsets.only(
-        left: widget.depth * 16.0,
-        right: 8.0,
-        top: 8.0,
-        bottom: 4.0,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: widget.isAltPost
-              ? Colors.blue.withAlpha(51)
-              : Colors.grey.withAlpha(51), // 0.2 * 255 = 51
-          width: 1,
+    // Use RepaintBoundary to isolate painting
+    return RepaintBoundary(
+      child: Card(
+        margin: EdgeInsets.only(
+          left: widget.depth * 16.0,
+          right: 8.0,
+          top: 8.0,
+          bottom: 4.0,
         ),
-      ),
-      elevation: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Author header
-          ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            leading: GestureDetector(
-              onTap: () =>
-                  _navigateToUserProfile(context, widget.comment.authorId),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundImage: widget.comment.authorProfileImage != null
-                    ? CachedNetworkImageProvider(
-                        widget.comment.authorProfileImage!)
-                    : null,
-                child: widget.comment.authorProfileImage == null
-                    ? const Icon(Icons.person, color: Colors.grey)
-                    : null,
-              ),
-            ),
-            title: Row(
-              children: [
-                GestureDetector(
-                  onTap: () =>
-                      _navigateToUserProfile(context, widget.comment.authorId),
-                  child: widget.comment.isAltPost
-                      ? Text(
-                          widget.comment.authorUsername ?? 'Unknown',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        )
-                      : Text(
-                          widget.comment.authorName ?? 'Unknown',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.blue,
-                          ),
-                        ),
-                ),
-                if (widget.isAltPost) ...[
-                  const SizedBox(width: 4),
-                  Icon(Icons.lock, size: 12, color: Colors.blue.shade300)
-                ],
-              ],
-            ),
-            subtitle: Text(
-              timeago.format(widget.comment.timestamp),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            trailing: PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 20),
-              onSelected: (value) {
-                if (value == 'report') {
-                  _showReportDialog(context);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem<String>(
-                  value: 'report',
-                  child: Text('Report comment'),
-                ),
-              ],
-            ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: widget.isAltPost
+                ? Colors.blue.withAlpha(51)
+                : Colors.grey.withAlpha(51),
+            width: 1,
           ),
-
-          // Comment content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Text content
-                Text(
-                  widget.comment.content,
-                  style: const TextStyle(fontSize: 14),
+        ),
+        elevation: 0,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Author header
+            ListTile(
+              contentPadding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              leading: GestureDetector(
+                onTap: () =>
+                    _navigateToUserProfile(context, widget.comment.authorId),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundImage: widget.comment.authorProfileImage != null
+                      ? CachedNetworkImageProvider(
+                          widget.comment.authorProfileImage!)
+                      : null,
+                  child: widget.comment.authorProfileImage == null
+                      ? const Icon(Icons.person, color: Colors.grey)
+                      : null,
                 ),
-
-                // Media content if available
-                if (widget.comment.mediaUrl != null) ...[
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: widget.comment.mediaUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        height: 150,
-                        color: Colors.grey[200],
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        height: 150,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.error),
-                      ),
-                    ),
+              ),
+              title: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _navigateToUserProfile(
+                        context, widget.comment.authorId),
+                    child: widget.comment.isAltPost
+                        ? Text(
+                            widget.comment.authorUsername ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          )
+                        : Text(
+                            widget.comment.authorName ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.blue,
+                            ),
+                          ),
+                  ),
+                  if (widget.isAltPost) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.lock, size: 12, color: Colors.blue.shade300)
+                  ],
+                ],
+              ),
+              subtitle: Text(
+                timeago.format(widget.comment.timestamp),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              trailing: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                onSelected: (value) {
+                  if (value == 'report') {
+                    _showReportDialog(context);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'report',
+                    child: Text('Report comment'),
                   ),
                 ],
+              ),
+            ),
 
-                const SizedBox(height: 8),
+            // Comment content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Text content
+                  Text(
+                    widget.comment.content,
+                    style: const TextStyle(fontSize: 14),
+                  ),
 
-                // Like/Dislike/Reply actions
-                Row(
-                  children: [
-                    // Like button
-                    InkWell(
-                      onTap: () => _handleLike(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              interactionState.isLiked
-                                  ? Icons.thumb_up
-                                  : Icons.thumb_up_outlined,
-                              size: 16,
-                              color: interactionState.isLiked
-                                  ? Colors.blue
-                                  : Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${interactionState.likeCount}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: interactionState.isLiked
-                                    ? Colors.blue
-                                    : Colors.grey,
-                              ),
-                            ),
-                          ],
+                  // Media content if available
+                  if (widget.comment.mediaUrl != null) ...[
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.comment.mediaUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          height: 150,
+                          color: Colors.grey[200],
+                          child:
+                              const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          height: 150,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.error),
                         ),
                       ),
                     ),
+                  ],
 
-                    const SizedBox(width: 16),
+                  const SizedBox(height: 8),
 
-                    // Dislike button
-                    InkWell(
-                      onTap: () => _handleDislike(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              interactionState.isDisliked
-                                  ? Icons.thumb_down
-                                  : Icons.thumb_down_outlined,
-                              size: 16,
-                              color: interactionState.isDisliked
-                                  ? Colors.red
-                                  : Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${interactionState.dislikeCount}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: interactionState.isDisliked
-                                    ? Colors.red
-                                    : Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  // Use separate consumers for interactions
+                  Row(
+                    children: [
+                      // Like button in its own consumer
+                      _buildLikeButton(),
 
-                    const SizedBox(width: 16),
+                      const SizedBox(width: 16),
 
-                    // Reply button
-                    InkWell(
-                      onTap: widget.onReplyTap,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          children: [
-                            Icon(Icons.reply, size: 16, color: Colors.grey),
-                            SizedBox(width: 4),
-                            Text(
-                              'Reply',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                      // Dislike button in its own consumer
+                      _buildDislikeButton(),
 
-                    // Show more replies button
-                    if (widget.comment.replyCount > 0) ...[
-                      const Spacer(),
+                      const SizedBox(width: 16),
+
+                      // Reply button
                       InkWell(
-                        onTap: () {
-                          ref
-                              .read(expandedCommentsProvider.notifier)
-                              .toggleExpanded(widget.comment.id);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        onTap: widget.onReplyTap,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
                           child: Row(
                             children: [
-                              Icon(
-                                isExpanded
-                                    ? Icons.expand_less
-                                    : Icons.expand_more,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 4),
+                              Icon(Icons.reply, size: 16, color: Colors.grey),
+                              SizedBox(width: 4),
                               Text(
-                                isExpanded
-                                    ? 'Hide replies'
-                                    : '${widget.comment.replyCount} replies',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.indigo),
+                                'Reply',
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                             ],
                           ),
                         ),
                       ),
+
+                      // Expanded/collapse replies in its own consumer
+                      if (widget.comment.replyCount > 0) _buildRepliesToggle(),
                     ],
-                  ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Show replies if expanded and not at max depth
+            _buildRepliesSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLikeButton() {
+    return Consumer(
+      builder: (context, ref, child) {
+        // Only watch the like state
+        final likeState = ref.watch(commentInteractionProvider(
+                (commentId: widget.comment.id, postId: widget.comment.postId))
+            .select(
+                (state) => (state.isLiked, state.likeCount, state.isLoading)));
+
+        final isLiked = likeState.$1;
+        final likeCount = likeState.$2;
+        final isLoading = likeState.$3;
+
+        return InkWell(
+          onTap: isLoading ? null : () => _handleLike(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Icon(
+                  isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                  size: 16,
+                  color: isLiked ? Colors.blue : Colors.grey,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$likeCount',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isLiked ? Colors.blue : Colors.grey,
+                  ),
                 ),
               ],
             ),
           ),
-
-          // Show replies if expanded and not at max depth
-          if (isExpanded &&
-              widget.comment.replyCount > 0 &&
-              widget.depth < widget.maxDepth)
-            _buildReplies(),
-
-          // Show "View thread" if at max depth and has replies
-          if (widget.comment.replyCount > 0 && widget.depth >= widget.maxDepth)
-            _buildViewThreadButton(),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Widget _buildDislikeButton() {
+    return Consumer(
+      builder: (context, ref, child) {
+        // Only watch the dislike state
+        final dislikeState = ref.watch(commentInteractionProvider(
+                (commentId: widget.comment.id, postId: widget.comment.postId))
+            .select((state) =>
+                (state.isDisliked, state.dislikeCount, state.isLoading)));
+
+        final isDisliked = dislikeState.$1;
+        final dislikeCount = dislikeState.$2;
+        final isLoading = dislikeState.$3;
+
+        return InkWell(
+          onTap: isLoading ? null : () => _handleDislike(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Icon(
+                  isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+                  size: 16,
+                  color: isDisliked ? Colors.red : Colors.grey,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$dislikeCount',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDisliked ? Colors.red : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRepliesToggle() {
+    return Consumer(
+      builder: (context, ref, child) {
+        // Only watch expanded state for this comment
+        final isExpanded = ref.watch(expandedCommentsProvider.select(
+            (state) => state.expandedCommentIds.contains(widget.comment.id)));
+
+        return Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              InkWell(
+                onTap: () {
+                  ref
+                      .read(expandedCommentsProvider.notifier)
+                      .toggleExpanded(widget.comment.id);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isExpanded
+                            ? 'Hide replies'
+                            : '${widget.comment.replyCount} replies',
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.indigo),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRepliesSection() {
+    return Consumer(builder: (context, ref, child) {
+      // Only watch expanded state for this comment
+      final isExpanded = ref.watch(expandedCommentsProvider.select(
+          (state) => state.expandedCommentIds.contains(widget.comment.id)));
+
+      if (!isExpanded ||
+          widget.comment.replyCount <= 0 ||
+          widget.depth >= widget.maxDepth) {
+        return widget.comment.replyCount > 0 && widget.depth >= widget.maxDepth
+            ? _buildViewThreadButton()
+            : const SizedBox.shrink();
+      }
+
+      // If expanded, show thread
+      return _buildReplies();
+    });
   }
 
   // Build replies list
