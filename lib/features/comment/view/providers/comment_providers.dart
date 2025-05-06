@@ -226,6 +226,8 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     try {
       return await FirebaseFirestore.instance
           .collection('comments')
+          .doc(_postId) // Use postId, not commentId
+          .collection('postComments') // Include the subcollection
           .doc(commentId)
           .get();
     } catch (e) {
