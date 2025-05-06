@@ -107,14 +107,18 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                         context, widget.comment.authorId),
                     child: widget.comment.isAltPost
                         ? Text(
-                            widget.comment.authorUsername ?? 'Unknown',
+                            widget.comment.authorUsername ?? 'Anonymous',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
                           )
                         : Text(
-                            widget.comment.authorName ?? 'Unknown',
+                            // For public posts, construct name from first/last name or fall back to authorName
+                            (widget.comment.authorFirstName != null &&
+                                    widget.comment.authorLastName != null)
+                                ? "${widget.comment.authorFirstName} ${widget.comment.authorLastName}"
+                                : widget.comment.authorName ?? 'Anonymous',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,

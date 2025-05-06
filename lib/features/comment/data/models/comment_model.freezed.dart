@@ -25,6 +25,8 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
   String get path;
   int get depth;
   String? get authorUsername;
+  String? get authorFirstName;
+  String? get authorLastName;
   String? get authorProfileImage;
   String? get authorAltProfileImage;
   bool get isAuthorAlt;
@@ -60,6 +62,8 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('path', path))
       ..add(DiagnosticsProperty('depth', depth))
       ..add(DiagnosticsProperty('authorUsername', authorUsername))
+      ..add(DiagnosticsProperty('authorFirstName', authorFirstName))
+      ..add(DiagnosticsProperty('authorLastName', authorLastName))
       ..add(DiagnosticsProperty('authorProfileImage', authorProfileImage))
       ..add(DiagnosticsProperty('authorAltProfileImage', authorAltProfileImage))
       ..add(DiagnosticsProperty('isAuthorAlt', isAuthorAlt))
@@ -91,6 +95,10 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
             (identical(other.depth, depth) || other.depth == depth) &&
             (identical(other.authorUsername, authorUsername) ||
                 other.authorUsername == authorUsername) &&
+            (identical(other.authorFirstName, authorFirstName) ||
+                other.authorFirstName == authorFirstName) &&
+            (identical(other.authorLastName, authorLastName) ||
+                other.authorLastName == authorLastName) &&
             (identical(other.authorProfileImage, authorProfileImage) ||
                 other.authorProfileImage == authorProfileImage) &&
             (identical(other.authorAltProfileImage, authorAltProfileImage) ||
@@ -125,6 +133,8 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
         path,
         depth,
         authorUsername,
+        authorFirstName,
+        authorLastName,
         authorProfileImage,
         authorAltProfileImage,
         isAuthorAlt,
@@ -138,7 +148,7 @@ mixin _$CommentModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, authorName: $authorName, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorProfileImage: $authorProfileImage, authorAltProfileImage: $authorAltProfileImage, isAuthorAlt: $isAuthorAlt, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
+    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, authorName: $authorName, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorFirstName: $authorFirstName, authorLastName: $authorLastName, authorProfileImage: $authorProfileImage, authorAltProfileImage: $authorAltProfileImage, isAuthorAlt: $isAuthorAlt, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
   }
 }
 
@@ -159,6 +169,8 @@ abstract mixin class $CommentModelCopyWith<$Res> {
       String path,
       int depth,
       String? authorUsername,
+      String? authorFirstName,
+      String? authorLastName,
       String? authorProfileImage,
       String? authorAltProfileImage,
       bool isAuthorAlt,
@@ -192,6 +204,8 @@ class _$CommentModelCopyWithImpl<$Res> implements $CommentModelCopyWith<$Res> {
     Object? path = null,
     Object? depth = null,
     Object? authorUsername = freezed,
+    Object? authorFirstName = freezed,
+    Object? authorLastName = freezed,
     Object? authorProfileImage = freezed,
     Object? authorAltProfileImage = freezed,
     Object? isAuthorAlt = null,
@@ -242,6 +256,14 @@ class _$CommentModelCopyWithImpl<$Res> implements $CommentModelCopyWith<$Res> {
       authorUsername: freezed == authorUsername
           ? _self.authorUsername
           : authorUsername // ignore: cast_nullable_to_non_nullable
+              as String?,
+      authorFirstName: freezed == authorFirstName
+          ? _self.authorFirstName
+          : authorFirstName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      authorLastName: freezed == authorLastName
+          ? _self.authorLastName
+          : authorLastName // ignore: cast_nullable_to_non_nullable
               as String?,
       authorProfileImage: freezed == authorProfileImage
           ? _self.authorProfileImage
@@ -297,6 +319,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
       required this.path,
       this.depth = 0,
       this.authorUsername,
+      this.authorFirstName,
+      this.authorLastName,
       this.authorProfileImage,
       this.authorAltProfileImage,
       this.isAuthorAlt = false,
@@ -331,6 +355,10 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
   final int depth;
   @override
   final String? authorUsername;
+  @override
+  final String? authorFirstName;
+  @override
+  final String? authorLastName;
   @override
   final String? authorProfileImage;
   @override
@@ -384,6 +412,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('path', path))
       ..add(DiagnosticsProperty('depth', depth))
       ..add(DiagnosticsProperty('authorUsername', authorUsername))
+      ..add(DiagnosticsProperty('authorFirstName', authorFirstName))
+      ..add(DiagnosticsProperty('authorLastName', authorLastName))
       ..add(DiagnosticsProperty('authorProfileImage', authorProfileImage))
       ..add(DiagnosticsProperty('authorAltProfileImage', authorAltProfileImage))
       ..add(DiagnosticsProperty('isAuthorAlt', isAuthorAlt))
@@ -415,6 +445,10 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
             (identical(other.depth, depth) || other.depth == depth) &&
             (identical(other.authorUsername, authorUsername) ||
                 other.authorUsername == authorUsername) &&
+            (identical(other.authorFirstName, authorFirstName) ||
+                other.authorFirstName == authorFirstName) &&
+            (identical(other.authorLastName, authorLastName) ||
+                other.authorLastName == authorLastName) &&
             (identical(other.authorProfileImage, authorProfileImage) ||
                 other.authorProfileImage == authorProfileImage) &&
             (identical(other.authorAltProfileImage, authorAltProfileImage) ||
@@ -449,6 +483,8 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
         path,
         depth,
         authorUsername,
+        authorFirstName,
+        authorLastName,
         authorProfileImage,
         authorAltProfileImage,
         isAuthorAlt,
@@ -462,7 +498,7 @@ class _CommentModel extends CommentModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, authorName: $authorName, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorProfileImage: $authorProfileImage, authorAltProfileImage: $authorAltProfileImage, isAuthorAlt: $isAuthorAlt, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
+    return 'CommentModel(id: $id, postId: $postId, authorId: $authorId, authorName: $authorName, content: $content, timestamp: $timestamp, parentId: $parentId, path: $path, depth: $depth, authorUsername: $authorUsername, authorFirstName: $authorFirstName, authorLastName: $authorLastName, authorProfileImage: $authorProfileImage, authorAltProfileImage: $authorAltProfileImage, isAuthorAlt: $isAuthorAlt, isAltPost: $isAltPost, mediaUrl: $mediaUrl, likeCount: $likeCount, dislikeCount: $dislikeCount, replyCount: $replyCount, hotnessScore: $hotnessScore)';
   }
 }
 
@@ -485,6 +521,8 @@ abstract mixin class _$CommentModelCopyWith<$Res>
       String path,
       int depth,
       String? authorUsername,
+      String? authorFirstName,
+      String? authorLastName,
       String? authorProfileImage,
       String? authorAltProfileImage,
       bool isAuthorAlt,
@@ -519,6 +557,8 @@ class __$CommentModelCopyWithImpl<$Res>
     Object? path = null,
     Object? depth = null,
     Object? authorUsername = freezed,
+    Object? authorFirstName = freezed,
+    Object? authorLastName = freezed,
     Object? authorProfileImage = freezed,
     Object? authorAltProfileImage = freezed,
     Object? isAuthorAlt = null,
@@ -569,6 +609,14 @@ class __$CommentModelCopyWithImpl<$Res>
       authorUsername: freezed == authorUsername
           ? _self.authorUsername
           : authorUsername // ignore: cast_nullable_to_non_nullable
+              as String?,
+      authorFirstName: freezed == authorFirstName
+          ? _self.authorFirstName
+          : authorFirstName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      authorLastName: freezed == authorLastName
+          ? _self.authorLastName
+          : authorLastName // ignore: cast_nullable_to_non_nullable
               as String?,
       authorProfileImage: freezed == authorProfileImage
           ? _self.authorProfileImage
