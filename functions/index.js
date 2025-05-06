@@ -1192,7 +1192,7 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
     if (lastHotScore !== null && lastPostId !== null) {
       logger.info(`Attempting to paginate public feed with lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
       // Use startAfter with an array of values to match the orderBy fields
-      feedQuery = feedQuery.startAt(lastHotScore, lastPostId);
+      feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
     }
 
     // Apply limit
@@ -1241,6 +1241,9 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
       });
     }
 
+
+    const posts = chunkedResults.sort((a, b) => b.hotScore - a.hotScore);
+
     const userInteractions = await getUserInteractionsForPosts(userId, posts.map(post => post.id));
 
     // Add user-specific data to each post
@@ -1252,14 +1255,11 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
       };
     });
 
-    // STEP 3: Sort the results by hot score to maintain original order
-    const posts = chunkedResults.sort((a, b) => b.hotScore - a.hotScore);
-
     logger.info(`Retrieved ${posts.length} complete posts for public feed`);
 
     // Return the results with pagination info
     return {
-      posts,
+      posts: enrichedPosts,
       lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
       lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
       hasMorePosts: posts.length >= limit
@@ -1668,6 +1668,121 @@ exports.retroactivelyFillUserFeeds = onCall({
 
   } catch (error) {
     logger.error(`Error in retroactivelyFillUserFeeds:`, error);
+    throw new HttpsError('internal', error.message);
+  }
+});
+
+exports.fillUserFeedOnFollow = onCall({
+  enforceAppCheck: true,
+  timeoutSeconds: 120, // 2 minutes should be enough for single user
+}, async (request) => {
+  // Authentication check
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required');
+  }
+
+  const userId = request.auth.uid;
+  const { followedUserId } = request.data;
+
+  if (!followedUserId) {
+    throw new HttpsError('invalid-argument', 'followedUserId is required');
+  }
+
+  try {
+    logger.info(`Filling ${userId}'s feed with posts from ${followedUserId}`);
+
+    // Get existing feed entries to avoid duplicates
+    const existingFeedSnapshot = await firestore
+      .collection('userFeeds')
+      .doc(userId)
+      .collection('feed')
+      .get();
+
+    // Create a Set of existing post IDs for fast lookup
+    const existingPostIds = new Set();
+    existingFeedSnapshot.forEach(doc => existingPostIds.add(doc.id));
+
+    // Get posts from followed user
+    const postsSnapshot = await firestore
+      .collection('posts')
+      .where('authorId', '==', followedUserId)
+      .where('isAlt', '==', false)
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+
+    if (postsSnapshot.empty) {
+      return { success: true, addedCount: 0, message: 'No posts to add' };
+    }
+
+    // Prepare batch write
+    const batch = firestore.batch();
+    let addedCount = 0;
+
+    for (const postDoc of postsSnapshot.docs) {
+      const postId = postDoc.id;
+      const postData = postDoc.data();
+
+      // Skip if already in feed
+      if (existingPostIds.has(postId)) {
+        continue;
+      }
+
+      // Calculate hot score
+      const netVotes = (postData.likeCount || 0) - (postData.dislikeCount || 0);
+      const hotScore = hotAlgorithm.calculateHotScore(
+        netVotes,
+        postData.createdAt?.toDate() || new Date()
+      );
+
+      // Create feed entry
+      const feedRef = firestore
+        .collection('userFeeds')
+        .doc(userId)
+        .collection('feed')
+        .doc(postId);
+
+      batch.set(feedRef, {
+        id: postId,
+        authorId: postData.authorId,
+        authorName: postData.authorName || null,
+        authorUsername: postData.authorUsername || null,
+        authorProfileImageURL: postData.authorProfileImageURL || null,
+        content: postData.content || '',
+        createdAt: postData.createdAt,
+        feedType: 'public',
+        hotScore: hotScore,
+        likeCount: postData.likeCount || 0,
+        dislikeCount: postData.dislikeCount || 0,
+        commentCount: postData.commentCount || 0,
+        mediaItems: postData.mediaItems || [],
+        sourceCollection: 'posts'
+      });
+
+      addedCount++;
+
+      // Commit in batches of 500 (Firestore limit)
+      if (addedCount % 500 === 0) {
+        await batch.commit();
+        logger.info(`Committed batch of 500 posts for user ${userId}`);
+        batch = firestore.batch(); // Create a new batch
+      }
+    }
+
+    // Commit any remaining operations
+    if (addedCount % 500 !== 0) {
+      await batch.commit();
+    }
+
+    logger.info(`Added ${addedCount} posts from ${followedUserId} to ${userId}'s feed`);
+
+    return {
+      success: true,
+      addedCount,
+      message: `Added ${addedCount} posts to feed`
+    };
+  } catch (error) {
+    logger.error(`Error in fillUserFeedOnFollow:`, error);
     throw new HttpsError('internal', error.message);
   }
 });

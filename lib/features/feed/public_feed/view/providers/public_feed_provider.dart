@@ -100,6 +100,8 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           limit: pageSize,
         );
 
+        debugPrint('Fetched ${posts.length} posts from Firestore.');
+
         // Cache the results (don't await this to avoid delays)
         unawaited(cacheManager.cacheFeed(posts, effectiveUserId, isAlt: false));
         unawaited(cacheManager.getCacheStats());
