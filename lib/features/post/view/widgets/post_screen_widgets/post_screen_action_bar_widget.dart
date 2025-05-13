@@ -12,13 +12,13 @@ class PostActionBar extends ConsumerWidget {
   final VoidCallback? onShareTap;
 
   const PostActionBar({
-    Key? key,
+    super.key,
     required this.postId,
     required this.isAlt,
     this.herdId,
     this.onCommentTap,
     this.onShareTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,10 +60,10 @@ class _ShareButton extends StatelessWidget {
   final VoidCallback? onShareTap;
 
   const _ShareButton({
-    Key? key,
+    super.key,
     required this.isAlt,
     this.onShareTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -103,11 +103,11 @@ class _CommentButton extends ConsumerWidget {
   final VoidCallback? onCommentTap;
 
   const _CommentButton({
-    Key? key,
+    super.key,
     required this.postId,
     required this.isAlt,
     this.onCommentTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -146,9 +146,9 @@ class _LikeDislikeButtons extends ConsumerWidget {
   final PostParams params;
 
   const _LikeDislikeButtons({
-    Key? key,
+    super.key,
     required this.params,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
