@@ -69,6 +69,8 @@ dependencies:
   dart_quill_delta: ^10.8.3
   flutter_colorpicker: ^1.1.0
   flutter_quill: ^11.4.0
+  firebase_messaging: ^15.2.5
+  flutter_local_notifications: ^19.2.0
 
 dev_dependencies:
   flutter_test:

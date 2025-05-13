@@ -6,10 +6,12 @@ const { logger } = require("firebase-functions");
 const { getFirestore } = require('firebase-admin/firestore');
 const admin = require("firebase-admin");
 
-
 admin.initializeApp();
 const firestore = admin.firestore();
 const db = getFirestore();
+
+const notificationFunctionsFactory = require('./notification_functions');
+const notificationFunctions = notificationFunctionsFactory(admin);
 
 // Hot algorithm implementation for post ranking - this stays mostly the same
 const hotAlgorithm = {
@@ -2133,3 +2135,12 @@ exports.catchAndLogExceptions = onCall(async (request) => {
     throw new HttpsError('internal', `failed to log exception ${error.message}`);
   }
 });
+
+exports.onNewFollower = notificationFunctions.onNewFollower;
+exports.onNewPost = notificationFunctions.onNewPost;
+exports.onPostLike = notificationFunctions.onPostLike;
+exports.onNewComment = notificationFunctions.onNewComment;
+exports.onConnectionRequest = notificationFunctions.onConnectionRequest;
+exports.onConnectionAccepted = notificationFunctions.onConnectionAccepted;
+exports.markNotificationsAsRead = notificationFunctions.markNotificationsAsRead;
+exports.deleteNotifications = notificationFunctions.deleteNotifications;
