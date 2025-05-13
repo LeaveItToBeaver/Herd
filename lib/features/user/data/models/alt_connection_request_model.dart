@@ -1,5 +1,3 @@
-// lib/features/user/data/models/alt_connection_request.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AltConnectionRequest {
