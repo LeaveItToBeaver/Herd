@@ -196,11 +196,13 @@ async function findPostMediaItems(postId, userId, isAlt) {
 
       // Determine if this is a fullres or thumbnail and get download URL
       if (lastSegment.includes('fullres')) {
-        const [url] = await file.getSignedUrl({
-          action: 'read',
-          expires: '03-01-2500' // Far future expiration
-        });
-        mediaGroups[mediaId].url = url;
+        const [metadata] = await file.getMetadata();
+        const token = metadata.metadata.firebaseStorageDownloadTokens;
+        const bucket = admin.storage().bucket().name;
+        const pathEncoded = encodeURIComponent(file.name);
+        mediaGroups[mediaId].url =
+          `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${pathEncoded}` +
+          `?alt=media&token=${token}`;
 
         // Determine media type from extension
         const extension = lastSegment.split('.').pop().toLowerCase();
@@ -213,11 +215,13 @@ async function findPostMediaItems(postId, userId, isAlt) {
               : 'other';
       }
       else if (lastSegment.includes('thumbnail')) {
-        const [url] = await file.getSignedUrl({
-          action: 'read',
-          expires: '03-01-2500'
-        });
-        mediaGroups[mediaId].thumbnailUrl = url;
+        const [metadata] = await file.getMetadata();
+        const token = metadata.metadata.firebaseStorageDownloadTokens;
+        const bucket = admin.storage().bucket().name;
+        const pathEncoded = encodeURIComponent(file.name);
+        mediaGroups[mediaId].thumbnailUrl =
+          `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${pathEncoded}` +
+          `?alt=media&token=${token}`;
       }
     }
 
@@ -330,7 +334,7 @@ exports.distributeAltPost = onDocumentCreated(
         feedType: 'alt'
       };
 
-      const mediaItems = await findPostMediaItems(postId, postData.authorId, false);
+      const mediaItems = await findPostMediaItems(postId, postData.authorId, true);
 
       if (mediaItems && mediaItems.length > 0) {
         logger.info(`Found ${mediaItems.length} media items for post ${postId}`);
@@ -548,28 +552,22 @@ exports.populateHerdPostMediaItems = onDocumentCreated(
 
         // Determine if this is a fullres or thumbnail and get download URL
         if (lastSegment.includes('fullres')) {
-          const [url] = await file.getSignedUrl({
-            action: 'read',
-            expires: '03-01-2500' // Far future expiration
-          });
-          mediaGroups[mediaId].url = url;
-
-          // Determine media type from extension
-          const extension = lastSegment.split('.').pop().toLowerCase();
-          mediaGroups[mediaId].mediaType = extension === 'gif'
-            ? 'gif'
-            : ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(extension)
-              ? 'image'
-              : ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extension)
-                ? 'video'
-                : 'other';
+          // pull out the firebaseStorageDownloadTokens
+          const [metadata] = await file.getMetadata();
+          const token = metadata.metadata.firebaseStorageDownloadTokens;
+          const bucketName = admin.storage().bucket().name;
+          // must URL-encode the full “object” path
+          const pathEncoded = encodeURIComponent(file.name);
+          mediaGroups[mediaId].url =
+            `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${pathEncoded}?alt=media&token=${token}`;
         }
         else if (lastSegment.includes('thumbnail')) {
-          const [url] = await file.getSignedUrl({
-            action: 'read',
-            expires: '03-01-2500'
-          });
-          mediaGroups[mediaId].thumbnailUrl = url;
+          const [metadata] = await file.getMetadata();
+          const token = metadata.metadata.firebaseStorageDownloadTokens;
+          const bucketName = admin.storage().bucket().name;
+          const pathEncoded = encodeURIComponent(file.name);
+          mediaGroups[mediaId].thumbnailUrl =
+            `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${pathEncoded}?alt=media&token=${token}`;
         }
       }
 
@@ -1448,6 +1446,7 @@ exports.handleFollowAction = onDocumentCreated(
     }
   }
 );
+
 
 /**
  * Clean up user's feed when they unfollow someone

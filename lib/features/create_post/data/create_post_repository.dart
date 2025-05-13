@@ -131,10 +131,7 @@ class CreatePostRepostiory {
       // Determine where to save the post
       if (post.isAlt) {
         // Save to altPosts collection
-        await _firestore
-            .collection('altPosts')
-            .doc(postId)
-            .set(postWithTypeAndId.toMap());
+        await _firestore.collection('altPosts').doc(postId).set(postData);
         debugPrint('Alt post created with ID: $postId');
       } else if (post.herdId != null && post.herdId!.isNotEmpty) {
         // Save to herdPosts collection
@@ -143,15 +140,12 @@ class CreatePostRepostiory {
             .doc(post.herdId)
             .collection('posts')
             .doc(postId)
-            .set(postWithTypeAndId.toMap());
+            .set(postData);
         debugPrint(
             'Herd post created with ID: $postId in herd: ${post.herdId}');
       } else {
         // Save to regular posts collection
-        await _firestore
-            .collection('posts')
-            .doc(postId)
-            .set(postWithTypeAndId.toMap());
+        await _firestore.collection('posts').doc(postId).set(postData);
         debugPrint('Public post created with ID: $postId');
       }
       debugPrint(
