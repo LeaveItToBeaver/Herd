@@ -1,4 +1,5 @@
 const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
+
 const { logger } = require("firebase-functions");
 const { admin, firestore } = require('./admin_init'); // Assuming admin_init.js
 const { hotAlgorithm, findPostMediaItems } = require('./utils');
@@ -32,6 +33,7 @@ exports.distributePublicPost = onDocumentCreated(
         try {
             let enhancedPostData = {
                 ...postData,
+                id: postId,
                 hotScore: initialHotScore,
                 feedType: 'public'
             };
@@ -66,7 +68,7 @@ exports.distributePublicPost = onDocumentCreated(
             return null;
         } catch (error) {
             logger.error(`Error distributing public post ${postId}:`, error);
-            throw error;
+            rethrow;
         }
     }
 );
@@ -75,38 +77,33 @@ exports.distributePublicPost = onDocumentCreated(
  * Remove post from all feeds when the post is deleted
  */
 exports.removeDeletedPost = onDocumentDeleted(
-    "posts/{postId}",
+    "posts/{postId}", // This trigger is for when a post in the main 'posts' collection is deleted
     async (event) => {
         const postId = event.params.postId;
-        const postData = event.data.data();
+        // const postData = event.data.data(); // Data of the deleted document
 
-        if (!postData) {
-            logger.error(`No post data found for deleted ID: ${postId}`);
-            return null;
-        }
+        // We need to remove this postId from all userFeeds/{userId}/feed/{postId}
+        // This requires a collectionGroup query.
 
         try {
-            // Find all user feeds containing this post
-            const feedQuery = firestore
-                .collectionGroup("feed")
-                .where("__name__", "==", postId)
-                .select(); // Use select() to minimize data read
+            const feedEntriesQuery = firestore
+                .collectionGroup("feed") // Query all collections named 'feed'
+                .where("id", "==", postId);
 
-            const feedEntries = await feedQuery.get();
+            const feedEntriesSnapshot = await feedEntriesQuery.get();
 
-            if (feedEntries.empty) {
-                logger.info(`No feed entries found for deleted post ${postId}`);
+            if (feedEntriesSnapshot.empty) {
+                logger.info(`No feed entries found for deleted post ${postId} to remove.`);
                 return null;
             }
 
-            logger.info(`Removing deleted post ${postId} from ${feedEntries.size} feeds`);
+            logger.info(`Removing deleted post ${postId} from ${feedEntriesSnapshot.size} feeds.`);
 
-            // Batch delete from all feeds
             const MAX_BATCH_SIZE = 500;
             let batch = firestore.batch();
             let operationCount = 0;
 
-            for (const doc of feedEntries.docs) {
+            for (const doc of feedEntriesSnapshot.docs) {
                 batch.delete(doc.ref);
                 operationCount++;
 
@@ -121,15 +118,14 @@ exports.removeDeletedPost = onDocumentDeleted(
                 await batch.commit();
             }
 
-            logger.info(`Successfully removed deleted post ${postId} from all feeds`);
+            logger.info(`Successfully removed deleted post ${postId} from user feeds.`);
             return null;
         } catch (error) {
-            logger.error(`Error removing deleted post ${postId}:`, error);
+            logger.error(`Error removing deleted post ${postId} from feeds:`, error);
             throw error;
         }
     }
 );
-
 
 // 2. Trigger for alt posts
 exports.distributeAltPost = onDocumentCreated(
@@ -153,6 +149,7 @@ exports.distributeAltPost = onDocumentCreated(
         try {
             let enhancedPostData = {
                 ...postData,
+                id: postId,
                 hotScore: initialHotScore,
                 feedType: 'alt'
             };
@@ -425,31 +422,53 @@ exports.populateHerdPostMediaItems = onDocumentCreated(
     });
 
 // Helper function for fan-out operations with minimal data
-async function fanOutToUserFeeds(postId, postData, userIds) {
-    if (userIds.length === 0) return;
+async function fanOutToUserFeeds(postId, postDataToFanOut, userIds) {
+    if (!userIds || userIds.length === 0) {
+        logger.info(`No user IDs provided for fan-out of post ${postId}.`);
+        return;
+    }
+    if (!postDataToFanOut.feedType) {
+        logger.error(`feedType is missing in postDataToFanOut for post ${postId}. Aborting fan-out.`);
+        return;
+    }
+
 
     // Extract only the minimal necessary data
-    const minimalPostData = {
-        id: postId,
-        authorId: postData.authorId,
-        authorName: postData.authorName || null,
-        authorUsername: postData.authorUsername || null,
-        authorProfileImageURL: postData.authorProfileImageURL || null,
-        tags: postData.tags || [],
-        isNSFW: postData.isNSFW || false,
-        isAlt: postData.isAlt || false,
-        feedType: postData.feedType,
-        createdAt: postData.createdAt,
-        herdId: postData.herdId || null,
-        // Reference fields that help identify where to look up the full post
-        sourceCollection: postData.isAlt ? 'altPosts' :
-            (postData.herdId ? 'herdPosts' : 'posts'),
-        // Store the hotScore to maintain sort order without recalculating
-        hotScore: postData.hotScore || 0
+    const feedEntryData = {
+        id: postId, // Document ID in the feed will be the postId
+        authorId: postDataToFanOut.authorId,
+        createdAt: postDataToFanOut.createdAt,
+        hotScore: postDataToFanOut.hotScore || 0,
+        feedType: postDataToFanOut.feedType, // 'public', 'alt', or 'herd'
+
+        // Fields for public/alt posts (full data)
+        authorName: postDataToFanOut.authorName || null,
+        authorUsername: postDataToFanOut.authorUsername || null,
+        authorProfileImageURL: postDataToFanOut.authorProfileImageURL || null,
+        content: postDataToFanOut.content || (postDataToFanOut.feedType !== 'herd' ? '' : undefined), // content might not be on minimal herd ref
+        tags: postDataToFanOut.tags || (postDataToFanOut.feedType !== 'herd' ? [] : undefined),
+        isNSFW: postDataToFanOut.isNSFW || false,
+        mediaItems: postDataToFanOut.mediaItems || (postDataToFanOut.feedType !== 'herd' ? [] : undefined),
+        likeCount: postDataToFanOut.likeCount || 0, // May not be on minimal herd ref initially
+        dislikeCount: postDataToFanOut.dislikeCount || 0,
+        commentCount: postDataToFanOut.commentCount || 0,
+
+        // Fields specific to herd post references
+        herdId: postDataToFanOut.herdId || null, // Will be null for public/alt
+        sourceCollection: postDataToFanOut.sourceCollection || (postDataToFanOut.feedType === 'public' ? 'posts' : 'altPosts'), // Default for public/alt
+
+        // Ensure isAlt is correctly set based on the source postData if available,
+        // or based on feedType if it's an alt post.
+        isAlt: postDataToFanOut.isAlt || (postDataToFanOut.feedType === 'alt'),
     };
 
-    // Batch processing
-    const MAX_BATCH_SIZE = 500; // Firestore limit
+    Object.keys(feedEntryData).forEach(key => {
+        if (feedEntryData[key] === undefined) {
+            delete feedEntryData[key];
+        }
+    });
+
+    const MAX_BATCH_SIZE = 500;
     let batch = firestore.batch();
     let operationCount = 0;
 
@@ -458,12 +477,11 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
             .collection("userFeeds")
             .doc(userId)
             .collection("feed")
-            .doc(postId);
+            .doc(postId); // Use postId as the document ID in the feed
 
-        batch.set(userFeedRef, minimalPostData);
+        batch.set(userFeedRef, feedEntryData);
         operationCount++;
 
-        // If batch is full, commit and reset
         if (operationCount >= MAX_BATCH_SIZE) {
             await batch.commit();
             batch = firestore.batch();
@@ -471,8 +489,8 @@ async function fanOutToUserFeeds(postId, postData, userIds) {
         }
     }
 
-    // Commit any remaining operations
     if (operationCount > 0) {
         await batch.commit();
     }
+    logger.info(`Fanned out post ${postId} (type: ${feedEntryData.feedType}) to ${userIds.length} user feeds.`);
 }

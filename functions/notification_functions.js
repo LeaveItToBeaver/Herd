@@ -1,16 +1,8 @@
 const functions = require('firebase-functions');
 const { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall } = require("firebase-functions/v2/https");
-const { onRequest } = require("firebase-functions/v2/https");
-const { getFirestore } = require('firebase-admin/firestore');
-const { getAuth } = require('firebase-admin/auth');
-const { getMessaging } = require('firebase-admin/messaging');
-const { getFunctions } = require('firebase-admin/functions');
-const { getStorage } = require('firebase-admin/storage');
-const { getDatabase } = require('firebase-admin/database');
 const logger = functions.logger;
 
-// Don't initialize admin here - we'll pass it in from index.js
 
 /**
  * Factory function that creates and returns all notification functions
@@ -154,7 +146,7 @@ module.exports = function (admin) {
             const notificationRef = firestore.collection('notifications').doc();
             const notificationId = notificationRef.id;
 
-            // Determine sender details based on public/alt context
+            // Determine sender details based on public/alt event
             const senderName = isAlt
                 ? senderData?.username
                 : `${senderData?.firstName || ''} ${senderData?.lastName || ''}`.trim();
@@ -264,8 +256,8 @@ module.exports = function (admin) {
         // When someone follows a user
         onNewFollower: onDocumentCreated("followers/{followedId}/userFollowers/{followerId}",
             async (event) => {
-                const followedId = context.params.followedId;
-                const followerId = context.params.followerId;
+                const followedId = event.params.followedId;
+                const followerId = event.params.followerId;
 
                 await createNotification({
                     recipientId: followedId,
@@ -276,9 +268,9 @@ module.exports = function (admin) {
 
         // When someone creates a new post (notify followers)
         onNewPost: onDocumentCreated("posts/{postId}", async (event) => {
-            const postData = snapshot.data();
+            const postData = event.data.data();
             const authorId = postData.authorId;
-            const postId = context.params.postId;
+            const postId = event.params.postId;
 
             // Get followers
             const followersSnapshot = await firestore
@@ -330,6 +322,7 @@ module.exports = function (admin) {
                         senderId: authorId,
                         postId,
                         notificationId: notification.id,
+                        isAlt: false,
                     }
                 );
             }
@@ -337,10 +330,10 @@ module.exports = function (admin) {
 
         // Rest of the exported functions...
         // When someone likes a post
-        onPostLike: onDocumentCreated("postLikes/{postId}/users/{userId}",
+        onPostLike: onDocumentCreated("likes/{postId}/users/{userId}",
             async (event) => {
-                const postId = context.params.postId;
-                const likerId = context.params.userId;
+                const postId = event.params.postId;
+                const likerId = event.params.userId;
 
                 // Get post data
                 const postSnapshot = await firestore.collection('posts').doc(postId).get();
@@ -385,22 +378,28 @@ module.exports = function (admin) {
 
                 // Check for milestone (e.g., 10, 50, 100 likes)
                 const likesCount = await firestore
-                    .collection('postLikes')
+                    .collection('likes')
                     .doc(postId)
                     .collection('users')
                     .count()
                     .get();
 
+                const likesCollectionPath = `likes/${postId}/userInteractions/${likerId}`;
+
                 const count = likesCount.data().count;
+                const likesCountSnapshot = await firestore.collection(isAlt ? 'altPosts' : 'posts').doc(postId).get();
+                const currentLikeCount = likesCountSnapshot.data().likeCount || 0;
+
+
                 const milestones = [10, 50, 100, 500, 1000];
 
-                if (milestones.includes(count)) {
+                if (milestones.includes(currentLikeCount)) {
                     await createNotification({
                         recipientId: authorId,
                         senderId: null,
                         type: 'postMilestone',
                         postId,
-                        count,
+                        count: currentLikeCount,
                         isAlt: false,
                     });
                 }
@@ -409,9 +408,9 @@ module.exports = function (admin) {
         // When someone comments on a post
         onNewComment: onDocumentCreated("comments/{postId}/postComments/{commentId}",
             async (event) => {
-                const postId = context.params.postId;
-                const commentId = context.params.commentId;
-                const commentData = snapshot.data();
+                const postId = event.params.postId;
+                const commentId = event.params.commentId;
+                const commentData = event.data.data();
 
                 // Skip if there's no parent comment (it's a direct post comment)
                 if (!commentData.parentId) {
@@ -482,9 +481,8 @@ module.exports = function (admin) {
         // When someone sends a connection request
         onConnectionRequest: onDocumentCreated("altConnectionRequests/{userId}/requests/{requesterId}",
             async (event) => {
-                const userId = context.params.userId;
-                const requesterId = context.params.requesterId;
-                const requestData = snapshot.data();
+                const userId = event.params.userId;
+                const requesterId = event.params.requesterId;
 
                 await createNotification({
                     recipientId: userId,
@@ -497,13 +495,13 @@ module.exports = function (admin) {
         // When someone accepts a connection request
         onConnectionAccepted: onDocumentUpdated("altConnectionRequests/{userId}/requests/{requesterId}",
             async (event) => {
-                const after = change.after.data();
-                const before = change.before.data();
+                const after = event.data.after.data();
+                const before = event.data.before.data();
 
                 // Only trigger when status changes from pending to accepted
                 if (before.status === 'pending' && after.status === 'accepted') {
-                    const userId = context.params.userId;
-                    const requesterId = context.params.requesterId;
+                    const userId = event.params.userId;
+                    const requesterId = event.params.requesterId;
 
                     await createNotification({
                         recipientId: requesterId,
@@ -517,15 +515,15 @@ module.exports = function (admin) {
         // Mark notifications as read in bulk
         markNotificationsAsRead: onCall(async (request) => {
             // Authenticate the user
-            if (!context.auth) {
+            if (!request.auth) { // <<< Use request.auth
                 throw new functions.https.HttpsError(
                     'unauthenticated',
                     'User must be logged in to mark notifications as read'
                 );
             }
 
-            const userId = context.auth.uid;
-            const { notificationIds } = data;
+            const userId = request.auth.uid;
+            const { notificationIds } = request.data;
 
             try {
                 // If specific IDs are provided, mark only those
@@ -570,15 +568,15 @@ module.exports = function (admin) {
         // Delete notifications
         deleteNotifications: onCall(async (request) => {
             // Authenticate the user
-            if (!context.auth) {
+            if (!request.auth) { // <<< Use request.auth
                 throw new functions.https.HttpsError(
                     'unauthenticated',
                     'User must be logged in to delete notifications'
                 );
             }
 
-            const userId = context.auth.uid;
-            const { notificationIds } = data;
+            const userId = request.auth.uid;
+            const { notificationIds } = request.data;
 
             try {
                 if (!notificationIds || !Array.isArray(notificationIds)) {

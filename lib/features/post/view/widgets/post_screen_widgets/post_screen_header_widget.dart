@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/create_post/create_post_controller.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
-import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/view/providers/current_user_provider.dart';
 import 'package:herdapp/features/user/view/providers/user_provider.dart';
@@ -14,10 +13,10 @@ class PostAuthorHeader extends ConsumerWidget {
   final bool isAlt;
 
   const PostAuthorHeader({
-    Key? key,
+    super.key,
     required this.postId,
     required this.isAlt,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -131,8 +130,9 @@ class PostAuthorHeader extends ConsumerWidget {
                           );
                         },
                         child: Text(
-                          // Use author's username from 'user' object
-                          user.username ?? 'Anonymous',
+                          isAlt
+                              ? user.username
+                              : '${user.firstName} ${user.lastName}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),

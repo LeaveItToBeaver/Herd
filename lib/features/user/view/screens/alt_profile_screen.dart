@@ -131,13 +131,6 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   ),
                   actions: [
                     if (isCurrentUser) ...[
-                      TextButton.icon(
-                        icon: const Icon(Icons.notifications),
-                        label: const Text('Notifications'),
-                        onPressed: () {
-                          context.pushNamed('connectionRequests');
-                        },
-                      ),
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () async {

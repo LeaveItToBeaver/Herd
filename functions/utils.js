@@ -229,3 +229,9 @@ async function findPostMediaItems(postId, userId, isAlt) {
         return [];
     }
 }
+
+module.exports = {
+    hotAlgorithm,
+    sanitizeData,
+    findPostMediaItems
+};

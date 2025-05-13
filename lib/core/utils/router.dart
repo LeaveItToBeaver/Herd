@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/features/auth/view/screens/email_verification_screen.dart';
+import 'package:herdapp/features/settings/notifications/view/screens/notification_settings_screen.dart';
 
 import '../../features/auth/view/screens/reset_password_screen.dart';
 import '../../features/floating_buttons/views/widgets/global_overlay_manager.dart';
@@ -181,6 +182,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
+      ),
+
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: Scaffold(
+            body: GlobalOverlayManager(
+              showBottomNav: true,
+              showSideBubbles: false,
+              showProfileBtn: true,
+              showSearchBtn: true,
+              showNotificationsBtn: false,
+              child: NotificationScreen(),
+            ),
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: '/notificationSettings',
+        name: 'notificationSettings',
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: NotificationSettingsScreen(),
+        ),
       ),
 
       // Settings Route
@@ -411,6 +437,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: true,
+                showNotificationsBtn: true,
                 child: Stack(children: [
                   PublicProfileScreen(userId: userId),
                 ]),
@@ -453,6 +480,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: true,
+                showNotificationsBtn: true,
                 child: Stack(children: [
                   AltProfileScreen(userId: userId),
                 ]),
@@ -493,6 +521,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: false,
+                showNotificationsBtn: false,
                 child: Scaffold(
                   body: SafeArea(
                     child: isPublic
@@ -515,6 +544,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: false,
+                showNotificationsBtn: false,
                 child: Scaffold(
                   body: SafeArea(
                     child: userParam.when(
@@ -723,6 +753,7 @@ class _TabScaffold extends ConsumerWidget {
         showSideBubbles: false,
         showProfileBtn: true,
         showSearchBtn: true,
+        showNotificationsBtn: false,
         currentFeedType: feedType, // Pass feed type to highlight correct tab
         child: child,
       ),

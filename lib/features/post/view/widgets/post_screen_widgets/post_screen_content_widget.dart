@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/widgets/media_carousel_widget.dart';
 import 'package:video_player/video_player.dart';
@@ -19,7 +18,7 @@ class PostContentSection extends ConsumerWidget {
   final bool isVideoInitialized;
 
   const PostContentSection({
-    Key? key,
+    super.key,
     required this.postId,
     required this.isAlt,
     required this.toggleNSFW,
@@ -28,7 +27,7 @@ class PostContentSection extends ConsumerWidget {
     this.chewieController,
     this.initializeVideo,
     this.isVideoInitialized = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,7 +65,7 @@ class PostContentSection extends ConsumerWidget {
 
           // Post content text
           Text(
-            post.content ?? '',
+            post.content,
             style: const TextStyle(fontSize: 16),
           ),
 
