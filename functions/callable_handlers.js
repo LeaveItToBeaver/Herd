@@ -1,187 +1,186 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
 const { admin, firestore } = require('./admin_init');
-const { hotAlgorithm, sanitizeData } = require('./utils');
+const { hotAlgorithm, sanitizeData, findPostMediaItems } = require('./utils');
 
 /**
  * Handle post interactions (likes/dislikes) with the unified feed approach
  */
-exports.handlePostInteraction = onCall({
+const handlePostInteraction = onCall({
     enforceAppCheck: false,
-},
-    async (request) => {
-        const {
-            postId,
-            interactionType,
-            feedType,
-            herdId
-        } = request.data;
+}, async (request) => {
+    const {
+        postId,
+        interactionType,
+        feedType,
+        herdId
+    } = request.data;
 
-        // Validate authentication
-        if (!request.auth) {
-            throw new HttpsError('unauthenticated', 'User must be logged in');
+    // Validate authentication
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    if (feedType === 'herd' && !herdId) {
+        throw new HttpsError('invalid-argument', 'herdId is required for herd posts');
+    }
+
+
+    const userId = request.auth.uid;
+
+    let postRef;
+
+    // If it's a herd post, we need to first find out where the full data is stored
+    if (feedType === 'herd') {
+        // First get the reference data from herdPosts
+        const herdPostRefDoc = await firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .doc(postId)
+            .get();
+
+        if (!herdPostRefDoc.exists) {
+            throw new HttpsError('not-found', 'Post reference not found');
         }
 
-        if (feedType === 'herd' && !herdId) {
-            throw new HttpsError('invalid-argument', 'herdId is required for herd posts');
+        // Extract the source collection from the reference data
+        const sourceCollection = herdPostRefDoc.data().sourceCollection || 'altPosts';
+
+        // Set reference to the actual full post data
+        postRef = firestore.collection(sourceCollection).doc(postId);
+    }
+    else if (feedType === 'public') {
+        postRef = firestore.collection('posts').doc(postId);
+    }
+    else if (feedType === 'alt') {
+        postRef = firestore.collection('altPosts').doc(postId);
+    }
+    else {
+        throw new HttpsError('invalid-argument', 'Invalid feed type');
+    }
+
+    // Define interaction configurations here - make sure it's defined before use
+    const interactions = {
+        like: {
+            incrementField: 'likeCount',
+            decrementField: 'dislikeCount',
+            collection: 'likes'
+        },
+        dislike: {
+            incrementField: 'dislikeCount',
+            decrementField: 'likeCount',
+            collection: 'dislikes'
+        }
+    };
+
+    // Validate interaction type early
+    const config = interactions[interactionType];
+    if (!config) {
+        throw new HttpsError('invalid-argument', 'Invalid interaction type');
+    }
+
+    return firestore.runTransaction(async (transaction) => {
+        // Get all document references first before any writes
+        const postDoc = await transaction.get(postRef);
+
+        if (!postDoc.exists) {
+            throw new HttpsError('not-found', 'Post not found');
         }
 
+        const postData = postDoc.data();
 
-        const userId = request.auth.uid;
+        const interactionRef = firestore
+            .collection(config.collection)
+            .doc(postId)
+            .collection('userInteractions')
+            .doc(userId);
 
-        let postRef;
+        // Check current interaction state
+        const currentInteraction = await transaction.get(interactionRef);
+        const isCurrentlyInteracted = currentInteraction.exists;
 
-        // If it's a herd post, we need to first find out where the full data is stored
-        if (feedType === 'herd') {
-            // First get the reference data from herdPosts
-            const herdPostRefDoc = await firestore
-                .collection('herdPosts')
-                .doc(herdId)
-                .collection('posts')
-                .doc(postId)
-                .get();
+        // Check if opposite interaction exists - do this read before any writes
+        const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
+        const oppositeRef = firestore
+            .collection(oppositeCollection)
+            .doc(postId)
+            .collection('userInteractions')
+            .doc(userId);
 
-            if (!herdPostRefDoc.exists) {
-                throw new HttpsError('not-found', 'Post reference not found');
-            }
+        const oppositeInteraction = await transaction.get(oppositeRef);
+        const hasOppositeInteraction = oppositeInteraction.exists;
 
-            // Extract the source collection from the reference data
-            const sourceCollection = herdPostRefDoc.data().sourceCollection || 'altPosts';
+        // NOW DO ALL WRITES AFTER ALL READS
 
-            // Set reference to the actual full post data
-            postRef = firestore.collection(sourceCollection).doc(postId);
-        }
-        else if (feedType === 'public') {
-            postRef = firestore.collection('posts').doc(postId);
-        }
-        else if (feedType === 'alt') {
-            postRef = firestore.collection('altPosts').doc(postId);
-        }
-        else {
-            throw new HttpsError('invalid-argument', 'Invalid feed type');
-        }
+        // Calculate the changes based on current state
+        let likeChange = 0;
+        let dislikeChange = 0;
 
-        // Define interaction configurations here - make sure it's defined before use
-        const interactions = {
-            like: {
-                incrementField: 'likeCount',
-                decrementField: 'dislikeCount',
-                collection: 'likes'
-            },
-            dislike: {
-                incrementField: 'dislikeCount',
-                decrementField: 'likeCount',
-                collection: 'dislikes'
-            }
-        };
-
-        // Validate interaction type early
-        const config = interactions[interactionType];
-        if (!config) {
-            throw new HttpsError('invalid-argument', 'Invalid interaction type');
+        if (interactionType === 'like') {
+            likeChange = isCurrentlyInteracted ? -1 : 1;
+            dislikeChange = hasOppositeInteraction ? -1 : 0;
+        } else { // dislike
+            dislikeChange = isCurrentlyInteracted ? -1 : 1;
+            likeChange = hasOppositeInteraction ? -1 : 0;
         }
 
-        return firestore.runTransaction(async (transaction) => {
-            // Get all document references first before any writes
-            const postDoc = await transaction.get(postRef);
-
-            if (!postDoc.exists) {
-                throw new HttpsError('not-found', 'Post not found');
-            }
-
-            const postData = postDoc.data();
-
-            const interactionRef = firestore
-                .collection(config.collection)
-                .doc(postId)
-                .collection('userInteractions')
-                .doc(userId);
-
-            // Check current interaction state
-            const currentInteraction = await transaction.get(interactionRef);
-            const isCurrentlyInteracted = currentInteraction.exists;
-
-            // Check if opposite interaction exists - do this read before any writes
-            const oppositeCollection = interactionType === 'like' ? 'dislikes' : 'likes';
-            const oppositeRef = firestore
-                .collection(oppositeCollection)
-                .doc(postId)
-                .collection('userInteractions')
-                .doc(userId);
-
-            const oppositeInteraction = await transaction.get(oppositeRef);
-            const hasOppositeInteraction = oppositeInteraction.exists;
-
-            // NOW DO ALL WRITES AFTER ALL READS
-
-            // Calculate the changes based on current state
-            let likeChange = 0;
-            let dislikeChange = 0;
-
-            if (interactionType === 'like') {
-                likeChange = isCurrentlyInteracted ? -1 : 1;
-                dislikeChange = hasOppositeInteraction ? -1 : 0;
-            } else { // dislike
-                dislikeChange = isCurrentlyInteracted ? -1 : 1;
-                likeChange = hasOppositeInteraction ? -1 : 0;
-            }
-
-            // Update post counts
-            transaction.update(postRef, {
-                likeCount: admin.firestore.FieldValue.increment(likeChange),
-                dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-            });
-
-            // Toggle user's interaction
-            if (isCurrentlyInteracted) {
-                transaction.delete(interactionRef);
-            } else {
-                transaction.set(interactionRef, {
-                    timestamp: admin.firestore.FieldValue.serverTimestamp()
-                });
-            }
-
-            // Remove opposite interaction if it exists
-            if (hasOppositeInteraction) {
-                transaction.delete(oppositeRef);
-            }
-
-            // Calculate updated hot score with new values
-            const updatedLikeCount = postData.likeCount + likeChange;
-            const updatedDislikeCount = postData.dislikeCount + dislikeChange;
-            const netVotes = updatedLikeCount - updatedDislikeCount;
-            const updatedHotScore = hotAlgorithm.calculateHotScore(
-                netVotes,
-                postData.createdAt.toDate()
-            );
-
-            logger.info(`Updated hot score for post ${postId}: ${updatedHotScore}`);
-
-            transaction.update(postRef, { hotScore: updatedHotScore });
-
-            // If not the author, update user points
-            if (postData.authorId !== userId) {
-                const pointChange = isCurrentlyInteracted ? -1 : 1;
-                const authorRef = firestore.collection('users').doc(postData.authorId);
-                transaction.update(authorRef, {
-                    userPoints: admin.firestore.FieldValue.increment(pointChange)
-                });
-            }
-
-            return {
-                success: true,
-                hotScore: updatedHotScore,
-                isLiked: interactionType === 'like' && !isCurrentlyInteracted,
-                isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
-            };
+        // Update post counts
+        transaction.update(postRef, {
+            likeCount: admin.firestore.FieldValue.increment(likeChange),
+            dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
         });
+
+        // Toggle user's interaction
+        if (isCurrentlyInteracted) {
+            transaction.delete(interactionRef);
+        } else {
+            transaction.set(interactionRef, {
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // Remove opposite interaction if it exists
+        if (hasOppositeInteraction) {
+            transaction.delete(oppositeRef);
+        }
+
+        // Calculate updated hot score with new values
+        const updatedLikeCount = postData.likeCount + likeChange;
+        const updatedDislikeCount = postData.dislikeCount + dislikeChange;
+        const netVotes = updatedLikeCount - updatedDislikeCount;
+        const updatedHotScore = hotAlgorithm.calculateHotScore(
+            netVotes,
+            postData.createdAt.toDate()
+        );
+
+        logger.info(`Updated hot score for post ${postId}: ${updatedHotScore}`);
+
+        transaction.update(postRef, { hotScore: updatedHotScore });
+
+        // If not the author, update user points
+        if (postData.authorId !== userId) {
+            const pointChange = isCurrentlyInteracted ? -1 : 1;
+            const authorRef = firestore.collection('users').doc(postData.authorId);
+            transaction.update(authorRef, {
+                userPoints: admin.firestore.FieldValue.increment(pointChange)
+            });
+        }
+
+        return {
+            success: true,
+            hotScore: updatedHotScore,
+            isLiked: interactionType === 'like' && !isCurrentlyInteracted,
+            isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
+        };
     });
+});
 
 
 /**
  * Get feed for a user with filtering options
  */
-exports.getFeed = onCall(async (request) => {
+const getFeed = onCall(async (request) => {
     const {
         feedType = 'public',
         herdId = null,
@@ -254,7 +253,7 @@ exports.getFeed = onCall(async (request) => {
 });
 
 // Add this function to your index.js file
-exports.retroactivelyFillUserFeeds = onCall({
+const retroactivelyFillUserFeeds = onCall({
     enforceAppCheck: false,
     timeoutSeconds: 540, // 9 minutes, close to the max timeout
 }, async (request) => {
@@ -434,7 +433,7 @@ exports.retroactivelyFillUserFeeds = onCall({
     }
 });
 
-exports.fillUserFeedOnFollow = onCall({
+const fillUserFeedOnFollow = onCall({
     enforceAppCheck: true,
     timeoutSeconds: 120, // 2 minutes should be enough for single user
 }, async (request) => {
@@ -552,7 +551,7 @@ exports.fillUserFeedOnFollow = onCall({
 /**
  * Get trending posts for discovery
  */
-exports.getTrendingPosts = onCall(async (request) => {
+const getTrendingPosts = onCall(async (request) => {
     const { limit = 10, postType = 'all' } = request.data;
 
     try {
@@ -611,7 +610,7 @@ exports.getTrendingPosts = onCall(async (request) => {
 });
 
 // Debug function to find documents with NaN hotScores
-exports.findNaNHotScores = onCall(async (request) => {
+const findNaNHotScores = onCall(async (request) => {
     if (!request.auth || !request.auth.token.admin) {
         throw new HttpsError('permission-denied', 'Admin only function');
     }
@@ -647,7 +646,7 @@ exports.findNaNHotScores = onCall(async (request) => {
     }
 });
 
-exports.catchAndLogExceptions = onCall(async (request) => {
+const catchAndLogExceptions = onCall(async (request) => {
     try {
         const {
             errorMessage,
@@ -696,8 +695,6 @@ exports.catchAndLogExceptions = onCall(async (request) => {
         throw new HttpsError('internal', `failed to log exception ${error.message}`);
     }
 });
-
-
 
 // Get public feed (personalized for each user)
 async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
@@ -892,3 +889,13 @@ async function getUserInteractionsForPosts(userId, postIds) {
 
     return result;
 }
+
+module.exports = {
+    handlePostInteraction,
+    getFeed,
+    retroactivelyFillUserFeeds,
+    fillUserFeedOnFollow,
+    getTrendingPosts,
+    findNaNHotScores,
+    catchAndLogExceptions
+};

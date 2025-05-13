@@ -1,8 +1,7 @@
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { logger } = require("firebase-functions");
 const { admin, firestore } = require('./admin_init');
-const { hotAlgorithm, sanitizeData } = require('./utils');
-
+const { hotAlgorithm } = require('./utils');
 
 /**
  * Update user feed when a follow/unfollow action occurs
@@ -325,4 +324,3 @@ exports.handleHerdLeave = onDocumentDeleted(
         }
     }
 );
-

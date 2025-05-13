@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/notifications/view/providers/notification_provider.dart';
 
 import '../../../../core/utils/enums/bottom_nav_item.dart';
 import '../../../auth/view/providers/auth_provider.dart';
@@ -15,6 +16,7 @@ class GlobalOverlayManager extends StatelessWidget {
   final bool showSideBubbles;
   final bool showProfileBtn;
   final bool showSearchBtn;
+  final bool showNotificationsBtn;
   final FeedType? currentFeedType;
 
   const GlobalOverlayManager({
@@ -24,13 +26,15 @@ class GlobalOverlayManager extends StatelessWidget {
     this.showSideBubbles = true,
     this.showProfileBtn = true,
     this.showSearchBtn = true,
+    this.showNotificationsBtn = true,
     this.currentFeedType,
   });
 
   @override
   Widget build(BuildContext context) {
     // Determine if we have any buttons to show
-    final bool showAnyButtons = showProfileBtn || showSearchBtn;
+    final bool showAnyButtons =
+        showProfileBtn || showSearchBtn || showNotificationsBtn;
 
     // Simple logic: if any side button is enabled, offset the navbar
     final double navBarRightPadding = showAnyButtons ? 70 : 0;
@@ -64,6 +68,7 @@ class GlobalOverlayManager extends StatelessWidget {
                 child: SideBubblesOverlay(
                   showProfileBtn: showProfileBtn,
                   showSearchBtn: showSearchBtn,
+                  showNotificationsBtn: showNotificationsBtn,
                 ),
               ),
 
@@ -84,6 +89,7 @@ class GlobalOverlayManager extends StatelessWidget {
                 child: FloatingButtonsColumn(
                   showProfileBtn: showProfileBtn,
                   showSearchBtn: showSearchBtn,
+                  showNotificationsBtn: showNotificationsBtn,
                 ),
               ),
           ],
@@ -97,17 +103,21 @@ class GlobalOverlayManager extends StatelessWidget {
 class FloatingButtonsColumn extends ConsumerWidget {
   final bool showProfileBtn;
   final bool showSearchBtn;
+  final bool showNotificationsBtn;
 
   const FloatingButtonsColumn({
     super.key,
     required this.showProfileBtn,
     required this.showSearchBtn,
+    required this.showNotificationsBtn,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Get current feed type for determining profile route
     final currentFeed = ref.watch(currentFeedProvider);
+    final notifications =
+        ref.watch(notificationStreamProvider(ref.read(authProvider)!.uid));
 
     final bool bothButtonsVisible = showProfileBtn && showSearchBtn;
 
@@ -151,6 +161,27 @@ class FloatingButtonsColumn extends ConsumerWidget {
                 } else {
                   context.go("/login");
                 }
+              },
+            ),
+          ),
+
+        // Notifications button
+        if (showNotificationsBtn)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: FloatingActionButton(
+              heroTag: "floatingNotificationsBtn",
+              backgroundColor: Colors.black,
+              mini: false,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.0),
+              ),
+              child: notifications.hasValue
+                  ? Icon(Icons.notifications, color: Colors.purpleAccent)
+                  : Icon(Icons.notifications, color: Colors.white),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.pushNamed('notifications');
               },
             ),
           ),
@@ -420,11 +451,6 @@ class SideBubblesOverlay extends ConsumerWidget {
       );
     }
 
-    if (showSearchBtn && showProfileBtn) {
-      // Add a spacer between the two buttons
-      bubbles.add(const SizedBox(height: 16));
-    }
-
     // Add profile button if enabled
     if (showProfileBtn) {
       bubbles.add(
@@ -457,6 +483,13 @@ class SideBubblesOverlay extends ConsumerWidget {
           },
         ),
       );
+    }
+
+    if (showSearchBtn && showProfileBtn ||
+        showNotificationsBtn && showProfileBtn ||
+        showSearchBtn && showNotificationsBtn) {
+      // Add a spacer between the two buttons
+      bubbles.add(const SizedBox(height: 16));
     }
 
     // Add feed toggle button
