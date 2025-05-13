@@ -4,9 +4,11 @@ import 'package:herdapp/features/notifications/data/models/notification_model.da
 import 'package:herdapp/features/notifications/data/models/notification_settings_model.dart';
 import 'package:herdapp/features/notifications/view/providers/notification_provider.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
+// Import intl for date formatting if not already done elsewhere globally
+import 'package:intl/intl.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
-  const NotificationSettingsScreen({Key? key}) : super(key: key);
+  const NotificationSettingsScreen({super.key});
 
   @override
   ConsumerState<NotificationSettingsScreen> createState() =>
@@ -15,7 +17,8 @@ class NotificationSettingsScreen extends ConsumerStatefulWidget {
 
 class _NotificationSettingsScreenState
     extends ConsumerState<NotificationSettingsScreen> {
-  bool _isLoading = false;
+  // _isLoading is now managed by AsyncValue, but can be kept for disabling buttons during calls.
+  bool _isUpdating = false;
 
   @override
   Widget build(BuildContext context) {
@@ -36,16 +39,43 @@ class _NotificationSettingsScreenState
       appBar: AppBar(
         title: const Text('Notification Settings'),
       ),
-      body: settingsAsync == null
-          ? const Center(child: CircularProgressIndicator())
-          : _buildSettingsList(settingsAsync),
+      // Use AsyncValue.when to handle different states
+      body: settingsAsync.when(
+        data: (settings) {
+          if (settings == null) {
+            // This case should ideally not happen if getOrCreateSettings always returns a model
+            return const Center(
+                child: Text('Notification settings not available.'));
+          }
+          return _buildSettingsList(settings, currentUser.uid);
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error loading settings: $error'),
+              ElevatedButton(
+                onPressed: () {
+                  ref
+                      .read(notificationSettingsProvider(currentUser.uid)
+                          .notifier)
+                      .loadSettings();
+                },
+                child: const Text('Retry'),
+              )
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildSettingsList(NotificationSettingsModel settings) {
+  // Pass userId to _buildSettingsList if needed for notifier calls directly from there,
+  // or ensure _toggleSetting and _setMuteUntil get it.
+  Widget _buildSettingsList(NotificationSettingsModel settings, String userId) {
     return ListView(
       children: [
-        // Global notification settings
         const Padding(
           padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
@@ -56,22 +86,20 @@ class _NotificationSettingsScreenState
             ),
           ),
         ),
-
         SwitchListTile(
           title: const Text('Enable Push Notifications'),
           subtitle: const Text('Receive notifications on your device'),
           value: settings.pushNotificationsEnabled,
-          onChanged: _isLoading
+          onChanged: _isUpdating
               ? null
               : (value) => _toggleSetting(
+                    userId, // Pass userId
                     'pushNotificationsEnabled',
                     value,
                   ),
         ),
-
         if (settings.pushNotificationsEnabled) ...[
           const Divider(),
-
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
@@ -82,94 +110,68 @@ class _NotificationSettingsScreenState
               ),
             ),
           ),
-
           SwitchListTile(
             title: const Text('New Followers'),
             subtitle: const Text('When someone starts following you'),
             value: settings.followNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
                 : (value) => _toggleSetting(
-                      'followNotifications',
-                      value,
-                    ),
+                    userId, 'followNotifications', value), // Pass userId
           ),
-
           SwitchListTile(
             title: const Text('New Posts'),
             subtitle: const Text('When people you follow post new content'),
             value: settings.postNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
-                : (value) => _toggleSetting(
-                      'postNotifications',
-                      value,
-                    ),
+                : (value) => _toggleSetting(userId, 'postNotifications', value),
           ),
-
           SwitchListTile(
             title: const Text('Likes'),
             subtitle: const Text('When someone likes your post'),
             value: settings.likeNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
-                : (value) => _toggleSetting(
-                      'likeNotifications',
-                      value,
-                    ),
+                : (value) => _toggleSetting(userId, 'likeNotifications', value),
           ),
-
           SwitchListTile(
             title: const Text('Comments'),
             subtitle: const Text('When someone comments on your post'),
             value: settings.commentNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
-                : (value) => _toggleSetting(
-                      'commentNotifications',
-                      value,
-                    ),
+                : (value) =>
+                    _toggleSetting(userId, 'commentNotifications', value),
           ),
-
           SwitchListTile(
             title: const Text('Replies'),
             subtitle: const Text('When someone replies to your comment'),
             value: settings.replyNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
-                : (value) => _toggleSetting(
-                      'replyNotifications',
-                      value,
-                    ),
+                : (value) =>
+                    _toggleSetting(userId, 'replyNotifications', value),
           ),
-
           SwitchListTile(
             title: const Text('Connection Requests'),
             subtitle: const Text('Connection requests and acceptances'),
             value: settings.connectionNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
-                : (value) => _toggleSetting(
-                      'connectionNotifications',
-                      value,
-                    ),
+                : (value) =>
+                    _toggleSetting(userId, 'connectionNotifications', value),
           ),
-
           SwitchListTile(
             title: const Text('Milestones'),
             subtitle: const Text('When your posts reach certain thresholds'),
             value: settings.milestoneNotifications,
-            onChanged: _isLoading
+            onChanged: _isUpdating
                 ? null
-                : (value) => _toggleSetting(
-                      'milestoneNotifications',
-                      value,
-                    ),
+                : (value) =>
+                    _toggleSetting(userId, 'milestoneNotifications', value),
           ),
-
           const Divider(),
-
-          // Temporary mute section
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
@@ -180,39 +182,40 @@ class _NotificationSettingsScreenState
               ),
             ),
           ),
-
           ListTile(
             title: Text(
               settings.isMuted
-                  ? 'Muted until ${_formatDateTime(settings.mutedUntil!)}'
+                  // Use DateFormat for better formatting
+                  ? 'Muted until ${DateFormat.yMd().add_jm().format(settings.mutedUntil!)}'
                   : 'Temporary Mute',
             ),
             subtitle: const Text('Pause notifications for a specific time'),
             trailing: settings.isMuted
                 ? ElevatedButton(
-                    onPressed: _isLoading ? null : () => _setMuteUntil(null),
+                    onPressed:
+                        _isUpdating ? null : () => _setMuteUntil(userId, null),
                     child: const Text('Unmute'),
                   )
                 : const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap:
-                settings.isMuted || _isLoading ? null : () => _showMuteDialog(),
+            onTap: settings.isMuted || _isUpdating
+                ? null
+                : () => _showMuteDialog(userId),
           ),
         ],
       ],
     );
   }
 
-  Future<void> _toggleSetting(String settingName, bool value) async {
-    final currentUser = ref.read(authProvider);
-    if (currentUser == null) return;
-
+  Future<void> _toggleSetting(
+      String userId, String settingName, bool value) async {
+    // No longer need to get currentUser here as userId is passed
     setState(() {
-      _isLoading = true;
+      _isUpdating = true;
     });
 
     try {
       final settingsNotifier =
-          ref.read(notificationSettingsProvider(currentUser.uid).notifier);
+          ref.read(notificationSettingsProvider(userId).notifier);
 
       switch (settingName) {
         case 'pushNotificationsEnabled':
@@ -239,6 +242,7 @@ class _NotificationSettingsScreenState
               NotificationType.commentReply, value);
           break;
         case 'connectionNotifications':
+          // If connectionNotifications covers both request and accepted
           await settingsNotifier.toggleTypeNotification(
               NotificationType.connectionRequest, value);
           break;
@@ -250,34 +254,32 @@ class _NotificationSettingsScreenState
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isUpdating = false;
         });
       }
     }
   }
 
-  Future<void> _setMuteUntil(DateTime? dateTime) async {
-    final currentUser = ref.read(authProvider);
-    if (currentUser == null) return;
-
+  Future<void> _setMuteUntil(String userId, DateTime? dateTime) async {
     setState(() {
-      _isLoading = true;
+      _isUpdating = true;
     });
 
     try {
       await ref
-          .read(notificationSettingsProvider(currentUser.uid).notifier)
+          .read(notificationSettingsProvider(userId).notifier)
           .setMuteUntil(dateTime);
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isUpdating = false;
         });
       }
     }
   }
 
-  void _showMuteDialog() {
+  void _showMuteDialog(String userId) {
+    // Pass userId
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -285,11 +287,11 @@ class _NotificationSettingsScreenState
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildMuteOption('1 hour', Duration(hours: 1)),
-            _buildMuteOption('2 hours', Duration(hours: 2)),
-            _buildMuteOption('8 hours', Duration(hours: 8)),
-            _buildMuteOption('24 hours', Duration(hours: 24)),
-            _buildMuteOption('Until tomorrow', _untilTomorrow()),
+            _buildMuteOption('1 hour', Duration(hours: 1), userId),
+            _buildMuteOption('2 hours', Duration(hours: 2), userId),
+            _buildMuteOption('8 hours', Duration(hours: 8), userId),
+            _buildMuteOption('24 hours', Duration(hours: 24), userId),
+            _buildMuteOption('Until tomorrow', _untilTomorrow(), userId),
           ],
         ),
         actions: [
@@ -302,12 +304,13 @@ class _NotificationSettingsScreenState
     );
   }
 
-  Widget _buildMuteOption(String label, Duration duration) {
+  Widget _buildMuteOption(String label, Duration duration, String userId) {
+    // Pass userId
     return ListTile(
       title: Text(label),
       onTap: () {
         Navigator.of(context).pop();
-        _setMuteUntil(DateTime.now().add(duration));
+        _setMuteUntil(userId, DateTime.now().add(duration));
       },
     );
   }
@@ -319,16 +322,6 @@ class _NotificationSettingsScreenState
     return tomorrow.difference(now);
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = dateTime.difference(now);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ${difference.inHours % 24}h from now';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ${difference.inMinutes % 60}m from now';
-    } else {
-      return '${difference.inMinutes}m from now';
-    }
-  }
+  // _formatDateTime is no longer used here as DateFormat is used directly
+  // String _formatDateTime(DateTime dateTime) { ... }
 }
