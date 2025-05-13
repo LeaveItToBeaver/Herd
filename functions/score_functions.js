@@ -45,6 +45,95 @@ exports.updateHotScores = onSchedule(
 );
 
 /**
+ * Helper function to update hot scores in user feeds
+ * @param {Array} updatedPosts - Array of objects containing post info
+ */
+async function updateUserFeedsForPosts(updatedPosts) {
+    if (updatedPosts.length === 0) return;
+
+    const MAX_BATCH_SIZE = 500;
+    let batch = firestore.batch();
+    let operationCount = 0;
+
+    for (const post of updatedPosts) {
+        // Find all user feeds containing this post
+        let userFeedsQuery = firestore
+            .collectionGroup("feed")
+            .where("id", "==", post.id)
+            .where("sourceCollection", "==", post.sourceCollection);
+
+        // Add herdId filter if applicable
+        if (post.sourceCollection === 'herdPosts' && post.herdId) {
+            userFeedsQuery = userFeedsQuery.where("herdId", "==", post.herdId);
+        }
+
+        const feedEntries = await userFeedsQuery.select().get();
+
+        if (feedEntries.empty) {
+            logger.info(`No user feed entries found for ${post.sourceCollection} ${post.id}`);
+            continue;
+        }
+
+        logger.info(`Updating hot score for ${post.sourceCollection} ${post.id} in ${feedEntries.size} user feeds`);
+
+        for (const doc of feedEntries.docs) {
+            batch.update(doc.ref, { hotScore: post.hotScore });
+            operationCount++;
+
+            if (operationCount >= MAX_BATCH_SIZE) {
+                await batch.commit();
+                batch = firestore.batch();
+                operationCount = 0;
+            }
+        }
+    }
+
+    if (operationCount > 0) {
+        await batch.commit();
+    }
+
+    logger.info(`User feeds updated with new hot scores for ${updatedPosts.length} posts`);
+}
+
+
+[
+    { path: "posts/{postId}", sourceCollection: "posts" },
+    { path: "altPosts/{postId}", sourceCollection: "altPosts" },
+    { path: "herdPosts/{herdId}/posts/{postId}", sourceCollection: "herdPosts" }
+].forEach(({ path, sourceCollection }) => {
+    exports[`syncHotScore_${sourceCollection}`] = onDocumentUpdated(
+        path,
+        async (event) => {
+            const postId = event.params.postId;
+            const after = event.data.after.data();
+            const newHotScore = after.hotScore;
+            logger.info(`Syncing hotScore=${newHotScore} for ${sourceCollection}/${postId}`);
+
+            // Find and update all feed entries
+            const feeds = await admin
+                .firestore()
+                .collectionGroup("feed")
+                .where("id", "==", postId)
+                .where("sourceCollection", "==", sourceCollection)
+                .get();
+
+            if (feeds.empty) {
+                logger.info(`No feed docs found for ${postId} in ${sourceCollection}`);
+                return;
+            }
+
+            const batch = admin.firestore().batch();
+            feeds.forEach(doc => {
+                batch.update(doc.ref, { hotScore: newHotScore });
+            });
+            await batch.commit();
+            logger.info(`Updated ${feeds.size} feed docs for ${postId}`);
+        }
+    );
+});
+
+
+/**
  * Helper function to update hot scores for a specific post type
  * @param {string} collectionName - The collection to update ('posts', 'altPosts')
  * @param {string|null} herdId - For herd posts, the ID of the herd

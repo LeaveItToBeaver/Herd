@@ -71,6 +71,66 @@ exports.distributePublicPost = onDocumentCreated(
     }
 );
 
+/**
+ * Remove post from all feeds when the post is deleted
+ */
+exports.removeDeletedPost = onDocumentDeleted(
+    "posts/{postId}",
+    async (event) => {
+        const postId = event.params.postId;
+        const postData = event.data.data();
+
+        if (!postData) {
+            logger.error(`No post data found for deleted ID: ${postId}`);
+            return null;
+        }
+
+        try {
+            // Find all user feeds containing this post
+            const feedQuery = firestore
+                .collectionGroup("feed")
+                .where("__name__", "==", postId)
+                .select(); // Use select() to minimize data read
+
+            const feedEntries = await feedQuery.get();
+
+            if (feedEntries.empty) {
+                logger.info(`No feed entries found for deleted post ${postId}`);
+                return null;
+            }
+
+            logger.info(`Removing deleted post ${postId} from ${feedEntries.size} feeds`);
+
+            // Batch delete from all feeds
+            const MAX_BATCH_SIZE = 500;
+            let batch = firestore.batch();
+            let operationCount = 0;
+
+            for (const doc of feedEntries.docs) {
+                batch.delete(doc.ref);
+                operationCount++;
+
+                if (operationCount >= MAX_BATCH_SIZE) {
+                    await batch.commit();
+                    batch = firestore.batch();
+                    operationCount = 0;
+                }
+            }
+
+            if (operationCount > 0) {
+                await batch.commit();
+            }
+
+            logger.info(`Successfully removed deleted post ${postId} from all feeds`);
+            return null;
+        } catch (error) {
+            logger.error(`Error removing deleted post ${postId}:`, error);
+            throw error;
+        }
+    }
+);
+
+
 // 2. Trigger for alt posts
 exports.distributeAltPost = onDocumentCreated(
     "altPosts/{postId}",
