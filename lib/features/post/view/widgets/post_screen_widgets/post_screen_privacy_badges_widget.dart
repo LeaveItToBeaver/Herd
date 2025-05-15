@@ -5,10 +5,10 @@ class PostPrivacyBadges extends StatelessWidget {
   final bool isNSFW;
 
   const PostPrivacyBadges({
-    Key? key,
+    super.key,
     required this.isAlt,
     required this.isNSFW,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -10,6 +10,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/notifications/utils/notification_service.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/bootstrap/app_bootstraps.dart';
 
@@ -74,6 +76,24 @@ class MyApp extends ConsumerWidget {
       // builder: (BuildContext context, Widget? child) {
       //   return AppScaffold(child: child!);
       // },
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        FlutterQuillLocalizations.delegate, // Add this line
+      ],
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('fr'), // French
+        Locale('de'), // German
+        Locale('it'), // Italian
+        Locale('ru'), // Russian
+        Locale('ja'), // Japanese
+        Locale('ko'), // Korean
+        Locale('pl'), // Polish
+        Locale('sv'), // Swedish
+        Locale('es'), // Spanish
+      ],
       title: 'Herd app',
       theme: ThemeData(
         primarySwatch: Colors.blue,

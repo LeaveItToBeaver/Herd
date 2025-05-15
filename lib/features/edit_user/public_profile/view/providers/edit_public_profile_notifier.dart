@@ -12,10 +12,10 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
 
   EditPublicProfileNotifier({required this.userRepository, required this.user})
       : super(EditPublicProfileState(
-    firstName: user.firstName ?? '',
-    lastName: user.lastName ?? '',
-    bio: user.bio ?? '',
-  ));
+          firstName: user.firstName,
+          lastName: user.lastName,
+          bio: user.bio ?? '',
+        ));
 
   void firstNameChanged(String value) {
     state = state.copyWith(firstName: value);
@@ -45,7 +45,7 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
       final Map<String, dynamic> updatedData = {
         'firstName': state.firstName,
         'lastName': state.lastName,
-        'bio': state.bio,  // Correct - updates the public bio
+        'bio': state.bio, // Correct - updates the public bio
         // Other public profile fields...
       };
 
@@ -53,7 +53,7 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
         final coverImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.coverImage!,
-          type: 'cover',  // Public profile cover image
+          type: 'cover', // Public profile cover image
         );
         updatedData['coverImageURL'] = coverImageUrl;
       }
@@ -62,7 +62,7 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
         final profileImageUrl = await userRepository.uploadImage(
           userId: user.id,
           file: state.profileImage!,
-          type: 'profile',  // Public profile image
+          type: 'profile', // Public profile image
         );
         updatedData['profileImageURL'] = profileImageUrl;
       }
@@ -70,15 +70,17 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
       await userRepository.updateUser(user.id, updatedData);
       state = state.copyWith(isSubmitting: false, isSuccess: true);
     } catch (error) {
-      state = state.copyWith(isSubmitting: false, errorMessage: error.toString());
+      state =
+          state.copyWith(isSubmitting: false, errorMessage: error.toString());
     }
   }
 }
 
-final editPublicProfileProvider =
-StateNotifierProvider.family<EditPublicProfileNotifier, EditPublicProfileState, UserModel>(
-      (ref, user) {
+final editPublicProfileProvider = StateNotifierProvider.family<
+    EditPublicProfileNotifier, EditPublicProfileState, UserModel>(
+  (ref, user) {
     final userRepository = ref.watch(userRepositoryProvider);
-    return EditPublicProfileNotifier(userRepository: userRepository, user: user);
+    return EditPublicProfileNotifier(
+        userRepository: userRepository, user: user);
   },
 );

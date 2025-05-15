@@ -1,14 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/services/image_helper.dart';
-import 'package:herdapp/features/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
-import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 import '../../../drafts/view/widgets/save_draft_dialog.dart';
 import '../../../navigation/view/widgets/BottomNavPadding.dart';
@@ -45,6 +47,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   String? _selectHerdProfileImageUrl;
   bool _hasEnteredContent = false;
   final bool _isHerdPost = false;
+  late quill.QuillController _contentController;
+  late FocusNode _editorFocusNode;
+  late ScrollController _editorScrollController;
 
   @override
   void initState() {
@@ -58,6 +63,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     // Initialize with the provided values
     _isAlt = widget.isAlt;
     _selectedHerdId = widget.herdId;
+    _contentController = quill.QuillController.basic();
+    _editorFocusNode = FocusNode();
+    _editorScrollController = ScrollController();
 
     // If we have a herdId, fetch the herd name
     if (_selectedHerdId != null) {
@@ -70,6 +78,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     super.didChangeDependencies();
     // Start monitoring content changes for draft saving
     _checkContentEntered();
+  }
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    _editorFocusNode.dispose();
+    _editorScrollController.dispose();
+    super.dispose();
   }
 
 // This method tracks when content is entered
@@ -105,8 +121,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final postState = ref.watch(postControllerProvider);
     final currentUserAsync =
         ref.watch(currentUserProvider); // Changed read to watch
-    final userId = currentUserAsync.userId;
-    final currentFeed = ref.watch(currentFeedProvider);
+    //final userId = currentUserAsync.userId;
+    //final currentFeed = ref.watch(currentFeedProvider);
 
     return PopScope(
       canPop: false,
@@ -490,7 +506,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   List<File> _mediaFiles = [];
   int _currentMediaIndex = 0;
 
-  // Add to your CreatePostScreen class
   Future<List<Map<String, dynamic>>> _processMediaFiles() async {
     List<Map<String, dynamic>> processedMedia = [];
 
@@ -504,13 +519,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
 
       if (isVideo) {
+        //  Thumbnail generation is commented out for now
         // Generate thumbnail for video
-        final thumbnailFile =
-            await ImageHelper.generateVideoThumbnailFile(file);
+        // final thumbnailFile =
+        //     await ImageHelper.generateVideoThumbnailFile(file);
 
         processedMedia.add({
           'file': file,
-          'thumbnailFile': thumbnailFile,
+          //'thumbnailFile': thumbnailFile,
           'mediaType': 'video',
           'index': i,
         });
@@ -673,6 +689,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         ['.mp4', '.mov', '.avi', '.mkv', '.webm'].contains(extension);
     final isGif = extension == '.gif';
 
+    final canEdit = !isVideo && !isGif;
+
     if (isVideo) {
       return Stack(
         alignment: Alignment.center,
@@ -732,6 +750,16 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             height: double.infinity,
           ),
         ),
+        if (canEdit)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              onPressed: () => _cropImage(currentFile),
+              tooltip: 'Edit Image',
+            ),
+          ),
         if (isGif)
           Positioned(
             bottom: 8,
@@ -766,6 +794,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       child: Column(
         children: [
           TextFormField(
+            textCapitalization: TextCapitalization.sentences,
             enabled: !_isSubmitting,
             decoration: InputDecoration(
               labelText: 'Title',
@@ -818,55 +847,45 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           if (_hasMedia) _mediaPicker(context),
 
           const SizedBox(height: 8),
-          TextFormField(
-            enabled: !_isSubmitting,
-            maxLines: 7,
-            decoration: InputDecoration(
-              labelText: 'Content',
-              alignLabelWithHint: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                    width: 2,
+          Column(
+            children: [
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  border: Border.all(
                     color: _isNSFW && _isAlt
                         ? Colors.purple
                         : _isNSFW && !_isAlt
                             ? Colors.red
                             : _isAlt
                                 ? Colors.blue
-                                : Colors.black),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  width: 2,
-                  color: _isNSFW && _isAlt
-                      ? Colors.purple
-                      : _isNSFW && !_isAlt
-                          ? Colors.red
-                          : _isAlt
-                              ? Colors.blue
-                              : Colors.black,
+                                : Colors.grey,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    QuillSimpleToolbar(
+                      controller: _contentController,
+                      config: const QuillSimpleToolbarConfig(),
+                    ),
+                    Expanded(
+                      child: quill.QuillEditor(
+                        controller: _contentController,
+                        focusNode: _editorFocusNode,
+                        scrollController: _editorScrollController,
+                        config: quill.QuillEditorConfig(
+                          scrollable: true,
+                          padding: EdgeInsets.zero,
+                          autoFocus: false,
+                          expands: false,
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
-              prefixIcon: Padding(
-                padding: const EdgeInsets.only(bottom: 100),
-                child: Icon(
-                  Icons.article,
-                  color: _isNSFW && _isAlt
-                      ? Colors.purple
-                      : _isNSFW && !_isAlt
-                          ? Colors.red
-                          : _isAlt
-                              ? Colors.blue
-                              : Colors.black,
-                ),
-              ),
-            ),
-            onChanged: (value) {
-              _content = value;
-              _checkContentEntered();
-            },
+            ],
           ),
         ],
       ),
@@ -882,6 +901,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     });
 
     try {
+      final deltaJson = _contentController.document.toDelta().toJson();
+      final richTextContent = jsonEncode(deltaJson);
+
       debugPrint("Submitting post with ${_mediaFiles.length} media files");
 
       final processedMedia = await _processMediaFiles();
@@ -890,7 +912,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       final postId = await ref.read(postControllerProvider.notifier).createPost(
             title: _title,
-            content: _content,
+            content: richTextContent,
             processedMedia: processedMedia,
             mediaFiles: _mediaFiles,
             userId: currentUser.id,
@@ -1165,5 +1187,31 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
 
     return shouldNavigate ?? false;
+  }
+
+  Future<void> _cropImage(File imageFile) async {
+    try {
+      final croppedFile = await ImageHelper.cropImage(
+        context: context,
+        imageFile: imageFile,
+        cropStyle: CropStyle.rectangle,
+        title: '',
+      );
+      if (croppedFile != null) {
+        setState(() {
+          _mediaFiles[_currentMediaIndex] = croppedFile;
+          _postMedia = croppedFile;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to crop image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

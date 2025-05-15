@@ -45,6 +45,7 @@ abstract class PostModel with _$PostModel {
     @Default(false) bool isLiked,
     @Default(false) bool isDisliked,
     @Default(false) bool isBookmarked,
+    @Default(false) bool isRichText,
   }) = _PostModel;
 
   // Factory constructor to convert from Firestore snapshot
@@ -132,6 +133,7 @@ abstract class PostModel with _$PostModel {
       isLiked: map['isLiked'] ?? false,
       isDisliked: map['isDisliked'] ?? false,
       isBookmarked: map['isBookmarked'] ?? false,
+      isRichText: map['isRichText'] ?? false,
     );
   }
 
@@ -204,6 +206,8 @@ abstract class PostModel with _$PostModel {
       'isDisliked': isDisliked,
       'feedType':
           feedType ?? (isAlt ? 'alt' : (herdId != null ? 'herd' : 'public')),
+      'isBookmarked': isBookmarked,
+      'isRichText': isRichText,
     };
   }
 
