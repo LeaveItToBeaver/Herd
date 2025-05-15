@@ -163,8 +163,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                   color: theme.colorScheme.secondary,
                 ),
 
-              // NSFW Indicator - Add this here
-
               // Post Content
               Padding(
                 padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
@@ -228,10 +226,17 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     );
   }
 
+  // I need to add images and media to the rich text viewer if they exist.
   Widget _buildActualContent(ThemeData theme) {
     // Check if the post content is meant to be rich text
     if (widget.post.isRichText) {
-      // If it is rich text and the content is not empty
+      if (widget.post.mediaItems.isNotEmpty ||
+          (widget.post.mediaThumbnailURL != null &&
+              widget.post.mediaThumbnailURL!.isNotEmpty) ||
+          (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty)) {
+        // If it's not rich text but has media, show the media preview
+        return _buildMediaPreview(widget.post);
+      }
       if (widget.post.content.isNotEmpty) {
         return QuillViewerWidget(
           key: ValueKey(
@@ -244,9 +249,10 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         // Handle empty rich text content, perhaps show a placeholder or nothing
         return const SizedBox.shrink();
       }
+    } else if (_shouldShowMedia()) {
+      return _buildMediaPreview(widget.post);
     } else {
       // Fallback to rendering plain text if isRichText is false
-      // This assumes your _buildContentText handles plain text
       return _buildContentText(theme);
     }
   }
@@ -676,7 +682,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     );
   }
 
-  // TODO: Fix the rich text rendering // IT DOES NOT WORK
   Widget _buildContentText(ThemeData theme) {
     // This method now primarily serves as a fallback for non-rich text
     // or if rich text rendering failed (though QuillViewerWidget has its own error display)

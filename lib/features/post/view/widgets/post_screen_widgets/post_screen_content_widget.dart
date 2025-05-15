@@ -71,6 +71,14 @@ class PostContentSection extends ConsumerWidget {
                 const SizedBox(height: 12),
               ],
 
+              if (_hasMedia(post)) ...[
+                post.isNSFW && !showNSFWContent
+                    ? _buildNSFWContentOverlay(context, post)
+                    : _buildMedia(context, post),
+              ],
+
+              const SizedBox(height: 16),
+
               // Post content: Use QuillViewerWidget for rich text, fallback for plain text
               if (post.isRichText)
                 QuillViewerWidget(
@@ -85,16 +93,7 @@ class PostContentSection extends ConsumerWidget {
                   // Fallback for plain text
                   post.content,
                   style: const TextStyle(fontSize: 16),
-                ),
-
-              const SizedBox(height: 16),
-
-              // Media content (if any) - existing logic
-              if (_hasMedia(post)) ...[
-                post.isNSFW && !showNSFWContent
-                    ? _buildNSFWContentOverlay(context, post)
-                    : _buildMedia(context, post),
-              ],
+                )
             ],
           ),
         );
