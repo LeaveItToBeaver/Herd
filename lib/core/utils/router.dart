@@ -122,6 +122,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               showSideBubbles: false,
               showProfileBtn: true,
               showSearchBtn: false,
+              showNotificationsBtn: false,
               child: SearchScreen(),
             ),
           ),
@@ -352,6 +353,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               showSideBubbles: false,
               showProfileBtn: true,
               showSearchBtn: false,
+              showNotificationsBtn: false,
               child: CreatePostScreen(
                 isAlt: isAlt,
                 herdId: herdId,

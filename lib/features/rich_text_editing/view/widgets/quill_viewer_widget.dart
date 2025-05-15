@@ -242,7 +242,6 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
     // to avoid the "RenderBox was not laid out" error
     if (widget.source == RichTextSource.postScreen) {
       return Container(
-        constraints: const BoxConstraints(minHeight: 100),
         child: editor,
       );
     }
