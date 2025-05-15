@@ -350,7 +350,12 @@ class ImageHelper {
     );
   }
 
-  // The entire method below is cooked. We need to check if it works.
+  // The method below is currently commented out because its functionality has not been verified.
+  // It is retained for potential future use in generating video thumbnails. To use this method:
+  // 1. Verify that the `video_thumbnail` package is properly integrated and functional.
+  // 2. Ensure that the required permissions (e.g., storage access) are handled correctly.
+  // 3. Test the method thoroughly to confirm it works as expected.
+  // If this method is no longer needed, consider removing it to reduce clutter.
   // static Future<File?> generateVideoThumbnailFile(File videoFile) async {
   //   try {
   //     Map<Permission, PermissionStatus> statuses = await [
