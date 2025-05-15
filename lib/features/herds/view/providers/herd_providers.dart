@@ -176,7 +176,7 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
 
   Future<void> _batchInitializePostInteractions(
       String userId, List<PostModel> posts) async {
-    if (posts.isEmpty || userId == null) return;
+    if (posts.isEmpty) return;
 
     debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
 
@@ -186,7 +186,7 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
           .read(postInteractionsWithPrivacyProvider(
                   PostParams(id: post.id, isAlt: post.isAlt))
               .notifier)
-          .initializeState(userId!);
+          .initializeState(userId);
     }
 
     debugPrint('✅ Interactions batch initialization complete');

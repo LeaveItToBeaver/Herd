@@ -7,8 +7,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+//import 'package:permission_handler/permission_handler.dart';
+//import 'package:video_thumbnail/video_thumbnail.dart';
 
 class ImageHelper {
   // Maximum file size in bytes (20MB - increased from 10MB)
@@ -36,7 +36,7 @@ class ImageHelper {
         // Convert XFile to File
         final files = pickedFiles.map((xFile) => File(xFile.path)).toList();
 
-        if (files.length > maxFiles) {
+        if (files.length > maxFiles && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -158,6 +158,55 @@ class ImageHelper {
       debugPrint('Error picking image: $e');
       if (context.mounted) {
         _showErrorDialog(context, 'Failed to pick image: $e');
+      }
+    }
+    return null;
+  }
+
+  static Future<File?> cropImage({
+    required File imageFile,
+    required BuildContext context,
+    required CropStyle cropStyle,
+    required String title,
+  }) async {
+    try {
+      final CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: title,
+            toolbarColor: Colors.greenAccent,
+            toolbarWidgetColor: Colors.black,
+            statusBarColor: Colors.greenAccent,
+            backgroundColor: Colors.black,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9
+            ],
+            cropStyle: cropStyle,
+          ),
+          IOSUiSettings(
+            title: title,
+            aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            aspectRatioPickerButtonHidden: false,
+          ),
+        ],
+        compressQuality: 70,
+      );
+
+      if (croppedFile != null) {
+        return File(croppedFile.path);
+      }
+    } catch (e) {
+      debugPrint('Error cropping image: $e');
+      if (context.mounted) {
+        _showErrorDialog(context, 'Failed to crop image: $e');
       }
     }
     return null;
@@ -301,32 +350,33 @@ class ImageHelper {
     );
   }
 
-  static Future<File?> generateVideoThumbnailFile(File videoFile) async {
-    try {
-      Map<Permission, PermissionStatus> statuses = await [
-        Permission.storage,
-      ].request();
-      final thumbnailBytes = await VideoThumbnail.thumbnailData(
-        video: videoFile.path,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 512,
-        quality: 75,
-      );
+  // The entire method below is cooked. We need to check if it works.
+  // static Future<File?> generateVideoThumbnailFile(File videoFile) async {
+  //   try {
+  //     Map<Permission, PermissionStatus> statuses = await [
+  //       Permission.storage,
+  //     ].request();
+  //     final thumbnailBytes = await VideoThumbnail.thumbnailData(
+  //       video: videoFile.path,
+  //       imageFormat: ImageFormat.JPEG,
+  //       maxWidth: 512,
+  //       quality: 75,
+  //     );
 
-      if (thumbnailBytes == null) return null;
+  //     if (thumbnailBytes == null) return null;
 
-      // Create a file for the thumbnail
-      final tempDir = await getTemporaryDirectory();
-      final thumbnailFile = File(
-          '${tempDir.path}/${path.basenameWithoutExtension(videoFile.path)}_thumb.jpg');
-      await thumbnailFile.writeAsBytes(thumbnailBytes);
+  //     // Create a file for the thumbnail
+  //     final tempDir = await getTemporaryDirectory();
+  //     final thumbnailFile = File(
+  //         '${tempDir.path}/${path.basenameWithoutExtension(videoFile.path)}_thumb.jpg');
+  //     await thumbnailFile.writeAsBytes(thumbnailBytes);
 
-      return thumbnailFile;
-    } catch (e) {
-      debugPrint('Error generating video thumbnail: $e');
-      return null;
-    }
-  }
+  //     return thumbnailFile;
+  //   } catch (e) {
+  //     debugPrint('Error generating video thumbnail: $e');
+  //     return null;
+  //   }
+  // }
 
   static Future<List<File>?> pickMediaFilesWithVideo({
     required BuildContext context,
@@ -432,7 +482,7 @@ class ImageHelper {
           return null;
         }
 
-        if (validFiles.length > maxFiles) {
+        if (validFiles.length > maxFiles && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(

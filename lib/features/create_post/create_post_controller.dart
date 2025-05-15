@@ -105,6 +105,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         updatedAt: DateTime.now(),
         isAlt: isAlt,
         isNSFW: isNSFW, // Set the NSFW flag
+        isRichText: true,
+        tags: [],
       );
 
       // 5. Save post to Firestore
