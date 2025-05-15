@@ -117,6 +117,7 @@ class CreatePostRepostiory {
 
       postData['id'] = postId;
       postData['feedType'] = feedType;
+      postData['isRichText'] = post.isRichText;
 
       // Debug final state before save
       debugPrint(

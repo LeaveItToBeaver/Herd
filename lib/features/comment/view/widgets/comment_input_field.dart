@@ -82,6 +82,9 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
                 TextField(
                   controller: _commentController,
                   focusNode: _commentFocusNode,
+                  keyboardType: TextInputType.multiline,
+                  textCapitalization: TextCapitalization.sentences,
+                  enableSuggestions: true,
                   decoration: InputDecoration(
                     hintText: 'Write a comment...',
                     border: OutlineInputBorder(
@@ -198,7 +201,7 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
 
       _commentController.clear();
       setState(() => _mediaFile = null);
-      FocusScope.of(context).unfocus();
+      if (mounted) FocusScope.of(context).unfocus();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

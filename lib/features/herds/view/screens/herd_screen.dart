@@ -66,7 +66,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
   Widget build(BuildContext context) {
     final memberAv = ref.watch(isHerdMemberProvider(widget.herdId));
     final herdAsyncValue = ref.watch(herdProvider(widget.herdId));
-    final isCurrentUserMember = ref.watch(isHerdMemberProvider(widget.herdId));
+    //final isCurrentUserMember = ref.watch(isHerdMemberProvider(widget.herdId));
     final isCurrentUserModerator =
         ref.watch(isHerdModeratorProvider(widget.herdId));
     final herdFeedState = ref.watch(herdFeedControllerProvider(widget.herdId));

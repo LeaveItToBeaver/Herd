@@ -58,7 +58,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
 
 // In both AltFeedController and PublicFeedController:
   Future<void> _batchInitializePostInteractions(List<PostModel> posts) async {
-    if (posts.isEmpty || userId == null) return;
+    if (posts.isEmpty) return;
 
     debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
 
@@ -68,7 +68,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           .read(postInteractionsWithPrivacyProvider(
                   PostParams(id: post.id, isAlt: post.isAlt))
               .notifier)
-          .initializeState(userId!);
+          .initializeState(userId);
     }
 
     debugPrint('✅ Interactions batch initialization complete');
@@ -83,7 +83,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
 
       _safeUpdateState(state.copyWith(isLoading: true, error: null));
 
-      final effectiveUserId = overrideUserId ?? userId ?? '';
+      final effectiveUserId = overrideUserId ?? userId;
       if (effectiveUserId.isEmpty) {
         _safeUpdateState(state.copyWith(
           isLoading: false,

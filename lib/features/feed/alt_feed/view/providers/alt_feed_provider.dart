@@ -92,7 +92,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
 
     // We need to merge updated posts with existing ones
     // by preserving posts that aren't in the update
-    final existingPostIds = state.posts.map((p) => p.id).toSet();
+    //final existingPostIds = state.posts.map((p) => p.id).toSet();
     final updatedPostIds = updatedPosts.map((p) => p.id).toSet();
 
     // Keep posts that aren't in the update
