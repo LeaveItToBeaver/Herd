@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
+import 'package:herdapp/features/rich_text_editing/view/widgets/quill_viewer_widget.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -225,9 +229,26 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildActualContent(ThemeData theme) {
-    return _shouldShowMedia()
-        ? _buildMediaPreview(widget.post)
-        : _buildContentText(theme);
+    // Check if the post content is meant to be rich text
+    if (widget.post.isRichText) {
+      // If it is rich text and the content is not empty
+      if (widget.post.content.isNotEmpty) {
+        return QuillViewerWidget(
+          key: ValueKey(
+              'quill_viewer_${widget.post.id}_widget'), // Add a key for PostWidget
+          jsonContent: widget.post.content,
+          source: RichTextSource.postWidget,
+          isExpanded: _isExpanded, // Pass the expansion state
+        );
+      } else {
+        // Handle empty rich text content, perhaps show a placeholder or nothing
+        return const SizedBox.shrink();
+      }
+    } else {
+      // Fallback to rendering plain text if isRichText is false
+      // This assumes your _buildContentText handles plain text
+      return _buildContentText(theme);
+    }
   }
 
   Widget _buildNSFWOverlay() {
@@ -655,7 +676,10 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     );
   }
 
+  // TODO: Fix the rich text rendering // IT DOES NOT WORK
   Widget _buildContentText(ThemeData theme) {
+    // This method now primarily serves as a fallback for non-rich text
+    // or if rich text rendering failed (though QuillViewerWidget has its own error display)
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -666,7 +690,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.post.content,
+            widget.post.content, // Display plain text content
             style: TextStyle(
               fontSize: widget.isCompact ? 14 : 15,
               color: theme.colorScheme.onSurface.withOpacity(0.9),
@@ -675,7 +699,12 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             maxLines: _isExpanded ? null : (widget.isCompact ? 3 : 4),
             overflow: _isExpanded ? null : TextOverflow.ellipsis,
           ),
-          if (widget.post.content.length > 200 && !_isExpanded)
+          // "Read more" logic can remain if you want it for long plain text too
+          if (!_isExpanded &&
+              widget.post.content.length >
+                  (widget.isCompact
+                      ? 100
+                      : 150)) // Adjust length check as needed
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(

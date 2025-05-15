@@ -44,7 +44,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
 
   void _saveChanges() async {
     // Check if form is valid or skipping validation for initial setup
-    if (widget.isInitialSetup || _formKey.currentState!.validate() ?? false) {
+    if (widget.isInitialSetup || _formKey.currentState!.validate()) {
       setState(() {
         _isSaving = true;
       });
