@@ -850,39 +850,109 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           Column(
             children: [
               Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _isNSFW && _isAlt
-                        ? Colors.purple
-                        : _isNSFW && !_isAlt
-                            ? Colors.red
-                            : _isAlt
-                                ? Colors.blue
-                                : Colors.grey,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
+                // Minimum height but no maximum height constraint
+                constraints: const BoxConstraints(
+                  minHeight: 200,
                 ),
-                child: Column(
-                  children: [
-                    QuillSimpleToolbar(
-                      controller: _contentController,
-                      config: const QuillSimpleToolbarConfig(),
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: _isNSFW && _isAlt
+                          ? Colors.purple
+                          : _isNSFW && !_isAlt
+                              ? Colors.red
+                              : _isAlt
+                                  ? Colors.blue
+                                  : Colors.grey,
                     ),
-                    Expanded(
-                      child: quill.QuillEditor(
-                        controller: _contentController,
-                        focusNode: _editorFocusNode,
-                        scrollController: _editorScrollController,
-                        config: quill.QuillEditorConfig(
-                          scrollable: true,
-                          padding: EdgeInsets.zero,
-                          autoFocus: false,
-                          expands: false,
-                        ),
-                      ),
-                    )
-                  ],
+                    left: BorderSide(
+                      color: _isNSFW && _isAlt
+                          ? Colors.purple
+                          : _isNSFW && !_isAlt
+                              ? Colors.red
+                              : _isAlt
+                                  ? Colors.blue
+                                  : Colors.grey,
+                    ),
+                    right: BorderSide(
+                      color: _isNSFW && _isAlt
+                          ? Colors.purple
+                          : _isNSFW && !_isAlt
+                              ? Colors.red
+                              : _isAlt
+                                  ? Colors.blue
+                                  : Colors.grey,
+                    ),
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    topRight: Radius.circular(10),
+                  ),
+                ),
+                child: quill.QuillEditor(
+                  controller: _contentController,
+                  focusNode: _editorFocusNode,
+                  scrollController: _editorScrollController,
+                  config: quill.QuillEditorConfig(
+                    scrollable: true,
+                    padding: EdgeInsets.zero,
+                    autoFocus: false,
+                    expands: false,
+                    placeholder: 'What\'s on your mind?',
+                    scrollBottomInset: 60,
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: _isNSFW && _isAlt
+                          ? Colors.purple
+                          : _isNSFW && !_isAlt
+                              ? Colors.red
+                              : _isAlt
+                                  ? Colors.blue
+                                  : Colors.grey,
+                    ),
+                    left: BorderSide(
+                      color: _isNSFW && _isAlt
+                          ? Colors.purple
+                          : _isNSFW && !_isAlt
+                              ? Colors.red
+                              : _isAlt
+                                  ? Colors.blue
+                                  : Colors.grey,
+                    ),
+                    right: BorderSide(
+                      color: _isNSFW && _isAlt
+                          ? Colors.purple
+                          : _isNSFW && !_isAlt
+                              ? Colors.red
+                              : _isAlt
+                                  ? Colors.blue
+                                  : Colors.grey,
+                    ),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: QuillSimpleToolbar(
+                    controller: _contentController,
+                    config: const QuillSimpleToolbarConfig(
+                      showFontFamily: false,
+                      showFontSize: false,
+                      showBackgroundColorButton: false,
+                      showClearFormat: false,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -994,91 +1064,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       ),
     );
   }
-
-  // Widget _buildMediaPreview() {
-  //   if (_postMedia == null) return const SizedBox.shrink();
-  //
-  //   final extension = _postMedia!.path.toLowerCase().substring(
-  //         _postMedia!.path.lastIndexOf('.'),
-  //       );
-  //
-  //   if (_isVideo) {
-  //     return Stack(
-  //       alignment: Alignment.center,
-  //       children: [
-  //         ClipRRect(
-  //             borderRadius: BorderRadius.circular(12),
-  //             child: Container(
-  //               color: Colors.black87,
-  //               width: double.infinity,
-  //               height: double.infinity,
-  //               child: Center(
-  //                 child: Column(
-  //                   mainAxisSize: MainAxisSize.min,
-  //                   children: [
-  //                     const Icon(
-  //                       Icons.videocam,
-  //                       size: 48,
-  //                       color: Colors.white70,
-  //                     ),
-  //                     const SizedBox(height: 8),
-  //                     const Text(
-  //                       'Video',
-  //                       style: TextStyle(
-  //                           color: Colors.white, fontWeight: FontWeight.bold),
-  //                     ),
-  //                     const SizedBox(height: 4),
-  //                     Text(
-  //                       extension.toUpperCase(),
-  //                       style: const TextStyle(
-  //                           color: Colors.white54, fontSize: 12),
-  //                     )
-  //                   ],
-  //                 ),
-  //               ),
-  //             )),
-  //         Icon(
-  //           Icons.play_circle_fill,
-  //           size: 64,
-  //           color: Colors.white.withOpacity(0.8),
-  //         ),
-  //       ],
-  //     );
-  //   }
-  //
-  //   if (extension == '.gif') {
-  //     return Stack(children: [
-  //       ClipRRect(
-  //         borderRadius: BorderRadius.circular(12),
-  //         child: Image.file(_postMedia!,
-  //             fit: BoxFit.cover,
-  //             width: double.infinity,
-  //             height: double.infinity),
-  //       ),
-  //       Positioned(
-  //         bottom: 8,
-  //         right: 8,
-  //         child: Container(
-  //           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  //           decoration: BoxDecoration(
-  //             color: Colors.black.withOpacity(0.6),
-  //             borderRadius: BorderRadius.circular(4),
-  //           ),
-  //           child: const Text(
-  //             'GIF',
-  //             style: TextStyle(color: Colors.white),
-  //           ),
-  //         ),
-  //       ),
-  //     ]);
-  //   }
-  //
-  //   return ClipRRect(
-  //     borderRadius: BorderRadius.circular(12),
-  //     child: Image.file(_postMedia!,
-  //         fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-  //   );
-  // }
 
   Future<void> _showHerdSelectionDialog() async {
     final userHerds = await ref.read(userHerdsProvider.future);

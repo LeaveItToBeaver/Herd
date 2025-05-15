@@ -519,7 +519,7 @@ class SideBubblesOverlay extends ConsumerWidget {
     );
 
     // Add regular community bubbles
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 30; i++) {
       bubbles.add(
         _buildBubble(
           context: context,
@@ -547,7 +547,7 @@ class SideBubblesOverlay extends ConsumerWidget {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.only(top: 80, bottom: 0),
+                padding: const EdgeInsets.only(top: 0, bottom: 0),
                 reverse: true, // Build from bottom up
                 children: bubbles,
               ),
@@ -566,7 +566,7 @@ class SideBubblesOverlay extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
