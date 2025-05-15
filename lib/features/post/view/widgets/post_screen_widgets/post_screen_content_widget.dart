@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
+import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/widgets/media_carousel_widget.dart';
+import 'package:herdapp/features/rich_text_editing/view/widgets/quill_viewer_widget.dart';
 import 'package:video_player/video_player.dart';
 
 class PostContentSection extends ConsumerWidget {
@@ -32,53 +34,74 @@ class PostContentSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    // Only watch the specific post data you need
-    final post = ref.watch(
-        staticPostProvider(PostParams(id: postId, isAlt: isAlt))
-            .select((value) => value.value));
+    final postAsyncValue =
+        ref.watch(staticPostProvider(PostParams(id: postId, isAlt: isAlt)));
 
-    debugPrint('Rebuilding PostContentSection for postId: $postId');
+    // It's better to handle the loading/error/data states directly here
+    return postAsyncValue.when(
+      data: (post) {
+        if (post == null) {
+          return const Center(child: Text('Post not found.'));
+        }
 
-    if (post == null) return const SizedBox.shrink();
+        // Initialize video if necessary (existing logic)
+        if (post.mediaType == 'video' &&
+            post.mediaURL != null &&
+            !isVideoInitialized) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (initializeVideo != null) {
+              initializeVideo!(post.mediaURL!);
+            }
+          });
+        }
 
-    if (post.mediaType == 'video' &&
-        post.mediaURL != null &&
-        !isVideoInitialized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        initializeVideo!(post.mediaURL!);
-      });
-    }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Post title
+              if (post.title != null && post.title!.isNotEmpty) ...[
+                Text(
+                  post.title!,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 2, 12, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Post title
-          Text(
-            post.title ?? '',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+              // Post content: Use QuillViewerWidget for rich text, fallback for plain text
+              if (post.isRichText)
+                QuillViewerWidget(
+                  key: ValueKey(
+                      'quill_viewer_${post.id}_screen'), // Add a key for PostScreen
+                  jsonContent: post.content,
+                  source: RichTextSource.postScreen,
+                  // isExpanded is not needed here as PostScreen always shows full content
+                )
+              else
+                Text(
+                  // Fallback for plain text
+                  post.content,
+                  style: const TextStyle(fontSize: 16),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Media content (if any) - existing logic
+              if (_hasMedia(post)) ...[
+                post.isNSFW && !showNSFWContent
+                    ? _buildNSFWContentOverlay(context, post)
+                    : _buildMedia(context, post),
+              ],
+            ],
           ),
-          const SizedBox(height: 12),
-
-          // Post content text
-          Text(
-            post.content,
-            style: const TextStyle(fontSize: 16),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Media content (if any)
-          if (_hasMedia(post)) ...[
-            post.isNSFW && !showNSFWContent
-                ? _buildNSFWContentOverlay(context)
-                : _buildMedia(context, post),
-          ],
-        ],
-      ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) =>
+          Center(child: Text('Error loading post: $error')),
     );
   }
 
@@ -154,9 +177,10 @@ class PostContentSection extends ConsumerWidget {
     return mediaItems;
   }
 
-  Widget _buildNSFWContentOverlay(BuildContext context) {
+  Widget _buildNSFWContentOverlay(BuildContext context, dynamic post) {
+    // Added post parameter
     return GestureDetector(
-      onTap: toggleNSFW, // Use the callback instead of setState
+      onTap: toggleNSFW,
       child: Container(
         height: 250,
         width: double.infinity,
@@ -184,7 +208,7 @@ class PostContentSection extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: toggleNSFW, // Use the callback instead of setState
+              onPressed: toggleNSFW,
               icon: const Icon(Icons.visibility),
               label: const Text('View Content'),
               style: ElevatedButton.styleFrom(
@@ -199,5 +223,4 @@ class PostContentSection extends ConsumerWidget {
       ),
     );
   }
-  // Other helper methods
 }
