@@ -48,6 +48,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
   bool get isLiked;
   bool get isDisliked;
   bool get isBookmarked;
+  bool get isRichText;
 
   /// Create a copy of PostModel
   /// with the given fields replaced by the non-null parameter values.
@@ -92,7 +93,8 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('feedType', feedType))
       ..add(DiagnosticsProperty('isLiked', isLiked))
       ..add(DiagnosticsProperty('isDisliked', isDisliked))
-      ..add(DiagnosticsProperty('isBookmarked', isBookmarked));
+      ..add(DiagnosticsProperty('isBookmarked', isBookmarked))
+      ..add(DiagnosticsProperty('isRichText', isRichText));
   }
 
   @override
@@ -156,7 +158,9 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
             (identical(other.isDisliked, isDisliked) ||
                 other.isDisliked == isDisliked) &&
             (identical(other.isBookmarked, isBookmarked) ||
-                other.isBookmarked == isBookmarked));
+                other.isBookmarked == isBookmarked) &&
+            (identical(other.isRichText, isRichText) ||
+                other.isRichText == isRichText));
   }
 
   @override
@@ -194,12 +198,13 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
         feedType,
         isLiked,
         isDisliked,
-        isBookmarked
+        isBookmarked,
+        isRichText
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText)';
   }
 }
 
@@ -241,7 +246,8 @@ abstract mixin class $PostModelCopyWith<$Res> {
       String? feedType,
       bool isLiked,
       bool isDisliked,
-      bool isBookmarked});
+      bool isBookmarked,
+      bool isRichText});
 }
 
 /// @nodoc
@@ -289,6 +295,7 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
     Object? isLiked = null,
     Object? isDisliked = null,
     Object? isBookmarked = null,
+    Object? isRichText = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -423,6 +430,10 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
           ? _self.isBookmarked
           : isBookmarked // ignore: cast_nullable_to_non_nullable
               as bool,
+      isRichText: null == isRichText
+          ? _self.isRichText
+          : isRichText // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -463,7 +474,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.feedType,
       this.isLiked = false,
       this.isDisliked = false,
-      this.isBookmarked = false})
+      this.isBookmarked = false,
+      this.isRichText = false})
       : _mediaItems = mediaItems,
         _tags = tags,
         _mentions = mentions,
@@ -572,6 +584,9 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool isBookmarked;
+  @override
+  @JsonKey()
+  final bool isRichText;
 
   /// Create a copy of PostModel
   /// with the given fields replaced by the non-null parameter values.
@@ -617,7 +632,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('feedType', feedType))
       ..add(DiagnosticsProperty('isLiked', isLiked))
       ..add(DiagnosticsProperty('isDisliked', isDisliked))
-      ..add(DiagnosticsProperty('isBookmarked', isBookmarked));
+      ..add(DiagnosticsProperty('isBookmarked', isBookmarked))
+      ..add(DiagnosticsProperty('isRichText', isRichText));
   }
 
   @override
@@ -681,7 +697,9 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
             (identical(other.isDisliked, isDisliked) ||
                 other.isDisliked == isDisliked) &&
             (identical(other.isBookmarked, isBookmarked) ||
-                other.isBookmarked == isBookmarked));
+                other.isBookmarked == isBookmarked) &&
+            (identical(other.isRichText, isRichText) ||
+                other.isRichText == isRichText));
   }
 
   @override
@@ -719,12 +737,13 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
         feedType,
         isLiked,
         isDisliked,
-        isBookmarked
+        isBookmarked,
+        isRichText
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText)';
   }
 }
 
@@ -769,7 +788,8 @@ abstract mixin class _$PostModelCopyWith<$Res>
       String? feedType,
       bool isLiked,
       bool isDisliked,
-      bool isBookmarked});
+      bool isBookmarked,
+      bool isRichText});
 }
 
 /// @nodoc
@@ -817,6 +837,7 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
     Object? isLiked = null,
     Object? isDisliked = null,
     Object? isBookmarked = null,
+    Object? isRichText = null,
   }) {
     return _then(_PostModel(
       id: null == id
@@ -950,6 +971,10 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
       isBookmarked: null == isBookmarked
           ? _self.isBookmarked
           : isBookmarked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isRichText: null == isRichText
+          ? _self.isRichText
+          : isRichText // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }

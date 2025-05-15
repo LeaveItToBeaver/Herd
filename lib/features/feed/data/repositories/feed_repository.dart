@@ -30,7 +30,7 @@ class FeedRepository {
 
   /// Calculate the net votes for a post
   int calculateNetVotes(PostModel post) {
-    return (post.likeCount ?? 0) - (post.dislikeCount ?? 0);
+    return (post.likeCount) - (post.dislikeCount);
   }
 
   /// Get public feed posts (user-specific)
