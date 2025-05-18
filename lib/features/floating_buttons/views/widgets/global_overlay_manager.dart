@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:herdapp/features/floating_buttons/views/widgets/bottom_nav_overlay_widget.dart';
 import 'package:herdapp/features/floating_buttons/views/widgets/floating_buttons_column_widget.dart';
-import 'package:herdapp/features/floating_buttons/views/widgets/side_bubbles_overlay_widget.dart';
+import 'package:herdapp/features/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
 import '../../../feed/providers/feed_type_provider.dart';
 
 class GlobalOverlayManager extends StatelessWidget {
