@@ -14,9 +14,7 @@ extension ProfileNavigation on BuildContext {
         pushNamed('profile', pathParameters: {'id': userId});
         break;
       case FeedType.alt:
-      // If you're maintaining a single profile route:
         pushNamed('profile', pathParameters: {'id': userId});
-        // Or if you create separate routes:
         // pushNamed('altProfile', pathParameters: {'id': userId});
         break;
     }
