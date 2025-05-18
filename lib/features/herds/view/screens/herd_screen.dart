@@ -233,7 +233,6 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                             .onPrimary,
                                   ),
                                   child: memberAv.isLoading
-                                      // show a little spinner if you really want to indicate “loading…”
                                       ? SizedBox(
                                           width: 16,
                                           height: 16,
@@ -362,7 +361,6 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                           itemBuilder: (context, idx) {
                             final memberId = uniqueIds[idx];
                             return FutureBuilder(
-                              // you can keep your existing getUserById FutureBuilder here
                               future: ref
                                   .read(userRepositoryProvider)
                                   .getUserById(memberId),

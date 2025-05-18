@@ -4,8 +4,7 @@ import 'package:herdapp/features/notifications/data/repositories/notification_re
 import 'package:cloud_firestore/cloud_firestore.dart'; // For DocumentSnapshot
 import 'state/notification_state.dart';
 
-const int _notificationsPerPage =
-    20; // Consistent with your repository's default
+const int _notificationsPerPage = 20;
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final NotificationRepository _repository;
@@ -96,7 +95,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       final unread = await _repository.getUnreadCount(_userId);
       state = state.copyWith(unreadCount: unread ?? 0);
     } catch (e) {
-      // If optimistic update was done, you might want to revert it here or show an error
       print("Error marking notification as read: $e");
       // Potentially re-fetch or show error to user
     }
@@ -111,7 +109,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     try {
       await _repository.markAllAsRead(_userId);
       // The unread count should already be 0 from the optimistic update.
-      // You could re-fetch if needed for absolute certainty:
       // final unread = await _repository.getUnreadCount(_userId);
       // state = state.copyWith(unreadCount: unread ?? 0);
     } catch (e) {
@@ -121,7 +118,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
-  // If you need to react to real-time updates from notificationStreamProvider,
+  // If we need to react to real-time updates from notificationStreamProvider,
   // you can listen to it and update this notifier's state.
   // However, this might be complex to merge with pagination.
   // Often, the stream is used for the badge count and a "new notifications" banner,
