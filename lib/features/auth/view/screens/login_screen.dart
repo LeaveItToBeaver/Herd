@@ -397,8 +397,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 16),
 
                   // Social Login Options
-                  // You can add this functionality later if needed
-
+                  // I will add social login options here later
                   // Divider with "OR" text
                   const Row(
                     children: [
