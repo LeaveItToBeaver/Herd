@@ -273,11 +273,9 @@ class NotificationService {
   }
 
   // Handle background messages - this must be a top-level function
-  // Register this in your main.dart file
   static Future<void> backgroundMessageHandler(RemoteMessage message) async {
     // Keep background message handling minimal as it runs outside Flutter context
     debugPrint('Handling background message: ${message.messageId}');
-    // No UI work should be done here
   }
 }
 

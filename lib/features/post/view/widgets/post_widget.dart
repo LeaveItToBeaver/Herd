@@ -704,7 +704,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             maxLines: _isExpanded ? null : (widget.isCompact ? 3 : 4),
             overflow: _isExpanded ? null : TextOverflow.ellipsis,
           ),
-          // "Read more" logic can remain if you want it for long plain text too
           if (!_isExpanded &&
               widget.post.content.length >
                   (widget.isCompact

@@ -72,7 +72,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     // Calculate the color's luminance (0.0 for black, 1.0 for white)
     final double luminance = color.computeLuminance();
 
-    // A common threshold is 0.5, but you can adjust for your preference
+    // A common threshold is 0.5
     return luminance > 0.5 ? Brightness.light : Brightness.dark;
   }
 
