@@ -348,7 +348,6 @@ final cachedVideoPlayerControllerProvider =
 
     // This provider doesn't handle caching internally
     // It's meant to be used in conjunction with CachedVideoPlayer
-    // or after you've already cached and have the local path
     return VideoPlayerController.networkUrl(Uri.parse(videoUrl));
   },
 );
