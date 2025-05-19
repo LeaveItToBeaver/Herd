@@ -118,7 +118,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                             (widget.comment.authorFirstName != null &&
                                     widget.comment.authorLastName != null)
                                 ? "${widget.comment.authorFirstName} ${widget.comment.authorLastName}"
-                                : widget.comment.authorName ?? 'Anonymous',
+                                : widget.comment.authorName,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
