@@ -196,6 +196,12 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
           authorId: userId,
           content: _commentController.text.trim(),
           isAltPost: widget.isAltPost,
+          authorName:
+              '${currentUserAsync.firstName} ${currentUserAsync.lastName}',
+          authorUsername: currentUserAsync.userName,
+          authorProfileImage: widget.isAltPost
+              ? currentUserAsync.safeAltProfileImageURL
+              : currentUserAsync.safeProfileImageURL,
           mediaFile: _mediaFile,
           ref: ref);
 
