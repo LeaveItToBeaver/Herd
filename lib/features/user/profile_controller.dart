@@ -214,7 +214,6 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       debugPrint("DEBUG: Follow/unfollow error: $e");
       // If API call fails, revert back to previous state
       state = currentState;
-      // You might want to show an error message here
     }
   }
 

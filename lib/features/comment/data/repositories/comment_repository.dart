@@ -532,7 +532,7 @@ class CommentRepository {
             : 0;
 
     final secondsAgo = now.difference(comment.timestamp).inSeconds;
-    const decay = 45000; // Tune this value based on your needs
+    const decay = 45000; // 12.5 hours
 
     return order + secondsAgo / decay;
   }

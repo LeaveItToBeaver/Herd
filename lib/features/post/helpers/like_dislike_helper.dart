@@ -74,7 +74,6 @@ class LikeDislikeHelper {
     }
   }
 
-  // Helper method to build the UI for like/dislike buttons - you can keep this as is
   static Widget buildLikeDislikeButtons({
     required BuildContext context,
     required WidgetRef ref,

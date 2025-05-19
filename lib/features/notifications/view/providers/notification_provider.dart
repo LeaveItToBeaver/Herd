@@ -9,9 +9,8 @@ import 'package:herdapp/features/notifications/view/providers/state/notification
 // Import your actual Notifier classes
 import 'notification_notifier.dart';
 import 'notification_settings_notifier.dart';
-// import 'notification_filter_notifier.dart'; // Assuming you created this
+// import 'notification_filter_notifier.dart';
 
-// Provider for the repository (you already have this, ensure it's correct)
 // final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 //   return NotificationRepository();
 // });
@@ -23,7 +22,7 @@ final notificationProvider = StateNotifierProvider.family<NotificationNotifier,
 });
 
 // final notificationFilterProvider = StateNotifierProvider<NotificationFilterNotifier, NotificationFilterState>((ref) {
-//   return NotificationFilterNotifier(); // Assuming you created this class
+//   return NotificationFilterNotifier();
 // });
 
 final notificationSettingsProvider = StateNotifierProvider.family<
@@ -48,9 +47,3 @@ final unreadNotificationCountProvider =
   final count = await repository.getUnreadCount(userId);
   return count ?? 0; // Provide a default value if null
 });
-
-// If you still have a NotificationService separate from the repository:
-// final notificationServiceProvider = Provider<NotificationService>((ref) {
-//   final repository = ref.watch(notificationRepositoryProvider);
-//   return NotificationService(repository: repository);
-// });
