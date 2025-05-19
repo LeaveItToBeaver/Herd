@@ -1,4 +1,3 @@
-// lib/core/widgets/cached_media_image.dart
 import 'dart:io';
 import 'dart:typed_data';
 

@@ -57,8 +57,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ? null
             : '/emailVerification';
       }
-
-      // 3) Signed in & verified → proceed with your existing logic
       //    (e.g. redirect "/" → either /publicFeed or /altFeed)
       if (currentPath == '/') {
         return ref.read(currentFeedProvider) == FeedType.alt
