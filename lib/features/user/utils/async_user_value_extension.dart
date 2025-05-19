@@ -14,6 +14,11 @@ extension AsyncUserValueExtension on AsyncValue<UserModel?> {
   String? get safeProfileImageURL =>
       whenOrNull(data: (user) => user?.profileImageURL);
 
+  String? get firstName => whenOrNull(data: (user) => user?.firstName);
+  String? get lastName => whenOrNull(data: (user) => user?.lastName);
+
+  String? get userName => whenOrNull(data: (user) => user?.username);
+
   // Get alt profile image directly without .when() pattern
   String? get safeAltProfileImageURL =>
       whenOrNull(data: (user) => user?.altProfileImageURL);
