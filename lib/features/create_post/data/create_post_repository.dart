@@ -184,7 +184,6 @@ class CreatePostRepostiory {
           mediaType = 'other';
         }
 
-        // Use your existing uploadMedia method
         final result = await uploadMedia(
           mediaFile: file,
           postId: individualPostId,

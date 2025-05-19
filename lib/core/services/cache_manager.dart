@@ -112,7 +112,6 @@ class CacheManager {
     }
   }
 
-  // Add this to your CacheManager class
   static Future<void> bootstrapCache() async {
     try {
       debugPrint('🔍 Bootstrapping cache...');
