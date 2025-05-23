@@ -114,7 +114,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         margin: EdgeInsets.symmetric(
             vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: theme.colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -440,7 +440,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                         Text(
                           formattedTimestamp,
                           style: TextStyle(
-                            color: Colors.black87,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -862,6 +861,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
               return _buildActionButton(
                 Icons.chat_bubble_outline,
                 commentCount.toString(), // Use the potentially updated count
+                theme: theme,
                 onPressed: () => context.pushNamed(
                   'post',
                   pathParameters: {'id': widget.post.id},
@@ -890,6 +890,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     IconData icon,
     String count, {
     Color? color,
+    ThemeData? theme,
     required VoidCallback? onPressed,
   }) {
     return TextButton.icon(
@@ -897,12 +898,12 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       icon: Icon(
         icon,
         size: 18,
-        color: color ?? Colors.grey.shade700,
+        color: color ?? theme?.buttonTheme.colorScheme?.primary,
       ),
       label: Text(
         count,
         style: TextStyle(
-          color: color ?? Colors.grey.shade700,
+          color: color ?? theme?.buttonTheme.colorScheme?.primary,
           fontWeight: FontWeight.w500,
         ),
       ),

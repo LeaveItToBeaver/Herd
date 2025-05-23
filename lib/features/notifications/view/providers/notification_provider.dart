@@ -7,7 +7,7 @@ import 'package:herdapp/features/notifications/view/providers/state/notification
 import 'package:herdapp/features/notifications/view/providers/state/notification_state.dart';
 
 // Import your actual Notifier classes
-import 'notification_notifier.dart';
+import '../notifiers/notification_notifier.dart';
 import 'notification_settings_notifier.dart';
 // import 'notification_filter_notifier.dart';
 
