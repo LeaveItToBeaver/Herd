@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/notifications/data/repositories/notification_repository.dart';
+import 'package:meta/meta.dart';
 
 class NotificationService {
   final FirebaseMessaging _messaging;
@@ -13,6 +14,9 @@ class NotificationService {
 
   // Channel ID for Android notifications
   static const _androidChannelId = 'high_importance_channel';
+  static const _androidChannelName = 'High Importance Notifications';
+  static const _androidChannelDescription =
+      'This channel is used for important notifications.';
 
   NotificationService({
     required NotificationRepository repository,
@@ -198,6 +202,43 @@ class NotificationService {
     }
   }
 
+  void _showLocalNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    try {
+      await _localNotifications.show(
+        id,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannelId,
+            _androidChannelName,
+            channelDescription: _androidChannelDescription,
+            icon: '@mipmap/ic_launcher',
+            importance: Importance.high,
+            playSound: true,
+            priority: Priority.high,
+            enableVibration: true,
+            fullScreenIntent: false,
+            category: AndroidNotificationCategory.social,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            badgeNumber: null,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error showing local notification: $e');
+    }
+  }
+
   // Handle notification response (tap)
   void _handleNotificationResponse(
     NotificationResponse response,
@@ -276,6 +317,26 @@ class NotificationService {
   static Future<void> backgroundMessageHandler(RemoteMessage message) async {
     // Keep background message handling minimal as it runs outside Flutter context
     debugPrint('Handling background message: ${message.messageId}');
+  }
+
+  // Clear all notifications with try-catch
+  Future<void> clearAllNotifications() async {
+    try {
+      await _localNotifications.cancelAll();
+      debugPrint('All notifications cleared');
+    } catch (e) {
+      debugPrint('Error clearing notifications: $e');
+    }
+  }
+
+  // Get derived notifications (iOS only)
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    try {
+      return await _localNotifications.pendingNotificationRequests();
+    } catch (e) {
+      debugPrint('❌ Error getting pending notifications: $e');
+      return [];
+    }
   }
 }
 
