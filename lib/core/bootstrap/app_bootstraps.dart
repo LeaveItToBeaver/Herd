@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/services/media_cache_service.dart';
+import 'package:herdapp/core/utils/router.dart';
+import 'package:herdapp/features/notifications/utils/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Bootstrap class for initializing app dependencies
@@ -15,8 +17,112 @@ class AppBootstrap {
   bool _isInitialized = false;
   bool _isInitializing = false;
 
+  bool _notificationsInitialized = false;
+  String? _currentUserId;
+
   // Future to track initialization status
   Future<void>? _initializationFuture;
+
+  Future<void> initializeNotifications(String userId, WidgetRef ref) async {
+    try {
+      if (_notificationsInitialized && _currentUserId == userId) {
+        debugPrint('Notifications already initialized for user: $userId');
+        return;
+      }
+
+      debugPrint('Initializing notifications for user: $userId');
+
+      final notificationService = ref.read(notificationServiceProvider);
+
+      await notificationService.initialize(
+        userId: userId,
+        onNotificationTap: (notification) => _handleNotificationTap(
+          notification,
+          ref,
+        ),
+      );
+    } catch (e) {
+      debugPrint('⚠️ Error initializing notifications: $e');
+    }
+  }
+
+  Future<void> cleanupNotifications(WidgetRef ref) async {
+    try {
+      if (_notificationsInitialized) {
+        debugPrint('🧹 Cleaning up notifications');
+
+        final notificationService = ref.read(notificationServiceProvider);
+        await notificationService.clearAllNotifications();
+
+        _notificationsInitialized = false;
+        _currentUserId = null;
+
+        debugPrint('✅ Notifications cleaned up');
+      }
+    } catch (e) {
+      debugPrint('❌ Error cleaning up notifications: $e');
+    }
+  }
+
+  /// Handle notification tap navigation
+  void _handleNotificationTap(notification, WidgetRef ref) {
+    try {
+      debugPrint('👆 Handling notification tap: ${notification.type}');
+
+      // Get router from your existing provider
+      final router = ref.read(goRouterProvider);
+
+      // Navigate based on notification type
+      switch (notification.type.toString()) {
+        case 'NotificationType.follow':
+          if (notification.senderId?.isNotEmpty == true) {
+            router.push('/profile/${notification.senderId}');
+          }
+          break;
+
+        case 'NotificationType.newPost':
+        case 'NotificationType.postLike':
+        case 'NotificationType.postMilestone':
+          if (notification.postId?.isNotEmpty == true) {
+            router.push(
+                '/post/${notification.postId}?isAlt=${notification.isAlt}');
+          }
+          break;
+
+        case 'NotificationType.comment':
+          if (notification.postId?.isNotEmpty == true) {
+            router.push(
+                '/post/${notification.postId}?isAlt=${notification.isAlt}&showComments=true');
+          }
+          break;
+
+        case 'NotificationType.commentReply':
+          if (notification.commentId?.isNotEmpty == true &&
+              notification.postId?.isNotEmpty == true) {
+            router.push(
+                '/post/${notification.postId}/comment/${notification.commentId}');
+          }
+          break;
+
+        case 'NotificationType.connectionRequest':
+          router.push('/connections/requests');
+          break;
+
+        case 'NotificationType.connectionAccepted':
+          if (notification.senderId?.isNotEmpty == true) {
+            router.push('/profile/${notification.senderId}?isAlt=true');
+          }
+          break;
+
+        default:
+          // Default to notifications screen
+          router.push('/notifications');
+          break;
+      }
+    } catch (e) {
+      debugPrint('❌ Error handling notification tap: $e');
+    }
+  }
 
   /// Initialize all app services and dependencies
   Future<void> initialize() async {
@@ -94,8 +200,17 @@ class AppBootstrap {
     _isInitialized = false;
     _isInitializing = false;
     _initializationFuture = null;
+
+    _notificationsInitialized = false;
+    _currentUserId = null;
     return initialize();
   }
+
+  /// Check if notifications are initialized
+  bool get areNotificationsInitialized => _notificationsInitialized;
+
+  /// Get current user ID for notifications
+  String? get currentNotificationUserId => _currentUserId;
 
   /// Create a provider for the bootstrap service
   static final appBootstrapProvider = Provider<AppBootstrap>((ref) {
@@ -138,15 +253,25 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
       builder: (context, snapshot) {
         // Show splash screen while initializing
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const MaterialApp(
+          return MaterialApp(
             home: Scaffold(
-              body: Center(
+              backgroundColor: Theme.of(context).primaryColor,
+              body: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(),
+                    FlutterLogo(size: 100),
+                    SizedBox(height: 32),
+                    CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
-                    Text('Initializing app...'),
+                    Text(
+                      'Initializing app...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
