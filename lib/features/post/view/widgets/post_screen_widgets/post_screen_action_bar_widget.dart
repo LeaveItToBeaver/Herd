@@ -28,13 +28,12 @@ class PostActionBar extends ConsumerWidget {
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
           border: Border(
             top: BorderSide(color: Colors.grey.shade200),
             bottom: BorderSide(color: Colors.grey.shade200),
           ),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -71,12 +70,12 @@ class _ShareButton extends StatelessWidget {
       icon: Icon(
         Icons.share_rounded,
         size: 24,
-        color: isAlt ? Colors.grey.shade400 : Colors.grey.shade700,
+        //color: isAlt ? Colors.grey.shade400 : Colors.grey.shade700,
       ),
       label: Text(
         'Share',
         style: TextStyle(
-          color: isAlt ? Colors.grey.shade400 : Colors.grey.shade700,
+          //color: isAlt ? Colors.grey.shade400 : Colors.grey.shade700,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -90,7 +89,7 @@ class _ShareButton extends StatelessWidget {
               },
       style: TextButton.styleFrom(
         minimumSize: Size.zero,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
@@ -120,12 +119,12 @@ class _CommentButton extends ConsumerWidget {
       icon: Icon(
         Icons.comment_rounded,
         size: 24,
-        color: Colors.grey.shade700,
+        //color: Colors.grey.shade700,
       ),
       label: Text(
         commentCount.toString(),
         style: TextStyle(
-          color: Colors.grey.shade700,
+          //color: Colors.grey.shade700,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -152,6 +151,7 @@ class _LikeDislikeButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     // Use select for minimal rebuilds
     final interactionState = ref.watch(
         postInteractionsWithPrivacyProvider(params).select((state) => (
@@ -176,19 +176,21 @@ class _LikeDislikeButtons extends ConsumerWidget {
             padding: EdgeInsets.zero,
             icon: Icon(
               isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-              color: isLiked ? Colors.green : Colors.grey.shade700,
-              size: 24,
+              color: isLiked
+                  ? Colors.green
+                  : theme.buttonTheme.colorScheme?.primary,
+              size: 22,
             ),
             onPressed: isLoading ? null : () => _handleLikePost(context, ref),
           ),
         ),
         SizedBox(
-          width: 30,
+          width: 46,
           child: Center(
             child: Text(
-              totalLikes.toString(),
+              _totalLikesConvert(context, ref),
               style: TextStyle(
-                color: Colors.grey.shade700,
+                //color: Colors.grey.shade700,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -201,8 +203,10 @@ class _LikeDislikeButtons extends ConsumerWidget {
             padding: EdgeInsets.zero,
             icon: Icon(
               isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-              color: isDisliked ? Colors.red : Colors.grey.shade700,
-              size: 24,
+              color: isDisliked
+                  ? Colors.red
+                  : theme.buttonTheme.colorScheme?.primary,
+              size: 22,
             ),
             onPressed:
                 isLoading ? null : () => _handleDislikePost(context, ref),
@@ -210,6 +214,22 @@ class _LikeDislikeButtons extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  // Heloper method to convert 10,000 to 10k
+  // and 1,000,000 to 1M
+  // etc
+  String _totalLikesConvert(BuildContext context, WidgetRef ref) {
+    final totalLikes = ref.watch(postInteractionsWithPrivacyProvider(params)
+        .select((state) => state.totalLikes));
+
+    if (totalLikes >= 1000 && totalLikes < 1000000) {
+      return '${(totalLikes / 1000).toStringAsFixed(1)}k';
+    } else if (totalLikes >= 1000000) {
+      return '${(totalLikes / 1000000).toStringAsFixed(1)}M';
+    } else {
+      return totalLikes.toString();
+    }
   }
 
   void _handleLikePost(BuildContext context, WidgetRef ref) {

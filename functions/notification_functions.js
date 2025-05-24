@@ -1,8 +1,8 @@
 const functions = require('firebase-functions');
 const { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = functions.logger;
-
 
 /**
  * Factory function that creates and returns all notification functions
@@ -13,20 +13,34 @@ module.exports = function (admin) {
     const firestore = admin.firestore();
 
     /**
+     * Helper function to remove undefined values from an object
+     */
+    function removeUndefinedValues(obj) {
+        const cleaned = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (value !== undefined && value !== null) {
+                cleaned[key] = value;
+            }
+        }
+        return cleaned;
+    }
+
+    /**
      * Helper function to send push notification
      */
     async function sendPushNotification(userId, title, body, data) {
         try {
+            logger.log(`🔔 Sending push notification to user ${userId}: ${title}`);
+
             // Get user's FCM token
             const userSnapshot = await firestore.collection('users').doc(userId).get();
             const userData = userSnapshot.data();
 
             if (!userData || !userData.fcmToken) {
-                logger.log(`No FCM token found for user ${userId}`);
+                logger.log(`❌ No FCM token found for user ${userId}`);
                 return;
             }
 
-            // Rest of the implementation as before...
             // Get user's notification settings
             const settingsSnapshot = await firestore
                 .collection('notificationSettings')
@@ -37,13 +51,13 @@ module.exports = function (admin) {
 
             // Check if user has notifications enabled
             if (settings && !settings.pushNotificationsEnabled) {
-                logger.log(`Push notifications disabled for user ${userId}`);
+                logger.log(`🔕 Push notifications disabled for user ${userId}`);
                 return;
             }
 
             // Check if user has muted notifications
             if (settings && settings.mutedUntil && settings.mutedUntil.toDate() > new Date()) {
-                logger.log(`Notifications muted for user ${userId} until ${settings.mutedUntil.toDate()}`);
+                logger.log(`🔇 Notifications muted for user ${userId} until ${settings.mutedUntil.toDate()}`);
                 return;
             }
 
@@ -77,9 +91,16 @@ module.exports = function (admin) {
             }
 
             if (!typeEnabled) {
-                logger.log(`${notificationType} notifications disabled for user ${userId}`);
+                logger.log(`🔕 ${notificationType} notifications disabled for user ${userId}`);
                 return;
             }
+
+            // Clean data to remove undefined values
+            const cleanData = removeUndefinedValues({
+                ...data,
+                notificationId: data.notificationId || '',
+                click_action: 'FLUTTER_NOTIFICATION_CLICK',
+            });
 
             // Create message
             const message = {
@@ -88,11 +109,7 @@ module.exports = function (admin) {
                     title,
                     body,
                 },
-                data: {
-                    ...data,
-                    notificationId: data.notificationId || '',
-                    click_action: 'FLUTTER_NOTIFICATION_CLICK',
-                },
+                data: cleanData,
                 android: {
                     priority: 'high',
                     notification: {
@@ -100,6 +117,8 @@ module.exports = function (admin) {
                         priority: 'high',
                         defaultSound: true,
                         defaultVibrateTimings: true,
+                        icon: 'ic_notification',
+                        color: '#FF6B35',
                     },
                 },
                 apns: {
@@ -107,6 +126,10 @@ module.exports = function (admin) {
                         aps: {
                             sound: 'default',
                             badge: 1,
+                            alert: {
+                                title: title,
+                                body: body,
+                            },
                         },
                     },
                 },
@@ -114,9 +137,18 @@ module.exports = function (admin) {
 
             // Send message
             const response = await admin.messaging().send(message);
-            logger.log('Successfully sent notification:', response);
+            logger.log(`✅ Successfully sent notification: ${response}`);
         } catch (error) {
-            logger.error('Error sending notification:', error);
+            logger.error(`❌ Error sending notification: ${error}`);
+
+            // If token is invalid, remove it from user document
+            if (error.code === 'messaging/invalid-registration-token' ||
+                error.code === 'messaging/registration-token-not-registered') {
+                logger.log(`🔄 Removing invalid FCM token for user ${userId}`);
+                await firestore.collection('users').doc(userId).update({
+                    fcmToken: admin.firestore.FieldValue.delete()
+                });
+            }
         }
     }
 
@@ -137,7 +169,14 @@ module.exports = function (admin) {
         } = params;
 
         try {
-            // Rest of implementation...
+            logger.log(`📝 Creating notification: ${type} from ${senderId} to ${recipientId}`);
+
+            // Don't create notifications for self-actions
+            if (senderId === recipientId) {
+                logger.log(`⚠️ Skipping self-notification for user ${senderId}`);
+                return null;
+            }
+
             // Get sender information
             const senderSnapshot = await firestore.collection('users').doc(senderId).get();
             const senderData = senderSnapshot.exists ? senderSnapshot.data() : null;
@@ -147,14 +186,15 @@ module.exports = function (admin) {
             const notificationId = notificationRef.id;
 
             // Determine sender details based on public/alt event
-            const senderName = isAlt
-                ? senderData?.username
-                : `${senderData?.firstName || ''} ${senderData?.lastName || ''}`.trim();
+            const senderName = isAlt && senderData?.username
+                ? senderData.username
+                : `${senderData?.firstName || ''} ${senderData?.lastName || ''}`.trim() || 'Someone';
 
             const senderProfileImage = isAlt
                 ? senderData?.altProfileImageURL
                 : senderData?.profileImageURL;
 
+            // Build notification data object, only including defined values
             const notificationData = {
                 id: notificationId,
                 recipientId,
@@ -162,39 +202,62 @@ module.exports = function (admin) {
                 type,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 isRead: false,
-                title: title || generateTitle(type, senderName),
+                title: title || generateTitle(type, senderName, count),
                 body: body || generateBody(type, senderName, count),
-                postId,
-                commentId,
-                senderName: senderName || 'Someone',
-                senderUsername: senderData?.username,
-                senderProfileImage,
-                senderAltProfileImage: senderData?.altProfileImageURL,
+                senderName: senderName,
                 isAlt,
-                count,
             };
+
+            // Only add optional fields if they have values
+            if (postId) {
+                notificationData.postId = postId;
+            }
+
+            if (commentId) {
+                notificationData.commentId = commentId;
+            }
+
+            if (senderData?.username) {
+                notificationData.senderUsername = senderData.username;
+            }
+
+            if (senderProfileImage) {
+                notificationData.senderProfileImage = senderProfileImage;
+            }
+
+            if (senderData?.altProfileImageURL) {
+                notificationData.senderAltProfileImage = senderData.altProfileImageURL;
+            }
+
+            if (count !== undefined && count !== null) {
+                notificationData.count = count;
+            }
 
             // Save notification to Firestore
             await notificationRef.set(notificationData);
+            logger.log(`✅ Notification saved to Firestore: ${notificationId}`);
+
+            // Prepare push notification data (also clean undefined values)
+            const pushData = removeUndefinedValues({
+                type,
+                senderId,
+                postId: postId || '',
+                commentId: commentId || '',
+                isAlt: isAlt ? 'true' : 'false',
+                notificationId
+            });
 
             // Send push notification
             await sendPushNotification(
                 recipientId,
                 notificationData.title,
                 notificationData.body,
-                {
-                    type,
-                    senderId,
-                    postId: postId || '',
-                    commentId: commentId || '',
-                    isAlt: isAlt ? 'true' : 'false',
-                    notificationId
-                }
+                pushData
             );
 
             return notificationData;
         } catch (error) {
-            logger.error('Error creating notification:', error);
+            logger.error(`❌ Error creating notification: ${error}`);
             throw error;
         }
     }
@@ -202,14 +265,14 @@ module.exports = function (admin) {
     /**
      * Generate notification title based on type
      */
-    function generateTitle(type, senderName = 'Someone') {
+    function generateTitle(type, senderName = 'Someone', count = null) {
         switch (type) {
             case 'follow':
                 return 'New Follower';
             case 'newPost':
                 return 'New Post';
             case 'postLike':
-                return 'New Like';
+                return 'Post Liked';
             case 'comment':
                 return 'New Comment';
             case 'commentReply':
@@ -219,7 +282,7 @@ module.exports = function (admin) {
             case 'connectionAccepted':
                 return 'Connection Accepted';
             case 'postMilestone':
-                return 'Post Milestone';
+                return `🎉 ${count} Likes!`;
             default:
                 return 'New Notification';
         }
@@ -233,7 +296,7 @@ module.exports = function (admin) {
             case 'follow':
                 return `${senderName} started following you`;
             case 'newPost':
-                return `${senderName} added a new post`;
+                return `${senderName} shared a new post`;
             case 'postLike':
                 return `${senderName} liked your post`;
             case 'comment':
@@ -241,11 +304,11 @@ module.exports = function (admin) {
             case 'commentReply':
                 return `${senderName} replied to your comment`;
             case 'connectionRequest':
-                return `${senderName} sent you a connection request`;
+                return `${senderName} wants to connect`;
             case 'connectionAccepted':
                 return `${senderName} accepted your connection request`;
             case 'postMilestone':
-                return `Your post reached ${count} likes`;
+                return `Your post reached ${count} likes!`;
             default:
                 return 'You have a new notification';
         }
@@ -253,24 +316,35 @@ module.exports = function (admin) {
 
     // Return an object with all the exported functions
     return {
-        // When someone follows a user
-        onNewFollower: onDocumentCreated("followers/{followedId}/userFollowers/{followerId}",
+        // When someone follows a user - FIXED
+        onNewFollower: onDocumentCreated("following/{followerId}/userFollowing/{followedId}",
             async (event) => {
-                const followedId = event.params.followedId;
                 const followerId = event.params.followerId;
+                const followedId = event.params.followedId;
+
+                logger.log(`👥 New follow: ${followerId} → ${followedId}`);
 
                 await createNotification({
                     recipientId: followedId,
                     senderId: followerId,
                     type: 'follow',
+                    // Don't pass undefined postId or commentId
                 });
             }),
 
-        // When someone creates a new post (notify followers)
+        // When someone creates a new post (notify followers) - FIXED
         onNewPost: onDocumentCreated("posts/{postId}", async (event) => {
             const postData = event.data.data();
             const authorId = postData.authorId;
             const postId = event.params.postId;
+
+            // Skip alt posts
+            if (postData.isAlt === true) {
+                logger.log(`⏭️ Skipping alt post notification for ${postId}`);
+                return;
+            }
+
+            logger.log(`📝 New post created: ${postId} by ${authorId}`);
 
             // Get followers
             const followersSnapshot = await firestore
@@ -279,86 +353,64 @@ module.exports = function (admin) {
                 .collection('userFollowers')
                 .get();
 
-            // Create batch for multiple notifications
-            const batch = firestore.batch();
-            const notifications = [];
+            if (followersSnapshot.empty) {
+                logger.log(`👥 No followers to notify for user ${authorId}`);
+                return;
+            }
 
-            // Prepare notifications for each follower
+            logger.log(`📤 Notifying ${followersSnapshot.size} followers`);
+
+            // Create notifications for each follower (in batches to avoid timeout)
+            const notificationPromises = [];
+
             for (const followerDoc of followersSnapshot.docs) {
                 const followerId = followerDoc.id;
 
-                const notificationRef = firestore.collection('notifications').doc();
-
-                // Create notification data
-                const notificationData = {
-                    id: notificationRef.id,
-                    recipientId: followerId,
-                    senderId: authorId,
-                    type: 'newPost',
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    isRead: false,
-                    postId,
-                    senderName: postData.authorName || '',
-                    senderUsername: postData.authorUsername,
-                    senderProfileImage: postData.authorProfileImageURL,
-                    isAlt: false,
-                };
-
-                batch.set(notificationRef, notificationData);
-                notifications.push(notificationData);
-            }
-
-            // Commit batch write
-            await batch.commit();
-
-            // Send push notifications to each follower
-            for (const notification of notifications) {
-                await sendPushNotification(
-                    notification.recipientId,
-                    'New Post',
-                    `${notification.senderName || 'Someone'} shared a new post`,
-                    {
-                        type: 'newPost',
+                // Create notification for this follower
+                notificationPromises.push(
+                    createNotification({
+                        recipientId: followerId,
                         senderId: authorId,
-                        postId,
-                        notificationId: notification.id,
+                        type: 'newPost',
+                        postId: postId, // This is defined
                         isAlt: false,
-                    }
+                    })
                 );
+
+                // Process in batches of 10 to avoid overwhelming the system
+                if (notificationPromises.length >= 10) {
+                    await Promise.all(notificationPromises);
+                    notificationPromises.length = 0; // Clear array
+                }
             }
+
+            // Process remaining notifications
+            if (notificationPromises.length > 0) {
+                await Promise.all(notificationPromises);
+            }
+
+            logger.log(`✅ Post notifications sent for ${postId}`);
         }),
 
-        // Rest of the exported functions...
-        // When someone likes a post
-        onPostLike: onDocumentCreated("likes/{postId}/users/{userId}",
+        // When someone likes a post - FIXED
+        onPostLike: onDocumentCreated("likes/{postId}/userInteractions/{userId}",
             async (event) => {
                 const postId = event.params.postId;
                 const likerId = event.params.userId;
 
-                // Get post data
-                const postSnapshot = await firestore.collection('posts').doc(postId).get();
+                logger.log(`❤️ Post liked: ${postId} by ${likerId}`);
+
+                // Get post data - check both regular and alt posts
+                let postSnapshot = await firestore.collection('posts').doc(postId).get();
+                let isAlt = false;
+
                 if (!postSnapshot.exists) {
-                    // Also check alt posts
-                    const altPostSnapshot = await firestore.collection('altPosts').doc(postId).get();
-                    if (!altPostSnapshot.exists) {
-                        logger.error(`Post ${postId} not found for like notification`);
-                        return;
-                    }
+                    postSnapshot = await firestore.collection('altPosts').doc(postId).get();
+                    isAlt = true;
+                }
 
-                    const postData = altPostSnapshot.data();
-                    const authorId = postData.authorId;
-
-                    // Skip if user likes their own post
-                    if (likerId === authorId) return;
-
-                    await createNotification({
-                        recipientId: authorId,
-                        senderId: likerId,
-                        type: 'postLike',
-                        postId,
-                        isAlt: true,
-                    });
-
+                if (!postSnapshot.exists) {
+                    logger.error(`❌ Post ${postId} not found for like notification`);
                     return;
                 }
 
@@ -366,133 +418,123 @@ module.exports = function (admin) {
                 const authorId = postData.authorId;
 
                 // Skip if user likes their own post
-                if (likerId === authorId) return;
+                if (likerId === authorId) {
+                    logger.log(`⏭️ Skipping self-like for post ${postId}`);
+                    return;
+                }
 
+                // Create like notification
                 await createNotification({
                     recipientId: authorId,
                     senderId: likerId,
                     type: 'postLike',
-                    postId,
-                    isAlt: false,
+                    postId: postId, // This is defined
+                    isAlt,
                 });
 
-                // Check for milestone (e.g., 10, 50, 100 likes)
-                const likesCount = await firestore
-                    .collection('likes')
-                    .doc(postId)
-                    .collection('users')
-                    .count()
-                    .get();
-
-                const likesCollectionPath = `likes/${postId}/userInteractions/${likerId}`;
-
-                const count = likesCount.data().count;
-                const likesCountSnapshot = await firestore.collection(isAlt ? 'altPosts' : 'posts').doc(postId).get();
-                const currentLikeCount = likesCountSnapshot.data().likeCount || 0;
-
-
-                const milestones = [10, 50, 100, 500, 1000];
+                // Check for milestone (10, 25, 50, 100, 500, 1000 likes)
+                const currentLikeCount = postData.likeCount || 0;
+                const milestones = [10, 25, 50, 100, 500, 1000];
 
                 if (milestones.includes(currentLikeCount)) {
+                    logger.log(`🎉 Milestone reached: ${currentLikeCount} likes for post ${postId}`);
+
                     await createNotification({
                         recipientId: authorId,
-                        senderId: null,
+                        senderId: authorId, // System notification
                         type: 'postMilestone',
-                        postId,
-                        count: currentLikeCount,
-                        isAlt: false,
+                        postId: postId, // This is defined
+                        count: currentLikeCount, // This is defined
+                        isAlt,
                     });
                 }
             }),
 
-        // When someone comments on a post
+        // When someone comments on a post - FIXED
         onNewComment: onDocumentCreated("comments/{postId}/postComments/{commentId}",
             async (event) => {
                 const postId = event.params.postId;
                 const commentId = event.params.commentId;
                 const commentData = event.data.data();
 
-                // Skip if there's no parent comment (it's a direct post comment)
-                if (!commentData.parentId) {
-                    // This is a comment on a post, notify post author
-                    const postSnapshot = await firestore.collection('posts').doc(postId).get();
-                    let postData, isAlt = false;
+                logger.log(`💬 New comment: ${commentId} on post ${postId}`);
 
-                    if (!postSnapshot.exists) {
-                        // Check alt posts
-                        const altPostSnapshot = await firestore.collection('altPosts').doc(postId).get();
-                        if (!altPostSnapshot.exists) {
-                            logger.error(`Post ${postId} not found for comment notification`);
-                            return;
-                        }
-                        postData = altPostSnapshot.data();
-                        isAlt = true;
-                    } else {
-                        postData = postSnapshot.data();
-                    }
+                const commenterId = commentData.authorId;
 
-                    const authorId = postData.authorId;
-                    const commenterId = commentData.authorId;
-
-                    // Skip if user comments on their own post
-                    if (commenterId === authorId) return;
-
-                    await createNotification({
-                        recipientId: authorId,
-                        senderId: commenterId,
-                        type: 'comment',
-                        postId,
-                        commentId,
-                        isAlt,
-                    });
-                } else {
-                    // This is a reply to a comment, notify comment author
-                    const parentCommentId = commentData.parentId;
+                // Check if this is a reply to another comment
+                if (commentData.parentId) {
+                    // This is a reply to a comment
                     const parentCommentSnapshot = await firestore
                         .collection('comments')
                         .doc(postId)
                         .collection('postComments')
-                        .doc(parentCommentId)
+                        .doc(commentData.parentId)
                         .get();
 
-                    if (!parentCommentSnapshot.exists) {
-                        logger.error(`Parent comment ${parentCommentId} not found for reply notification`);
-                        return;
+                    if (parentCommentSnapshot.exists) {
+                        const parentCommentData = parentCommentSnapshot.data();
+                        const parentCommentAuthorId = parentCommentData.authorId;
+
+                        // Skip if user replies to their own comment
+                        if (commenterId !== parentCommentAuthorId) {
+                            await createNotification({
+                                recipientId: parentCommentAuthorId,
+                                senderId: commenterId,
+                                type: 'commentReply',
+                                postId: postId, // This is defined
+                                commentId: commentId, // This is defined
+                                isAlt: commentData.isAltPost || false,
+                            });
+                        }
+                    }
+                } else {
+                    // This is a direct comment on the post
+                    // Get post data to find the author
+                    let postSnapshot = await firestore.collection('posts').doc(postId).get();
+                    let isAlt = false;
+
+                    if (!postSnapshot.exists) {
+                        postSnapshot = await firestore.collection('altPosts').doc(postId).get();
+                        isAlt = true;
                     }
 
-                    const parentCommentData = parentCommentSnapshot.data();
-                    const parentCommentAuthorId = parentCommentData.authorId;
-                    const replyAuthorId = commentData.authorId;
+                    if (postSnapshot.exists) {
+                        const postData = postSnapshot.data();
+                        const postAuthorId = postData.authorId;
 
-                    // Skip if user replies to their own comment
-                    if (replyAuthorId === parentCommentAuthorId) return;
-
-                    await createNotification({
-                        recipientId: parentCommentAuthorId,
-                        senderId: replyAuthorId,
-                        type: 'commentReply',
-                        postId,
-                        commentId,
-                        isAlt: commentData.isAltPost || false,
-                    });
+                        // Skip if user comments on their own post
+                        if (commenterId !== postAuthorId) {
+                            await createNotification({
+                                recipientId: postAuthorId,
+                                senderId: commenterId,
+                                type: 'comment',
+                                postId: postId, // This is defined
+                                commentId: commentId, // This is defined
+                                isAlt,
+                            });
+                        }
+                    }
                 }
             }),
 
-        // When someone sends a connection request
+        // When someone sends a connection request - FIXED
         onConnectionRequest: onDocumentCreated("altConnectionRequests/{userId}/requests/{requesterId}",
             async (event) => {
                 const userId = event.params.userId;
                 const requesterId = event.params.requesterId;
+
+                logger.log(`🤝 Connection request: ${requesterId} → ${userId}`);
 
                 await createNotification({
                     recipientId: userId,
                     senderId: requesterId,
                     type: 'connectionRequest',
                     isAlt: true,
+                    // Don't pass undefined postId or commentId
                 });
             }),
 
-        // When someone accepts a connection request
+        // When someone accepts a connection request - FIXED
         onConnectionAccepted: onDocumentUpdated("altConnectionRequests/{userId}/requests/{requesterId}",
             async (event) => {
                 const after = event.data.after.data();
@@ -503,22 +545,24 @@ module.exports = function (admin) {
                     const userId = event.params.userId;
                     const requesterId = event.params.requesterId;
 
+                    logger.log(`✅ Connection accepted: ${userId} accepted ${requesterId}`);
+
                     await createNotification({
                         recipientId: requesterId,
                         senderId: userId,
                         type: 'connectionAccepted',
                         isAlt: true,
+                        // Don't pass undefined postId or commentId
                     });
                 }
             }),
 
-        // Mark notifications as read in bulk
+        // Cloud function to mark notifications as read
         markNotificationsAsRead: onCall(async (request) => {
-            // Authenticate the user
-            if (!request.auth) { // <<< Use request.auth
+            if (!request.auth) {
                 throw new functions.https.HttpsError(
                     'unauthenticated',
-                    'User must be logged in to mark notifications as read'
+                    'User must be logged in'
                 );
             }
 
@@ -526,20 +570,22 @@ module.exports = function (admin) {
             const { notificationIds } = request.data;
 
             try {
-                // If specific IDs are provided, mark only those
                 if (notificationIds && Array.isArray(notificationIds) && notificationIds.length > 0) {
+                    // Mark specific notifications as read
                     const batch = firestore.batch();
 
                     for (const id of notificationIds) {
                         const notificationRef = firestore.collection('notifications').doc(id);
-                        batch.update(notificationRef, { isRead: true });
+                        batch.update(notificationRef, {
+                            isRead: true,
+                            readAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
                     }
 
                     await batch.commit();
                     return { success: true, count: notificationIds.length };
-                }
-                // Otherwise mark all unread notifications as read
-                else {
+                } else {
+                    // Mark all notifications as read
                     const notificationsSnapshot = await firestore
                         .collection('notifications')
                         .where('recipientId', '==', userId)
@@ -551,27 +597,28 @@ module.exports = function (admin) {
                     }
 
                     const batch = firestore.batch();
-
                     notificationsSnapshot.docs.forEach(doc => {
-                        batch.update(doc.ref, { isRead: true });
+                        batch.update(doc.ref, {
+                            isRead: true,
+                            readAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
                     });
 
                     await batch.commit();
                     return { success: true, count: notificationsSnapshot.size };
                 }
             } catch (error) {
-                logger.error('Error marking notifications as read:', error);
+                logger.error('❌ Error marking notifications as read:', error);
                 throw new functions.https.HttpsError('internal', error.message);
             }
         }),
 
-        // Delete notifications
+        // Cloud function to delete notifications
         deleteNotifications: onCall(async (request) => {
-            // Authenticate the user
-            if (!request.auth) { // <<< Use request.auth
+            if (!request.auth) {
                 throw new functions.https.HttpsError(
                     'unauthenticated',
-                    'User must be logged in to delete notifications'
+                    'User must be logged in'
                 );
             }
 
@@ -586,7 +633,6 @@ module.exports = function (admin) {
                     );
                 }
 
-                // Verify notification ownership
                 const batch = firestore.batch();
                 const verifiedIds = [];
 
@@ -607,9 +653,35 @@ module.exports = function (admin) {
                 await batch.commit();
                 return { success: true, count: verifiedIds.length };
             } catch (error) {
-                logger.error('Error deleting notifications:', error);
+                logger.error('❌ Error deleting notifications:', error);
                 throw new functions.https.HttpsError('internal', error.message);
             }
+        }),
+
+        // Clean up old notifications (run monthly) - V2 SYNTAX
+        cleanupOldNotifications: onSchedule("0 0 1 * *", async (event) => {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const oldNotificationsSnapshot = await firestore
+                .collection('notifications')
+                .where('timestamp', '<', thirtyDaysAgo)
+                .get();
+
+            if (oldNotificationsSnapshot.empty) {
+                logger.log('🧹 No old notifications to clean up');
+                return;
+            }
+
+            logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
+
+            const batch = firestore.batch();
+            oldNotificationsSnapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
         })
     };
 };
