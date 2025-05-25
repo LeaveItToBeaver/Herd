@@ -9,6 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
+import 'package:herdapp/features/mentions/view/widgets/mention_overlay_widget.dart';
+import 'package:herdapp/features/rich_text_editing/utils/mention_embed_builder.dart';
+import 'package:herdapp/features/rich_text_editing/utils/mention_extractor.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_cropper/image_cropper.dart';
 
@@ -64,6 +67,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     _isAlt = widget.isAlt;
     _selectedHerdId = widget.herdId;
     _contentController = quill.QuillController.basic();
+
     _editorFocusNode = FocusNode();
     _editorScrollController = ScrollController();
 
@@ -82,26 +86,55 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
   @override
   void dispose() {
+    // Set submitting to false to prevent any ongoing operations
+    _isSubmitting = false;
+
+    // Dispose controllers
     _contentController.dispose();
     _editorFocusNode.dispose();
     _editorScrollController.dispose();
+
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // Stop any ongoing submissions
+    _isSubmitting = false;
+    super.deactivate();
+  }
+
+  bool get _canPerformUIOperations =>
+      mounted && context.mounted && !_isSubmitting;
+
+  bool _validateForm() {
+    if (!_canPerformUIOperations) return false;
+    return _formKey.currentState?.validate() ?? false;
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (mounted) {
+      setState(fn);
+    }
   }
 
 // This method tracks when content is entered
   void _checkContentEntered() {
-    // Check if title or content fields have text
-    setState(() {
+    if (!mounted) return;
+
+    _safeSetState(() {
       _hasEnteredContent = _title.isNotEmpty || _content.isNotEmpty;
     });
   }
 
 // Add this method to fetch the herd name when a herdId is provided
   void _fetchHerdInfo() async {
+    if (!mounted) return;
+
     try {
       final herd = await ref.read(herdProvider(_selectedHerdId!).future);
       if (mounted && herd != null) {
-        setState(() {
+        _safeSetState(() {
           _selectedHerdName = herd.name;
           _selectHerdProfileImageUrl = herd.profileImageURL;
           if (kDebugMode) {
@@ -119,15 +152,20 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     final postState = ref.watch(postControllerProvider);
-    final currentUserAsync =
-        ref.watch(currentUserProvider); // Changed read to watch
-    //final userId = currentUserAsync.userId;
-    //final currentFeed = ref.watch(currentFeedProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
 
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
+
+        // Always allow pop if submitting to avoid blocking navigation
+        if (_isSubmitting) {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+          return;
+        }
 
         final canPop = await _handlePopScope();
         if (canPop && context.mounted) {
@@ -149,7 +187,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: Colors.grey,
                     ),
                   ),
                 ),
@@ -858,31 +896,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                      color: _isNSFW && _isAlt
-                          ? Colors.purple
-                          : _isNSFW && !_isAlt
-                              ? Colors.red
-                              : _isAlt
-                                  ? Colors.blue
-                                  : Colors.grey,
+                      color: borderColor,
                     ),
                     left: BorderSide(
-                      color: _isNSFW && _isAlt
-                          ? Colors.purple
-                          : _isNSFW && !_isAlt
-                              ? Colors.red
-                              : _isAlt
-                                  ? Colors.blue
-                                  : Colors.grey,
+                      color: borderColor,
                     ),
                     right: BorderSide(
-                      color: _isNSFW && _isAlt
-                          ? Colors.purple
-                          : _isNSFW && !_isAlt
-                              ? Colors.red
-                              : _isAlt
-                                  ? Colors.blue
-                                  : Colors.grey,
+                      color: borderColor,
                     ),
                   ),
                   borderRadius: BorderRadius.only(
@@ -890,17 +910,26 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     topRight: Radius.circular(10),
                   ),
                 ),
-                child: quill.QuillEditor(
+                child: MentionOverlay(
                   controller: _contentController,
                   focusNode: _editorFocusNode,
-                  scrollController: _editorScrollController,
-                  config: quill.QuillEditorConfig(
-                    scrollable: true,
-                    padding: EdgeInsets.zero,
-                    autoFocus: false,
-                    expands: false,
-                    placeholder: 'What\'s on your mind?',
-                    scrollBottomInset: 60,
+                  isAlt: _isAlt,
+                  child: quill.QuillEditor(
+                    controller: _contentController,
+                    focusNode: _editorFocusNode,
+                    scrollController: _editorScrollController,
+                    config: quill.QuillEditorConfig(
+                      scrollable: true,
+                      padding: EdgeInsets.zero,
+                      autoFocus: false,
+                      expands: false,
+                      placeholder:
+                          'What\'s on your mind? Use @ to mention someone',
+                      scrollBottomInset: 60,
+                      embedBuilders: [
+                        MentionEmbedBuilder(), // Keep this here too
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -913,31 +942,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   ),
                   border: Border(
                     bottom: BorderSide(
-                      color: _isNSFW && _isAlt
-                          ? Colors.purple
-                          : _isNSFW && !_isAlt
-                              ? Colors.red
-                              : _isAlt
-                                  ? Colors.blue
-                                  : Colors.grey,
+                      color: borderColor,
                     ),
                     left: BorderSide(
-                      color: _isNSFW && _isAlt
-                          ? Colors.purple
-                          : _isNSFW && !_isAlt
-                              ? Colors.red
-                              : _isAlt
-                                  ? Colors.blue
-                                  : Colors.grey,
+                      color: borderColor,
                     ),
                     right: BorderSide(
-                      color: _isNSFW && _isAlt
-                          ? Colors.purple
-                          : _isNSFW && !_isAlt
-                              ? Colors.red
-                              : _isAlt
-                                  ? Colors.blue
-                                  : Colors.grey,
+                      color: borderColor,
                     ),
                   ),
                 ),
@@ -974,7 +985,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       final deltaJson = _contentController.document.toDelta().toJson();
       final richTextContent = jsonEncode(deltaJson);
 
+      // Extract mentions from the document
+      final mentionIds =
+          MentionExtractor.extractMentionIds(_contentController.document);
+
       debugPrint("Submitting post with ${_mediaFiles.length} media files");
+      debugPrint("Found ${mentionIds.length} mentions: $mentionIds");
 
       final processedMedia = await _processMediaFiles();
 
@@ -991,78 +1007,66 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             herdId: _selectedHerdId ?? '',
             herdName: _selectedHerdName ?? '',
             herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
+            mentions: mentionIds, // Pass the extracted mentions
           );
 
-      if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isAlt
-                ? 'Alt post created successfully!'
-                : 'Post created successfully!'),
-            backgroundColor: _isNSFW && _isAlt
-                ? Colors.purple
-                : _isNSFW && !_isAlt
-                    ? Colors.red
-                    : _isAlt
-                        ? Colors.blue
-                        : Colors.black,
-          ),
-        );
-
-        // Clear the state
-        setState(() {
-          _title = '';
-          _content = '';
-          _mediaFiles.clear();
-          _postMedia = null;
-          _hasMedia = false;
-          _isNSFW = false;
-          _isAlt = false;
-          _selectedHerdId = null;
-          _selectedHerdName = null;
-        });
-
-        // Reset the form state before or after navigation?
-        // _formKey.currentState?.reset(); // Reset the form state
-        // This might be unnecessary since we are already clearing the state above
-
-        context.pushNamed(
-          'post',
-          pathParameters: {'id': postId},
-          queryParameters: {'isAlt': _isAlt.toString()},
-        );
+      // SUCCESS: Immediately navigate without any UI operations
+      if (mounted && context.mounted) {
+        // Use context.go for cleaner navigation
+        context.go('/post/$postId?isAlt=${_isAlt.toString()}');
+        return; // Exit immediately after navigation
       }
     } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar(
-          context,
-          'There was an issue creating the post: $e',
-        );
-      }
-    } finally {
-      if (mounted) {
+      debugPrint("Error in _submitForm: $e");
+
+      // Only handle errors if widget is still mounted
+      if (mounted && context.mounted) {
         setState(() {
           _isSubmitting = false;
         });
+
+        // Show error without any complex operations
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to create post. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
 
+// Simplified _showErrorSnackBar method (kept for compatibility)
   void _showErrorSnackBar(BuildContext context, String message) {
+    if (!mounted || !context.mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
       ),
     );
+  }
+
+// Add this method to handle cleanup when needed
+  void _resetFormState() {
+    if (!mounted) return;
+
+    setState(() {
+      _title = '';
+      _content = '';
+      _mediaFiles.clear();
+      _postMedia = null;
+      _hasMedia = false;
+      _isNSFW = false;
+      _selectedHerdId = null;
+      _selectedHerdName = null;
+      _isSubmitting = false;
+    });
+
+    _contentController.clear();
   }
 
   Future<void> _showHerdSelectionDialog() async {
@@ -1128,10 +1132,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Future<bool> _handlePopScope() async {
-    // If no content entered or submitting, allow navigation without prompt
     if (!_hasEnteredContent || _isSubmitting) {
       return true;
     }
+
+    // If not mounted, allow navigation
+    if (!mounted) return true;
 
     // If user has selected media files, don't show draft dialog
     // as we don't support media in drafts
@@ -1158,6 +1164,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       return shouldDiscard ?? false;
     }
+
+    // Check if still mounted before showing draft dialog
+    if (!mounted) return true;
 
     // Show the save draft dialog for text-only posts
     final shouldNavigate = await showDialog<bool>(

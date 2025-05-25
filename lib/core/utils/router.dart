@@ -340,12 +340,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             print('Create route received herdId: $herdId');
           }
 
-          // Create a unique key with timestamp
-          //final uniqueKey = ValueKey(
-          //    'create-${herdId ?? 'personal'}-${isAlt ? 'alt' : 'public'}-${DateTime.now().millisecondsSinceEpoch}');
-
           return NoTransitionPage(
-            key: state.pageKey,
+            // Let GoRouter handle the key, or omit entirely
             child: GlobalOverlayManager(
               showBottomNav: true,
               showSideBubbles: false,
@@ -584,17 +580,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/post/:id',
         name: 'post',
-        parentNavigatorKey: rootNavigatorKey, // Use root navigator
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final postId = state.pathParameters['id']!;
-          // Get isAlt parameter if it exists
           final isAlt = state.uri.queryParameters['isAlt'] == 'true';
 
-          return MaterialPage(
-            key: state.pageKey,
-            child: PostScreen(
-              postId: postId,
-              isAlt: isAlt,
+          return NoTransitionPage(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: GlobalOverlayManager(
+                showBottomNav: true,
+                showSideBubbles: false,
+                showProfileBtn: true,
+                showSearchBtn: true,
+                showNotificationsBtn: true,
+                child: PostScreen(
+                  postId: postId,
+                  isAlt: isAlt,
+                ),
+              ),
             ),
           );
         },

@@ -9,30 +9,30 @@ const { hotAlgorithm } = require('./utils');
  * Runs every hour to keep scores current (set to 1 minute for testing)
  */
 exports.updateHotScores = onSchedule(
-    "every 5 minutes", // Change to "every 1 minutes" for testing
+    "every 5 minutes",
     async (event) => {
         // Only process posts from the last 7 days
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         try {
-            // Process regular posts
-            await updatePostTypeHotScores('posts', null, oneWeekAgo);
+            // First, set all posts older than 7 days to hot score 0
+            await zeroOutOldPosts('posts', sevenDaysAgo);
+            await zeroOutOldPosts('altPosts', sevenDaysAgo);
+
+            // Process regular posts (only those with non-zero scores)
+            await updatePostTypeHotScores('posts', null, sevenDaysAgo);
             logger.info('Hot score update completed for regular posts');
 
-            // Process alt posts
-            await updatePostTypeHotScores('altPosts', null, oneWeekAgo);
+            // Process alt posts (only those with non-zero scores)
+            await updatePostTypeHotScores('altPosts', null, sevenDaysAgo);
             logger.info('Hot score update completed for alt posts');
 
-            // Process herd posts - requires additional logic for nested collection
+            // Process herd posts
             const herdsSnapshot = await firestore.collection('herdPosts').get();
-
-            logger.info(`Found ${herdsSnapshot.size} herds for hot score update`);
-
             for (const herdDoc of herdsSnapshot.docs) {
                 const herdId = herdDoc.id;
-                await updatePostTypeHotScores('herdPosts', herdId, oneWeekAgo);
-                logger.info(`Hot score update completed for herd ${herdId}`);
+                await updatePostTypeHotScores('herdPosts', herdId, sevenDaysAgo);
             }
 
             logger.info('Hot score update completed successfully for all post types');
@@ -43,6 +43,40 @@ exports.updateHotScores = onSchedule(
         }
     }
 );
+
+async function zeroOutOldPosts(collectionName, cutoffDate) {
+    const oldPostsQuery = firestore.collection(collectionName)
+        .where('createdAt', '<', cutoffDate)
+        .where('hotScore', '>', 0)
+        .limit(500);
+
+    const snapshot = await oldPostsQuery.get();
+
+    if (snapshot.empty) {
+        logger.info(`No old posts to zero out in ${collectionName}`);
+        return;
+    }
+
+    const batch = firestore.batch();
+    const updatedPosts = [];
+
+    snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { hotScore: 0 });
+        updatedPosts.push({
+            id: doc.id,
+            hotScore: 0,
+            sourceCollection: collectionName
+        });
+    });
+
+    await batch.commit();
+
+    // Update user feeds for these zeroed posts
+    await updateUserFeedsForPosts(updatedPosts);
+
+    logger.info(`Zeroed out ${snapshot.size} old posts in ${collectionName}`);
+}
+
 
 /**
  * Helper function to update hot scores in user feeds
@@ -140,7 +174,6 @@ async function updateUserFeedsForPosts(updatedPosts) {
  * @param {Date} cutoffDate - Only process posts newer than this date
  */
 async function updatePostTypeHotScores(collectionName, herdId, cutoffDate) {
-    // Build the correct collection reference based on post type
     let collectionRef;
     if (collectionName === 'herdPosts' && herdId) {
         collectionRef = firestore.collection('herdPosts').doc(herdId).collection('posts');
@@ -148,24 +181,23 @@ async function updatePostTypeHotScores(collectionName, herdId, cutoffDate) {
         collectionRef = firestore.collection(collectionName);
     }
 
-    // Query for posts with significant engagement
+    // UPDATED: Only query posts with non-zero hot scores
     const postsQuery = collectionRef
         .where('createdAt', '>', cutoffDate)
-        .where('likeCount', '>', 0)
+        .where('hotScore', '>', 0) // Only process posts with non-zero scores
         .orderBy('createdAt', 'asc')
-        .orderBy('likeCount', 'asc')
+        .orderBy('hotScore', 'asc')
         .limit(500);
 
     const postsSnapshot = await postsQuery.get();
 
     if (postsSnapshot.empty) {
-        logger.info(`No ${collectionName}${herdId ? ' for herd ' + herdId : ''} found for hot score update`);
+        logger.info(`No active posts found for hot score update in ${collectionName}`);
         return;
     }
 
-    logger.info(`Updating hot scores for ${postsSnapshot.size} ${collectionName}${herdId ? ' in herd ' + herdId : ''}`);
+    logger.info(`Updating hot scores for ${postsSnapshot.size} active posts in ${collectionName}`);
 
-    // Process in smaller batches to avoid Firestore limits
     const MAX_BATCH_SIZE = 200;
     let batch = firestore.batch();
     let operationCount = 0;
@@ -193,24 +225,19 @@ async function updatePostTypeHotScores(collectionName, herdId, cutoffDate) {
             operationCount++;
         }
 
-        // If batch is full, commit and reset
         if (operationCount >= MAX_BATCH_SIZE) {
             await batch.commit();
-
-            // Update user feeds for this batch
             await updateUserFeedsForPosts(updatedPosts);
-
             batch = firestore.batch();
             operationCount = 0;
             updatedPosts = [];
         }
     }
 
-    // Commit any remaining operations
     if (operationCount > 0) {
         await batch.commit();
         await updateUserFeedsForPosts(updatedPosts);
     }
 
-    logger.info(`Hot score update completed for ${collectionName}${herdId ? ' in herd ' + herdId : ''}`);
+    logger.info(`Hot score update completed for ${collectionName}`);
 }
