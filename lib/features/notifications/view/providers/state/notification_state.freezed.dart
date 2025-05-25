@@ -19,7 +19,7 @@ mixin _$NotificationState implements DiagnosticableTreeMixin {
   bool get isLoading;
   bool get hasMore;
   int get unreadCount;
-  DocumentSnapshot? get lastDocument;
+  String? get lastNotificationId; // For cloud function pagination
   String? get error;
 
   /// Create a copy of NotificationState
@@ -38,7 +38,7 @@ mixin _$NotificationState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMore', hasMore))
       ..add(DiagnosticsProperty('unreadCount', unreadCount))
-      ..add(DiagnosticsProperty('lastDocument', lastDocument))
+      ..add(DiagnosticsProperty('lastNotificationId', lastNotificationId))
       ..add(DiagnosticsProperty('error', error));
   }
 
@@ -54,8 +54,8 @@ mixin _$NotificationState implements DiagnosticableTreeMixin {
             (identical(other.hasMore, hasMore) || other.hasMore == hasMore) &&
             (identical(other.unreadCount, unreadCount) ||
                 other.unreadCount == unreadCount) &&
-            (identical(other.lastDocument, lastDocument) ||
-                other.lastDocument == lastDocument) &&
+            (identical(other.lastNotificationId, lastNotificationId) ||
+                other.lastNotificationId == lastNotificationId) &&
             (identical(other.error, error) || other.error == error));
   }
 
@@ -66,12 +66,12 @@ mixin _$NotificationState implements DiagnosticableTreeMixin {
       isLoading,
       hasMore,
       unreadCount,
-      lastDocument,
+      lastNotificationId,
       error);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'NotificationState(notifications: $notifications, isLoading: $isLoading, hasMore: $hasMore, unreadCount: $unreadCount, lastDocument: $lastDocument, error: $error)';
+    return 'NotificationState(notifications: $notifications, isLoading: $isLoading, hasMore: $hasMore, unreadCount: $unreadCount, lastNotificationId: $lastNotificationId, error: $error)';
   }
 }
 
@@ -86,7 +86,7 @@ abstract mixin class $NotificationStateCopyWith<$Res> {
       bool isLoading,
       bool hasMore,
       int unreadCount,
-      DocumentSnapshot? lastDocument,
+      String? lastNotificationId,
       String? error});
 }
 
@@ -107,7 +107,7 @@ class _$NotificationStateCopyWithImpl<$Res>
     Object? isLoading = null,
     Object? hasMore = null,
     Object? unreadCount = null,
-    Object? lastDocument = freezed,
+    Object? lastNotificationId = freezed,
     Object? error = freezed,
   }) {
     return _then(_self.copyWith(
@@ -127,10 +127,10 @@ class _$NotificationStateCopyWithImpl<$Res>
           ? _self.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
               as int,
-      lastDocument: freezed == lastDocument
-          ? _self.lastDocument
-          : lastDocument // ignore: cast_nullable_to_non_nullable
-              as DocumentSnapshot?,
+      lastNotificationId: freezed == lastNotificationId
+          ? _self.lastNotificationId
+          : lastNotificationId // ignore: cast_nullable_to_non_nullable
+              as String?,
       error: freezed == error
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
@@ -149,7 +149,7 @@ class _NotificationState
       this.isLoading = false,
       this.hasMore = true,
       this.unreadCount = 0,
-      this.lastDocument,
+      this.lastNotificationId,
       this.error})
       : _notifications = notifications;
 
@@ -171,7 +171,8 @@ class _NotificationState
   @JsonKey()
   final int unreadCount;
   @override
-  final DocumentSnapshot? lastDocument;
+  final String? lastNotificationId;
+// For cloud function pagination
   @override
   final String? error;
 
@@ -191,7 +192,7 @@ class _NotificationState
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMore', hasMore))
       ..add(DiagnosticsProperty('unreadCount', unreadCount))
-      ..add(DiagnosticsProperty('lastDocument', lastDocument))
+      ..add(DiagnosticsProperty('lastNotificationId', lastNotificationId))
       ..add(DiagnosticsProperty('error', error));
   }
 
@@ -207,8 +208,8 @@ class _NotificationState
             (identical(other.hasMore, hasMore) || other.hasMore == hasMore) &&
             (identical(other.unreadCount, unreadCount) ||
                 other.unreadCount == unreadCount) &&
-            (identical(other.lastDocument, lastDocument) ||
-                other.lastDocument == lastDocument) &&
+            (identical(other.lastNotificationId, lastNotificationId) ||
+                other.lastNotificationId == lastNotificationId) &&
             (identical(other.error, error) || other.error == error));
   }
 
@@ -219,12 +220,12 @@ class _NotificationState
       isLoading,
       hasMore,
       unreadCount,
-      lastDocument,
+      lastNotificationId,
       error);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'NotificationState(notifications: $notifications, isLoading: $isLoading, hasMore: $hasMore, unreadCount: $unreadCount, lastDocument: $lastDocument, error: $error)';
+    return 'NotificationState(notifications: $notifications, isLoading: $isLoading, hasMore: $hasMore, unreadCount: $unreadCount, lastNotificationId: $lastNotificationId, error: $error)';
   }
 }
 
@@ -241,7 +242,7 @@ abstract mixin class _$NotificationStateCopyWith<$Res>
       bool isLoading,
       bool hasMore,
       int unreadCount,
-      DocumentSnapshot? lastDocument,
+      String? lastNotificationId,
       String? error});
 }
 
@@ -262,7 +263,7 @@ class __$NotificationStateCopyWithImpl<$Res>
     Object? isLoading = null,
     Object? hasMore = null,
     Object? unreadCount = null,
-    Object? lastDocument = freezed,
+    Object? lastNotificationId = freezed,
     Object? error = freezed,
   }) {
     return _then(_NotificationState(
@@ -282,10 +283,10 @@ class __$NotificationStateCopyWithImpl<$Res>
           ? _self.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
               as int,
-      lastDocument: freezed == lastDocument
-          ? _self.lastDocument
-          : lastDocument // ignore: cast_nullable_to_non_nullable
-              as DocumentSnapshot?,
+      lastNotificationId: freezed == lastNotificationId
+          ? _self.lastNotificationId
+          : lastNotificationId // ignore: cast_nullable_to_non_nullable
+              as String?,
       error: freezed == error
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable

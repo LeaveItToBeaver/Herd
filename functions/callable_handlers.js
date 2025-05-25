@@ -90,6 +90,12 @@ const handlePostInteraction = onCall({
 
         const postData = postDoc.data();
 
+        const postCreatedAt = postData.createdAt?.toDate ? postData.createdAt.toDate() : new Date();
+        const postAgeHours = (Date.now() - postCreatedAt.getTime()) / (1000 * 60 * 60);
+        const shouldUpdateHotScore = postAgeHours <= 72; // Only update if less than 3 days old
+
+
+
         const interactionRef = firestore
             .collection(config.collection)
             .doc(postId)
@@ -146,15 +152,20 @@ const handlePostInteraction = onCall({
         }
 
         // Calculate updated hot score with new values
-        const updatedLikeCount = postData.likeCount + likeChange;
-        const updatedDislikeCount = postData.dislikeCount + dislikeChange;
-        const netVotes = updatedLikeCount - updatedDislikeCount;
-        const updatedHotScore = hotAlgorithm.calculateHotScore(
-            netVotes,
-            postData.createdAt.toDate()
-        );
+        if (shouldUpdateHotScore) {
+            const updatedLikeCount = postData.likeCount + likeChange;
+            const updatedDislikeCount = postData.dislikeCount + dislikeChange;
+            const netVotes = updatedLikeCount - updatedDislikeCount;
+            const updatedHotScore = hotAlgorithm.calculateHotScore(
+                netVotes,
+                postCreatedAt
+            );
 
-        logger.info(`Updated hot score for post ${postId}: ${updatedHotScore}`);
+            logger.info(`Updated hot score for post ${postId}: ${updatedHotScore} (age: ${postAgeHours.toFixed(1)} hours)`);
+            transaction.update(postRef, { hotScore: updatedHotScore });
+        } else {
+            logger.info(`Skipping hot score update for post ${postId} - too old (${postAgeHours.toFixed(1)} hours)`);
+        }
 
         transaction.update(postRef, { hotScore: updatedHotScore });
 

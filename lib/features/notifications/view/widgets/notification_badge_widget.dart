@@ -24,6 +24,7 @@ class NotificationBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authProvider);
+    final theme = Theme.of(context);
 
     if (currentUser == null) {
       return child;
@@ -45,7 +46,7 @@ class NotificationBadge extends ConsumerWidget {
               : Text(
                   count > 99 ? '99+' : count.toString(),
                   style: TextStyle(
-                    color: textColor ?? Colors.white,
+                    color: textColor ?? theme.colorScheme.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
