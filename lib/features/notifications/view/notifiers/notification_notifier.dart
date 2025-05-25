@@ -1,312 +1,361 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:ui';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/notifications/data/repositories/notification_repository.dart';
-import '../providers/state/notification_state.dart';
 
-class NotificationNotifier extends StateNotifier<NotificationState> {
+class NotificationService {
   final NotificationRepository _repository;
-  final String _userId;
+  final FlutterLocalNotificationsPlugin _localNotifications;
 
-  NotificationNotifier(this._repository, this._userId)
-      : super(NotificationState.initial()) {
-    debugPrint('🔔 NotificationNotifier initialized for user: $_userId');
-    refreshNotifications();
-  }
+  // Channel configuration
+  static const _androidChannelId = 'high_importance_channel';
+  static const _androidChannelName = 'High Importance Notifications';
+  static const _androidChannelDescription =
+      'This channel is used for important notifications.';
 
-  /// Test cloud function connectivity
-  Future<void> testConnection() async {
+  NotificationService({
+    required NotificationRepository repository,
+    FlutterLocalNotificationsPlugin? localNotifications,
+  })  : _repository = repository,
+        _localNotifications =
+            localNotifications ?? FlutterLocalNotificationsPlugin();
+
+  /// Initialize the complete notification system
+  Future<bool> initialize({
+    required Function(NotificationModel) onNotificationTap,
+    Function(Map<String, dynamic>)? onForegroundMessage,
+  }) async {
     try {
+      debugPrint('🔔 Initializing notification service...');
+
+      // Step 1: Set up local notifications
+      await _setupLocalNotifications(onNotificationTap);
+
+      // Step 2: Initialize FCM and get token
+      final token = await _repository.initializeFCM();
+      if (token == null) {
+        debugPrint('⚠️ FCM initialization failed - no token received');
+        return false;
+      }
+
+      // Step 3: Set up FCM message handlers
+      _repository.setupFCMHandlers(
+        onMessageReceived: (data) =>
+            _handleForegroundMessage(data, onForegroundMessage),
+        onMessageTapped: (data) => _handleMessageTap(data, onNotificationTap),
+      );
+
+      // Step 4: Test cloud function connectivity
       final testResult = await _repository.testCloudFunctionConnectivity();
-      debugPrint('🧪 Cloud function test result: $testResult');
-    } catch (e) {
-      debugPrint('❌ Cloud function test failed: $e');
-    }
-  }
-
-  /// Refresh notifications using cloud function
-  Future<void> refreshNotifications({bool markAsRead = true}) async {
-    debugPrint('🔄 Refreshing notifications (markAsRead: $markAsRead)');
-
-    state = NotificationState.initial().copyWith(isLoading: true);
-
-    try {
-      // Test connection first in debug mode
-      if (kDebugMode) {
-        await testConnection();
+      if (!testResult['success']) {
+        debugPrint(
+            '⚠️ Cloud function connectivity test failed: ${testResult['error']}');
+        return false;
       }
 
-      final result = await _repository.getNotifications(
-        limit: 20,
-        markAsRead: markAsRead,
-      );
-
-      final notifications = result['notifications'] as List<NotificationModel>;
-      final unreadCount = result['unreadCount'] as int;
-      final hasMore = result['hasMore'] as bool;
-      final lastNotificationId = result['lastNotificationId'] as String?;
-
-      debugPrint(
-          '✅ Fetched ${notifications.length} notifications, unread: $unreadCount');
-
-      state = state.copyWith(
-        notifications: notifications,
-        isLoading: false,
-        hasMore: hasMore,
-        lastNotificationId: lastNotificationId,
-        unreadCount: unreadCount,
-        error: null,
-      );
+      debugPrint('✅ Notification service initialized successfully');
+      return true;
     } catch (e) {
-      debugPrint('❌ Error refreshing notifications: $e');
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load notifications: ${e.toString()}',
-      );
+      debugPrint('❌ Error initializing notification service: $e');
+      return false;
     }
   }
 
-  /// Load more notifications using cloud function
-  Future<void> loadMoreNotifications({bool markAsRead = false}) async {
-    if (state.isLoading || !state.hasMore || state.lastNotificationId == null) {
-      debugPrint(
-          '⏭️ Skipping load more: isLoading=${state.isLoading}, hasMore=${state.hasMore}');
-      return;
-    }
+  /// Set up local notifications for foreground display
+  Future<void> _setupLocalNotifications(
+      Function(NotificationModel) onNotificationTap) async {
+    // Android initialization
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    debugPrint('📄 Loading more notifications...');
-    state = state.copyWith(isLoading: true);
+    // iOS initialization
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false, // We handle permissions in FCM setup
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
 
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _localNotifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (response) =>
+          _handleLocalNotificationTap(response, onNotificationTap),
+    );
+
+    // Create Android notification channel
+    await _createAndroidChannel();
+  }
+
+  /// Create Android notification channel
+  Future<void> _createAndroidChannel() async {
+    const channel = AndroidNotificationChannel(
+      _androidChannelId,
+      _androidChannelName,
+      description: _androidChannelDescription,
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
+
+  /// Handle foreground messages by showing local notification
+  void _handleForegroundMessage(
+    Map<String, dynamic> messageData,
+    Function(Map<String, dynamic>)? onForegroundMessage,
+  ) {
+    debugPrint('📱 Handling foreground message: ${messageData['title']}');
+
+    // Call custom handler if provided
+    onForegroundMessage?.call(messageData);
+
+    // Show local notification
+    _showLocalNotification(
+      title: messageData['title'] ?? 'New Notification',
+      body: messageData['body'] ?? '',
+      payload: jsonEncode(messageData['data'] ?? {}),
+    );
+  }
+
+  /// Show local notification
+  Future<void> _showLocalNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
     try {
-      final result = await _repository.getNotifications(
-        limit: 20,
-        lastNotificationId: state.lastNotificationId,
-        markAsRead: markAsRead,
+      const androidDetails = AndroidNotificationDetails(
+        _androidChannelId,
+        _androidChannelName,
+        channelDescription: _androidChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        enableVibration: true,
+        playSound: true,
+        icon: '@mipmap/ic_launcher',
+        color: Color(0xFF6B35FF),
+        category: AndroidNotificationCategory.social,
+        visibility: NotificationVisibility.public,
       );
 
-      final moreNotifications =
-          result['notifications'] as List<NotificationModel>;
-      final hasMore = result['hasMore'] as bool;
-      final lastNotificationId = result['lastNotificationId'] as String?;
-
-      debugPrint('✅ Loaded ${moreNotifications.length} more notifications');
-
-      final currentNotifications =
-          List<NotificationModel>.from(state.notifications);
-      currentNotifications.addAll(moreNotifications);
-
-      state = state.copyWith(
-        notifications: currentNotifications,
-        isLoading: false,
-        hasMore: hasMore,
-        lastNotificationId: lastNotificationId,
-        error: null,
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
       );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000, // Use timestamp as ID
+        title,
+        body,
+        details,
+        payload: payload,
+      );
+
+      debugPrint('✅ Local notification shown: $title');
     } catch (e) {
-      debugPrint('❌ Error loading more notifications: $e');
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load more notifications: ${e.toString()}',
-      );
+      debugPrint('❌ Error showing local notification: $e');
     }
   }
 
-  /// Mark specific notification as read using cloud function
-  Future<void> markAsRead(String notificationId) async {
+  /// Handle message tap (from FCM handler)
+  void _handleMessageTap(
+    Map<String, dynamic> messageData,
+    Function(NotificationModel) onNotificationTap,
+  ) {
+    debugPrint('👆 Message tapped: ${messageData['title']}');
+
+    final data = messageData['data'] as Map<String, dynamic>? ?? {};
+    _processNotificationTap(data, onNotificationTap);
+  }
+
+  /// Handle local notification tap
+  void _handleLocalNotificationTap(
+    NotificationResponse response,
+    Function(NotificationModel) onNotificationTap,
+  ) {
+    debugPrint('👆 Local notification tapped');
+
+    if (response.payload != null) {
+      try {
+        final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+        _processNotificationTap(data, onNotificationTap);
+      } catch (e) {
+        debugPrint('❌ Error parsing notification payload: $e');
+      }
+    }
+  }
+
+  /// Process notification tap and create NotificationModel
+  void _processNotificationTap(
+    Map<String, dynamic> data,
+    Function(NotificationModel) onNotificationTap,
+  ) async {
     try {
-      debugPrint('✅ Marking notification as read: $notificationId');
+      final notificationId = data['notificationId'] as String?;
 
-      // Optimistically update UI first
-      final notificationIndex =
-          state.notifications.indexWhere((n) => n.id == notificationId);
-
-      if (notificationIndex != -1 &&
-          !state.notifications[notificationIndex].isRead) {
-        final updatedNotifications =
-            List<NotificationModel>.from(state.notifications);
-        updatedNotifications[notificationIndex] =
-            updatedNotifications[notificationIndex].copyWith(isRead: true);
-
-        state = state.copyWith(
-          notifications: updatedNotifications,
-          unreadCount: (state.unreadCount - 1).clamp(0, state.unreadCount),
-        );
-
-        debugPrint('🔄 Optimistically updated UI');
+      if (notificationId == null || notificationId.isEmpty) {
+        debugPrint('⚠️ No notification ID in tap data');
+        return;
       }
 
-      // Make the cloud function call
-      final result =
-          await _repository.markAsRead(notificationIds: [notificationId]);
-
-      // Update with server response
-      state = state.copyWith(
-          unreadCount: result['unreadCount'] ?? state.unreadCount);
-
-      debugPrint('✅ Notification marked as read successfully');
-    } catch (e) {
-      debugPrint('❌ Error marking notification as read: $e');
-      // Refresh to get correct state on error
-      refreshNotifications(markAsRead: false);
-    }
-  }
-
-  /// Mark all notifications as read using cloud function
-  Future<void> markAllAsRead() async {
-    try {
-      debugPrint('✅ Marking all notifications as read...');
-
-      // Optimistic UI update
-      final updatedNotifications =
-          state.notifications.map((n) => n.copyWith(isRead: true)).toList();
-      state = state.copyWith(
-        notifications: updatedNotifications,
-        unreadCount: 0,
+      // Create a minimal NotificationModel from the available data
+      final notification = NotificationModel(
+        id: notificationId,
+        recipientId: '', // Will be filled by the app if needed
+        senderId: data['senderId'] ?? '',
+        type: _parseNotificationType(data['type']),
+        timestamp: DateTime.now(), // Placeholder
+        isRead: true, // Assume read when tapped
+        postId: data['postId']?.isNotEmpty == true ? data['postId'] : null,
+        commentId:
+            data['commentId']?.isNotEmpty == true ? data['commentId'] : null,
+        isAlt: data['isAlt'] == 'true',
+        path: data['path']?.isNotEmpty == true ? data['path'] : null,
       );
 
-      // Make the cloud function call
-      await _repository.markAsRead(); // No specific IDs = mark all as read
+      debugPrint('🎯 Processing notification tap: ${notification.id}');
+      onNotificationTap(notification);
 
-      debugPrint('✅ All notifications marked as read successfully');
+      // Mark as read via cloud function (fire and forget)
+      _repository.markAsRead(notificationIds: [notificationId]).catchError((e) {
+        debugPrint('⚠️ Failed to mark notification as read: $e');
+      });
     } catch (e) {
-      debugPrint('❌ Error marking all notifications as read: $e');
-      // Refresh to get correct state on error
-      refreshNotifications(markAsRead: false);
+      debugPrint('❌ Error processing notification tap: $e');
     }
   }
 
-  /// Filter notifications by type using cloud function
-  Future<void> filterNotifications(NotificationType? type) async {
-    debugPrint('🔍 Filtering notifications by type: $type');
-
-    state = state.copyWith(isLoading: true, error: null);
+  /// Parse notification type from string
+  NotificationType _parseNotificationType(dynamic typeData) {
+    if (typeData == null) return NotificationType.follow;
 
     try {
-      final result = await _repository.getNotifications(
-        limit: 20,
-        filterType: type,
-        markAsRead: false, // Don't auto-mark filtered results as read
+      return NotificationType.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toLowerCase() ==
+            typeData.toString().toLowerCase(),
+        orElse: () => NotificationType.follow,
       );
-
-      final notifications = result['notifications'] as List<NotificationModel>;
-      final hasMore = result['hasMore'] as bool;
-      final lastNotificationId = result['lastNotificationId'] as String?;
-
-      state = state.copyWith(
-        notifications: notifications,
-        isLoading: false,
-        hasMore: hasMore,
-        lastNotificationId: lastNotificationId,
-        error: null,
-      );
-
-      debugPrint('✅ Filtered notifications loaded: ${notifications.length}');
     } catch (e) {
-      debugPrint('❌ Error filtering notifications: $e');
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to filter notifications: ${e.toString()}',
-      );
+      return NotificationType.follow;
     }
   }
 
-  /// Get only unread notifications using cloud function
-  Future<void> getUnreadNotifications() async {
-    debugPrint('📧 Getting unread notifications...');
-
-    state = state.copyWith(isLoading: true, error: null);
-
+  /// Clear all notifications
+  Future<void> clearAllNotifications() async {
     try {
-      final result = await _repository.getNotifications(
-        limit: 20,
-        onlyUnread: true,
-        markAsRead: false, // Don't auto-mark when just viewing unread
-      );
-
-      final notifications = result['notifications'] as List<NotificationModel>;
-      final hasMore = result['hasMore'] as bool;
-      final lastNotificationId = result['lastNotificationId'] as String?;
-
-      state = state.copyWith(
-        notifications: notifications,
-        isLoading: false,
-        hasMore: hasMore,
-        lastNotificationId: lastNotificationId,
-        error: null,
-      );
-
-      debugPrint('✅ Unread notifications loaded: ${notifications.length}');
+      await _localNotifications.cancelAll();
+      debugPrint('✅ All local notifications cleared');
     } catch (e) {
-      debugPrint('❌ Error getting unread notifications: $e');
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to get unread notifications: ${e.toString()}',
-      );
+      debugPrint('❌ Error clearing notifications: $e');
     }
   }
 
-  /// Refresh unread count using cloud function
-  Future<void> refreshUnreadCount() async {
+  /// Get pending notification requests (for debugging)
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     try {
-      debugPrint('🔢 Refreshing unread count...');
-
-      final unreadCount = await _repository.getUnreadCount();
-
-      state = state.copyWith(unreadCount: unreadCount);
-      debugPrint('✅ Unread count updated: $unreadCount');
+      return await _localNotifications.pendingNotificationRequests();
     } catch (e) {
-      debugPrint('❌ Error refreshing unread count: $e');
+      debugPrint('❌ Error getting pending notifications: $e');
+      return [];
     }
   }
 
-  /// Delete a notification
-  Future<void> deleteNotification(String notificationId) async {
+  /// Check if notifications are enabled
+  Future<bool> areNotificationsEnabled() async {
     try {
-      debugPrint('🗑️ Deleting notification: $notificationId');
+      // Check local notification permission
+      final androidImpl =
+          _localNotifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImpl != null) {
+        final granted = await androidImpl.areNotificationsEnabled();
+        return granted ?? false;
+      }
 
-      // Optimistically remove from UI
-      final updatedNotifications =
-          state.notifications.where((n) => n.id != notificationId).toList();
-      final wasUnread = state.notifications
-              .firstWhere((n) => n.id == notificationId)
-              .isRead ==
-          false;
+      // For iOS, check FCM authorization status
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.authorized;
+    } catch (e) {
+      debugPrint('❌ Error checking notification permissions: $e');
+      return false;
+    }
+  }
 
-      state = state.copyWith(
-        notifications: updatedNotifications,
-        unreadCount: wasUnread
-            ? (state.unreadCount - 1).clamp(0, state.unreadCount)
-            : state.unreadCount,
+  /// Request notification permissions
+  Future<bool> requestPermissions() async {
+    try {
+      debugPrint('🔔 Requesting notification permissions...');
+
+      // Request FCM permissions
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
       );
 
-      // Make the cloud function call
-      await _repository.deleteNotification(notificationId);
+      final granted =
+          settings.authorizationStatus == AuthorizationStatus.authorized;
+      debugPrint(granted
+          ? '✅ Notification permissions granted'
+          : '❌ Notification permissions denied');
 
-      debugPrint('✅ Notification deleted successfully');
+      return granted;
     } catch (e) {
-      debugPrint('❌ Error deleting notification: $e');
-      // Refresh to get correct state on error
-      refreshNotifications(markAsRead: false);
+      debugPrint('❌ Error requesting notification permissions: $e');
+      return false;
     }
   }
 
-  /// Clear error state
-  void clearError() {
-    if (state.error != null) {
-      state = state.copyWith(error: null);
-    }
+  /// Show a test notification (for debugging)
+  Future<void> showTestNotification() async {
+    await _showLocalNotification(
+      title: 'Test Notification',
+      body: 'This is a test notification from your app.',
+      payload: jsonEncode({
+        'type': 'test',
+        'timestamp': DateTime.now().toIso8601String(),
+      }),
+    );
   }
+}
 
-  /// Force refresh with error handling
-  Future<void> forceRefresh() async {
-    debugPrint('🔄 Force refreshing notifications...');
-    clearError();
-    await refreshNotifications(markAsRead: true);
-  }
+// Provider for the notification service
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  final repository = ref.watch(notificationRepositoryProvider);
+  return NotificationService(repository: repository);
+});
 
-  /// Reset state (useful for logout)
-  void reset() {
-    debugPrint('🔄 Resetting notification state');
-    state = NotificationState.initial();
-  }
+/// Background message handler - must be top-level function
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint('📱 Background message received: ${message.messageId}');
+  debugPrint('Title: ${message.notification?.title}');
+  debugPrint('Body: ${message.notification?.body}');
+  debugPrint('Data: ${message.data}');
+
+  // Keep background processing minimal
+  // The app will handle the notification when opened
 }

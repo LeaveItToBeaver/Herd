@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:herdapp/features/rich_text_editing/view/widgets/read_only_mention_builder_widget.dart';
 
 enum RichTextSource {
   postWidget,
@@ -186,6 +187,9 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
           (widget.source == RichTextSource.postWidget && widget.isExpanded),
       showCursor: false,
       enableInteractiveSelection: widget.source == RichTextSource.postScreen,
+      embedBuilders: [
+        ReadOnlyMentionEmbedBuilder(context), // Add this line
+      ],
     );
 
     // Create an appropriate editor based on whether we need scrolling or not
@@ -207,6 +211,9 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
         scrollable: false, // Let the parent ScrollView handle scrolling
         showCursor: false,
         enableInteractiveSelection: inPostScreen,
+        embedBuilders: [
+          ReadOnlyMentionEmbedBuilder(context), // Add this line too
+        ],
       );
 
       editor = quill.QuillEditor.basic(
@@ -220,7 +227,7 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
         controller: _controller,
         focusNode: FocusNode(canRequestFocus: false),
         scrollController: scrollController,
-        config: editorConfig,
+        config: editorConfig, // This already has embedBuilders now
       );
     }
 
