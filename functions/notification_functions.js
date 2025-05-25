@@ -294,19 +294,28 @@ module.exports = function (admin) {
     function generateNavigationPath(type, senderId, postId, commentId, isAlt) {
         switch (type) {
             case 'follow':
-                return `/profile/${senderId}`;
+                // Use publicProfile as default for follow notifications
+                return senderId ? `/publicProfile/${senderId}` : null;
+
             case 'newPost':
             case 'postLike':
             case 'postMilestone':
                 return postId ? `/post/${postId}?isAlt=${isAlt}` : null;
+
             case 'comment':
                 return postId ? `/post/${postId}?isAlt=${isAlt}&showComments=true` : null;
+
             case 'commentReply':
-                return postId && commentId ? `/commentThread?postId=${postId}&commentId=${commentId}&isAlt=${isAlt}` : null;
+                // For comment threads, we'll use the route and pass data via extra in the app
+                return postId && commentId ? `/commentThread` : null;
+
             case 'connectionRequest':
-                return '/connectionRequests';
+                return '/connection-requests'; // Match your router exactly
+
             case 'connectionAccepted':
-                return `/altProfile/${senderId}`;
+                // Connection accepted usually means alt profile interaction
+                return senderId ? `/altProfile/${senderId}` : null;
+
             default:
                 return null;
         }
