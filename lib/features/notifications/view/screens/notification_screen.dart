@@ -20,7 +20,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   @override
   void initState() {
     super.initState();
-    // Load notifications when screen is opened
+    // Load notifications when screen is opened (with auto-read)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshNotifications();
     });
@@ -31,7 +31,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     if (currentUser != null) {
       ref
           .read(notificationProvider(currentUser.uid).notifier)
-          .refreshNotifications();
+          .refreshNotifications(markAsRead: true); // Auto-mark as read
     }
   }
 
@@ -56,6 +56,21 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: _refreshNotifications,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider);
@@ -63,13 +78,28 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     if (currentUser == null) {
       return const Scaffold(
         body: Center(
-          child: Text('Please sign in to view notifications'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.account_circle, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('Please sign in to view notifications'),
+            ],
+          ),
         ),
       );
     }
 
     final notificationsState = ref.watch(notificationProvider(currentUser.uid));
     final unreadCount = notificationsState.unreadCount;
+
+    // Show error if present
+    if (notificationsState.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showErrorSnackBar(notificationsState.error!);
+        ref.read(notificationProvider(currentUser.uid).notifier).clearError();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -88,6 +118,15 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
               tooltip: 'Mark all as read',
             ),
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref
+                  .read(notificationProvider(currentUser.uid).notifier)
+                  .forceRefresh();
+            },
+            tooltip: 'Refresh',
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
               context.push('/notificationSettings');
@@ -98,7 +137,9 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          _refreshNotifications();
+          await ref
+              .read(notificationProvider(currentUser.uid).notifier)
+              .forceRefresh();
         },
         child: _buildNotificationList(notificationsState),
       ),
@@ -107,10 +148,19 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
   Widget _buildNotificationList(NotificationState state) {
     if (state.isLoading && state.notifications.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading notifications...'),
+          ],
+        ),
+      );
     }
 
-    if (state.notifications.isEmpty) {
+    if (state.notifications.isEmpty && state.error == null) {
       return ListView(
         // Need to wrap in ListView for RefreshIndicator to work
         physics: const AlwaysScrollableScrollPhysics(),
@@ -138,6 +188,39 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       );
     }
 
+    if (state.error != null && state.notifications.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 80),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed to load notifications',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  state.error!,
+                  style: const TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _refreshNotifications,
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification scrollInfo) {
         if (scrollInfo.metrics.pixels >
@@ -148,7 +231,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           if (currentUser != null) {
             ref
                 .read(notificationProvider(currentUser.uid).notifier)
-                .loadMoreNotifications();
+                .loadMoreNotifications(
+                    markAsRead: false); // Don't auto-mark pagination as read
           }
         }
         return false;
@@ -195,7 +279,27 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           .markAsRead(notification.id);
     }
 
-    // Navigate based on notification type
+    // Use the path if available, otherwise fall back to legacy navigation
+    final path = notification.getNavigationPath();
+    if (path != null && path.isNotEmpty) {
+      try {
+        if (path.startsWith('/')) {
+          context.push(path);
+        } else {
+          context.go(path);
+        }
+        return;
+      } catch (e) {
+        debugPrint('Error navigating with path: $path, error: $e');
+        // Fall back to legacy navigation
+      }
+    }
+
+    // Legacy navigation (fallback)
+    _legacyNavigation(notification);
+  }
+
+  void _legacyNavigation(NotificationModel notification) {
     switch (notification.type) {
       case NotificationType.follow:
         // Navigate to profile
