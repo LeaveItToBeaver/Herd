@@ -28,10 +28,11 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     List<Map<String, dynamic>>? processedMedia,
     List<File>? mediaFiles,
     bool isAlt = false,
-    bool isNSFW = false, // Added NSFW parameter
+    bool isNSFW = false,
     String herdId = '',
     String herdName = '',
     String herdProfileImageURL = '',
+    List<String>? mentions, // Add mentions parameter
   }) async {
     String? postId;
     List<PostMediaModel> mediaItems = [];
@@ -79,7 +80,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         mediaType = mediaItems[0].mediaType;
       }
 
-      // 4. Create post model with all fields
+      // 4. Create post model with all fields including mentions
       final post = PostModel(
         id: postId,
         authorId: user.id,
@@ -93,7 +94,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         herdName: herdId.isNotEmpty ? herdName : null,
         herdProfileImageURL: herdId.isNotEmpty ? herdProfileImageURL : null,
         title: title,
-        // Include both mediaItems and legacy fields for compatibility
         mediaItems: mediaItems,
         mediaURL: imageUrl,
         mediaThumbnailURL: thumbnailUrl,
@@ -104,13 +104,17 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isAlt: isAlt,
-        isNSFW: isNSFW, // Set the NSFW flag
+        isNSFW: isNSFW,
         isRichText: true,
         tags: [],
+        mentions: mentions ?? [], // Add mentions to the post model
       );
 
-      // 5. Save post to Firestore
-      await _createPostRepository.createPost(post);
+      // 5. Save post to Firestore (repository will handle mentions collection)
+      await _createPostRepository.createPost(
+        post,
+        mentions: mentions,
+      );
 
       if (herdId.isNotEmpty) {
         final herdRepository = HerdRepository(FirebaseFirestore.instance);
