@@ -36,14 +36,14 @@ final notificationSettingsProvider = StateNotifierProvider.family<
 // Stream provider for real-time notifications (likely for badges or "new" indicators)
 final notificationStreamProvider =
     StreamProvider.family<List<NotificationModel>, String>((ref, userId) {
-  final repository = ref.watch(notificationRepositoryProvider);
-  return repository.streamNotifications(userId);
+  // final repository = ref.watch(notificationRepositoryProvider);
+  return Stream.value(<NotificationModel>[]);
 });
 
 // Provider for unread notification count
 final unreadNotificationCountProvider =
     FutureProvider.family<int, String>((ref, userId) async {
   final repository = ref.watch(notificationRepositoryProvider);
-  final count = await repository.getUnreadCount(userId);
+  final count = await repository.getUnreadCount();
   return count ?? 0; // Provide a default value if null
 });

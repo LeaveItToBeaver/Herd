@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,183 +10,369 @@ import '../models/notification_settings_model.dart';
 class NotificationRepository {
   final FirebaseFirestore _firestore;
   final FirebaseMessaging _messaging;
+  final FirebaseFunctions _functions;
 
   NotificationRepository({
     FirebaseFirestore? firestore,
     FirebaseMessaging? messaging,
+    FirebaseFunctions? functions,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _messaging = messaging ?? FirebaseMessaging.instance;
+        _messaging = messaging ?? FirebaseMessaging.instance,
+        _functions = functions ?? FirebaseFunctions.instance;
 
-  // Collection references
-  CollectionReference<Map<String, dynamic>> get _notifications =>
-      _firestore.collection('notifications');
-
+  // Collection references (kept for settings and local operations)
   CollectionReference<Map<String, dynamic>> get _settings =>
       _firestore.collection('notificationSettings');
 
-  // Create a new notification
-  Future<NotificationModel> createNotification({
-    required String recipientId,
-    required String senderId,
-    required NotificationType type,
-    String? title,
-    String? body,
-    String? postId,
-    String? commentId,
-    String? senderName,
-    String? senderUsername,
-    String? senderProfileImage,
-    String? senderAltProfileImage,
-    bool isAlt = false,
-    int? count,
-    Map<String, dynamic>? data,
-  }) async {
-    try {
-      // Create notification
-      final newDoc = _notifications.doc();
+  // ========== CLOUD FUNCTION CALLS ==========
 
-      final notification = NotificationModel(
-        id: newDoc.id,
-        recipientId: recipientId,
-        senderId: senderId,
-        type: type,
-        timestamp: DateTime.now(),
-        isRead: false,
-        title: title,
-        body: body,
-        postId: postId,
-        commentId: commentId,
-        senderName: senderName,
-        senderUsername: senderUsername,
-        senderProfileImage: senderProfileImage,
-        senderAltProfileImage: senderAltProfileImage,
-        isAlt: isAlt,
-        count: count,
-        data: data ?? {},
-      );
-
-      await newDoc.set(notification.toFirestore());
-      return notification;
-    } catch (e) {
-      debugPrint('Error creating notification: $e');
-      rethrow;
-    }
-  }
-
-  // Get notifications for a user with pagination
-  Future<List<NotificationModel>> getNotifications({
-    required String userId,
+  /// Get notifications using cloud function (replaces direct Firestore query)
+  Future<Map<String, dynamic>> getNotifications({
     NotificationType? filterType,
     int limit = 20,
-    DocumentSnapshot? startAfter,
+    String? lastNotificationId,
     bool onlyUnread = false,
+    bool markAsRead = true, // Auto-mark as read by default
   }) async {
     try {
-      Query<Map<String, dynamic>> query = _notifications
-          .where('recipientId', isEqualTo: userId)
-          .orderBy('timestamp', descending: true);
+      debugPrint('🔔 ========== STARTING getNotifications ==========');
+      debugPrint('🔔 Parameters received:');
+      debugPrint('   - limit: $limit');
+      debugPrint('   - markAsRead: $markAsRead');
+      debugPrint('   - onlyUnread: $onlyUnread');
+      debugPrint('   - filterType: $filterType');
+      debugPrint('   - lastNotificationId: $lastNotificationId');
 
-      // Apply filter if provided
-      if (filterType != null) {
-        query = query.where('type',
-            isEqualTo: filterType.toString().split('.').last);
+      // Test Firebase Functions connection
+      debugPrint('🔧 Testing Firebase Functions connection...');
+      debugPrint('   - Functions instance: $_functions');
+      debugPrint('   - App name: ${_functions.app.name}');
+
+      final callable = _functions.httpsCallable('getNotifications');
+      debugPrint('✅ Created callable for: getNotifications');
+
+      // Prepare call parameters
+      final callParams = {
+        'limit': limit,
+        'lastNotificationId': lastNotificationId,
+        'filterType': filterType?.toString().split('.').last,
+        'onlyUnread': onlyUnread,
+        'markAsRead': markAsRead,
+      };
+
+      debugPrint('📤 Calling cloud function with parameters:');
+      callParams.forEach((key, value) {
+        debugPrint('   - $key: $value (${value.runtimeType})');
+      });
+
+      // Make the call
+      debugPrint('📞 Making cloud function call...');
+      final result = await callable.call(callParams);
+      debugPrint('✅ Cloud function call completed successfully');
+
+      // Analyze the response
+      debugPrint('📥 ========== ANALYZING RESPONSE ==========');
+      debugPrint('   - Result type: ${result.runtimeType}');
+      debugPrint('   - Result.data type: ${result.data.runtimeType}');
+      debugPrint('   - Result.data: ${result.data}');
+
+      final data = result.data as Map<String, dynamic>;
+      debugPrint('📊 Response data structure:');
+      data.forEach((key, value) {
+        debugPrint(
+            '   - $key: ${value.runtimeType} = ${value is List ? '(List with ${value.length} items)' : value.toString().substring(0, value.toString().length > 100 ? 100 : value.toString().length)}');
+      });
+
+      // Check for notifications array
+      final rawNotifications = data['notifications'];
+      debugPrint('🔍 ========== PROCESSING NOTIFICATIONS ==========');
+      debugPrint(
+          '   - Raw notifications type: ${rawNotifications.runtimeType}');
+
+      if (rawNotifications == null) {
+        debugPrint('❌ ERROR: notifications field is null!');
+        return {
+          'notifications': <NotificationModel>[],
+          'unreadCount': data['unreadCount'] ?? 0,
+          'hasMore': data['hasMore'] ?? false,
+          'lastNotificationId': data['lastNotificationId'],
+        };
       }
 
-      // Filter by read status if needed
-      if (onlyUnread) {
-        query = query.where('isRead', isEqualTo: false);
+      if (rawNotifications is! List) {
+        debugPrint(
+            '❌ ERROR: notifications is not a List! Type: ${rawNotifications.runtimeType}');
+        return {
+          'notifications': <NotificationModel>[],
+          'unreadCount': data['unreadCount'] ?? 0,
+          'hasMore': data['hasMore'] ?? false,
+          'lastNotificationId': data['lastNotificationId'],
+        };
       }
 
-      // Apply pagination
-      query = query.limit(limit);
-      if (startAfter != null) {
-        query = query.startAfterDocument(startAfter);
+      final notificationsList = rawNotifications as List<dynamic>;
+      debugPrint(
+          '📝 Processing ${notificationsList.length} raw notification items:');
+
+      // Process each notification with detailed logging
+      final notificationList = <NotificationModel>[];
+
+      for (int i = 0; i < notificationsList.length; i++) {
+        final rawNotification = notificationsList[i];
+        debugPrint('🔄 ========== PROCESSING NOTIFICATION $i ==========');
+        debugPrint('   - Raw type: ${rawNotification.runtimeType}');
+        debugPrint(
+            '   - Raw data: ${rawNotification.toString().substring(0, rawNotification.toString().length > 200 ? 200 : rawNotification.toString().length)}...');
+
+        try {
+          final parsed = _parseNotificationFromCloudFunction(rawNotification);
+          if (parsed != null) {
+            notificationList.add(parsed);
+            debugPrint(
+                '   ✅ Successfully parsed notification $i: ${parsed.id}');
+          } else {
+            debugPrint('   ❌ Failed to parse notification $i (returned null)');
+          }
+        } catch (parseError, stackTrace) {
+          debugPrint('   ❌ Exception parsing notification $i: $parseError');
+          debugPrint('   📋 Stack trace: $stackTrace');
+        }
       }
 
-      final querySnapshot = await query.get();
+      debugPrint('📊 ========== FINAL RESULTS ==========');
+      debugPrint('   - Raw notifications count: ${notificationsList.length}');
+      debugPrint('   - Successfully parsed count: ${notificationList.length}');
+      debugPrint(
+          '   - Failed to parse count: ${notificationsList.length - notificationList.length}');
+      debugPrint('   - Unread count: ${data['unreadCount']}');
+      debugPrint('   - Has more: ${data['hasMore']}');
+      debugPrint('   - Last notification ID: ${data['lastNotificationId']}');
 
-      return querySnapshot.docs.map((doc) {
-        return NotificationModel.fromFirestore(doc);
-      }).toList();
-    } catch (e) {
-      debugPrint('Error getting notifications: $e');
-      rethrow;
-    }
-  }
-
-  // Mark a notification as read
-  Future<void> markAsRead(String notificationId) async {
-    try {
-      await _notifications.doc(notificationId).update({'isRead': true});
-    } catch (e) {
-      debugPrint('Error marking notification as read: $e');
-      rethrow;
-    }
-  }
-
-  // Mark all notifications as read for a user
-  Future<void> markAllAsRead(String userId) async {
-    try {
-      // Get all unread notifications for this user
-      final querySnapshot = await _notifications
-          .where('recipientId', isEqualTo: userId)
-          .where('isRead', isEqualTo: false)
-          .get();
-
-      // Create a batch to update them all at once
-      final batch = _firestore.batch();
-      for (var doc in querySnapshot.docs) {
-        batch.update(doc.reference, {'isRead': true});
+      if (notificationList.isNotEmpty) {
+        debugPrint(
+            '   - First notification: ${notificationList.first.id} (${notificationList.first.type})');
+        debugPrint(
+            '   - Last notification: ${notificationList.last.id} (${notificationList.last.type})');
       }
 
-      await batch.commit();
-    } catch (e) {
-      debugPrint('Error marking all notifications as read: $e');
+      final result_map = {
+        'notifications': notificationList,
+        'unreadCount': data['unreadCount'] ?? 0,
+        'hasMore': data['hasMore'] ?? false,
+        'lastNotificationId': data['lastNotificationId'],
+      };
+
+      debugPrint('✅ ========== RETURNING RESULT ==========');
+      debugPrint('   - Result map keys: ${result_map.keys.toList()}');
+      debugPrint('   - Returning ${notificationList.length} notifications');
+
+      return result_map;
+    } catch (e, stackTrace) {
+      debugPrint('❌ ========== ERROR IN getNotifications ==========');
+      debugPrint('   - Error type: ${e.runtimeType}');
+      debugPrint('   - Error message: $e');
+      debugPrint('   - Stack trace: $stackTrace');
+
+      // Log additional context for specific error types
+      if (e.toString().contains('PERMISSION_DENIED')) {
+        debugPrint(
+            '🔐 PERMISSION ERROR: Check Firebase rules and authentication');
+      } else if (e.toString().contains('UNAUTHENTICATED')) {
+        debugPrint('🔒 AUTH ERROR: User might not be properly authenticated');
+      } else if (e.toString().contains('INTERNAL')) {
+        debugPrint('🔧 INTERNAL ERROR: Check cloud function logs');
+      } else if (e.toString().contains('NOT_FOUND')) {
+        debugPrint('🔍 NOT FOUND: Cloud function might not be deployed');
+      }
+
       rethrow;
     }
   }
 
-  // Delete a notification
-  Future<void> deleteNotification(String notificationId) async {
+  /// Get unread count using cloud function
+  Future<int> getUnreadCount() async {
     try {
-      await _notifications.doc(notificationId).delete();
+      debugPrint('🔔 Getting unread count via cloud function');
+
+      final callable = _functions.httpsCallable('getUnreadNotificationCount');
+      final result = await callable.call();
+
+      final count = result.data['unreadCount'] ?? 0;
+      debugPrint('✅ Unread count: $count');
+
+      return count;
     } catch (e) {
-      debugPrint('Error deleting notification: $e');
+      debugPrint('❌ Error getting unread count from cloud function: $e');
       rethrow;
     }
   }
 
-  // Get unread count for a user
-  Future<int?> getUnreadCount(String userId) async {
+  /// Mark notifications as read using cloud function
+  Future<Map<String, dynamic>> markAsRead(
+      {List<String>? notificationIds}) async {
     try {
-      final querySnapshot = await _notifications
-          .where('recipientId', isEqualTo: userId)
-          .where('isRead', isEqualTo: false)
-          .count()
-          .get();
+      debugPrint('🔔 Marking notifications as read via cloud function');
 
-      return querySnapshot.count;
+      final callable = _functions.httpsCallable('markNotificationsAsRead');
+      final result = await callable.call({
+        if (notificationIds != null) 'notificationIds': notificationIds,
+      });
+
+      final data = result.data as Map<String, dynamic>;
+      debugPrint('✅ Marked ${data['count']} notifications as read');
+
+      return data;
     } catch (e) {
-      debugPrint('Error getting unread count: $e');
+      debugPrint('❌ Error marking notifications as read: $e');
       rethrow;
     }
   }
 
-  // Stream of notifications for real-time updates
-  Stream<List<NotificationModel>> streamNotifications(String userId) {
-    return _notifications
-        .where('recipientId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
-        .limit(100) // Reasonable limit for real-time
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return NotificationModel.fromFirestore(doc);
-      }).toList();
-    });
+  /// Update FCM token using cloud function
+  Future<void> updateFCMToken(String token) async {
+    try {
+      debugPrint('🔔 Updating FCM token via cloud function');
+
+      final callable = _functions.httpsCallable('updateFCMToken');
+      await callable.call({'fcmToken': token});
+
+      debugPrint('✅ FCM token updated successfully');
+    } catch (e) {
+      debugPrint('❌ Error updating FCM token: $e');
+      rethrow;
+    }
   }
 
-  // Get or create notification settings
+  // ========== HELPER METHODS ==========
+
+  /// Parse notification data from cloud function response
+  NotificationModel? _parseNotificationFromCloudFunction(dynamic data) {
+    try {
+      // Handle different data types that can come from cloud functions
+      Map<String, dynamic> notificationData;
+
+      if (data is Map<String, dynamic>) {
+        notificationData = data;
+      } else if (data is Map<Object?, Object?>) {
+        // Convert Map<Object?, Object?> to Map<String, dynamic>
+        notificationData = <String, dynamic>{};
+        data.forEach((key, value) {
+          final stringKey = key?.toString() ?? '';
+          notificationData[stringKey] = value;
+        });
+      } else if (data is Map) {
+        // Handle any other Map type
+        notificationData = Map<String, dynamic>.from(data);
+      } else {
+        debugPrint('❌ Unexpected data type: ${data.runtimeType}');
+        return null;
+      }
+
+      debugPrint('📝 Parsing notification data: ${notificationData.keys}');
+
+      return NotificationModel(
+        id: notificationData['id']?.toString() ?? '',
+        recipientId: notificationData['recipientId']?.toString() ?? '',
+        senderId: notificationData['senderId']?.toString() ?? '',
+        type: _parseNotificationType(notificationData['type']),
+        timestamp: _parseTimestamp(notificationData['timestamp']),
+        isRead: _parseBool(notificationData['isRead']),
+        title: notificationData['title']?.toString(),
+        body: notificationData['body']?.toString(),
+        postId: notificationData['postId']?.toString(),
+        commentId: notificationData['commentId']?.toString(),
+        senderName: notificationData['senderName']?.toString(),
+        senderUsername: notificationData['senderUsername']?.toString(),
+        senderProfileImage: notificationData['senderProfileImage']?.toString(),
+        senderAltProfileImage:
+            notificationData['senderAltProfileImage']?.toString(),
+        isAlt: _parseBool(notificationData['isAlt']),
+        count: _parseInt(notificationData['count']),
+        path: notificationData['path']?.toString(),
+        data: _parseDataMap(notificationData['data']),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error parsing notification from cloud function: $e');
+      debugPrint('Stack trace: $stackTrace');
+      debugPrint('Data type: ${data.runtimeType}');
+      debugPrint('Data: $data');
+      return null;
+    }
+  }
+
+  /// Helper method to safely parse boolean values
+  bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is String) {
+      return value.toLowerCase() == 'true';
+    }
+    return false;
+  }
+
+  /// Helper method to safely parse integer values
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    if (value is double) return value.toInt();
+    return null;
+  }
+
+  /// Helper method to safely parse data map
+  Map<String, dynamic> _parseDataMap(dynamic value) {
+    if (value == null) return {};
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return {};
+  }
+
+  /// Parse notification type safely
+  NotificationType _parseNotificationType(dynamic typeData) {
+    if (typeData == null) return NotificationType.follow;
+
+    String typeString = typeData.toString();
+    try {
+      return NotificationType.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toLowerCase() ==
+            typeString.toLowerCase(),
+        orElse: () => NotificationType.follow,
+      );
+    } catch (e) {
+      debugPrint('Error parsing notification type: $typeString');
+      return NotificationType.follow;
+    }
+  }
+
+  /// Parse timestamp safely
+  DateTime _parseTimestamp(dynamic timestampData) {
+    if (timestampData == null) return DateTime.now();
+
+    try {
+      if (timestampData is int) {
+        return DateTime.fromMillisecondsSinceEpoch(timestampData);
+      } else if (timestampData is Timestamp) {
+        return timestampData.toDate();
+      } else if (timestampData is DateTime) {
+        return timestampData;
+      } else if (timestampData is String) {
+        return DateTime.parse(timestampData);
+      }
+    } catch (e) {
+      debugPrint('Error parsing timestamp: $timestampData, error: $e');
+    }
+
+    return DateTime.now();
+  }
+
+  // ========== LOCAL OPERATIONS (Settings, FCM Setup) ==========
+
+  /// Get or create notification settings (local Firestore operation)
   Future<NotificationSettingsModel> getOrCreateSettings(String userId) async {
     try {
       final docRef = _settings.doc(userId);
@@ -205,7 +392,7 @@ class NotificationRepository {
     }
   }
 
-  // Update notification settings
+  /// Update notification settings (local Firestore operation)
   Future<void> updateSettings(NotificationSettingsModel settings) async {
     try {
       await _settings.doc(settings.userId).update(settings.toFirestore());
@@ -215,52 +402,182 @@ class NotificationRepository {
     }
   }
 
-  // Set FCM token for push notifications
-  Future<void> setFCMToken(String userId, String token) async {
+  /// Initialize FCM and get token
+  Future<String?> initializeFCM() async {
     try {
-      await _firestore.collection('users').doc(userId).update({
-        'fcmToken': token,
-      });
-    } catch (e) {
-      debugPrint('Error setting FCM token: $e');
-      rethrow;
-    }
-  }
-
-  // Get FCM token for a user
-  Future<String?> getFCMToken(String userId) async {
-    try {
-      final userDoc = await _firestore.collection('users').doc(userId).get();
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        return userData['fcmToken'] as String?;
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error getting FCM token: $e');
-      rethrow;
-    }
-  }
-
-  // Request notification permissions
-  Future<bool> requestNotificationPermissions() async {
-    try {
+      // Request permissions
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
-      return settings.authorizationStatus == AuthorizationStatus.authorized;
+
+      if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+        debugPrint('⚠️ Notification permissions not granted');
+        return null;
+      }
+
+      // Get FCM token
+      final token = await _messaging.getToken();
+      debugPrint('📱 FCM Token obtained: ${token?.substring(0, 20)}...');
+
+      if (token != null) {
+        // Update token via cloud function
+        await updateFCMToken(token);
+
+        // Listen for token refresh
+        _messaging.onTokenRefresh.listen((newToken) {
+          debugPrint('🔄 FCM Token refreshed');
+          updateFCMToken(newToken);
+        });
+      }
+
+      return token;
     } catch (e) {
-      debugPrint('Error requesting notification permissions: $e');
-      return false;
+      debugPrint('❌ Error initializing FCM: $e');
+      return null;
     }
   }
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> getNotificationDocument(
-      String notificationId) async {
-    return await _notifications.doc(notificationId).get();
+  /// Set up FCM message handlers
+  void setupFCMHandlers({
+    required Function(Map<String, dynamic>) onMessageReceived,
+    required Function(Map<String, dynamic>) onMessageTapped,
+  }) {
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint(
+          '📱 Foreground message received: ${message.notification?.title}');
+
+      final data = {
+        'title': message.notification?.title ?? '',
+        'body': message.notification?.body ?? '',
+        'data': message.data,
+      };
+
+      onMessageReceived(data);
+    });
+
+    // Handle message taps when app is in background
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint(
+          '📱 Message tapped (background): ${message.notification?.title}');
+
+      final data = {
+        'title': message.notification?.title ?? '',
+        'body': message.notification?.body ?? '',
+        'data': message.data,
+      };
+
+      onMessageTapped(data);
+    });
+
+    // Handle initial message (app opened from terminated state)
+    FirebaseMessaging.instance
+        .getInitialMessage()
+        .then((RemoteMessage? message) {
+      if (message != null) {
+        debugPrint('📱 Initial message: ${message.notification?.title}');
+
+        final data = {
+          'title': message.notification?.title ?? '',
+          'body': message.notification?.body ?? '',
+          'data': message.data,
+        };
+
+        onMessageTapped(data);
+      }
+    });
   }
+
+  // ========== LEGACY METHODS (for backward compatibility) ==========
+
+  /// Create a new notification (deprecated - use cloud function triggers)
+  @deprecated
+  Future<NotificationModel> createNotification({
+    required String recipientId,
+    required String senderId,
+    required NotificationType type,
+    String? title,
+    String? body,
+    String? postId,
+    String? commentId,
+    String? senderName,
+    String? senderUsername,
+    String? senderProfileImage,
+    String? senderAltProfileImage,
+    bool isAlt = false,
+    int? count,
+    Map<String, dynamic>? data,
+  }) async {
+    throw UnsupportedError('Direct notification creation is deprecated. '
+        'Notifications should be created via cloud function triggers.');
+  }
+
+  /// Delete a notification (local operation for admin/cleanup)
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      final callable = _functions.httpsCallable('deleteNotifications');
+      await callable.call({
+        'notificationIds': [notificationId]
+      });
+      debugPrint('✅ Notification deleted: $notificationId');
+    } catch (e) {
+      debugPrint('❌ Error deleting notification: $e');
+      rethrow;
+    }
+  }
+
+  /// Stream of notifications for real-time updates (local operation)
+  Stream<List<NotificationModel>> streamNotifications(String userId) {
+    debugPrint('🔄 Starting notification stream for user: $userId');
+
+    return _firestore
+        .collection('notifications')
+        .where('recipientId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .limit(50) // Reasonable limit for real-time updates
+        .snapshots()
+        .map((snapshot) {
+      debugPrint('📱 Stream update: ${snapshot.docs.length} notifications');
+
+      final notifications = <NotificationModel>[];
+      for (final doc in snapshot.docs) {
+        try {
+          notifications.add(NotificationModel.fromFirestore(doc));
+        } catch (e) {
+          debugPrint('❌ Error parsing streamed notification ${doc.id}: $e');
+        }
+      }
+
+      return notifications;
+    }).handleError((error) {
+      debugPrint('❌ Error in notification stream: $error');
+    });
+  }
+
+  /// Test method to verify cloud function connectivity
+  Future<Map<String, dynamic>> testCloudFunctionConnectivity() async {
+    try {
+      debugPrint('🧪 Testing cloud function connectivity...');
+
+      final result = await getUnreadCount();
+
+      return {
+        'success': true,
+        'message': 'Cloud functions are working',
+        'unreadCount': result,
+      };
+    } catch (e) {
+      debugPrint('❌ Cloud function test failed: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  Future testNotificationQuery(String uid) async {}
 }
 
 // Provider for the repository
