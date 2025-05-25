@@ -160,7 +160,9 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
             const TextSpan(text: ' started following you'),
           ],
@@ -172,9 +174,16 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' added a new post'),
+            TextSpan(
+              text: ' added a new post',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
@@ -184,9 +193,16 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' liked your post'),
+            TextSpan(
+              text: ' liked your post',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
@@ -196,9 +212,16 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' commented on your post'),
+            TextSpan(
+              text: ' commented on your post',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
@@ -208,9 +231,16 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' replied to your comment'),
+            TextSpan(
+              text: ' replied to your comment',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
@@ -220,9 +250,16 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' sent you a connection request'),
+            TextSpan(
+              text: ' sent you a connection request',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
@@ -232,9 +269,16 @@ class NotificationListItem extends StatelessWidget {
           children: [
             TextSpan(
               text: senderName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' accepted your connection request'),
+            TextSpan(
+              text: ' accepted your connection request',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
@@ -243,10 +287,17 @@ class NotificationListItem extends StatelessWidget {
         final count = notification.count ?? 0;
         notificationText = TextSpan(
           children: [
-            const TextSpan(text: 'Your post reached '),
+            TextSpan(
+              text: 'Your post reached ',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
             TextSpan(
               text: '$count likes',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
             ),
           ],
         );

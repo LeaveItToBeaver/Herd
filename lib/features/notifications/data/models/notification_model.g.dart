@@ -24,6 +24,7 @@ _NotificationModel _$NotificationModelFromJson(Map<String, dynamic> json) =>
       senderAltProfileImage: json['senderAltProfileImage'] as String?,
       isAlt: json['isAlt'] as bool? ?? false,
       count: (json['count'] as num?)?.toInt(),
+      path: json['path'] as String?,
       data: json['data'] as Map<String, dynamic>? ?? const {},
     );
 
@@ -45,6 +46,7 @@ Map<String, dynamic> _$NotificationModelToJson(_NotificationModel instance) =>
       'senderAltProfileImage': instance.senderAltProfileImage,
       'isAlt': instance.isAlt,
       'count': instance.count,
+      'path': instance.path,
       'data': instance.data,
     };
 
