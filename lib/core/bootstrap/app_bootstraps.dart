@@ -5,6 +5,7 @@ import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/services/media_cache_service.dart';
 import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/notifications/utils/notification_service.dart';
+import 'package:herdapp/features/notifications/data/models/notification_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Bootstrap class for initializing app dependencies
@@ -23,29 +24,56 @@ class AppBootstrap {
   // Future to track initialization status
   Future<void>? _initializationFuture;
 
+  /// Initialize notifications for authenticated user
   Future<void> initializeNotifications(String userId, WidgetRef ref) async {
     try {
       if (_notificationsInitialized && _currentUserId == userId) {
-        debugPrint('Notifications already initialized for user: $userId');
+        debugPrint('🔔 Notifications already initialized for user: $userId');
         return;
       }
 
-      debugPrint('Initializing notifications for user: $userId');
+      debugPrint('🔔 Initializing notifications for user: $userId');
+      _currentUserId = userId;
 
       final notificationService = ref.read(notificationServiceProvider);
 
-      await notificationService.initialize(
-        userId: userId,
+      // Initialize the notification service with the new API
+      final success = await notificationService.initialize(
         onNotificationTap: (notification) => _handleNotificationTap(
           notification,
           ref,
         ),
+        onForegroundMessage: (data) => _handleForegroundMessage(data, ref),
       );
+
+      if (success) {
+        _notificationsInitialized = true;
+        debugPrint(
+            '✅ Notifications initialized successfully for user: $userId');
+      } else {
+        debugPrint('⚠️ Notification initialization failed for user: $userId');
+      }
     } catch (e) {
-      debugPrint('⚠️ Error initializing notifications: $e');
+      debugPrint('❌ Error initializing notifications: $e');
     }
   }
 
+  /// Handle foreground notification messages
+  void _handleForegroundMessage(Map<String, dynamic> data, WidgetRef ref) {
+    try {
+      debugPrint('📱 Foreground notification received: ${data['title']}');
+
+      // You can show a custom in-app notification here if needed
+      // For example, show a snackbar or custom notification widget
+
+      // The notification will also be displayed as a local notification
+      // by the NotificationService automatically
+    } catch (e) {
+      debugPrint('❌ Error handling foreground message: $e');
+    }
+  }
+
+  /// Clean up notifications (call on logout)
   Future<void> cleanupNotifications(WidgetRef ref) async {
     try {
       if (_notificationsInitialized) {
@@ -65,62 +93,108 @@ class AppBootstrap {
   }
 
   /// Handle notification tap navigation
-  void _handleNotificationTap(notification, WidgetRef ref) {
+  void _handleNotificationTap(NotificationModel notification, WidgetRef ref) {
     try {
       debugPrint('👆 Handling notification tap: ${notification.type}');
 
       // Get router from your existing provider
       final router = ref.read(goRouterProvider);
 
-      // Navigate based on notification type
-      switch (notification.type.toString()) {
-        case 'NotificationType.follow':
-          if (notification.senderId?.isNotEmpty == true) {
-            router.push('/profile/${notification.senderId}');
-          }
-          break;
-
-        case 'NotificationType.newPost':
-        case 'NotificationType.postLike':
-        case 'NotificationType.postMilestone':
-          if (notification.postId?.isNotEmpty == true) {
-            router.push(
-                '/post/${notification.postId}?isAlt=${notification.isAlt}');
-          }
-          break;
-
-        case 'NotificationType.comment':
-          if (notification.postId?.isNotEmpty == true) {
-            router.push(
-                '/post/${notification.postId}?isAlt=${notification.isAlt}&showComments=true');
-          }
-          break;
-
-        case 'NotificationType.commentReply':
-          if (notification.commentId?.isNotEmpty == true &&
-              notification.postId?.isNotEmpty == true) {
-            router.push(
-                '/post/${notification.postId}/comment/${notification.commentId}');
-          }
-          break;
-
-        case 'NotificationType.connectionRequest':
-          router.push('/connections/requests');
-          break;
-
-        case 'NotificationType.connectionAccepted':
-          if (notification.senderId?.isNotEmpty == true) {
-            router.push('/profile/${notification.senderId}?isAlt=true');
-          }
-          break;
-
-        default:
-          // Default to notifications screen
-          router.push('/notifications');
-          break;
+      // Try to use the notification path first (new system)
+      if (notification.path != null && notification.path!.isNotEmpty) {
+        debugPrint('🧭 Navigating to path: ${notification.path}');
+        router.push(notification.path!);
+        return;
       }
+
+      // Fallback to type-based navigation (legacy)
+      _handleLegacyNotificationNavigation(notification, router);
     } catch (e) {
       debugPrint('❌ Error handling notification tap: $e');
+      // Fallback: navigate to notifications screen
+      final router = ref.read(goRouterProvider);
+      router.push('/notifications');
+    }
+  }
+
+  /// Legacy notification navigation (fallback)
+  void _handleLegacyNotificationNavigation(
+      NotificationModel notification, router) {
+    switch (notification.type) {
+      case NotificationType.follow:
+        if (notification.senderId.isNotEmpty) {
+          router.push('/profile/${notification.senderId}');
+        }
+        break;
+
+      case NotificationType.newPost:
+      case NotificationType.postLike:
+      case NotificationType.postMilestone:
+        if (notification.postId?.isNotEmpty == true) {
+          router
+              .push('/post/${notification.postId}?isAlt=${notification.isAlt}');
+        }
+        break;
+
+      case NotificationType.comment:
+        if (notification.postId?.isNotEmpty == true) {
+          router.push(
+              '/post/${notification.postId}?isAlt=${notification.isAlt}&showComments=true');
+        }
+        break;
+
+      case NotificationType.commentReply:
+        if (notification.commentId?.isNotEmpty == true &&
+            notification.postId?.isNotEmpty == true) {
+          router.push(
+              '/post/${notification.postId}/comment/${notification.commentId}');
+        }
+        break;
+
+      case NotificationType.connectionRequest:
+        router.push('/connections/requests');
+        break;
+
+      case NotificationType.connectionAccepted:
+        if (notification.senderId.isNotEmpty) {
+          router.push('/profile/${notification.senderId}?isAlt=true');
+        }
+        break;
+
+      default:
+        // Default to notifications screen
+        router.push('/notifications');
+        break;
+    }
+  }
+
+  /// Test notification functionality (for debugging)
+  Future<void> testNotifications(WidgetRef ref) async {
+    if (!_notificationsInitialized) {
+      debugPrint('⚠️ Notifications not initialized');
+      return;
+    }
+
+    try {
+      debugPrint('🧪 Testing notification functionality...');
+
+      final notificationService = ref.read(notificationServiceProvider);
+
+      // Test if notifications are enabled
+      final enabled = await notificationService.areNotificationsEnabled();
+      debugPrint('📱 Notifications enabled: $enabled');
+
+      if (!enabled) {
+        // Try to request permissions
+        final granted = await notificationService.requestPermissions();
+        debugPrint('🔔 Permission request result: $granted');
+      }
+
+      // Show test notification
+      await notificationService.showTestNotification();
+      debugPrint('✅ Test notification sent');
+    } catch (e) {
+      debugPrint('❌ Error testing notifications: $e');
     }
   }
 
@@ -206,11 +280,21 @@ class AppBootstrap {
     return initialize();
   }
 
+  /// Reset notification state (call on user logout)
+  void resetNotifications() {
+    _notificationsInitialized = false;
+    _currentUserId = null;
+    debugPrint('🔄 Notification state reset');
+  }
+
   /// Check if notifications are initialized
   bool get areNotificationsInitialized => _notificationsInitialized;
 
   /// Get current user ID for notifications
   String? get currentNotificationUserId => _currentUserId;
+
+  /// Check if app is fully initialized
+  bool get isInitialized => _isInitialized;
 
   /// Create a provider for the bootstrap service
   static final appBootstrapProvider = Provider<AppBootstrap>((ref) {
