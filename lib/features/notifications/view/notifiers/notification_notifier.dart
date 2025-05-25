@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // For DocumentSnapshot
-import 'state/notification_state.dart';
+import '../providers/state/notification_state.dart';
 
 const int _notificationsPerPage = 20;
 
