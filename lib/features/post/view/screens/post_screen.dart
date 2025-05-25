@@ -116,6 +116,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final staticPostAsyncValue = ref.watch(
         staticPostProvider(PostParams(id: widget.postId, isAlt: widget.isAlt)));
 
@@ -128,7 +129,9 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: widget.isAlt ? Colors.blue : Colors.white,
+        backgroundColor: widget.isAlt
+            ? theme.appBarTheme.foregroundColor
+            : theme.appBarTheme.foregroundColor,
         title: LayoutBuilder(builder: (context, constraints) {
           return Row(
             children: [
@@ -162,7 +165,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       const SnackBar(content: Text('Sharing post...')),
                     );
                   },
-            color: widget.isAlt ? Colors.grey : Colors.white,
+            //color: widget.isAlt ? Colors.grey : Colors.white,
           ),
         ],
       ),

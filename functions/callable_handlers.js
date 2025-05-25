@@ -847,7 +847,7 @@ async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
 
     // Apply pagination
     if (lastHotScore !== null && lastPostId !== null) {
-        feedQuery = feedQuery.startAt(lastHotScore, lastPostId);
+        feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
     }
 
     // Apply limit
