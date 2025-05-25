@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/notifications/view/providers/notification_provider.dart';
 import 'package:herdapp/features/notifications/view/providers/state/notification_state.dart';
@@ -254,7 +255,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           return NotificationListItem(
             notification: notification,
             onTap: (notification) {
-              _handleNotificationTap(notification);
+              _handleNotificationTap(notification, ref);
             },
             onMarkAsRead: (notificationId) {
               final currentUser = ref.read(authProvider);
@@ -270,78 +271,74 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     );
   }
 
-  void _handleNotificationTap(NotificationModel notification) {
-    // Mark as read
-    final currentUser = ref.read(authProvider);
-    if (currentUser != null) {
-      ref
-          .read(notificationProvider(currentUser.uid).notifier)
-          .markAsRead(notification.id);
-    }
+  /// Handle notification tap navigation
+  void _handleNotificationTap(NotificationModel notification, WidgetRef ref) {
+    try {
+      debugPrint('👆 Handling notification tap: ${notification.type}');
 
-    // Use the path if available, otherwise fall back to legacy navigation
-    final path = notification.getNavigationPath();
-    if (path != null && path.isNotEmpty) {
-      try {
-        if (path.startsWith('/')) {
-          context.push(path);
-        } else {
-          context.go(path);
+      // Get router from your existing provider
+      final router = ref.read(goRouterProvider);
+
+      // Try to use the notification path first (new system)
+      if (notification.path != null && notification.path!.isNotEmpty) {
+        debugPrint('🧭 Navigating to path: ${notification.path}');
+
+        // Special handling for commentThread which needs extra data
+        if (notification.path!.contains('/commentThread')) {
+          router.push('/commentThread', extra: {
+            'commentId': notification.commentId ?? '',
+            'postId': notification.postId ?? '',
+            'isAltPost': notification.isAlt,
+          });
+          return;
         }
-        return;
-      } catch (e) {
-        debugPrint('Error navigating with path: $path, error: $e');
-        // Fall back to legacy navigation
-      }
-    }
 
-    // Legacy navigation (fallback)
-    _legacyNavigation(notification);
+        // Regular path navigation
+        router.push(notification.path!);
+        return;
+      }
+
+      // Fallback to type-based navigation (legacy)
+      _handleLegacyNotificationNavigation(notification, router);
+    } catch (e) {
+      debugPrint('❌ Error handling notification tap: $e');
+      // Fallback: navigate to notifications screen
+      final router = ref.read(goRouterProvider);
+      router.push('/notifications');
+    }
   }
 
-  void _legacyNavigation(NotificationModel notification) {
+  /// Legacy notification navigation (fallback)
+  void _handleLegacyNotificationNavigation(
+      NotificationModel notification, router) {
     switch (notification.type) {
       case NotificationType.follow:
-        // Navigate to profile
         if (notification.senderId.isNotEmpty) {
-          context.pushNamed(
-            'publicProfile',
-            pathParameters: {'id': notification.senderId},
-          );
+          // Default to public profile for follow notifications
+          router.push('/publicProfile/${notification.senderId}');
         }
         break;
 
       case NotificationType.newPost:
       case NotificationType.postLike:
       case NotificationType.postMilestone:
-        // Navigate to post
-        if (notification.postId != null && notification.postId!.isNotEmpty) {
-          context.pushNamed(
-            'post',
-            pathParameters: {'id': notification.postId!},
-            queryParameters: {'isAlt': notification.isAlt.toString()},
-          );
+        if (notification.postId?.isNotEmpty == true) {
+          router
+              .push('/post/${notification.postId}?isAlt=${notification.isAlt}');
         }
         break;
 
       case NotificationType.comment:
-        // Navigate to post with comments expanded
-        if (notification.postId != null && notification.postId!.isNotEmpty) {
-          context.pushNamed(
-            'post',
-            pathParameters: {'id': notification.postId!},
-            queryParameters: {
-              'isAlt': notification.isAlt.toString(),
-              'showComments': 'true',
-            },
-          );
+        if (notification.postId?.isNotEmpty == true) {
+          router.push(
+              '/post/${notification.postId}?isAlt=${notification.isAlt}&showComments=true');
         }
         break;
 
       case NotificationType.commentReply:
-        // Navigate to comment thread
-        if (notification.commentId != null && notification.postId != null) {
-          context.push('/commentThread', extra: {
+        if (notification.commentId?.isNotEmpty == true &&
+            notification.postId?.isNotEmpty == true) {
+          router.push('/commentThread', extra: {
             'commentId': notification.commentId,
             'postId': notification.postId,
             'isAltPost': notification.isAlt,
@@ -350,18 +347,18 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         break;
 
       case NotificationType.connectionRequest:
-        // Navigate to connection requests screen
-        context.pushNamed('connectionRequests');
+        router.push('/connection-requests');
         break;
 
       case NotificationType.connectionAccepted:
-        // Navigate to alt profile of user who accepted
         if (notification.senderId.isNotEmpty) {
-          context.pushNamed(
-            'altProfile',
-            pathParameters: {'id': notification.senderId},
-          );
+          router.push('/altProfile/${notification.senderId}');
         }
+        break;
+
+      default:
+        // Default to notifications screen
+        router.push('/notifications');
         break;
     }
   }
