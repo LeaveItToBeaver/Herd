@@ -9,6 +9,15 @@ const hotAlgorithm = {
             if (createdAt?.toDate) createdAt = createdAt.toDate();
             if (!(createdAt instanceof Date)) createdAt = new Date();
 
+            // Calculate hours since creation
+            const timeSinceCreation = Math.max(1, (Date.now() - createdAt.getTime()) / 1000);
+            const hoursOld = timeSinceCreation / 3600;
+
+            // UPDATED: Return 0 for posts older than 7 days (168 hours)
+            if (hoursOld > 168) {
+                return 0;
+            }
+
             // Sanitize inputs to be valid numbers
             const sanitizedNetVotes = Number(netVotes) || 0;
             const sanitizedDecayFactor = Number(decayFactor) || 1.0;
@@ -16,41 +25,34 @@ const hotAlgorithm = {
             // Calculate components
             const sign = Math.sign(sanitizedNetVotes);
             const magnitude = Math.log10(Math.max(1, Math.abs(sanitizedNetVotes)));
-            const timeSinceCreation = Math.max(1, (Date.now() - createdAt.getTime()) / 1000);
             const timeDecay = Math.pow(timeSinceCreation, -0.7) * sanitizedDecayFactor;
 
-            // Calculate hours since creation
-            const hoursOld = timeSinceCreation / 3600;
-
-            // Apply new boost factor for fresh posts (first 12 hours)
+            // ENHANCED: Much stronger boost for fresh posts
             const newBoostFactor =
-                hoursOld <= 1 ? 5.0 :   // First hour: 5x boost
-                    hoursOld <= 3 ? 4.0 :   // Hours 1-3: 4x boost
-                        hoursOld <= 6 ? 3.0 :   // Hours 3-6: 3x boost
-                            hoursOld <= 12 ? 2.0 :  // Hours 6-12: 2x boost
-                                1.0;
+                hoursOld <= 1 ? 10.0 :   // First hour: 10x boost (increased from 5x)
+                    hoursOld <= 3 ? 8.0 :    // Hours 1-3: 8x boost (increased from 4x)
+                        hoursOld <= 6 ? 6.0 :    // Hours 3-6: 6x boost (increased from 3x)
+                            hoursOld <= 12 ? 4.0 :   // Hours 6-12: 4x boost (increased from 2x)
+                                hoursOld <= 24 ? 2.0 :   // Hours 12-24: 2x boost (new tier)
+                                    1.0;
 
-            // Apply age penalty for posts older than 24 hours
-            const agePenalty = hoursOld > 12 ? Math.pow(12 / hoursOld, 2.0) : 1.0;
+            // ENHANCED: Stronger age penalty for older posts
+            const agePenalty =
+                hoursOld > 24 ? Math.pow(24 / hoursOld, 3.0) : // Cubic penalty (increased from square)
+                    1.0;
 
-            // Calculate final score with new factors
+            // Calculate final score with enhanced factors
             const score = sign * magnitude * timeDecay * newBoostFactor * agePenalty;
 
-            if (hoursOld > 72) {
-                return 0; // Zero score for posts older than 3 days
-            }
-            // Debug logging (before return)
-            logger.info(`Hot score calculation: netVotes=${sanitizedNetVotes},
-        timeDecay=${timeDecay},
-        hoursOld=${hoursOld.toFixed(2)},
-        newBoostFactor=${newBoostFactor},
-        agePenalty=${agePenalty.toFixed(4)},
-        score=${score}`);
+            // Debug logging
+            logger.info(`Hot score calculation: netVotes=${sanitizedNetVotes}, ` +
+                `hoursOld=${hoursOld.toFixed(2)}, newBoostFactor=${newBoostFactor}, ` +
+                `agePenalty=${agePenalty.toFixed(4)}, score=${score}`);
 
             return isNaN(score) ? 0 : score;
         } catch (error) {
             logger.error('Error calculating hot score:', error);
-            return 0; // Default safe value
+            return 0;
         }
     },
 

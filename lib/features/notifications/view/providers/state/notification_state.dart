@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -13,7 +12,7 @@ abstract class NotificationState with _$NotificationState {
     @Default(false) bool isLoading,
     @Default(true) bool hasMore,
     @Default(0) int unreadCount,
-    DocumentSnapshot? lastDocument,
+    String? lastNotificationId, // For cloud function pagination
     String? error,
   }) = _NotificationState;
 
@@ -22,5 +21,7 @@ abstract class NotificationState with _$NotificationState {
         isLoading: false,
         hasMore: true,
         unreadCount: 0,
+        lastNotificationId: null,
+        error: null,
       );
 }
