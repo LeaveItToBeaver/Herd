@@ -19,14 +19,15 @@ module.exports = function (admin) {
         const cleaned = {};
         for (const [key, value] of Object.entries(obj)) {
             if (value !== undefined && value !== null) {
-                cleaned[key] = value;
+                // Convert all values to strings for FCM data payload
+                cleaned[key] = String(value);
             }
         }
         return cleaned;
     }
 
     /**
-     * Helper function to send push notification
+     * Enhanced push notification function with better error handling
      */
     async function sendPushNotification(userId, title, body, data) {
         try {
@@ -95,19 +96,19 @@ module.exports = function (admin) {
                 return;
             }
 
-            // Clean data to remove undefined values
+            // Clean data to remove undefined values and ensure all values are strings
             const cleanData = removeUndefinedValues({
                 ...data,
                 notificationId: data.notificationId || '',
                 click_action: 'FLUTTER_NOTIFICATION_CLICK',
             });
 
-            // Create message
+            // Create message with improved structure
             const message = {
                 token: userData.fcmToken,
                 notification: {
-                    title,
-                    body,
+                    title: title,
+                    body: body,
                 },
                 data: cleanData,
                 android: {
@@ -119,27 +120,45 @@ module.exports = function (admin) {
                         defaultVibrateTimings: true,
                         icon: 'ic_notification',
                         color: '#FF6B35',
+                        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+                        tag: notificationType, // Helps group similar notifications
                     },
+                    data: cleanData, // Android also needs data here for background handling
                 },
                 apns: {
+                    headers: {
+                        'apns-priority': '10',
+                        'apns-push-type': 'alert',
+                    },
                     payload: {
                         aps: {
-                            sound: 'default',
-                            badge: 1,
                             alert: {
                                 title: title,
                                 body: body,
                             },
+                            sound: 'default',
+                            badge: await getUnreadCount(userId), // Set badge count
+                            'content-available': 1, // For background processing
+                            category: notificationType,
                         },
+                        ...cleanData, // iOS custom data goes in the root payload
                     },
+                },
+                fcmOptions: {
+                    analyticsLabel: `notification_${notificationType}`,
                 },
             };
 
             // Send message
             const response = await admin.messaging().send(message);
             logger.log(`✅ Successfully sent notification: ${response}`);
+
+            // Log the message structure for debugging
+            logger.log(`📱 Message structure: ${JSON.stringify(message, null, 2)}`);
+
         } catch (error) {
             logger.error(`❌ Error sending notification: ${error}`);
+            logger.error(`❌ Error details: ${JSON.stringify(error, null, 2)}`);
 
             // If token is invalid, remove it from user document
             if (error.code === 'messaging/invalid-registration-token' ||
@@ -149,6 +168,25 @@ module.exports = function (admin) {
                     fcmToken: admin.firestore.FieldValue.delete()
                 });
             }
+        }
+    }
+
+    /**
+     * Get unread notification count for a user
+     */
+    async function getUnreadCount(userId) {
+        try {
+            const snapshot = await firestore
+                .collection('notifications')
+                .where('recipientId', '==', userId)
+                .where('isRead', '==', false)
+                .select() // Only get document metadata, not full data
+                .get();
+
+            return snapshot.size;
+        } catch (error) {
+            logger.error(`Error getting unread count for ${userId}:`, error);
+            return 0;
         }
     }
 
@@ -194,6 +232,9 @@ module.exports = function (admin) {
                 ? senderData?.altProfileImageURL
                 : senderData?.profileImageURL;
 
+            // Generate path for navigation
+            const path = generateNavigationPath(type, senderId, postId, commentId, isAlt);
+
             // Build notification data object, only including defined values
             const notificationData = {
                 id: notificationId,
@@ -206,45 +247,30 @@ module.exports = function (admin) {
                 body: body || generateBody(type, senderName, count),
                 senderName: senderName,
                 isAlt,
+                path: path, // Add navigation path
             };
 
             // Only add optional fields if they have values
-            if (postId) {
-                notificationData.postId = postId;
-            }
-
-            if (commentId) {
-                notificationData.commentId = commentId;
-            }
-
-            if (senderData?.username) {
-                notificationData.senderUsername = senderData.username;
-            }
-
-            if (senderProfileImage) {
-                notificationData.senderProfileImage = senderProfileImage;
-            }
-
-            if (senderData?.altProfileImageURL) {
-                notificationData.senderAltProfileImage = senderData.altProfileImageURL;
-            }
-
-            if (count !== undefined && count !== null) {
-                notificationData.count = count;
-            }
+            if (postId) notificationData.postId = postId;
+            if (commentId) notificationData.commentId = commentId;
+            if (senderData?.username) notificationData.senderUsername = senderData.username;
+            if (senderProfileImage) notificationData.senderProfileImage = senderProfileImage;
+            if (senderData?.altProfileImageURL) notificationData.senderAltProfileImage = senderData.altProfileImageURL;
+            if (count !== undefined && count !== null) notificationData.count = count;
 
             // Save notification to Firestore
             await notificationRef.set(notificationData);
             logger.log(`✅ Notification saved to Firestore: ${notificationId}`);
 
-            // Prepare push notification data (also clean undefined values)
+            // Prepare push notification data (ensure all values are strings)
             const pushData = removeUndefinedValues({
                 type,
                 senderId,
                 postId: postId || '',
                 commentId: commentId || '',
                 isAlt: isAlt ? 'true' : 'false',
-                notificationId
+                notificationId,
+                path: path || '',
             });
 
             // Send push notification
@@ -259,6 +285,30 @@ module.exports = function (admin) {
         } catch (error) {
             logger.error(`❌ Error creating notification: ${error}`);
             throw error;
+        }
+    }
+
+    /**
+     * Generate navigation path for notification
+     */
+    function generateNavigationPath(type, senderId, postId, commentId, isAlt) {
+        switch (type) {
+            case 'follow':
+                return `/profile/${senderId}`;
+            case 'newPost':
+            case 'postLike':
+            case 'postMilestone':
+                return postId ? `/post/${postId}?isAlt=${isAlt}` : null;
+            case 'comment':
+                return postId ? `/post/${postId}?isAlt=${isAlt}&showComments=true` : null;
+            case 'commentReply':
+                return postId && commentId ? `/commentThread?postId=${postId}&commentId=${commentId}&isAlt=${isAlt}` : null;
+            case 'connectionRequest':
+                return '/connectionRequests';
+            case 'connectionAccepted':
+                return `/altProfile/${senderId}`;
+            default:
+                return null;
         }
     }
 
@@ -314,9 +364,229 @@ module.exports = function (admin) {
         }
     }
 
-    // Return an object with all the exported functions
+    // ========== CLOUD FUNCTIONS FOR NOTIFICATION QUERIES ==========
+
+    /**
+     * Get notifications for a user with pagination (Cloud Function)
+     */
+    const getNotifications = onCall(async (request) => {
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+        }
+
+        const userId = request.auth.uid;
+        const {
+            limit = 20,
+            lastNotificationId = null,
+            filterType = null,
+            onlyUnread = false,
+            markAsRead = false
+        } = request.data;
+
+        try {
+            logger.log(`Getting notifications for user: ${userId}, limit: ${limit}, markAsRead: ${markAsRead}`);
+
+            let query = firestore
+                .collection('notifications')
+                .where('recipientId', '==', userId)
+                .orderBy('timestamp', 'desc');
+
+            // Apply type filter if provided
+            if (filterType) {
+                query = query.where('type', '==', filterType);
+            }
+
+            // Apply read status filter if requested
+            if (onlyUnread) {
+                query = query.where('isRead', '==', false);
+            }
+
+            // Apply pagination
+            if (lastNotificationId) {
+                const lastDoc = await firestore
+                    .collection('notifications')
+                    .doc(lastNotificationId)
+                    .get();
+
+                if (lastDoc.exists) {
+                    query = query.startAfter(lastDoc);
+                }
+            }
+
+            query = query.limit(limit);
+
+            const snapshot = await query.get();
+            const notifications = [];
+            const batch = firestore.batch();
+            let hasBatchOperations = false;
+
+            for (const doc of snapshot.docs) {
+                const data = doc.data();
+                const notification = {
+                    id: doc.id,
+                    ...data,
+                    timestamp: data.timestamp?.toDate()?.getTime() || Date.now()
+                };
+
+                notifications.push(notification);
+
+                // Mark as read if requested and not already read
+                if (markAsRead && !data.isRead) {
+                    batch.update(doc.ref, {
+                        isRead: true,
+                        readAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    hasBatchOperations = true;
+                    notification.isRead = true; // Update local object too
+                }
+            }
+
+            // Execute batch update if there are operations
+            if (hasBatchOperations) {
+                await batch.commit();
+                logger.log(`Marked ${notifications.filter(n => !n.isRead).length} notifications as read`);
+            }
+
+            // Get updated unread count
+            const unreadCount = await getUnreadCount(userId);
+
+            logger.log(`Retrieved ${notifications.length} notifications for user ${userId}`);
+
+            return {
+                notifications,
+                unreadCount,
+                hasMore: notifications.length === limit,
+                lastNotificationId: notifications.length > 0 ? notifications[notifications.length - 1].id : null
+            };
+
+        } catch (error) {
+            logger.error(`Error getting notifications for user ${userId}:`, error);
+            throw new functions.https.HttpsError('internal', `Failed to get notifications: ${error.message}`);
+        }
+    });
+
+    /**
+     * Get unread notification count (Cloud Function)
+     */
+    const getUnreadNotificationCount = onCall(async (request) => {
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+        }
+
+        const userId = request.auth.uid;
+
+        try {
+            const count = await getUnreadCount(userId);
+            return { unreadCount: count };
+        } catch (error) {
+            logger.error(`Error getting unread count for user ${userId}:`, error);
+            throw new functions.https.HttpsError('internal', `Failed to get unread count: ${error.message}`);
+        }
+    });
+
+    /**
+     * Mark notifications as read (Enhanced Cloud Function)
+     */
+    const markNotificationsAsRead = onCall(async (request) => {
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+        }
+
+        const userId = request.auth.uid;
+        const { notificationIds = null } = request.data;
+
+        try {
+            if (notificationIds && Array.isArray(notificationIds) && notificationIds.length > 0) {
+                // Mark specific notifications as read
+                const batch = firestore.batch();
+
+                for (const id of notificationIds) {
+                    const notificationRef = firestore.collection('notifications').doc(id);
+
+                    // Verify ownership before updating
+                    const notificationDoc = await notificationRef.get();
+                    if (notificationDoc.exists && notificationDoc.data().recipientId === userId) {
+                        batch.update(notificationRef, {
+                            isRead: true,
+                            readAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+
+                await batch.commit();
+                const unreadCount = await getUnreadCount(userId);
+
+                return {
+                    success: true,
+                    count: notificationIds.length,
+                    unreadCount
+                };
+            } else {
+                // Mark all notifications as read
+                const notificationsSnapshot = await firestore
+                    .collection('notifications')
+                    .where('recipientId', '==', userId)
+                    .where('isRead', '==', false)
+                    .get();
+
+                if (notificationsSnapshot.empty) {
+                    return { success: true, count: 0, unreadCount: 0 };
+                }
+
+                const batch = firestore.batch();
+                notificationsSnapshot.docs.forEach(doc => {
+                    batch.update(doc.ref, {
+                        isRead: true,
+                        readAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+
+                await batch.commit();
+
+                return {
+                    success: true,
+                    count: notificationsSnapshot.size,
+                    unreadCount: 0
+                };
+            }
+        } catch (error) {
+            logger.error('❌ Error marking notifications as read:', error);
+            throw new functions.https.HttpsError('internal', error.message);
+        }
+    });
+
+    /**
+     * Update FCM token (Cloud Function)
+     */
+    const updateFCMToken = onCall(async (request) => {
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+        }
+
+        const userId = request.auth.uid;
+        const { fcmToken } = request.data;
+
+        if (!fcmToken) {
+            throw new functions.https.HttpsError('invalid-argument', 'FCM token is required');
+        }
+
+        try {
+            await firestore.collection('users').doc(userId).update({
+                fcmToken: fcmToken,
+                fcmTokenUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            logger.log(`✅ Updated FCM token for user ${userId}`);
+            return { success: true };
+        } catch (error) {
+            logger.error(`❌ Error updating FCM token for user ${userId}:`, error);
+            throw new functions.https.HttpsError('internal', error.message);
+        }
+    });
+
+    // Return existing triggers plus new cloud functions
     return {
-        // When someone follows a user - FIXED
+        // Existing triggers (keep all the existing ones from your original code)
         onNewFollower: onDocumentCreated("following/{followerId}/userFollowing/{followedId}",
             async (event) => {
                 const followerId = event.params.followerId;
@@ -328,17 +598,14 @@ module.exports = function (admin) {
                     recipientId: followedId,
                     senderId: followerId,
                     type: 'follow',
-                    // Don't pass undefined postId or commentId
                 });
             }),
 
-        // When someone creates a new post (notify followers) - FIXED
         onNewPost: onDocumentCreated("posts/{postId}", async (event) => {
             const postData = event.data.data();
             const authorId = postData.authorId;
             const postId = event.params.postId;
 
-            // Skip alt posts
             if (postData.isAlt === true) {
                 logger.log(`⏭️ Skipping alt post notification for ${postId}`);
                 return;
@@ -346,7 +613,6 @@ module.exports = function (admin) {
 
             logger.log(`📝 New post created: ${postId} by ${authorId}`);
 
-            // Get followers
             const followersSnapshot = await firestore
                 .collection('followers')
                 .doc(authorId)
@@ -360,31 +626,27 @@ module.exports = function (admin) {
 
             logger.log(`📤 Notifying ${followersSnapshot.size} followers`);
 
-            // Create notifications for each follower (in batches to avoid timeout)
             const notificationPromises = [];
 
             for (const followerDoc of followersSnapshot.docs) {
                 const followerId = followerDoc.id;
 
-                // Create notification for this follower
                 notificationPromises.push(
                     createNotification({
                         recipientId: followerId,
                         senderId: authorId,
                         type: 'newPost',
-                        postId: postId, // This is defined
+                        postId: postId,
                         isAlt: false,
                     })
                 );
 
-                // Process in batches of 10 to avoid overwhelming the system
                 if (notificationPromises.length >= 10) {
                     await Promise.all(notificationPromises);
-                    notificationPromises.length = 0; // Clear array
+                    notificationPromises.length = 0;
                 }
             }
 
-            // Process remaining notifications
             if (notificationPromises.length > 0) {
                 await Promise.all(notificationPromises);
             }
@@ -392,7 +654,6 @@ module.exports = function (admin) {
             logger.log(`✅ Post notifications sent for ${postId}`);
         }),
 
-        // When someone likes a post - FIXED
         onPostLike: onDocumentCreated("likes/{postId}/userInteractions/{userId}",
             async (event) => {
                 const postId = event.params.postId;
@@ -400,7 +661,6 @@ module.exports = function (admin) {
 
                 logger.log(`❤️ Post liked: ${postId} by ${likerId}`);
 
-                // Get post data - check both regular and alt posts
                 let postSnapshot = await firestore.collection('posts').doc(postId).get();
                 let isAlt = false;
 
@@ -417,22 +677,19 @@ module.exports = function (admin) {
                 const postData = postSnapshot.data();
                 const authorId = postData.authorId;
 
-                // Skip if user likes their own post
                 if (likerId === authorId) {
                     logger.log(`⏭️ Skipping self-like for post ${postId}`);
                     return;
                 }
 
-                // Create like notification
                 await createNotification({
                     recipientId: authorId,
                     senderId: likerId,
                     type: 'postLike',
-                    postId: postId, // This is defined
+                    postId: postId,
                     isAlt,
                 });
 
-                // Check for milestone (10, 25, 50, 100, 500, 1000 likes)
                 const currentLikeCount = postData.likeCount || 0;
                 const milestones = [10, 25, 50, 100, 500, 1000];
 
@@ -441,16 +698,15 @@ module.exports = function (admin) {
 
                     await createNotification({
                         recipientId: authorId,
-                        senderId: authorId, // System notification
+                        senderId: authorId,
                         type: 'postMilestone',
-                        postId: postId, // This is defined
-                        count: currentLikeCount, // This is defined
+                        postId: postId,
+                        count: currentLikeCount,
                         isAlt,
                     });
                 }
             }),
 
-        // When someone comments on a post - FIXED
         onNewComment: onDocumentCreated("comments/{postId}/postComments/{commentId}",
             async (event) => {
                 const postId = event.params.postId;
@@ -461,9 +717,7 @@ module.exports = function (admin) {
 
                 const commenterId = commentData.authorId;
 
-                // Check if this is a reply to another comment
                 if (commentData.parentId) {
-                    // This is a reply to a comment
                     const parentCommentSnapshot = await firestore
                         .collection('comments')
                         .doc(postId)
@@ -475,21 +729,18 @@ module.exports = function (admin) {
                         const parentCommentData = parentCommentSnapshot.data();
                         const parentCommentAuthorId = parentCommentData.authorId;
 
-                        // Skip if user replies to their own comment
                         if (commenterId !== parentCommentAuthorId) {
                             await createNotification({
                                 recipientId: parentCommentAuthorId,
                                 senderId: commenterId,
                                 type: 'commentReply',
-                                postId: postId, // This is defined
-                                commentId: commentId, // This is defined
+                                postId: postId,
+                                commentId: commentId,
                                 isAlt: commentData.isAltPost || false,
                             });
                         }
                     }
                 } else {
-                    // This is a direct comment on the post
-                    // Get post data to find the author
                     let postSnapshot = await firestore.collection('posts').doc(postId).get();
                     let isAlt = false;
 
@@ -502,14 +753,13 @@ module.exports = function (admin) {
                         const postData = postSnapshot.data();
                         const postAuthorId = postData.authorId;
 
-                        // Skip if user comments on their own post
                         if (commenterId !== postAuthorId) {
                             await createNotification({
                                 recipientId: postAuthorId,
                                 senderId: commenterId,
                                 type: 'comment',
-                                postId: postId, // This is defined
-                                commentId: commentId, // This is defined
+                                postId: postId,
+                                commentId: commentId,
                                 isAlt,
                             });
                         }
@@ -517,7 +767,6 @@ module.exports = function (admin) {
                 }
             }),
 
-        // When someone sends a connection request - FIXED
         onConnectionRequest: onDocumentCreated("altConnectionRequests/{userId}/requests/{requesterId}",
             async (event) => {
                 const userId = event.params.userId;
@@ -530,17 +779,14 @@ module.exports = function (admin) {
                     senderId: requesterId,
                     type: 'connectionRequest',
                     isAlt: true,
-                    // Don't pass undefined postId or commentId
                 });
             }),
 
-        // When someone accepts a connection request - FIXED
         onConnectionAccepted: onDocumentUpdated("altConnectionRequests/{userId}/requests/{requesterId}",
             async (event) => {
                 const after = event.data.after.data();
                 const before = event.data.before.data();
 
-                // Only trigger when status changes from pending to accepted
                 if (before.status === 'pending' && after.status === 'accepted') {
                     const userId = event.params.userId;
                     const requesterId = event.params.requesterId;
@@ -552,74 +798,20 @@ module.exports = function (admin) {
                         senderId: userId,
                         type: 'connectionAccepted',
                         isAlt: true,
-                        // Don't pass undefined postId or commentId
                     });
                 }
             }),
 
-        // Cloud function to mark notifications as read
-        markNotificationsAsRead: onCall(async (request) => {
-            if (!request.auth) {
-                throw new functions.https.HttpsError(
-                    'unauthenticated',
-                    'User must be logged in'
-                );
-            }
+        // New Cloud Functions
+        getNotifications,
+        getUnreadNotificationCount,
+        markNotificationsAsRead,
+        updateFCMToken,
 
-            const userId = request.auth.uid;
-            const { notificationIds } = request.data;
-
-            try {
-                if (notificationIds && Array.isArray(notificationIds) && notificationIds.length > 0) {
-                    // Mark specific notifications as read
-                    const batch = firestore.batch();
-
-                    for (const id of notificationIds) {
-                        const notificationRef = firestore.collection('notifications').doc(id);
-                        batch.update(notificationRef, {
-                            isRead: true,
-                            readAt: admin.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-
-                    await batch.commit();
-                    return { success: true, count: notificationIds.length };
-                } else {
-                    // Mark all notifications as read
-                    const notificationsSnapshot = await firestore
-                        .collection('notifications')
-                        .where('recipientId', '==', userId)
-                        .where('isRead', '==', false)
-                        .get();
-
-                    if (notificationsSnapshot.empty) {
-                        return { success: true, count: 0 };
-                    }
-
-                    const batch = firestore.batch();
-                    notificationsSnapshot.docs.forEach(doc => {
-                        batch.update(doc.ref, {
-                            isRead: true,
-                            readAt: admin.firestore.FieldValue.serverTimestamp()
-                        });
-                    });
-
-                    await batch.commit();
-                    return { success: true, count: notificationsSnapshot.size };
-                }
-            } catch (error) {
-                logger.error('❌ Error marking notifications as read:', error);
-                throw new functions.https.HttpsError('internal', error.message);
-            }
-        }),
-
-        // Cloud function to delete notifications
+        // Existing functions
         deleteNotifications: onCall(async (request) => {
             if (!request.auth) {
-                throw new functions.https.HttpsError(
-                    'unauthenticated',
-                    'User must be logged in'
-                );
+                throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
             }
 
             const userId = request.auth.uid;
@@ -627,10 +819,7 @@ module.exports = function (admin) {
 
             try {
                 if (!notificationIds || !Array.isArray(notificationIds)) {
-                    throw new functions.https.HttpsError(
-                        'invalid-argument',
-                        'notificationIds must be an array'
-                    );
+                    throw new functions.https.HttpsError('invalid-argument', 'notificationIds must be an array');
                 }
 
                 const batch = firestore.batch();
@@ -658,7 +847,6 @@ module.exports = function (admin) {
             }
         }),
 
-        // Clean up old notifications (run monthly) - V2 SYNTAX
         cleanupOldNotifications: onSchedule("0 0 1 * *", async (event) => {
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
