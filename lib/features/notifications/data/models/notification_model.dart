@@ -38,6 +38,8 @@ abstract class NotificationModel with _$NotificationModel {
     String? senderAltProfileImage,
     @Default(false) bool isAlt, // If from alt profile
     int? count, // For metrics (e.g., "5 likes on your post")
+    // Navigation path for the notification
+    String? path,
     // Additional metadata
     @Default({}) Map<String, dynamic> data,
   }) = _NotificationModel;
@@ -46,29 +48,115 @@ abstract class NotificationModel with _$NotificationModel {
       _$NotificationModelFromJson(json);
 
   factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return NotificationModel(
-      id: doc.id,
-      recipientId: data['recipientId'] ?? '',
-      senderId: data['senderId'] ?? '',
-      type: NotificationType.values.firstWhere(
-        (e) => e.toString().split('.').last == data['type'],
+    try {
+      final data = doc.data() as Map<String, dynamic>;
+
+      // Debug print to see what data we're getting
+      debugPrint('Notification data from Firestore: $data');
+
+      return NotificationModel(
+        id: doc.id,
+        recipientId: data['recipientId'] ?? '',
+        senderId: data['senderId'] ?? '',
+        type: _parseNotificationType(data['type']),
+        timestamp: _parseTimestamp(data['timestamp']),
+        isRead: data['isRead'] ?? false,
+        title: data['title'],
+        body: data['body'],
+        postId: data['postId'],
+        commentId: data['commentId'],
+        senderName: data['senderName'],
+        senderUsername: data['senderUsername'],
+        senderProfileImage: data['senderProfileImage'],
+        senderAltProfileImage: data['senderAltProfileImage'],
+        isAlt: data['isAlt'] ?? false,
+        count: data['count'],
+        path: data['path'] ?? _generatePath(data),
+        data: data['data'] ?? {},
+      );
+    } catch (e) {
+      debugPrint('Error parsing notification from Firestore: $e');
+      debugPrint('Document ID: ${doc.id}');
+      debugPrint('Document data: ${doc.data()}');
+      rethrow;
+    }
+  }
+
+  // Helper method to parse notification type safely
+  static NotificationType _parseNotificationType(dynamic typeData) {
+    if (typeData == null) return NotificationType.follow;
+
+    String typeString = typeData.toString();
+    try {
+      return NotificationType.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toLowerCase() ==
+            typeString.toLowerCase(),
         orElse: () => NotificationType.follow,
-      ),
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
-      isRead: data['isRead'] ?? false,
-      title: data['title'],
-      body: data['body'],
-      postId: data['postId'],
-      commentId: data['commentId'],
-      senderName: data['senderName'],
-      senderUsername: data['senderUsername'],
-      senderProfileImage: data['senderProfileImage'],
-      senderAltProfileImage: data['senderAltProfileImage'],
-      isAlt: data['isAlt'] ?? false,
-      count: data['count'],
-      data: data['data'] ?? {},
-    );
+      );
+    } catch (e) {
+      debugPrint('Error parsing notification type: $typeString');
+      return NotificationType.follow;
+    }
+  }
+
+  // Helper method to parse timestamp safely
+  static DateTime _parseTimestamp(dynamic timestampData) {
+    if (timestampData == null) return DateTime.now();
+
+    try {
+      if (timestampData is Timestamp) {
+        return timestampData.toDate();
+      } else if (timestampData is DateTime) {
+        return timestampData;
+      } else if (timestampData is String) {
+        return DateTime.parse(timestampData);
+      } else if (timestampData is int) {
+        return DateTime.fromMillisecondsSinceEpoch(timestampData);
+      }
+    } catch (e) {
+      debugPrint('Error parsing timestamp: $timestampData, error: $e');
+    }
+
+    return DateTime.now();
+  }
+
+  // Generate path if not provided
+  static String? _generatePath(Map<String, dynamic> data) {
+    final type = _parseNotificationType(data['type']);
+    final senderId = data['senderId'];
+    final postId = data['postId'];
+    final commentId = data['commentId'];
+    final isAlt = data['isAlt'] ?? false;
+
+    switch (type) {
+      case NotificationType.follow:
+        return senderId != null ? '/profile/$senderId' : null;
+
+      case NotificationType.newPost:
+      case NotificationType.postLike:
+      case NotificationType.postMilestone:
+        return postId != null ? '/post/$postId?isAlt=$isAlt' : null;
+
+      case NotificationType.comment:
+        return postId != null
+            ? '/post/$postId?isAlt=$isAlt&showComments=true'
+            : null;
+
+      case NotificationType.commentReply:
+        return postId != null && commentId != null
+            ? '/commentThread?postId=$postId&commentId=$commentId&isAlt=$isAlt'
+            : null;
+
+      case NotificationType.connectionRequest:
+        return '/connectionRequests';
+
+      case NotificationType.connectionAccepted:
+        return senderId != null ? '/altProfile/$senderId' : null;
+
+      default:
+        return null;
+    }
   }
 
   Map<String, dynamic> toFirestore() {
@@ -88,6 +176,14 @@ abstract class NotificationModel with _$NotificationModel {
       'senderAltProfileImage': senderAltProfileImage,
       'isAlt': isAlt,
       'count': count,
+      'path': path ??
+          _generatePath({
+            'type': type.toString().split('.').last,
+            'senderId': senderId,
+            'postId': postId,
+            'commentId': commentId,
+            'isAlt': isAlt,
+          }),
       'data': data,
     };
   }
@@ -114,5 +210,17 @@ abstract class NotificationModel with _$NotificationModel {
       default:
         return 'You have a new notification';
     }
+  }
+
+  // Get the navigation path for this notification
+  String? getNavigationPath() {
+    return path ??
+        _generatePath({
+          'type': type.toString().split('.').last,
+          'senderId': senderId,
+          'postId': postId,
+          'commentId': commentId,
+          'isAlt': isAlt,
+        });
   }
 }

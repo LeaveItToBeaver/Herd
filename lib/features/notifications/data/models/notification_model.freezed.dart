@@ -31,7 +31,8 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
   String? get senderAltProfileImage;
   bool get isAlt; // If from alt profile
   int? get count; // For metrics (e.g., "5 likes on your post")
-// Additional metadata
+// Navigation path for the notification
+  String? get path; // Additional metadata
   Map<String, dynamic> get data;
 
   /// Create a copy of NotificationModel
@@ -65,6 +66,7 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('senderAltProfileImage', senderAltProfileImage))
       ..add(DiagnosticsProperty('isAlt', isAlt))
       ..add(DiagnosticsProperty('count', count))
+      ..add(DiagnosticsProperty('path', path))
       ..add(DiagnosticsProperty('data', data));
   }
 
@@ -97,6 +99,7 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
                 other.senderAltProfileImage == senderAltProfileImage) &&
             (identical(other.isAlt, isAlt) || other.isAlt == isAlt) &&
             (identical(other.count, count) || other.count == count) &&
+            (identical(other.path, path) || other.path == path) &&
             const DeepCollectionEquality().equals(other.data, data));
   }
 
@@ -120,11 +123,12 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
       senderAltProfileImage,
       isAlt,
       count,
+      path,
       const DeepCollectionEquality().hash(data));
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, data: $data)';
+    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, path: $path, data: $data)';
   }
 }
 
@@ -151,6 +155,7 @@ abstract mixin class $NotificationModelCopyWith<$Res> {
       String? senderAltProfileImage,
       bool isAlt,
       int? count,
+      String? path,
       Map<String, dynamic> data});
 }
 
@@ -183,6 +188,7 @@ class _$NotificationModelCopyWithImpl<$Res>
     Object? senderAltProfileImage = freezed,
     Object? isAlt = null,
     Object? count = freezed,
+    Object? path = freezed,
     Object? data = null,
   }) {
     return _then(_self.copyWith(
@@ -250,6 +256,10 @@ class _$NotificationModelCopyWithImpl<$Res>
           ? _self.count
           : count // ignore: cast_nullable_to_non_nullable
               as int?,
+      path: freezed == path
+          ? _self.path
+          : path // ignore: cast_nullable_to_non_nullable
+              as String?,
       data: null == data
           ? _self.data
           : data // ignore: cast_nullable_to_non_nullable
@@ -279,6 +289,7 @@ class _NotificationModel extends NotificationModel
       this.senderAltProfileImage,
       this.isAlt = false,
       this.count,
+      this.path,
       final Map<String, dynamic> data = const {}})
       : _data = data,
         super._();
@@ -323,9 +334,11 @@ class _NotificationModel extends NotificationModel
   @override
   final int? count;
 // For metrics (e.g., "5 likes on your post")
+// Navigation path for the notification
+  @override
+  final String? path;
 // Additional metadata
   final Map<String, dynamic> _data;
-// For metrics (e.g., "5 likes on your post")
 // Additional metadata
   @override
   @JsonKey()
@@ -370,6 +383,7 @@ class _NotificationModel extends NotificationModel
       ..add(DiagnosticsProperty('senderAltProfileImage', senderAltProfileImage))
       ..add(DiagnosticsProperty('isAlt', isAlt))
       ..add(DiagnosticsProperty('count', count))
+      ..add(DiagnosticsProperty('path', path))
       ..add(DiagnosticsProperty('data', data));
   }
 
@@ -402,6 +416,7 @@ class _NotificationModel extends NotificationModel
                 other.senderAltProfileImage == senderAltProfileImage) &&
             (identical(other.isAlt, isAlt) || other.isAlt == isAlt) &&
             (identical(other.count, count) || other.count == count) &&
+            (identical(other.path, path) || other.path == path) &&
             const DeepCollectionEquality().equals(other._data, _data));
   }
 
@@ -425,11 +440,12 @@ class _NotificationModel extends NotificationModel
       senderAltProfileImage,
       isAlt,
       count,
+      path,
       const DeepCollectionEquality().hash(_data));
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, data: $data)';
+    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, path: $path, data: $data)';
   }
 }
 
@@ -458,6 +474,7 @@ abstract mixin class _$NotificationModelCopyWith<$Res>
       String? senderAltProfileImage,
       bool isAlt,
       int? count,
+      String? path,
       Map<String, dynamic> data});
 }
 
@@ -490,6 +507,7 @@ class __$NotificationModelCopyWithImpl<$Res>
     Object? senderAltProfileImage = freezed,
     Object? isAlt = null,
     Object? count = freezed,
+    Object? path = freezed,
     Object? data = null,
   }) {
     return _then(_NotificationModel(
@@ -557,6 +575,10 @@ class __$NotificationModelCopyWithImpl<$Res>
           ? _self.count
           : count // ignore: cast_nullable_to_non_nullable
               as int?,
+      path: freezed == path
+          ? _self.path
+          : path // ignore: cast_nullable_to_non_nullable
+              as String?,
       data: null == data
           ? _self._data
           : data // ignore: cast_nullable_to_non_nullable
