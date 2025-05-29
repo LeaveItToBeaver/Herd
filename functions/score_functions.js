@@ -9,7 +9,7 @@ const { hotAlgorithm } = require('./utils');
  * Runs every hour to keep scores current (set to 1 minute for testing)
  */
 exports.updateHotScores = onSchedule(
-    "every 5 minutes",
+    "every 30 minutes",
     async (event) => {
         // Only process posts from the last 7 days
         const sevenDaysAgo = new Date();
