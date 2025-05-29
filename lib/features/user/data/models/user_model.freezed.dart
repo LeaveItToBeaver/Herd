@@ -96,7 +96,9 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
       get loginHistory; // Monetization and premium features
   bool get isPremium;
   DateTime? get premiumUntil;
-  int get walletBalance;
+  int get walletBalance; // Pinned posts (max 5 each)
+  List<String> get pinnedPosts; // Public profile pinned posts
+  List<String> get altPinnedPosts;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -192,7 +194,9 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('loginHistory', loginHistory))
       ..add(DiagnosticsProperty('isPremium', isPremium))
       ..add(DiagnosticsProperty('premiumUntil', premiumUntil))
-      ..add(DiagnosticsProperty('walletBalance', walletBalance));
+      ..add(DiagnosticsProperty('walletBalance', walletBalance))
+      ..add(DiagnosticsProperty('pinnedPosts', pinnedPosts))
+      ..add(DiagnosticsProperty('altPinnedPosts', altPinnedPosts));
   }
 
   @override
@@ -321,7 +325,9 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
             const DeepCollectionEquality().equals(other.loginHistory, loginHistory) &&
             (identical(other.isPremium, isPremium) || other.isPremium == isPremium) &&
             (identical(other.premiumUntil, premiumUntil) || other.premiumUntil == premiumUntil) &&
-            (identical(other.walletBalance, walletBalance) || other.walletBalance == walletBalance));
+            (identical(other.walletBalance, walletBalance) || other.walletBalance == walletBalance) &&
+            const DeepCollectionEquality().equals(other.pinnedPosts, pinnedPosts) &&
+            const DeepCollectionEquality().equals(other.altPinnedPosts, altPinnedPosts));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -407,12 +413,14 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(loginHistory),
         isPremium,
         premiumUntil,
-        walletBalance
+        walletBalance,
+        const DeepCollectionEquality().hash(pinnedPosts),
+        const DeepCollectionEquality().hash(altPinnedPosts)
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
   }
 }
 
@@ -501,7 +509,9 @@ abstract mixin class $UserModelCopyWith<$Res> {
       List<Map<String, dynamic>> loginHistory,
       bool isPremium,
       DateTime? premiumUntil,
-      int walletBalance});
+      int walletBalance,
+      List<String> pinnedPosts,
+      List<String> altPinnedPosts});
 }
 
 /// @nodoc
@@ -596,6 +606,8 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? isPremium = null,
     Object? premiumUntil = freezed,
     Object? walletBalance = null,
+    Object? pinnedPosts = null,
+    Object? altPinnedPosts = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -918,6 +930,14 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.walletBalance
           : walletBalance // ignore: cast_nullable_to_non_nullable
               as int,
+      pinnedPosts: null == pinnedPosts
+          ? _self.pinnedPosts
+          : pinnedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      altPinnedPosts: null == altPinnedPosts
+          ? _self.altPinnedPosts
+          : altPinnedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -1005,7 +1025,9 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       final List<Map<String, dynamic>> loginHistory = const [],
       this.isPremium = false,
       this.premiumUntil,
-      this.walletBalance = 0})
+      this.walletBalance = 0,
+      final List<String> pinnedPosts = const [],
+      final List<String> altPinnedPosts = const []})
       : _friendsList = friendsList,
         _followersList = followersList,
         _followingList = followingList,
@@ -1028,6 +1050,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         _contentPreferences = contentPreferences,
         _altContentPreferences = altContentPreferences,
         _loginHistory = loginHistory,
+        _pinnedPosts = pinnedPosts,
+        _altPinnedPosts = altPinnedPosts,
         super._();
   factory _UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
@@ -1405,6 +1429,27 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final int walletBalance;
+// Pinned posts (max 5 each)
+  final List<String> _pinnedPosts;
+// Pinned posts (max 5 each)
+  @override
+  @JsonKey()
+  List<String> get pinnedPosts {
+    if (_pinnedPosts is EqualUnmodifiableListView) return _pinnedPosts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_pinnedPosts);
+  }
+
+// Public profile pinned posts
+  final List<String> _altPinnedPosts;
+// Public profile pinned posts
+  @override
+  @JsonKey()
+  List<String> get altPinnedPosts {
+    if (_altPinnedPosts is EqualUnmodifiableListView) return _altPinnedPosts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_altPinnedPosts);
+  }
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -1505,7 +1550,9 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('loginHistory', loginHistory))
       ..add(DiagnosticsProperty('isPremium', isPremium))
       ..add(DiagnosticsProperty('premiumUntil', premiumUntil))
-      ..add(DiagnosticsProperty('walletBalance', walletBalance));
+      ..add(DiagnosticsProperty('walletBalance', walletBalance))
+      ..add(DiagnosticsProperty('pinnedPosts', pinnedPosts))
+      ..add(DiagnosticsProperty('altPinnedPosts', altPinnedPosts));
   }
 
   @override
@@ -1634,7 +1681,9 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
             const DeepCollectionEquality().equals(other._loginHistory, _loginHistory) &&
             (identical(other.isPremium, isPremium) || other.isPremium == isPremium) &&
             (identical(other.premiumUntil, premiumUntil) || other.premiumUntil == premiumUntil) &&
-            (identical(other.walletBalance, walletBalance) || other.walletBalance == walletBalance));
+            (identical(other.walletBalance, walletBalance) || other.walletBalance == walletBalance) &&
+            const DeepCollectionEquality().equals(other._pinnedPosts, _pinnedPosts) &&
+            const DeepCollectionEquality().equals(other._altPinnedPosts, _altPinnedPosts));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1720,12 +1769,14 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(_loginHistory),
         isPremium,
         premiumUntil,
-        walletBalance
+        walletBalance,
+        const DeepCollectionEquality().hash(_pinnedPosts),
+        const DeepCollectionEquality().hash(_altPinnedPosts)
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
   }
 }
 
@@ -1817,7 +1868,9 @@ abstract mixin class _$UserModelCopyWith<$Res>
       List<Map<String, dynamic>> loginHistory,
       bool isPremium,
       DateTime? premiumUntil,
-      int walletBalance});
+      int walletBalance,
+      List<String> pinnedPosts,
+      List<String> altPinnedPosts});
 }
 
 /// @nodoc
@@ -1912,6 +1965,8 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? isPremium = null,
     Object? premiumUntil = freezed,
     Object? walletBalance = null,
+    Object? pinnedPosts = null,
+    Object? altPinnedPosts = null,
   }) {
     return _then(_UserModel(
       id: null == id
@@ -2234,6 +2289,14 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self.walletBalance
           : walletBalance // ignore: cast_nullable_to_non_nullable
               as int,
+      pinnedPosts: null == pinnedPosts
+          ? _self._pinnedPosts
+          : pinnedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      altPinnedPosts: null == altPinnedPosts
+          ? _self._altPinnedPosts
+          : altPinnedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }

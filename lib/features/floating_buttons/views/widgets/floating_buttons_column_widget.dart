@@ -38,6 +38,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
             child: FloatingActionButton(
               heroTag: "floatingProfileBtn",
               backgroundColor: Colors.black,
+              elevation: 0,
               mini: false,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
@@ -79,6 +80,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
             child: FloatingActionButton(
               heroTag: "floatingNotificationsBtn",
               backgroundColor: Colors.black,
+              elevation: 0,
               mini: false,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
@@ -98,6 +100,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
           FloatingActionButton(
             heroTag: "floatingSearchBtn",
             backgroundColor: Colors.black,
+            elevation: 0,
             mini: false,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30.0),

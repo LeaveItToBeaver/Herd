@@ -89,9 +89,9 @@ flutter:
   assets:
     - assets/images/
     - assets/legal/
-    - assets/icons/
+    - assets/icon/
 
 flutter_launcher_icons:
     android: true
     ios: true
-    image_path: "assets/icons/logo.png"
+    image_path: "assets/icon/icon.png"
