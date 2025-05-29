@@ -103,6 +103,38 @@ class AppBootstrap {
       // Try to use the notification path first (new system)
       if (notification.path != null && notification.path!.isNotEmpty) {
         debugPrint('🧭 Navigating to path: ${notification.path}');
+
+        // SPECIAL HANDLING: Check for legacy /profile/ paths and fix them
+        if (notification.path!.startsWith('/profile/') &&
+            !notification.path!.startsWith('/publicProfile/') &&
+            !notification.path!.startsWith('/altProfile/')) {
+          // Extract the user ID from the legacy path
+          final userId = notification.path!.replaceFirst('/profile/', '');
+          debugPrint(
+              '🔧 Detected legacy profile path. User ID: $userId, Notification type: ${notification.type}');
+
+          // For follow notifications, use public profile
+          if (notification.type == NotificationType.follow) {
+            debugPrint('🔧 Converting legacy follow path to publicProfile');
+            router.push('/publicProfile/$userId');
+            return;
+          }
+
+          // For connection-related notifications, use alt profile
+          if (notification.type == NotificationType.connectionAccepted ||
+              notification.type == NotificationType.connectionRequest) {
+            debugPrint('🔧 Converting legacy connection path to altProfile');
+            router.push('/altProfile/$userId');
+            return;
+          }
+
+          // Default to public profile for other cases
+          debugPrint('🔧 Converting legacy profile path to publicProfile');
+          router.push('/publicProfile/$userId');
+          return;
+        }
+
+        // Regular path navigation for valid paths
         router.push(notification.path!);
         return;
       }
@@ -123,7 +155,7 @@ class AppBootstrap {
     switch (notification.type) {
       case NotificationType.follow:
         if (notification.senderId.isNotEmpty) {
-          router.push('/profile/${notification.senderId}');
+          router.push('/publicProfile/${notification.senderId}');
         }
         break;
 
@@ -157,7 +189,7 @@ class AppBootstrap {
 
       case NotificationType.connectionAccepted:
         if (notification.senderId.isNotEmpty) {
-          router.push('/profile/${notification.senderId}?isAlt=true');
+          router.push('/altProfile/${notification.senderId}?isAlt=true');
         }
         break;
 
@@ -344,14 +376,11 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    FlutterLogo(size: 100),
-                    SizedBox(height: 32),
                     CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
                     Text(
                       'Initializing app...',
                       style: TextStyle(
-                        color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),

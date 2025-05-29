@@ -159,6 +159,14 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
           ? null
           : DateTime.parse(json['premiumUntil'] as String),
       walletBalance: (json['walletBalance'] as num?)?.toInt() ?? 0,
+      pinnedPosts: (json['pinnedPosts'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      altPinnedPosts: (json['altPinnedPosts'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
@@ -243,4 +251,6 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'isPremium': instance.isPremium,
       'premiumUntil': instance.premiumUntil?.toIso8601String(),
       'walletBalance': instance.walletBalance,
+      'pinnedPosts': instance.pinnedPosts,
+      'altPinnedPosts': instance.altPinnedPosts,
     };

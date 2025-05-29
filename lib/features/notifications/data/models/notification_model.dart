@@ -131,7 +131,8 @@ abstract class NotificationModel with _$NotificationModel {
 
     switch (type) {
       case NotificationType.follow:
-        return senderId != null ? '/profile/$senderId' : null;
+        // Use publicProfile as default for follow notifications
+        return senderId != null ? '/publicProfile/$senderId' : null;
 
       case NotificationType.newPost:
       case NotificationType.postLike:
@@ -145,13 +146,14 @@ abstract class NotificationModel with _$NotificationModel {
 
       case NotificationType.commentReply:
         return postId != null && commentId != null
-            ? '/commentThread?postId=$postId&commentId=$commentId&isAlt=$isAlt'
-            : null;
+            ? '/commentThread'
+            : null; // Use the route without query params, pass data via extra
 
       case NotificationType.connectionRequest:
-        return '/connectionRequests';
+        return '/connection-requests'; // Match your router's path
 
       case NotificationType.connectionAccepted:
+        // Connection accepted usually means alt profile interaction
         return senderId != null ? '/altProfile/$senderId' : null;
 
       default:

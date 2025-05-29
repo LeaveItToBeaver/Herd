@@ -111,6 +111,10 @@ abstract class UserModel with _$UserModel {
     @Default(false) bool isPremium,
     DateTime? premiumUntil,
     @Default(0) int walletBalance,
+
+    // Pinned posts (max 5 each)
+    @Default([]) List<String> pinnedPosts, // Public profile pinned posts
+    @Default([]) List<String> altPinnedPosts, // Alt profile pinned posts
   }) = _UserModel;
 
   // Factory constructor to create a UserModel from Firebase User
@@ -220,6 +224,8 @@ abstract class UserModel with _$UserModel {
       isPremium: map['isPremium'] ?? false,
       premiumUntil: _parseDateTime(map['premiumUntil']),
       walletBalance: map['walletBalance'] ?? 0,
+      pinnedPosts: _parseStringList(map['pinnedPosts']),
+      altPinnedPosts: _parseStringList(map['altPinnedPosts']),
     );
   }
 
@@ -347,6 +353,8 @@ abstract class UserModel with _$UserModel {
       'premiumUntil':
           premiumUntil != null ? Timestamp.fromDate(premiumUntil!) : null,
       'walletBalance': walletBalance,
+      'pinnedPosts': pinnedPosts,
+      'altPinnedPosts': altPinnedPosts,
     };
   }
 
@@ -396,6 +404,17 @@ abstract class UserModel with _$UserModel {
     batch.update(altRef, {'altUserUID': publicUserId});
 
     await batch.commit();
+  }
+
+  // Pinned posts helper methods
+  bool canPinMorePosts({bool isAlt = false}) {
+    final currentPinned = isAlt ? altPinnedPosts : pinnedPosts;
+    return currentPinned.length < 5; // Max 5 pinned posts
+  }
+
+  bool isPostPinned(String postId, {bool isAlt = false}) {
+    final currentPinned = isAlt ? altPinnedPosts : pinnedPosts;
+    return currentPinned.contains(postId);
   }
 
   // JSON serialization
