@@ -272,6 +272,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   }
 
   /// Handle notification tap navigation
+  /// Handle notification tap navigation
   void _handleNotificationTap(NotificationModel notification, WidgetRef ref) {
     try {
       debugPrint('👆 Handling notification tap: ${notification.type}');
@@ -282,6 +283,36 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       // Try to use the notification path first (new system)
       if (notification.path != null && notification.path!.isNotEmpty) {
         debugPrint('🧭 Navigating to path: ${notification.path}');
+
+        // SPECIAL HANDLING: Check for legacy /profile/ paths and fix them
+        if (notification.path!.startsWith('/profile/') &&
+            !notification.path!.startsWith('/publicProfile/') &&
+            !notification.path!.startsWith('/altProfile/')) {
+          // Extract the user ID from the legacy path
+          final userId = notification.path!.replaceFirst('/profile/', '');
+          debugPrint(
+              '🔧 Detected legacy profile path. User ID: $userId, Notification type: ${notification.type}');
+
+          // For follow notifications, use public profile
+          if (notification.type == NotificationType.follow) {
+            debugPrint('🔧 Converting legacy follow path to publicProfile');
+            router.push('/publicProfile/$userId');
+            return;
+          }
+
+          // For connection-related notifications, use alt profile
+          if (notification.type == NotificationType.connectionAccepted ||
+              notification.type == NotificationType.connectionRequest) {
+            debugPrint('🔧 Converting legacy connection path to altProfile');
+            router.push('/altProfile/$userId');
+            return;
+          }
+
+          // Default to public profile for other cases
+          debugPrint('🔧 Converting legacy profile path to publicProfile');
+          router.push('/publicProfile/$userId');
+          return;
+        }
 
         // Special handling for commentThread which needs extra data
         if (notification.path!.contains('/commentThread')) {
@@ -308,6 +339,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     }
   }
 
+// ...existing code...
   /// Legacy notification navigation (fallback)
   void _handleLegacyNotificationNavigation(
       NotificationModel notification, router) {
