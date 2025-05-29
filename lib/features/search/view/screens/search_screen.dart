@@ -372,12 +372,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           children: [
             CircleAvatar(
               radius: 22.0,
-              backgroundColor: Colors.grey[200],
+              //backgroundColor: Colors.grey[200],
               backgroundImage: hasProfileImage ? NetworkImage(imageUrl) : null,
               child: !hasProfileImage
                   ? Icon(
                       Icons.account_circle,
-                      color: Colors.grey[400],
+                      //color: Colors.grey[400],
                       size: 22.0 * 2,
                     )
                   : null,
@@ -389,12 +389,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 child: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    //color: Colors.white,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.lock,
-                    color: Colors.grey[700],
+                    //color: Colors.grey[700],
                     size: 14,
                   ),
                 ),
@@ -479,7 +479,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     return ListTile(
       leading: CircleAvatar(
         radius: 22.0,
-        backgroundColor: Colors.grey[200],
+        //backgroundColor: Colors.grey[200],
         // Only use NetworkImage if the URL exists and isn't empty
         backgroundImage:
             hasProfileImage ? NetworkImage(herd.profileImageURL!) : null,
@@ -487,7 +487,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         child: !hasProfileImage
             ? Icon(
                 Icons.group,
-                color: Colors.grey[400],
+                //color: Colors.grey[400],
                 size: 22.0 * 2,
               )
             : null,
@@ -498,7 +498,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       ),
       subtitle: Text(
         '${herd.memberCount} members',
-        style: TextStyle(color: Colors.grey[600]),
+        //style: TextStyle(color: Colors.grey[600]),
       ),
       onTap: () {
         // Navigate to herd detail screen
@@ -529,30 +529,33 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         focusNode: _focusNode,
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white,
+          //fillColor: Colors.white,
           focusedBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(50.0)),
-            borderSide: BorderSide(color: Colors.blueGrey, width: 2),
+            borderSide: BorderSide(
+                //color: Colors.blueGrey,
+                width: 2),
           ),
           enabledBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(50.0)),
-            borderSide: BorderSide(color: Colors.black, width: 2.0),
+            borderSide: BorderSide(
+                //color: Colors.black,
+                width: 2.0),
           ),
           labelText: 'Search Users and Herds',
           labelStyle: const TextStyle(
-            color: Colors.black,
             fontFamily: 'OpenSans',
             fontSize: 15,
             fontWeight: FontWeight.bold,
           ),
           prefixIcon: const Icon(
             Icons.search_rounded,
-            color: Colors.black,
+            //color: Colors.black,
           ),
           suffixIcon: IconButton(
             icon: const Icon(
               Icons.clear_rounded,
-              color: Colors.black,
+              //color: Colors.black,
             ),
             onPressed: () {
               _textController.clear();

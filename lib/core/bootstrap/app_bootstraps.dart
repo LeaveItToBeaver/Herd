@@ -344,14 +344,11 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    FlutterLogo(size: 100),
-                    SizedBox(height: 32),
                     CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
                     Text(
                       'Initializing app...',
                       style: TextStyle(
-                        color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
