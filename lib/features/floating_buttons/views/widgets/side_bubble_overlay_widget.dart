@@ -180,27 +180,27 @@ class SideBubblesOverlay extends ConsumerWidget {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
+            // BoxShadow(
+            //   color: Colors.black.withOpacity(0.2),
+            //   blurRadius: 12,
+            //   offset: const Offset(0, 2),
+            // ),
           ],
         ),
         child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: Container(
-              width: 54,
-              height: 54,
-              alignment: Alignment.center,
-              child: child,
+            //color: Colors.transparent,
+            //borderRadius: BorderRadius.circular(30),
+            // clipBehavior: Clip.antiAlias,
+            // child: InkWell(
+            //   onTap: onTap,
+            //   child: Container(
+            //     width: 54,
+            //     height: 54,
+            //     alignment: Alignment.center,
+            //     child: child,
+            //   ),
+            // ),
             ),
-          ),
-        ),
       ),
     );
   }

@@ -84,11 +84,11 @@ class BottomNavOverlay extends ConsumerWidget {
         color: Colors.black,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+          // BoxShadow(
+          //   color: Colors.black.withOpacity(10),
+          //   blurRadius: 2,
+          //   offset: const Offset(0, 2),
+          // ),
         ],
       ),
       child: Material(

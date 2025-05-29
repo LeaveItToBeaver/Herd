@@ -56,16 +56,16 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
   }
 
   // Initialize tab controller based on user
-  void _initTabController(bool isCurrentUser) {
-    // 3 tabs for current user, 2 for other users
-    final tabCount = isCurrentUser ? 3 : 2;
+  // void _initTabController(bool isCurrentUser) {
+  //   // 3 tabs for current user, 2 for other users
+  //   final tabCount = isCurrentUser ? 3 : 2;
 
-    // Create a new tab controller with the appropriate number of tabs
-    _tabController = TabController(length: tabCount, vsync: this);
+  //   // Create a new tab controller with the appropriate number of tabs
+  //   _tabController = TabController(length: tabCount, vsync: this);
 
-    // We need to notify the tab controller that it needs to update
-    if (mounted) setState(() {});
-  }
+  //   // We need to notify the tab controller that it needs to update
+  //   if (mounted) setState(() {});
+  // }
 
   // Add this method to determine appropriate text color based on background
   Brightness _getBrightness(Color color) {
@@ -106,6 +106,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
         // Get alt posts only
         final altPosts = profile.posts;
+        final filteredPosts =
+            profile.posts.where((post) => post.isAlt).toList();
 
         return Scaffold(
           body: NestedScrollView(
@@ -281,11 +283,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
               controller: _tabController,
               children: [
                 // Alt posts tab - Now using a custom list to handle both empty state and list
-                PostsTabView(
-                  posts: altPosts,
-                  profile: profile,
-                  userId: widget.userId,
-                ),
+                _buildPostsTabWithPinnedPosts(filteredPosts, profile),
 
                 // About tab
                 SingleChildScrollView(
@@ -302,85 +300,14 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     );
   }
 
-  Widget _buildPostsTab(List<PostModel> posts, ProfileState profile) {
-    if (posts.isEmpty) {
-      // Empty state with a fallback scrollable to enable pull-to-refresh
-      return RefreshIndicator(
-        onRefresh: () async {
-          await ref
-              .read(profileControllerProvider.notifier)
-              .loadProfile(widget.userId, isAltView: true);
-        },
-        child: ListView(
-          // This ensures RefreshIndicator can work even with centered content
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.lock,
-                      size: 64, color: Colors.blue.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  Text('No alt posts yet',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  if (profile.isCurrentUser) ...[
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create Alt Post'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        context.pushNamed('create',
-                            queryParameters: {'isAlt': 'true'});
-                      },
-                    )
-                  ]
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // For the list state, wrap CustomScrollView with local RefreshIndicator
-      return RefreshIndicator(
-        onRefresh: () async {
-          await ref
-              .read(profileControllerProvider.notifier)
-              .loadProfile(widget.userId, isAltView: true);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverList.builder(
-              itemCount: posts.length + (profile.isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (profile.isLoading && index == posts.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                return PostWidget(
-                  post: posts[index],
-                  isCompact: true,
-                );
-              },
-            ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 20),
-            ),
-          ],
-        ),
-      );
-    }
+  Widget _buildPostsTabWithPinnedPosts(
+      List<PostModel> posts, ProfileState profile) {
+    return PostsTabView(
+      posts: posts,
+      profile: profile,
+      userId: widget.userId,
+      isAltView: true, // This is the public profile
+    );
   }
 
   // Build the view for when a user needs to create their alt profile
@@ -406,7 +333,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Your alt profile allows you to connect with close friends and share content that\'s just for them.',
+              'Your alt profile is a global space where you can share your thoughts, ideas, and connect with others in a more private setting. It\'s a place to express yourself freely without the constraints of your public profile.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -649,22 +576,22 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
     );
   }
 
-  Widget _buildSwitchRow(
-      String label, bool initialValue, Function(bool) onChanged) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(label),
-        ),
-        Switch(
-          value: initialValue,
-          onChanged: onChanged,
-          activeColor: Theme.of(context).colorScheme.primary,
-        ),
-      ],
-    );
-  }
+  // Widget _buildSwitchRow(
+  //     String label, bool initialValue, Function(bool) onChanged) {
+  //   return Row(
+  //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //     children: [
+  //       Expanded(
+  //         child: Text(label),
+  //       ),
+  //       Switch(
+  //         value: initialValue,
+  //         onChanged: onChanged,
+  //         activeColor: Theme.of(context).colorScheme.primary,
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget errorWidget(Object error, StackTrace stack) {
     if (kDebugMode) {
