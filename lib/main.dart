@@ -8,7 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/utils/router.dart';
-import 'package:herdapp/features/notifications/utils/notification_service.dart';
+import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
+import 'package:herdapp/features/customization/view/providers/ui_customization_provider.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/bootstrap/app_bootstraps.dart';
@@ -87,6 +88,21 @@ Future<void> _setupFirebaseAppCheck() async {
           .debug, // Change to AndroidProvider.playIntegrity for production
       appleProvider: appleProvider,
     );
+
+    final messaging = FirebaseMessaging.instance;
+
+    final settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    debugPrint(
+        '🔔 Firebase Messaging permission status: ${settings.authorizationStatus}');
   } catch (e) {
     debugPrint('⚠️ Firebase App Check setup error: $e');
     // Continue without App Check in case of errors
@@ -99,6 +115,16 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goRouter = ref.watch(goRouterProvider);
+
+    final customTheme = ref.watch(currentThemeProvider);
+    final customizationAsync = ref.watch(uiCustomizationProvider);
+
+    // Get theme mode from customization or default to system
+    final themeMode = customizationAsync.maybeWhen(
+      data: (customization) =>
+          customization?.appTheme.getThemeMode() ?? ThemeMode.system,
+      orElse: () => ThemeMode.system,
+    );
 
     return MaterialApp.router(
       routerConfig: goRouter,
@@ -125,52 +151,69 @@ class MyApp extends ConsumerWidget {
       ],
 
       // Theme configuration
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-
-        // Notification-friendly theme colors
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.light,
-        ),
-
-        // App bar theme for notification icons
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          centerTitle: true,
-        ),
-
-        // Badge theme for notification badges
-        badgeTheme: const BadgeThemeData(
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        ),
-      ),
+      theme: customTheme,
 
       // Dark theme (optional)
-      darkTheme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.dark,
-        ),
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          centerTitle: true,
-        ),
-        badgeTheme: const BadgeThemeData(
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        ),
-      ),
+      darkTheme: customizationAsync.maybeWhen(
+            data: (customization) {
+              if (customization != null) {
+                // Build dark theme from customization
+                return _buildDarkTheme(customization);
+              }
+              return null;
+            },
+            orElse: () => null,
+          ) ??
+          ThemeData(
+            primarySwatch: Colors.blue,
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.dark,
+            ),
+          ),
 
-      // System theme mode
-      themeMode: ThemeMode.system,
+      // Theme mode from customization
+      themeMode: themeMode,
 
       // Remove debug banner in release mode
       debugShowCheckedModeBanner: false,
     );
+  }
+
+  // Build dark theme from customization
+  ThemeData _buildDarkTheme(UICustomizationModel customization) {
+    final appTheme = customization.appTheme;
+
+    return ThemeData(
+      useMaterial3: appTheme.useMaterial3,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme(
+        brightness: Brightness.dark,
+        primary: appTheme.getPrimaryColor(),
+        onPrimary: _getOnColor(appTheme.getPrimaryColor()),
+        secondary: appTheme.getSecondaryColor(),
+        onSecondary: _getOnColor(appTheme.getSecondaryColor()),
+        error: appTheme.getErrorColor(),
+        onError: Colors.white,
+        surface: _darken(appTheme.getSurfaceColor(), 0.2),
+        onSurface: Colors.white,
+        surfaceContainerHighest: _darken(appTheme.getSurfaceColor(), 0.1),
+        onSurfaceVariant: Colors.white70,
+        outline: Colors.white38,
+      ),
+      scaffoldBackgroundColor: _darken(appTheme.getBackgroundColor(), 0.3),
+    );
+  }
+
+  Color _getOnColor(Color color) {
+    return color.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+  }
+
+  Color _darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
+        .toColor();
   }
 }
