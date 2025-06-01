@@ -16,27 +16,24 @@ class PostPrivacyBadges extends StatelessWidget {
       children: [
         if (isAlt)
           Container(
-            color: Colors.blue.withOpacity(0.1),
+            //color: Colors.blue.withOpacity(0.1),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: [
-                const Icon(Icons.lock, size: 16, color: Colors.blue),
+                const Icon(
+                  Icons.public_rounded,
+                  size: 16,
+                  // color: Colors.blue
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Alt Post',
                   style: TextStyle(
-                    color: Colors.blue,
+                    //color: Colors.blue,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  'Only visible to your connections',
-                  style: TextStyle(
-                    color: Colors.blue.shade700,
-                    fontSize: 12,
-                  ),
-                ),
               ],
             ),
           ),

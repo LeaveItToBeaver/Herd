@@ -176,7 +176,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            //backgroundColor: Colors.white,
             title: Text("Create A Post"),
             actions: [
               if (_isSubmitting)
@@ -234,7 +234,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.primary,
                 width: 1,
               ),
             ),
@@ -407,7 +407,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.primary,
                 width: 1,
               ),
             ),
@@ -445,7 +445,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                   ? Colors.red
                                   : _isAlt
                                       ? Colors.blue
-                                      : Colors.black,
+                                      : Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       child: Row(
@@ -480,11 +480,26 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                             ? Colors.red
                                             : _isAlt
                                                 ? Colors.blue
-                                                : Colors.grey,
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                               ),
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: _selectedHerdId != null
+                                ? Colors.blue
+                                : _isNSFW && _isAlt
+                                    ? Colors.purple
+                                    : _isNSFW && !_isAlt
+                                        ? Colors.red
+                                        : _isAlt
+                                            ? Colors.blue
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                          ),
                         ],
                       ),
                     ),
@@ -508,11 +523,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: ElevatedButton.icon(
               icon: Icon(
                 Icons.send,
-                color: Colors.white,
+                //color: Colors.white,
               ),
               label: Text(
                 _isAlt ? 'Create Alt Post' : 'Create Post',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                //style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isNSFW && _isAlt
@@ -521,7 +536,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.inversePrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -623,7 +638,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.grey,
+                            : Theme.of(context).colorScheme.primary,
               ),
             ),
             child: _mediaFiles.isNotEmpty
@@ -652,7 +667,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                   ? Colors.red
                                   : _isAlt
                                       ? Colors.blue
-                                      : Colors.black54,
+                                      : Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -741,7 +756,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       ? Colors.red
                       : _isAlt
                           ? Colors.blue
-                          : Colors.grey,
+                          : Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -805,7 +820,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -825,7 +840,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ? Colors.red
             : _isAlt
                 ? Colors.blue
-                : Colors.grey;
+                : Theme.of(context).colorScheme.primary;
 
     return Form(
       key: _formKey,
@@ -836,39 +851,37 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             enabled: !_isSubmitting,
             decoration: InputDecoration(
               labelText: 'Title',
+              // Set the default border
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                    color: _isNSFW && _isAlt
-                        ? Colors.purple
-                        : _isNSFW && !_isAlt
-                            ? Colors.red
-                            : _isAlt
-                                ? Colors.blue
-                                : Colors.black),
+                borderSide: BorderSide(color: borderColor),
               ),
+              // Set the border when field is enabled but not focused
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: borderColor),
+              ),
+              // Set the border when field is focused
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _isNSFW && _isAlt
-                      ? Colors.purple
-                      : _isNSFW && !_isAlt
-                          ? Colors.red
-                          : _isAlt
-                              ? Colors.blue
-                              : Colors.grey,
+                  color: borderColor,
                   width: 2,
                 ),
               ),
+              // Set the border when field has an error
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.red),
+              ),
+              // Set the border when field has an error and is focused
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
               prefixIcon: Icon(
                 Icons.title,
-                color: _isNSFW && _isAlt
-                    ? Colors.purple
-                    : _isNSFW && !_isAlt
-                        ? Colors.red
-                        : _isAlt
-                            ? Colors.blue
-                            : Colors.grey,
+                color: borderColor,
               ),
             ),
             onChanged: (value) {
@@ -923,8 +936,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       padding: EdgeInsets.zero,
                       autoFocus: false,
                       expands: false,
-                      placeholder:
-                          'What\'s on your mind? Use @ to mention someone',
+                      placeholder: 'What\'s on your mind?',
                       scrollBottomInset: 60,
                       embedBuilders: [
                         MentionEmbedBuilder(), // Keep this here too
@@ -935,7 +947,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  //color: Colors.grey.shade100,
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(10),
                     bottomRight: Radius.circular(10),
