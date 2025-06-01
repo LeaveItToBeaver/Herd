@@ -107,8 +107,9 @@ class SideBubblesOverlay extends ConsumerWidget {
         child: feedType == FeedType.alt
             ? const Icon(Icons.public, color: Colors.white, size: 24)
             : const Icon(Icons.groups_outlined, color: Colors.white, size: 24),
-        backgroundColor:
-            feedType == FeedType.alt ? Colors.purpleAccent : Colors.black,
+        backgroundColor: feedType == FeedType.alt
+            ? Theme.of(context).colorScheme.primary
+            : Colors.black,
         onTap: () {
           // Toggle feed type
           final newFeedType =
