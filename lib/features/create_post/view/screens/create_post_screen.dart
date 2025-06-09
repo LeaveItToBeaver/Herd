@@ -523,11 +523,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: ElevatedButton.icon(
               icon: Icon(
                 Icons.send,
-                //color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
               label: Text(
                 _isAlt ? 'Create Alt Post' : 'Create Post',
-                //style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isNSFW && _isAlt

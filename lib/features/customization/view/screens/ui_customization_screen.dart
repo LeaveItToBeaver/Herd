@@ -52,7 +52,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
           // Reset button
           IconButton(
             icon: const Icon(Icons.restore),
-            tooltip: 'Reset to defaults',
+            tooltip: 'Reset to minimal theme',
             onPressed: () => _showResetDialog(),
           ),
           // Preview button
@@ -280,7 +280,8 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
             maxLines: 10,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Enter custom CSS to style your profile...',
+              hintText:
+                  'Enter custom CSS to style your profile. This is an advanced feature and may break your profile if used incorrectly.',
               helperText:
                   'Use standard CSS syntax. Changes apply to your profile only.',
             ),
@@ -616,7 +617,6 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
     );
   }
 
-  // Fixed color picker dialog that updates in real-time
   void _showColorPicker(
       String label, Color currentColor, Function(Color) onColorChanged) {
     Color pickerColor = currentColor;
@@ -680,7 +680,6 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
     );
   }
 
-  // Update methods - properly implemented
   void _updateColor(String colorKey, Color color) {
     ref
         .read(uiCustomizationProvider.notifier)
@@ -946,7 +945,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
       builder: (context) => AlertDialog(
         title: const Text('Reset to Defaults'),
         content: const Text(
-            'This will reset all customizations to their default values. Are you sure?'),
+            'This will reset all customizations to the minimal theme. Are you sure?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -955,7 +954,8 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              ref.read(uiCustomizationProvider.notifier).resetToDefaults();
+              // Use the same preset mechanism that already works
+              _applyPreset('minimal');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

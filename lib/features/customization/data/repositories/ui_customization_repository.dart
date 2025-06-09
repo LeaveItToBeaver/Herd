@@ -231,6 +231,49 @@ class UICustomizationRepository {
     }
   }
 
+  static const AppThemeSettings appDefaultThemeSettings = AppThemeSettings(
+    // --- Define the app's true default colors and settings here ---
+    primaryColor: '#6200EE', // Material Purple
+    secondaryColor: '#03DAC6', // Material Teal
+    backgroundColor: '#FFFFFF',
+    surfaceColor: '#FFFFFF',
+    textColor: '#000000',
+    secondaryTextColor: '#757575',
+    errorColor: '#B00020',
+    warningColor: '#FFC107',
+    successColor: '#4CAF50',
+
+    onPrimaryColor: '#FFFFFF',
+    onSecondaryColor: '#000000',
+    onBackgroundColor: '#000000',
+    onErrorColor: '#FFFFFF',
+    onSurfaceColor: '#000000',
+
+    primaryContainerColor: '#EADDFF', // Light purple
+    onPrimaryContainerColor: '#21005D',
+    secondaryContainerColor: '#CCF7F1', // Light teal
+    onSecondaryContainerColor: '#00201D',
+    tertiaryColor: '#7D5260', // M3 Tertiary
+    onTertiaryContainerColor: '#FFFFFF',
+    tertiaryContainerColor: '#FFD8E4',
+
+    outlineColor: '#79747E',
+    shadowColor: '#000000',
+    surfaceVariantColor: '#E7E0EC',
+    onSurfaceVariantColor: '#49454F',
+    disabledColor: '#BDBDBD',
+    hintColor: '#9E9E9E',
+
+    themeMode: 'system',
+    useMaterial3: true,
+    enableGlassmorphism: false,
+    enableGradients: false,
+    enableShadows: true,
+    shadowIntensity: 1.0,
+    // Ensure ALL fields from AppThemeSettings are covered
+    // We might need to add more fields in the future
+  );
+
   // Preset themes
   AppThemeSettings? _getPresetTheme(String presetId) {
     final presets = <String, AppThemeSettings>{
@@ -417,8 +460,7 @@ class UICustomizationRepository {
       'rainyForest': const AppThemeSettings(
         primaryColor: '#3B5D55', // Desaturated Forest Green
         secondaryColor: '#6A7A83', // Misty Gray-Blue
-        backgroundColor:
-            '#263238', // Blue Grey Dark (like a stormy sky or deep forest shadow)
+        backgroundColor: '#263238', // Blue Grey Dark
         surfaceColor: '#37474F', // Slightly lighter Blue Grey (damp stone)
         textColor: '#ECEFF1', // Light Blue Grey (general text)
         secondaryTextColor: '#B0BEC5', // Muted Light Blue Grey (subdued text)
@@ -429,31 +471,25 @@ class UICustomizationRepository {
         useMaterial3: true,
         enableShadows: true,
         shadowIntensity: 0.8,
-        onPrimaryColor:
-            '#E0F2F1', // Very light cyan/green, for contrast on primaryColor
+        onPrimaryColor: '#E0F2F1', // Very light cyan/green
         onSecondaryColor: '#FFFFFF',
         onBackgroundColor: '#ECEFF1', // Light text on dark background
         onErrorColor: '#000000', // Black text on muted red
         onSurfaceColor: '#ECEFF1', // Light text on surfaceColor
-        primaryContainerColor:
-            '#2E4B45', // Darker, desaturated version of primary
+        primaryContainerColor: '#2E4B45', // Darker, desaturated version
         onPrimaryContainerColor: '#A7C7C1', // Muted light green text
         secondaryContainerColor: '#4E5A60', // Darker version of secondary
         onSecondaryContainerColor: '#B8C2C8', // Muted light grey-blue text
         tertiaryColor: '#8B4513', // Saddle Brown (wet bark/earth)
-        onTertiaryContainerColor:
-            '#EFEBE9', // Text on tertiaryContainerColor (should be onTertiaryColor)
-        tertiaryContainerColor:
-            '#6D4C41', // Text on tertiaryColor (this should be onTertiaryColor)
+        onTertiaryContainerColor: '#EFEBE9', // Text on tertiaryContainerColor
+        tertiaryContainerColor: '#6D4C41', // Text on tertiaryColor
         outlineColor: '#546E7A', // Blue Grey for outlines
         shadowColor: '#000000',
-        surfaceVariantColor:
-            '#455A64', // Another Blue Grey variant (e.g., for less prominent cards)
+        surfaceVariantColor: '#455A64', // Another Blue Grey variant
         onSurfaceVariantColor: '#CFD8DC', // Light Blue Grey text
         disabledColor: '#607D8B', // Muted Blue Grey
         hintColor: '#90A4AE', // Lighter Muted Blue Grey
-        enableGradients:
-            false, // Optional: true for misty effect with appropriate gradient colors
+        enableGradients: false, // Optional: true for misty effect
       ),
     };
 
