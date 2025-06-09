@@ -328,7 +328,7 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            //color: Colors.grey.shade100,
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(10),
               bottomRight: Radius.circular(10),

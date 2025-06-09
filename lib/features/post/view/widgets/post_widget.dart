@@ -115,7 +115,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         margin: EdgeInsets.symmetric(
             vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -592,7 +592,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       padding: const EdgeInsets.symmetric(vertical: 0),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: theme.dividerColor.withOpacity(0.1), width: 1),
+          top: BorderSide(color: theme.dividerColor.withOpacity(0.3), width: 1),
         ),
       ),
       child: Row(
@@ -684,17 +684,20 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     ThemeData? theme,
     required VoidCallback? onPressed,
   }) {
+    final effectiveTheme = theme ?? Theme.of(context);
+    final Color defaultIconTextColor =
+        color ?? effectiveTheme.colorScheme.onSurfaceVariant;
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(
         icon,
         size: 18,
-        color: color ?? theme?.buttonTheme.colorScheme?.primary,
+        color: defaultIconTextColor,
       ),
       label: Text(
         count,
         style: TextStyle(
-          color: color ?? theme?.buttonTheme.colorScheme?.primary,
+          color: defaultIconTextColor,
           fontWeight: FontWeight.w500,
         ),
       ),
