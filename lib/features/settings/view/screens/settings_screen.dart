@@ -223,6 +223,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         },
                       ),
                       ListTile(
+                        leading: const Icon(Icons.palette),
+                        title: const Text('Customize Appearance'),
+                        subtitle: const Text('Personalize your app experience'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          context.push('/customization');
+                        },
+                      ),
+                      ListTile(
                         leading: const Icon(Icons.visibility),
                         title: const Text('Privacy'),
                         subtitle:

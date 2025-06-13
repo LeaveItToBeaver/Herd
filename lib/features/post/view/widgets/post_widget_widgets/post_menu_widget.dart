@@ -55,7 +55,11 @@ class PostMenuWidget extends ConsumerWidget {
     }
 
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
+      icon: Icon(
+        Icons.more_vert,
+        size: 20,
+        //color: Colors.grey.shade700
+      ),
       offset: const Offset(0, 36),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: (value) {
@@ -130,8 +134,11 @@ class PostMenuWidget extends ConsumerWidget {
                       value: 'unpin_herd',
                       child: Row(
                         children: [
-                          Icon(Icons.push_pin_outlined,
-                              size: 20, color: Colors.orange),
+                          Icon(
+                            Icons.push_pin_outlined,
+                            size: 20,
+                            //color: Colors.orange
+                          ),
                           SizedBox(width: 8),
                           Text('Unpin from herd'),
                         ],
@@ -170,8 +177,11 @@ class PostMenuWidget extends ConsumerWidget {
                         value: 'unpin_alt_profile',
                         child: Row(
                           children: [
-                            Icon(Icons.push_pin_outlined,
-                                size: 20, color: Colors.orange),
+                            Icon(
+                              Icons.push_pin_outlined,
+                              size: 20,
+                              //color: Colors.orange
+                            ),
                             SizedBox(width: 8),
                             Text('Unpin from alt profile'),
                           ],
@@ -184,8 +194,11 @@ class PostMenuWidget extends ConsumerWidget {
                         value: 'unpin_profile',
                         child: Row(
                           children: [
-                            Icon(Icons.push_pin_outlined,
-                                size: 20, color: Colors.orange),
+                            Icon(
+                              Icons.push_pin_outlined,
+                              size: 20,
+                              //color: Colors.orange
+                            ),
                             SizedBox(width: 8),
                             Text('Unpin from profile'),
                           ],
