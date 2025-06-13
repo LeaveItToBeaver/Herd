@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/features/auth/view/screens/email_verification_screen.dart';
+import 'package:herdapp/features/customization/view/screens/ui_customization_screen.dart';
 import 'package:herdapp/features/settings/notifications/view/screens/notification_settings_screen.dart';
 
 import '../../features/auth/view/screens/reset_password_screen.dart';
@@ -215,6 +216,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return SettingsScreen();
         },
+      ),
+      GoRoute(
+        path: '/customization',
+        name: 'customization',
+        builder: (context, state) => const UICustomizationScreen(),
       ),
 
       // Comment Thread Route

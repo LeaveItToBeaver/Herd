@@ -40,7 +40,7 @@ class GlobalOverlayManager extends StatelessWidget {
     // We'll stack the navigation on top of content instead
 
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: Theme.of(context).colorScheme.primary,
       child: Material(
         type: MaterialType.transparency,
         child: Stack(

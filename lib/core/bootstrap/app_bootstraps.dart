@@ -252,7 +252,12 @@ class AppBootstrap {
       debugPrint('🚀 Starting app initialization...');
 
       // Initialize shared preferences
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences
+          .getInstance(); // This doesn't do anything... Yet
+      // SharedPreferences is used for caching and settings, so we initialize it
+      // but we don't need to store anything immediately.
+      // This is just to ensure it's ready for use later
+      // when needed.
       debugPrint('✅ Shared preferences initialized');
 
       // Initialize media cache with better error handling

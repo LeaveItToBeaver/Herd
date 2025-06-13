@@ -64,7 +64,7 @@ class HerdHeaderWidget extends ConsumerWidget {
                       herd.name, // No h/ prefix
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
+                        //color: Colors.blue.shade700,
                         fontSize: isCompact ? 14 : 16,
                       ),
                       maxLines: 1,
@@ -102,7 +102,7 @@ class HerdHeaderWidget extends ConsumerWidget {
                     child: Text(
                       'Posted by $displayName',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        //color: Colors.grey.shade600,
                         fontSize: isCompact ? 11 : 12,
                       ),
                       maxLines: 1,
@@ -115,7 +115,7 @@ class HerdHeaderWidget extends ConsumerWidget {
               Text(
                 formattedTimestamp,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  //color: Colors.grey.shade600,
                   fontSize: isCompact ? 11 : 12,
                 ),
               ),
