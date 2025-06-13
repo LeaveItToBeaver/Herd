@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
@@ -14,20 +11,15 @@ import 'package:herdapp/features/post/view/widgets/post_widget_widgets/nsfw_hidd
 import 'package:herdapp/features/post/view/widgets/post_widget_widgets/nsfw_overlay_widget.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget_widgets/post_menu_widget.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget_widgets/type_indicator_widget.dart';
-import 'package:herdapp/features/rich_text_editing/view/widgets/quill_viewer_widget.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../create_post/create_post_controller.dart';
-import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/view/providers/current_user_provider.dart';
-import '../../../user/view/providers/user_provider.dart';
-import '../../../user/view/widgets/user_profile_image.dart';
 import '../../data/models/post_media_model.dart';
 import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../providers/state/post_interaction_state.dart';
-import 'media_carousel_widget.dart';
 
 class PostWidget extends ConsumerStatefulWidget {
   final PostModel post;
@@ -123,7 +115,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         margin: EdgeInsets.symmetric(
             vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -314,7 +306,11 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           ],
         ),
         const Spacer(),
-        const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+        const Icon(
+          Icons.more_vert,
+          size: 20,
+          //color: Colors.grey
+        ),
       ],
     );
   }
@@ -381,7 +377,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             content: Text(isAlt
                 ? 'Post unpinned from alt profile'
                 : 'Post unpinned from profile'),
-            backgroundColor: Colors.orange,
+            //backgroundColor: Colors.orange,
           ),
         );
       }
@@ -442,7 +438,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Post unpinned from herd'),
-            backgroundColor: Colors.orange,
+            //backgroundColor: Colors.orange,
           ),
         );
       }
@@ -596,7 +592,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       padding: const EdgeInsets.symmetric(vertical: 0),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: theme.dividerColor.withOpacity(0.1), width: 1),
+          top: BorderSide(color: theme.dividerColor.withOpacity(0.3), width: 1),
         ),
       ),
       child: Row(
@@ -688,17 +684,20 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     ThemeData? theme,
     required VoidCallback? onPressed,
   }) {
+    final effectiveTheme = theme ?? Theme.of(context);
+    final Color defaultIconTextColor =
+        color ?? effectiveTheme.colorScheme.onSurfaceVariant;
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(
         icon,
         size: 18,
-        color: color ?? theme?.buttonTheme.colorScheme?.primary,
+        color: defaultIconTextColor,
       ),
       label: Text(
         count,
         style: TextStyle(
-          color: color ?? theme?.buttonTheme.colorScheme?.primary,
+          color: defaultIconTextColor,
           fontWeight: FontWeight.w500,
         ),
       ),
