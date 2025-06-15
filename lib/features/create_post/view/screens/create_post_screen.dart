@@ -53,6 +53,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   late quill.QuillController _contentController;
   late FocusNode _editorFocusNode;
   late ScrollController _editorScrollController;
+  final List<String> _postTags = [];
 
   @override
   void initState() {
@@ -70,6 +71,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     _editorFocusNode = FocusNode();
     _editorScrollController = ScrollController();
+
+    _contentController.addListener(_extractTagsFromContent);
+
 
     // If we have a herdId, fetch the herd name
     if (_selectedHerdId != null) {
@@ -147,6 +151,32 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         print('Error fetching herd name: $e');
       }
     }
+  }
+
+  void _extractTagsFromContent() {
+    if (!mounted) return;
+
+    final String text = _contentController.document.toPlainText();
+    final RegExp tagRegExp = RegExp(r'#(\w+)');
+
+    final List<String> currentTags = [];
+    tagRegExp.allMatches(text).forEach((match) {
+      final tag = match.group(1);
+      if (tag != null && tag.isNotEmpty) {
+        currentTags.add(tag.toLowerCase());
+      }
+    });
+
+    print('検出されたタグ: ${currentTags.join(', ')}');
+
+        // 現在のタグリストと抽出したタグリストを比較し、_postTagsを更新
+    // 重複を排除し、新しいタグのみを追加
+    _safeSetState(() {
+      _postTags
+        ..clear() // 一度クリアして再構築するか、差分更新するかは要検討。シンプルにクリア。
+        ..addAll(currentTags.toSet().toList()); // Setで重複排除後、Listに戻す
+      _checkContentEntered(); // コンテンツ変更を通知
+    });
   }
 
   @override
@@ -881,6 +911,37 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
           const SizedBox(height: 8),
 
+          // filterd tags
+        if (_postTags.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Align( // Chipが左揃えになるようにAlignを追加
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: _postTags.map((tag) {
+                  return Chip(
+                    label: Text('#$tag'), // # を付けて表示
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    labelStyle: TextStyle(color: Colors.blue[700]),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      // Quillエディタからタグを削除するロジックは複雑になるため、
+                      // ここではChipをタップしてもQuillエディタのテキストは変更しない。
+                      // 必要であれば、Quillドキュメントを直接編集するロジックを実装する。
+                      // 現状は表示から消すだけで、Quillエディタのテキストは残る。
+                      _safeSetState(() {
+                        _postTags.remove(tag);
+                      });
+                      _showErrorSnackBar(context, 'Please remove the tag from the editor.'); // ユーザーに通知
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
           // Media picker
           if (_hasMedia) _mediaPicker(context),
 
@@ -1008,6 +1069,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             herdName: _selectedHerdName ?? '',
             herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
             mentions: mentionIds, // Pass the extracted mentions
+            tags: _postTags,
           );
 
       // SUCCESS: Immediately navigate without any UI operations
@@ -1177,6 +1239,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         isAlt: _isAlt,
         herdId: _selectedHerdId,
         herdName: _selectedHerdName,
+        tags: _postTags,
       ),
     );
 
