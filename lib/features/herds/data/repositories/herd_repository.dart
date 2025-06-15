@@ -818,4 +818,169 @@ class HerdRepository {
       }
     }
   }
+
+  Future<void> pinPostToHerd(
+      String herdId, String postId, String userId) async {
+    try {
+      // Check if user is a moderator of the herd
+      final isModerator = await isHerdModerator(herdId, userId);
+      if (!isModerator) {
+        throw Exception('Only moderators can pin posts in this herd');
+      }
+
+      // Get current herd data
+      final herd = await getHerd(herdId);
+      if (herd == null) {
+        throw Exception('Herd not found');
+      }
+
+      // Check if post is already pinned
+      if (herd.pinnedPosts.contains(postId)) {
+        throw Exception('Post is already pinned');
+      }
+
+      // Check if herd can pin more posts (max 5)
+      if (herd.pinnedPosts.length >= 5) {
+        throw Exception('Maximum number of pinned posts reached (5)');
+      }
+
+      // Verify the post exists in this herd
+      final postDoc = await herdPosts(herdId).doc(postId).get();
+      if (!postDoc.exists) {
+        throw Exception('Post not found in this herd');
+      }
+
+      // Add the post to pinned list
+      final updatedPinned = [...herd.pinnedPosts, postId];
+
+      await _herds.doc(herdId).update({
+        'pinnedPosts': updatedPinned,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update the post document to mark it as pinned to herd
+      await _updateHerdPostPinStatus(herdId, postId, isPinned: true);
+    } catch (e, stackTrace) {
+      logError('pinPostToHerd', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> unpinPostFromHerd(
+      String herdId, String postId, String userId) async {
+    try {
+      // Check if user is a moderator of the herd
+      final isModerator = await isHerdModerator(herdId, userId);
+      if (!isModerator) {
+        throw Exception('Only moderators can unpin posts in this herd');
+      }
+
+      // Get current herd data
+      final herd = await getHerd(herdId);
+      if (herd == null) {
+        throw Exception('Herd not found');
+      }
+
+      // Check if post is actually pinned
+      if (!herd.pinnedPosts.contains(postId)) {
+        throw Exception('Post is not pinned');
+      }
+
+      // Remove the post from pinned list
+      final updatedPinned =
+          herd.pinnedPosts.where((id) => id != postId).toList();
+
+      await _herds.doc(herdId).update({
+        'pinnedPosts': updatedPinned,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update the post document to mark it as unpinned from herd
+      await _updateHerdPostPinStatus(herdId, postId, isPinned: false);
+    } catch (e, stackTrace) {
+      logError('unpinPostFromHerd', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Get pinned posts for a herd
+  Future<List<String>> getHerdPinnedPosts(String herdId) async {
+    try {
+      final herd = await getHerd(herdId);
+      return herd?.pinnedPosts ?? [];
+    } catch (e, stackTrace) {
+      logError('getHerdPinnedPosts', e, stackTrace);
+      return [];
+    }
+  }
+
+  /// Check if a post is pinned to a herd
+  Future<bool> isPostPinnedToHerd(String herdId, String postId) async {
+    try {
+      final pinnedPosts = await getHerdPinnedPosts(herdId);
+      return pinnedPosts.contains(postId);
+    } catch (e, stackTrace) {
+      logError('isPostPinnedToHerd', e, stackTrace);
+      return false;
+    }
+  }
+
+  /// Fetch pinned posts data for a herd
+  Future<List<PostModel>> fetchHerdPinnedPosts(String herdId) async {
+    try {
+      final pinnedPostIds = await getHerdPinnedPosts(herdId);
+      if (pinnedPostIds.isEmpty) return [];
+
+      List<PostModel> pinnedPosts = [];
+
+      // Fetch each pinned post
+      for (final postId in pinnedPostIds) {
+        try {
+          final postDoc = await herdPosts(herdId).doc(postId).get();
+          if (postDoc.exists) {
+            final post = PostModel.fromMap(postDoc.id, postDoc.data()!);
+            pinnedPosts.add(post);
+          }
+        } catch (e) {
+          debugPrint('Error fetching pinned post $postId: $e');
+          // Continue with other posts
+        }
+      }
+
+      // Sort by pinned date (most recently pinned first)
+      pinnedPosts.sort((a, b) {
+        if (a.pinnedAt == null && b.pinnedAt == null) return 0;
+        if (a.pinnedAt == null) return 1;
+        if (b.pinnedAt == null) return -1;
+        return b.pinnedAt!.compareTo(a.pinnedAt!);
+      });
+
+      return pinnedPosts;
+    } catch (e, stackTrace) {
+      logError('fetchHerdPinnedPosts', e, stackTrace);
+      return [];
+    }
+  }
+
+  /// Helper method to update post pin status in herd post
+  Future<void> _updateHerdPostPinStatus(String herdId, String postId,
+      {required bool isPinned}) async {
+    try {
+      final updateData = <String, dynamic>{
+        'isPinnedToHerd': isPinned,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (isPinned) {
+        updateData['pinnedAt'] = FieldValue.serverTimestamp();
+      } else {
+        updateData['pinnedAt'] = null;
+      }
+
+      await herdPosts(herdId).doc(postId).update(updateData);
+    } catch (e) {
+      debugPrint('Error updating herd post pin status: $e');
+      // Don't rethrow here as this is a secondary update
+    }
+  }
 }

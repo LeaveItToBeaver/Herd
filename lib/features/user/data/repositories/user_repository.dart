@@ -719,4 +719,145 @@ class UserRepository {
 
     return doc.exists;
   }
+
+  Future<void> pinPostToProfile(String userId, String postId,
+      {bool isAlt = false}) async {
+    try {
+      final user = await getUserById(userId);
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      final currentPinnedPosts = isAlt ? user.altPinnedPosts : user.pinnedPosts;
+      if (currentPinnedPosts.contains(postId)) {
+        // Post is already pinned, do nothing
+        return;
+      }
+
+      if (currentPinnedPosts.contains(postId)) {
+        // If already pinned, remove it first
+        await _users.doc(userId).update({
+          isAlt ? 'altPinnedPosts' : 'pinnedPosts':
+              FieldValue.arrayRemove([postId]),
+        });
+      }
+
+      if (currentPinnedPosts.length >= 5) {
+        throw Exception('Maximum number of pinned posts reached (5)');
+      }
+
+      final updatePinned = [...currentPinnedPosts, postId];
+
+      final updatedPinned = isAlt
+          ? {'altPinnedPosts': updatePinned}
+          : {'pinnedPosts': updatePinned};
+
+      await updateUser(userId, updatedPinned);
+
+      // Update the post document to mark it as pinned
+      await _updatePostPinStatus(postId,
+          isAlt: isAlt, isPinned: true, userId: userId);
+    } catch (e) {
+      debugPrint('Error pinning post to profile: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _updatePostPinStatus(String postId,
+      {required bool isAlt,
+      required bool isPinned,
+      required String userId}) async {
+    try {
+      // Determine which collection to update
+      CollectionReference collection;
+      if (isAlt) {
+        collection = _firestore.collection('altPosts');
+      } else {
+        collection = _firestore.collection('posts');
+      }
+
+      // Update the post document
+      final updateData = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (isAlt) {
+        updateData['isPinnedToAltProfile'] = isPinned;
+      } else {
+        updateData['isPinnedToProfile'] = isPinned;
+      }
+
+      if (isPinned) {
+        updateData['pinnedAt'] = FieldValue.serverTimestamp();
+      } else {
+        updateData['pinnedAt'] = null;
+      }
+
+      await collection.doc(postId).update(updateData);
+    } catch (e) {
+      debugPrint('Error updating post pin status: $e');
+      // Don't rethrow here as this is a secondary update
+    }
+  }
+
+  Future<void> unpinPostFromProfile(String userId, String postId,
+      {bool isAlt = false}) async {
+    try {
+      // Get current user data
+      final user = await getUserById(userId);
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      final currentPinned = isAlt ? user.altPinnedPosts : user.pinnedPosts;
+
+      // Check if post is actually pinned
+      if (!currentPinned.contains(postId)) {
+        throw Exception('Post is not pinned');
+      }
+
+      // Remove the post from pinned list
+      final updatedPinned = currentPinned.where((id) => id != postId).toList();
+
+      // Update user document
+      final updateData = isAlt
+          ? {'altPinnedPosts': updatedPinned}
+          : {'pinnedPosts': updatedPinned};
+
+      await updateUser(userId, updateData);
+
+      // Update the post document to mark it as unpinned
+      await _updatePostPinStatus(postId,
+          isAlt: isAlt, isPinned: false, userId: userId);
+    } catch (e) {
+      debugPrint('Error unpinning post from profile: $e');
+      rethrow;
+    }
+  }
+
+  /// Get pinned posts for a user profile
+  Future<List<String>> getPinnedPosts(String userId,
+      {bool isAlt = false}) async {
+    try {
+      final user = await getUserById(userId);
+      if (user == null) return [];
+
+      return isAlt ? user.altPinnedPosts : user.pinnedPosts;
+    } catch (e) {
+      debugPrint('Error getting pinned posts: $e');
+      return [];
+    }
+  }
+
+  /// Check if a post is pinned to a user's profile
+  Future<bool> isPostPinnedToProfile(String userId, String postId,
+      {bool isAlt = false}) async {
+    try {
+      final pinnedPosts = await getPinnedPosts(userId, isAlt: isAlt);
+      return pinnedPosts.contains(postId);
+    } catch (e) {
+      debugPrint('Error checking if post is pinned: $e');
+      return false;
+    }
+  }
 }

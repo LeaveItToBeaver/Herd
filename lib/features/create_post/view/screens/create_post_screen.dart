@@ -53,6 +53,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   late quill.QuillController _contentController;
   late FocusNode _editorFocusNode;
   late ScrollController _editorScrollController;
+  final List<String> _postTags = [];
 
   @override
   void initState() {
@@ -70,6 +71,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     _editorFocusNode = FocusNode();
     _editorScrollController = ScrollController();
+
+    _contentController.addListener(_extractTagsFromContent);
+
 
     // If we have a herdId, fetch the herd name
     if (_selectedHerdId != null) {
@@ -149,6 +153,32 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     }
   }
 
+  void _extractTagsFromContent() {
+    if (!mounted) return;
+
+    final String text = _contentController.document.toPlainText();
+    final RegExp tagRegExp = RegExp(r'#(\w+)');
+
+    final List<String> currentTags = [];
+    tagRegExp.allMatches(text).forEach((match) {
+      final tag = match.group(1);
+      if (tag != null && tag.isNotEmpty) {
+        currentTags.add(tag.toLowerCase());
+      }
+    });
+
+    print('検出されたタグ: ${currentTags.join(', ')}');
+
+        // 現在のタグリストと抽出したタグリストを比較し、_postTagsを更新
+    // 重複を排除し、新しいタグのみを追加
+    _safeSetState(() {
+      _postTags
+        ..clear() // 一度クリアして再構築するか、差分更新するかは要検討。シンプルにクリア。
+        ..addAll(currentTags.toSet().toList()); // Setで重複排除後、Listに戻す
+      _checkContentEntered(); // コンテンツ変更を通知
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final postState = ref.watch(postControllerProvider);
@@ -176,7 +206,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            //backgroundColor: Colors.white,
             title: Text("Create A Post"),
             actions: [
               if (_isSubmitting)
@@ -234,7 +264,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.primary,
                 width: 1,
               ),
             ),
@@ -407,7 +437,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.primary,
                 width: 1,
               ),
             ),
@@ -445,7 +475,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                   ? Colors.red
                                   : _isAlt
                                       ? Colors.blue
-                                      : Colors.black,
+                                      : Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       child: Row(
@@ -480,11 +510,26 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                             ? Colors.red
                                             : _isAlt
                                                 ? Colors.blue
-                                                : Colors.grey,
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                               ),
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: _selectedHerdId != null
+                                ? Colors.blue
+                                : _isNSFW && _isAlt
+                                    ? Colors.purple
+                                    : _isNSFW && !_isAlt
+                                        ? Colors.red
+                                        : _isAlt
+                                            ? Colors.blue
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                          ),
                         ],
                       ),
                     ),
@@ -508,11 +553,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: ElevatedButton.icon(
               icon: Icon(
                 Icons.send,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
               label: Text(
                 _isAlt ? 'Create Alt Post' : 'Create Post',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isNSFW && _isAlt
@@ -521,7 +568,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.inversePrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -623,7 +670,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Colors.grey,
+                            : Theme.of(context).colorScheme.primary,
               ),
             ),
             child: _mediaFiles.isNotEmpty
@@ -652,7 +699,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                                   ? Colors.red
                                   : _isAlt
                                       ? Colors.blue
-                                      : Colors.black54,
+                                      : Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -741,7 +788,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       ? Colors.red
                       : _isAlt
                           ? Colors.blue
-                          : Colors.grey,
+                          : Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -805,7 +852,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -825,7 +872,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ? Colors.red
             : _isAlt
                 ? Colors.blue
-                : Colors.grey;
+                : Theme.of(context).colorScheme.primary;
 
     return Form(
       key: _formKey,
@@ -836,39 +883,37 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             enabled: !_isSubmitting,
             decoration: InputDecoration(
               labelText: 'Title',
+              // Set the default border
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                    color: _isNSFW && _isAlt
-                        ? Colors.purple
-                        : _isNSFW && !_isAlt
-                            ? Colors.red
-                            : _isAlt
-                                ? Colors.blue
-                                : Colors.black),
+                borderSide: BorderSide(color: borderColor),
               ),
+              // Set the border when field is enabled but not focused
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: borderColor),
+              ),
+              // Set the border when field is focused
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _isNSFW && _isAlt
-                      ? Colors.purple
-                      : _isNSFW && !_isAlt
-                          ? Colors.red
-                          : _isAlt
-                              ? Colors.blue
-                              : Colors.grey,
+                  color: borderColor,
                   width: 2,
                 ),
               ),
+              // Set the border when field has an error
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.red),
+              ),
+              // Set the border when field has an error and is focused
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.red, width: 2),
+              ),
               prefixIcon: Icon(
                 Icons.title,
-                color: _isNSFW && _isAlt
-                    ? Colors.purple
-                    : _isNSFW && !_isAlt
-                        ? Colors.red
-                        : _isAlt
-                            ? Colors.blue
-                            : Colors.grey,
+                color: borderColor,
               ),
             ),
             onChanged: (value) {
@@ -880,6 +925,37 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 : null,
           ),
           const SizedBox(height: 8),
+
+          // filterd tags
+        if (_postTags.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Align( // Chipが左揃えになるようにAlignを追加
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: _postTags.map((tag) {
+                  return Chip(
+                    label: Text('#$tag'), // # を付けて表示
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    labelStyle: TextStyle(color: Colors.blue[700]),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      // Quillエディタからタグを削除するロジックは複雑になるため、
+                      // ここではChipをタップしてもQuillエディタのテキストは変更しない。
+                      // 必要であれば、Quillドキュメントを直接編集するロジックを実装する。
+                      // 現状は表示から消すだけで、Quillエディタのテキストは残る。
+                      _safeSetState(() {
+                        _postTags.remove(tag);
+                      });
+                      _showErrorSnackBar(context, 'Please remove the tag from the editor.'); // ユーザーに通知
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
 
           // Media picker
           if (_hasMedia) _mediaPicker(context),
@@ -923,8 +999,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       padding: EdgeInsets.zero,
                       autoFocus: false,
                       expands: false,
-                      placeholder:
-                          'What\'s on your mind? Use @ to mention someone',
+                      placeholder: 'What\'s on your mind?',
                       scrollBottomInset: 60,
                       embedBuilders: [
                         MentionEmbedBuilder(), // Keep this here too
@@ -935,7 +1010,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  //color: Colors.grey.shade100,
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(10),
                     bottomRight: Radius.circular(10),
@@ -1008,6 +1083,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             herdName: _selectedHerdName ?? '',
             herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
             mentions: mentionIds, // Pass the extracted mentions
+            tags: _postTags,
           );
 
       // SUCCESS: Immediately navigate without any UI operations
@@ -1177,6 +1253,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         isAlt: _isAlt,
         herdId: _selectedHerdId,
         herdName: _selectedHerdName,
+        tags: _postTags,
       ),
     );
 
