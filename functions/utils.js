@@ -13,7 +13,7 @@ const hotAlgorithm = {
             const timeSinceCreation = Math.max(1, (Date.now() - createdAt.getTime()) / 1000);
             const hoursOld = timeSinceCreation / 3600;
 
-            // UPDATED: Return 0 for posts older than 7 days (168 hours)
+            // Return 0 for posts older than 7 days (168 hours)
             if (hoursOld > 168) {
                 return 0;
             }

@@ -269,12 +269,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
             body: TabBarView(
               controller: _tabController,
               children: [
-                // Posts tab
-                PostsTabView(
-                  posts: filteredPosts,
-                  profile: profile,
-                  userId: widget.userId,
-                ),
+                // Posts tab with pinned posts
+                _buildPostsTabWithPinnedPosts(filteredPosts, profile),
                 // About tab
                 SingleChildScrollView(
                   child: _buildAboutSection(profile),
@@ -287,83 +283,14 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
     );
   }
 
-  Widget _buildPostsTab(List<PostModel> posts, ProfileState profile) {
-    if (posts.isEmpty) {
-      // Empty state with a scrollable list for refresh indicator
-      return RefreshIndicator(
-        onRefresh: () async {
-          await ref
-              .read(profileControllerProvider.notifier)
-              .loadProfile(widget.userId, isAltView: false);
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.post_add,
-                      size: 64, color: Colors.grey.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  Text('No posts yet',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  if (profile.isCurrentUser) ...[
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create Post'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        context.pushNamed('create');
-                      },
-                    )
-                  ]
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // For the list state, wrap CustomScrollView with local RefreshIndicator
-      return RefreshIndicator(
-        onRefresh: () async {
-          await ref
-              .read(profileControllerProvider.notifier)
-              .loadProfile(widget.userId, isAltView: false);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverList.builder(
-              itemCount: posts.length + (profile.isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (profile.isLoading && index == posts.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                return PostWidget(
-                  post: posts[index],
-                  isCompact: true,
-                );
-              },
-            ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 20),
-            ),
-          ],
-        ),
-      );
-    }
+  Widget _buildPostsTabWithPinnedPosts(
+      List<PostModel> posts, ProfileState profile) {
+    return PostsTabView(
+      posts: posts,
+      profile: profile,
+      userId: widget.userId,
+      isAltView: false, // This is the public profile
+    );
   }
 
   Widget _buildStatColumn(
@@ -513,14 +440,18 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final theme = Theme.of(context);
+    // Ensure currentThemeProvider sets scaffoldBackgroundColor from AppThemeSettings.backgroundColor
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: theme.scaffoldBackgroundColor,
       child: _tabBar,
     );
   }
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
+    return oldDelegate._tabBar != _tabBar ||
+        oldDelegate.minExtent != minExtent ||
+        oldDelegate.maxExtent != maxExtent;
   }
 }
