@@ -605,7 +605,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
           Text(
             'An error occurred: $error',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
+            style: TextStyle(color: Colors.black12, fontSize: 16),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
