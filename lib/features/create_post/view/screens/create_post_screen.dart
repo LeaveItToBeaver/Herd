@@ -74,7 +74,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     _contentController.addListener(_extractTagsFromContent);
 
-
     // If we have a herdId, fetch the herd name
     if (_selectedHerdId != null) {
       _fetchHerdInfo();
@@ -169,7 +168,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     print('検出されたタグ: ${currentTags.join(', ')}');
 
-        // 現在のタグリストと抽出したタグリストを比較し、_postTagsを更新
+    // 現在のタグリストと抽出したタグリストを比較し、_postTagsを更新
     // 重複を排除し、新しいタグのみを追加
     _safeSetState(() {
       _postTags
@@ -553,12 +552,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: ElevatedButton.icon(
               icon: Icon(
                 Icons.send,
-                color: Theme.of(context).colorScheme.onPrimary,
+                //color: Theme.of(context).colorScheme.onPrimary,
               ),
               label: Text(
                 _isAlt ? 'Create Alt Post' : 'Create Post',
                 style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    //color: Theme.of(context).colorScheme.onPrimaryContainer,
                     fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
@@ -927,35 +926,38 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           const SizedBox(height: 8),
 
           // filterd tags
-        if (_postTags.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Align( // Chipが左揃えになるようにAlignを追加
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 8.0,
-                runSpacing: 4.0,
-                children: _postTags.map((tag) {
-                  return Chip(
-                    label: Text('#$tag'), // # を付けて表示
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    labelStyle: TextStyle(color: Colors.blue[700]),
-                    deleteIcon: const Icon(Icons.close, size: 18),
-                    onDeleted: () {
-                      // Quillエディタからタグを削除するロジックは複雑になるため、
-                      // ここではChipをタップしてもQuillエディタのテキストは変更しない。
-                      // 必要であれば、Quillドキュメントを直接編集するロジックを実装する。
-                      // 現状は表示から消すだけで、Quillエディタのテキストは残る。
-                      _safeSetState(() {
-                        _postTags.remove(tag);
-                      });
-                      _showErrorSnackBar(context, 'Please remove the tag from the editor.'); // ユーザーに通知
-                    },
-                  );
-                }).toList(),
+          if (_postTags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Align(
+                // Chipが左揃えになるようにAlignを追加
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8.0,
+                  runSpacing: 4.0,
+                  children: _postTags.map((tag) {
+                    return Chip(
+                      label: Text('#$tag'), // # を付けて表示
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      labelStyle: TextStyle(color: Colors.blue[700]),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      onDeleted: () {
+                        // Quillエディタからタグを削除するロジックは複雑になるため、
+                        // ここではChipをタップしてもQuillエディタのテキストは変更しない。
+                        // 必要であれば、Quillドキュメントを直接編集するロジックを実装する。
+                        // 現状は表示から消すだけで、Quillエディタのテキストは残る。
+                        _safeSetState(() {
+                          _postTags.remove(tag);
+                        });
+
+                        // We might not have to notify the user here.
+                        //_showErrorSnackBar(context, 'Please remove the tag from the editor.'); // ユーザーに通知
+                      },
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
 
           // Media picker
           if (_hasMedia) _mediaPicker(context),
