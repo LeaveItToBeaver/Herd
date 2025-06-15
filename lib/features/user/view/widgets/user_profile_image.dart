@@ -28,13 +28,13 @@ class UserProfileImage extends ConsumerWidget {
       child: isLoading
           ? const CircularProgressIndicator()
           : (profileImage == null &&
-          (profileImageUrl == null || profileImageUrl!.isEmpty))
-          ? Icon(
-        Icons.account_circle_outlined,
-        color: Colors.grey[400],
-        size: radius * 2,
-      )
-          : null,
+                  (profileImageUrl == null || profileImageUrl!.isEmpty))
+              ? Icon(
+                  Icons.account_circle_outlined,
+                  color: Colors.grey[400],
+                  size: radius * 2,
+                )
+              : null,
     );
   }
 
@@ -42,6 +42,9 @@ class UserProfileImage extends ConsumerWidget {
     if (profileImage != null) {
       return FileImage(profileImage!);
     } else if (profileImageUrl != null && profileImageUrl!.isNotEmpty) {
+      if (profileImageUrl!.toLowerCase().endsWith('.gif')) {
+        return NetworkImage(profileImageUrl!);
+      }
       return CachedNetworkImageProvider(profileImageUrl!);
     }
     return null;

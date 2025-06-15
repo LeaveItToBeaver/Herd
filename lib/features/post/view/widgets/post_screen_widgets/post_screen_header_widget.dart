@@ -50,7 +50,7 @@ class PostAuthorHeader extends ConsumerWidget {
           // Show a simple loading indicator or a shimmer placeholder
           child: Row(
             children: [
-              CircleAvatar(radius: 25, backgroundColor: Colors.grey),
+              //CircleAvatar(radius: 25, backgroundColor: Colors.grey),
               SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +140,7 @@ class PostAuthorHeader extends ConsumerWidget {
                         // Use post's timestamp from 'post' object
                         _formatTimestamp(post.createdAt),
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          //color: Colors.grey.shade600,
                           fontSize: 12,
                         ),
                       ),

@@ -24,6 +24,7 @@ abstract class HerdModel with _$HerdModel {
     @Default(0) int postCount,
     @Default({}) Map<String, dynamic> customization,
     @Default(false) bool isPrivate,
+    @Default([]) List<String> pinnedPosts, // Pinned posts for this herd (max 5)
   }) = _HerdModel;
 
   // Factory constructor to convert from Firestore snapshot
@@ -44,6 +45,7 @@ abstract class HerdModel with _$HerdModel {
       postCount: map['postCount'] ?? 0,
       customization: Map<String, dynamic>.from(map['customization'] ?? {}),
       isPrivate: map['isPrivate'] ?? false,
+      pinnedPosts: List<String>.from(map['pinnedPosts'] ?? []),
     );
   }
 
@@ -77,6 +79,7 @@ abstract class HerdModel with _$HerdModel {
       'postCount': postCount,
       'customization': customization,
       'isPrivate': isPrivate,
+      'pinnedPosts': pinnedPosts,
     };
   }
 
@@ -88,5 +91,14 @@ abstract class HerdModel with _$HerdModel {
   // Check if a user is the creator
   bool isCreator(String userId) {
     return creatorId == userId;
+  }
+
+  // Pinned posts helper methods
+  bool canPinMorePosts() {
+    return pinnedPosts.length < 5; // Max 5 pinned posts
+  }
+
+  bool isPostPinned(String postId) {
+    return pinnedPosts.contains(postId);
   }
 }

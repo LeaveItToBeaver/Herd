@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/rendering.dart'; // Add this import for PaintingBinding
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
 import 'package:http/http.dart' as http;
@@ -37,7 +38,7 @@ class MediaCacheService {
 
   /// Initialize the cache service by creating necessary directories
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (kIsWeb || _initialized) return;
 
     try {
       // Get appropriate cache directory
@@ -85,6 +86,7 @@ class MediaCacheService {
   // 1. Add to MediaCacheService class
   Future<void> prefetchBatchedMediaItems(
       List<PostMediaModel> mediaItems) async {
+    if (kIsWeb) return;
     if (mediaItems.isEmpty) return;
 
     try {
@@ -157,6 +159,11 @@ class MediaCacheService {
 
 // 3. Add this method to MediaCacheService
   Future<Map<String, dynamic>> getCacheStats() async {
+    if (kIsWeb) {
+      return {
+        'error': 'Cache stats not available on web platform',
+      };
+    }
     try {
       if (!_initialized) await initialize();
 
@@ -216,6 +223,7 @@ class MediaCacheService {
   /// Check if a media item is cached and return the local file path if it is
   Future<String?> getCachedMediaPath(String url,
       {String mediaType = 'image'}) async {
+    if (kIsWeb) return null; // Caching not supported on web
     if (!_initialized) await initialize();
 
     try {
@@ -241,6 +249,7 @@ class MediaCacheService {
   /// Cache a media file from a URL
   Future<String?> cacheMediaFromUrl(String url,
       {String mediaType = 'image'}) async {
+    if (kIsWeb) return null; // Caching not supported on web
     if (!_initialized) await initialize();
 
     try {
@@ -289,6 +298,7 @@ class MediaCacheService {
 
   /// Load cache metadata from shared preferences
   Future<void> _loadCacheMetadata() async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -322,6 +332,7 @@ class MediaCacheService {
   /// Save cache metadata to shared preferences
   Future<void> _saveCacheMetadata(
       String cacheKey, String url, String mediaType, int fileSize) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -351,6 +362,7 @@ class MediaCacheService {
 
   /// Update last accessed time for cache entry
   Future<void> _updateLastAccessed(String cacheKey) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -380,6 +392,7 @@ class MediaCacheService {
 
   /// Clean up old cache entries if needed
   Future<void> _cleanupCacheIfNeeded({bool forceCleanup = false}) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       // Calculate current cache size
       int totalSize = 0;
@@ -452,6 +465,7 @@ class MediaCacheService {
 
   /// Delete all files associated with a cache key
   Future<void> _deleteFilesForCacheKey(String cacheKey) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       // Remove from memory cache
       _mediaMetadataCache.remove(cacheKey);
@@ -485,6 +499,7 @@ class MediaCacheService {
 
   /// Clear the entire cache
   Future<void> clearCache() async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       if (!_initialized) await initialize();
 

@@ -1,23 +1,21 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/post/data/repositories/post_repository.dart';
-import 'package:herdapp/features/user/data/repositories/user_repository.dart';
-import 'package:herdapp/features/user/view/providers/state/profile_state.dart';
+import 'package:herdapp/features/feed/data/repositories/feed_repository.dart';
 
-import '../auth/view/providers/auth_provider.dart';
-import '../feed/providers/feed_type_provider.dart';
+import '../../core/barrels/providers.dart';
 import '../post/data/models/post_model.dart';
-import '../post/view/providers/post_provider.dart';
 
-class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
+class ProfileController extends AsyncNotifier<ProfileState> {
   late final UserRepository _userRepository;
   late final PostRepository _postRepository;
+  late final FeedRepository _feedRepository;
   final int pageSize = 20;
 
   @override
   Future<ProfileState> build() async {
     _userRepository = ref.read(userRepositoryProvider);
     _postRepository = ref.read(postRepositoryProvider);
+    _feedRepository = ref.read(feedRepositoryProvider);
     return ProfileState.initial();
   }
 
@@ -70,17 +68,11 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
 
       // Fetch posts based on view type
       List<PostModel> posts;
-      if (useAltView) {
-        posts = await _postRepository.getFutureUserAltProfilePosts(
-          userId,
-          limit: pageSize,
-        );
-      } else {
-        posts = await _postRepository.getFutureUserPublicPosts(
-          userId,
-          limit: pageSize,
-        );
-      }
+      posts = await _feedRepository.getUserPosts(
+        userId: userId,
+        isAlt: useAltView,
+        limit: pageSize,
+      );
 
       // Check following status if not viewing own profile
       final isFollowing = currentUser != null && currentUser.uid != userId
@@ -123,11 +115,34 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
   }
 
   Future<void> loadMorePosts(String userId) async {
-    final currentState = state.value;
-    if (currentState == null ||
-        !currentState.hasMorePosts ||
+    debugPrint('🚀 loadMorePosts called for userId: $userId');
+    debugPrint('🔍 Current state type: ${state.runtimeType}');
+    debugPrint('🔍 Has value: ${state.hasValue}');
+    debugPrint('🔍 Has error: ${state.hasError}');
+    debugPrint('🔍 Is loading: ${state.isLoading}');
+
+    // Check if state has a value first
+    if (!state.hasValue) {
+      debugPrint('❌ Cannot load more posts - state has no value');
+      if (state.hasError) {
+        debugPrint('❌ State error: ${state.error}');
+      }
+      return;
+    }
+
+    final currentState = state.value!;
+
+    debugPrint('🔍 Current state details:');
+    debugPrint('   posts.length: ${currentState.posts.length}');
+    debugPrint('   hasMorePosts: ${currentState.hasMorePosts}');
+    debugPrint('   isLoading: ${currentState.isLoading}');
+    debugPrint('   lastPost: ${currentState.lastPost?.id}');
+    debugPrint('   isAltView: ${currentState.isAltView}');
+
+    if (!currentState.hasMorePosts ||
         currentState.isLoading ||
         currentState.lastPost == null) {
+      debugPrint('❌ Cannot load more posts - conditions not met');
       return;
     }
 
@@ -140,39 +155,45 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
       // Get pagination parameters
       final lastPost = currentState.lastPost!;
 
-      List<PostModel> morePosts;
-      if (currentState.isAltView) {
-        // For alt profile
-        morePosts = await _postRepository.getFutureUserAltProfilePosts(
-          userId,
-          limit: pageSize,
-          lastHotScore: lastPost.hotScore,
-          lastPostId: lastPost.id,
-        );
-      } else {
-        // For public profile
-        morePosts = await _postRepository.getFutureUserPublicPosts(
-          userId,
-          limit: pageSize,
-          lastHotScore: lastPost.hotScore,
-          lastPostId: lastPost.id,
-        );
-      }
+      debugPrint('📄 PAGINATION: Attempting to load more posts');
+      debugPrint('📄 PAGINATION: hasMorePosts=${currentState.hasMorePosts}');
+      debugPrint('📄 PAGINATION: lastPostId=${lastPost.id}');
+
+      List<PostModel> morePosts = await _feedRepository.getUserPosts(
+        userId: userId,
+        isAlt: currentState.isAltView,
+        limit: pageSize,
+        lastPost: lastPost,
+      );
+
+      debugPrint('📄 PAGINATION: Loaded ${morePosts.length} more posts');
+
+      // Check for duplicates
+      final existingIds = currentState.posts.map((p) => p.id).toSet();
+      final newPosts =
+          morePosts.where((p) => !existingIds.contains(p.id)).toList();
 
       // Combine with existing posts
-      final allPosts = [...currentState.posts, ...morePosts];
+      final allPosts = [...currentState.posts, ...newPosts];
+
+      debugPrint(
+          '📄 PAGINATION: Total posts: ${allPosts.length} (${newPosts.length} new)');
 
       state = AsyncValue.data(currentState.copyWith(
         posts: allPosts,
         isLoading: false,
         hasMorePosts: morePosts.length >= pageSize,
-        lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
+        lastPost: allPosts.isNotEmpty ? allPosts.last : lastPost,
       ));
-      await _batchInitializePostInteractions(currentUserId, allPosts);
+
+      await _batchInitializePostInteractions(currentUserId, newPosts);
     } catch (e) {
-      debugPrint("DEBUG: Error loading more posts: $e");
+      debugPrint("❌ Error loading more posts: $e");
       // Keep the current posts but set loading to false
-      state = AsyncValue.data(currentState.copyWith(isLoading: false));
+      if (state.hasValue) {
+        final currentState = state.value!;
+        state = AsyncValue.data(currentState.copyWith(isLoading: false));
+      }
     }
   }
 
@@ -242,8 +263,3 @@ class ProfileController extends AutoDisposeAsyncNotifier<ProfileState> {
     }
   }
 }
-
-final profileControllerProvider =
-    AutoDisposeAsyncNotifierProvider<ProfileController, ProfileState>(
-  () => ProfileController(),
-);
