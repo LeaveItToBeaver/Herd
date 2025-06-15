@@ -30,6 +30,7 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
   int get postCount;
   Map<String, dynamic> get customization;
   bool get isPrivate;
+  List<String> get pinnedPosts;
 
   /// Create a copy of HerdModel
   /// with the given fields replaced by the non-null parameter values.
@@ -56,7 +57,8 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('memberCount', memberCount))
       ..add(DiagnosticsProperty('postCount', postCount))
       ..add(DiagnosticsProperty('customization', customization))
-      ..add(DiagnosticsProperty('isPrivate', isPrivate));
+      ..add(DiagnosticsProperty('isPrivate', isPrivate))
+      ..add(DiagnosticsProperty('pinnedPosts', pinnedPosts));
   }
 
   @override
@@ -88,7 +90,9 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
             const DeepCollectionEquality()
                 .equals(other.customization, customization) &&
             (identical(other.isPrivate, isPrivate) ||
-                other.isPrivate == isPrivate));
+                other.isPrivate == isPrivate) &&
+            const DeepCollectionEquality()
+                .equals(other.pinnedPosts, pinnedPosts));
   }
 
   @override
@@ -108,11 +112,12 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
       memberCount,
       postCount,
       const DeepCollectionEquality().hash(customization),
-      isPrivate);
+      isPrivate,
+      const DeepCollectionEquality().hash(pinnedPosts));
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate)';
+    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate, pinnedPosts: $pinnedPosts)';
   }
 }
 
@@ -136,7 +141,8 @@ abstract mixin class $HerdModelCopyWith<$Res> {
       int memberCount,
       int postCount,
       Map<String, dynamic> customization,
-      bool isPrivate});
+      bool isPrivate,
+      List<String> pinnedPosts});
 }
 
 /// @nodoc
@@ -166,6 +172,7 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
     Object? postCount = null,
     Object? customization = null,
     Object? isPrivate = null,
+    Object? pinnedPosts = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -228,6 +235,10 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
           ? _self.isPrivate
           : isPrivate // ignore: cast_nullable_to_non_nullable
               as bool,
+      pinnedPosts: null == pinnedPosts
+          ? _self.pinnedPosts
+          : pinnedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -250,10 +261,12 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       this.memberCount = 0,
       this.postCount = 0,
       final Map<String, dynamic> customization = const {},
-      this.isPrivate = false})
+      this.isPrivate = false,
+      final List<String> pinnedPosts = const []})
       : _interests = interests,
         _moderatorIds = moderatorIds,
         _customization = customization,
+        _pinnedPosts = pinnedPosts,
         super._();
 
   @override
@@ -312,6 +325,14 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool isPrivate;
+  final List<String> _pinnedPosts;
+  @override
+  @JsonKey()
+  List<String> get pinnedPosts {
+    if (_pinnedPosts is EqualUnmodifiableListView) return _pinnedPosts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_pinnedPosts);
+  }
 
   /// Create a copy of HerdModel
   /// with the given fields replaced by the non-null parameter values.
@@ -339,7 +360,8 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('memberCount', memberCount))
       ..add(DiagnosticsProperty('postCount', postCount))
       ..add(DiagnosticsProperty('customization', customization))
-      ..add(DiagnosticsProperty('isPrivate', isPrivate));
+      ..add(DiagnosticsProperty('isPrivate', isPrivate))
+      ..add(DiagnosticsProperty('pinnedPosts', pinnedPosts));
   }
 
   @override
@@ -372,7 +394,9 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
             const DeepCollectionEquality()
                 .equals(other._customization, _customization) &&
             (identical(other.isPrivate, isPrivate) ||
-                other.isPrivate == isPrivate));
+                other.isPrivate == isPrivate) &&
+            const DeepCollectionEquality()
+                .equals(other._pinnedPosts, _pinnedPosts));
   }
 
   @override
@@ -392,11 +416,12 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       memberCount,
       postCount,
       const DeepCollectionEquality().hash(_customization),
-      isPrivate);
+      isPrivate,
+      const DeepCollectionEquality().hash(_pinnedPosts));
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate)';
+    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate, pinnedPosts: $pinnedPosts)';
   }
 }
 
@@ -423,7 +448,8 @@ abstract mixin class _$HerdModelCopyWith<$Res>
       int memberCount,
       int postCount,
       Map<String, dynamic> customization,
-      bool isPrivate});
+      bool isPrivate,
+      List<String> pinnedPosts});
 }
 
 /// @nodoc
@@ -453,6 +479,7 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
     Object? postCount = null,
     Object? customization = null,
     Object? isPrivate = null,
+    Object? pinnedPosts = null,
   }) {
     return _then(_HerdModel(
       id: null == id
@@ -515,6 +542,10 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
           ? _self.isPrivate
           : isPrivate // ignore: cast_nullable_to_non_nullable
               as bool,
+      pinnedPosts: null == pinnedPosts
+          ? _self._pinnedPosts
+          : pinnedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }

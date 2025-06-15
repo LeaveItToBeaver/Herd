@@ -129,16 +129,16 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: widget.isAlt
-            ? theme.appBarTheme.foregroundColor
-            : theme.appBarTheme.foregroundColor,
+        // backgroundColor: widget.isAlt
+        //     ? theme.appBarTheme.foregroundColor
+        //     : theme.appBarTheme.foregroundColor,
         title: LayoutBuilder(builder: (context, constraints) {
           return Row(
             children: [
               if (widget.isAlt)
                 const Padding(
                   padding: EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.lock, size: 20),
+                  child: Icon(Icons.public_rounded, size: 20),
                 ),
               Expanded(
                 child: staticPostAsyncValue.when(

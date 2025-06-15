@@ -94,7 +94,8 @@ const handlePostInteraction = onCall({
         const postAgeHours = (Date.now() - postCreatedAt.getTime()) / (1000 * 60 * 60);
         const shouldUpdateHotScore = postAgeHours <= 72; // Only update if less than 3 days old
 
-
+        // Initialize updatedHotScore with the current hotScore or a default
+        let updatedHotScore = postData.hotScore !== undefined ? postData.hotScore : 0; // Or postData.hotScore || 0 if you prefer 0
 
         const interactionRef = firestore
             .collection(config.collection)
@@ -131,11 +132,11 @@ const handlePostInteraction = onCall({
             likeChange = hasOppositeInteraction ? -1 : 0;
         }
 
-        // Update post counts
-        transaction.update(postRef, {
+        // Prepare updates for the post document
+        const postUpdateData = {
             likeCount: admin.firestore.FieldValue.increment(likeChange),
-            dislikeCount: admin.firestore.FieldValue.increment(dislikeChange)
-        });
+            dislikeCount: admin.firestore.FieldValue.increment(dislikeChange),
+        };
 
         // Toggle user's interaction
         if (isCurrentlyInteracted) {
@@ -151,23 +152,31 @@ const handlePostInteraction = onCall({
             transaction.delete(oppositeRef);
         }
 
-        // Calculate updated hot score with new values
+        // Calculate and update hot score with new values
         if (shouldUpdateHotScore) {
-            const updatedLikeCount = postData.likeCount + likeChange;
-            const updatedDislikeCount = postData.dislikeCount + dislikeChange;
+            const updatedLikeCount = (postData.likeCount || 0) + likeChange; // Ensure postData.likeCount is a number
+            const updatedDislikeCount = (postData.dislikeCount || 0) + dislikeChange; // Ensure postData.dislikeCount is a number
             const netVotes = updatedLikeCount - updatedDislikeCount;
-            const updatedHotScore = hotAlgorithm.calculateHotScore(
+
+            // Assign the calculated score to the previously declared updatedHotScore
+            updatedHotScore = hotAlgorithm.calculateHotScore(
                 netVotes,
                 postCreatedAt
             );
 
             logger.info(`Updated hot score for post ${postId}: ${updatedHotScore} (age: ${postAgeHours.toFixed(1)} hours)`);
-            transaction.update(postRef, { hotScore: updatedHotScore });
+            postUpdateData.hotScore = updatedHotScore; // Add hotScore to the update object
         } else {
             logger.info(`Skipping hot score update for post ${postId} - too old (${postAgeHours.toFixed(1)} hours)`);
+            // If you don't update hotScore, updatedHotScore will retain its initial value (postData.hotScore)
+            // If postData.hotScore might be undefined and you want to ensure it's set:
+            if (postUpdateData.hotScore === undefined && postData.hotScore !== undefined) {
+                postUpdateData.hotScore = postData.hotScore;
+            }
         }
 
-        transaction.update(postRef, { hotScore: updatedHotScore });
+        // Update post counts and potentially hotScore in one go
+        transaction.update(postRef, postUpdateData);
 
         // If not the author, update user points
         if (postData.authorId !== userId) {
@@ -180,7 +189,7 @@ const handlePostInteraction = onCall({
 
         return {
             success: true,
-            hotScore: updatedHotScore,
+            hotScore: updatedHotScore, // Now updatedHotScore is always defined
             isLiked: interactionType === 'like' && !isCurrentlyInteracted,
             isDisliked: interactionType === 'dislike' && !isCurrentlyInteracted
         };

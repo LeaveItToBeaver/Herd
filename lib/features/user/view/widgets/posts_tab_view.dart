@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/post/view/providers/pinned_post_provider.dart';
+import 'package:herdapp/features/post/view/widgets/pinned_posts/pinned_post_widget.dart';
+import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../post/data/models/post_model.dart';
 import '../../profile_controller.dart';
@@ -12,12 +15,15 @@ class PostsTabView extends ConsumerWidget {
   final List<PostModel> posts;
   final ProfileState profile;
   final String userId;
+  final bool
+      isAltView; // Add this parameter to distinguish between alt and public
 
   const PostsTabView({
     super.key,
     required this.posts,
     required this.profile,
     required this.userId,
+    this.isAltView = false, // Default to public view
   });
 
   @override
@@ -28,7 +34,7 @@ class PostsTabView extends ConsumerWidget {
         onRefresh: () async {
           await ref
               .read(profileControllerProvider.notifier)
-              .loadProfile(userId, isAltView: false);
+              .loadProfile(userId, isAltView: isAltView);
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -66,7 +72,6 @@ class PostsTabView extends ConsumerWidget {
       );
     } else {
       // For the list state, wrap CustomScrollView with local RefreshIndicator
-
       return NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
           // Only handle pagination in the actual post list
@@ -89,11 +94,46 @@ class PostsTabView extends ConsumerWidget {
           onRefresh: () async {
             await ref
                 .read(profileControllerProvider.notifier)
-                .loadProfile(userId, isAltView: false);
+                .loadProfile(userId, isAltView: isAltView);
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              // Pinned posts section
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    // Watch the appropriate pinned posts provider based on view type
+                    final pinnedPostsAsync = isAltView
+                        ? ref.watch(userAltPinnedPostsProvider(userId))
+                        : ref.watch(userPinnedPostsProvider(userId));
+
+                    return pinnedPostsAsync.when(
+                      data: (pinnedPosts) {
+                        // Filter pinned posts to match the current view
+                        final filteredPinnedPosts = pinnedPosts
+                            .where((post) => post.isAlt == isAltView)
+                            .toList();
+
+                        if (filteredPinnedPosts.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return PinnedPostsWidget(
+                          pinnedPosts: filteredPinnedPosts,
+                          showTitle: true,
+                        );
+                      },
+                      loading: () => const PinnedPostsLoadingWidget(),
+                      error: (error, stack) {
+                        debugPrint('Error loading pinned posts: $error');
+                        return const SizedBox.shrink();
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              // Regular posts
               SliverList.builder(
                 itemCount: posts.length + (profile.isLoading ? 1 : 0),
                 itemBuilder: (context, index) {

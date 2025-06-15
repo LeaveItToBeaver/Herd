@@ -184,7 +184,7 @@ class PostContentSection extends ConsumerWidget {
         height: 250,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          //color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -203,7 +203,7 @@ class PostContentSection extends ConsumerWidget {
             const SizedBox(height: 12),
             const Text(
               'This post contains sensitive content',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              //style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -212,7 +212,7 @@ class PostContentSection extends ConsumerWidget {
               label: const Text('View Content'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                //foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),

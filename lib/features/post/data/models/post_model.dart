@@ -29,6 +29,7 @@ abstract class PostModel with _$PostModel {
     @Default(0) int commentCount,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? pinnedAt, // When the post was pinned
     double? hotScore,
 
     // Herd-related fields
@@ -46,6 +47,11 @@ abstract class PostModel with _$PostModel {
     @Default(false) bool isDisliked,
     @Default(false) bool isBookmarked,
     @Default(false) bool isRichText,
+
+    // Pinning fields
+    @Default(false) bool isPinnedToProfile, // Pinned to user's profile
+    @Default(false) bool isPinnedToAltProfile, // Pinned to user's alt profile
+    @Default(false) bool isPinnedToHerd, // Pinned to herd
   }) = _PostModel;
 
   // Factory constructor to convert from Firestore snapshot
@@ -117,6 +123,7 @@ abstract class PostModel with _$PostModel {
       commentCount: map['commentCount'] ?? 0,
       createdAt: _parseDateTime(map['createdAt']),
       updatedAt: _parseDateTime(map['updatedAt']),
+      pinnedAt: _parseDateTime(map['pinnedAt']),
       hotScore: (map['hotScore'] is int)
           ? (map['hotScore'] as int).toDouble()
           : (map['hotScore'] as num?)?.toDouble(),
@@ -134,6 +141,9 @@ abstract class PostModel with _$PostModel {
       isDisliked: map['isDisliked'] ?? false,
       isBookmarked: map['isBookmarked'] ?? false,
       isRichText: map['isRichText'] ?? false,
+      isPinnedToProfile: map['isPinnedToProfile'] ?? false,
+      isPinnedToAltProfile: map['isPinnedToAltProfile'] ?? false,
+      isPinnedToHerd: map['isPinnedToHerd'] ?? false,
     );
   }
 
@@ -192,6 +202,7 @@ abstract class PostModel with _$PostModel {
       'updatedAt': updatedAt != null
           ? Timestamp.fromDate(updatedAt!)
           : FieldValue.serverTimestamp(),
+      'pinnedAt': pinnedAt != null ? Timestamp.fromDate(pinnedAt!) : null,
       'hotScore': hotScore,
       'herdId': herdId,
       'herdName': herdName,
@@ -208,6 +219,9 @@ abstract class PostModel with _$PostModel {
           feedType ?? (isAlt ? 'alt' : (herdId != null ? 'herd' : 'public')),
       'isBookmarked': isBookmarked,
       'isRichText': isRichText,
+      'isPinnedToProfile': isPinnedToProfile,
+      'isPinnedToAltProfile': isPinnedToAltProfile,
+      'isPinnedToHerd': isPinnedToHerd,
     };
   }
 
@@ -235,6 +249,10 @@ abstract class PostModel with _$PostModel {
   bool isAuthor(String userId) {
     return authorId == userId;
   }
+
+  // Check if post is pinned anywhere
+  bool get isPinned =>
+      isPinnedToProfile || isPinnedToAltProfile || isPinnedToHerd;
 
   // Toggle like status
   PostModel toggleLike(String userId) {
