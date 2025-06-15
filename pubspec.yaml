@@ -3,7 +3,7 @@ description: "Social media of the future."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 
-version: 1.0.0+11
+version: 1.0.0+12
 
 environment:
   sdk: ^3.6.1
@@ -89,9 +89,9 @@ flutter:
   assets:
     - assets/images/
     - assets/legal/
-    - assets/icons/
+    - assets/icon/
 
 flutter_launcher_icons:
     android: true
     ios: true
-    image_path: "assets/icons/logo.png"
+    image_path: "assets/icon/icon.png"

@@ -34,6 +34,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
   int get commentCount;
   DateTime? get createdAt;
   DateTime? get updatedAt;
+  DateTime? get pinnedAt; // When the post was pinned
   double? get hotScore; // Herd-related fields
   String? get herdId;
   String? get herdName;
@@ -48,7 +49,10 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
   bool get isLiked;
   bool get isDisliked;
   bool get isBookmarked;
-  bool get isRichText;
+  bool get isRichText; // Pinning fields
+  bool get isPinnedToProfile; // Pinned to user's profile
+  bool get isPinnedToAltProfile; // Pinned to user's alt profile
+  bool get isPinnedToHerd;
 
   /// Create a copy of PostModel
   /// with the given fields replaced by the non-null parameter values.
@@ -80,6 +84,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('commentCount', commentCount))
       ..add(DiagnosticsProperty('createdAt', createdAt))
       ..add(DiagnosticsProperty('updatedAt', updatedAt))
+      ..add(DiagnosticsProperty('pinnedAt', pinnedAt))
       ..add(DiagnosticsProperty('hotScore', hotScore))
       ..add(DiagnosticsProperty('herdId', herdId))
       ..add(DiagnosticsProperty('herdName', herdName))
@@ -94,7 +99,10 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isLiked', isLiked))
       ..add(DiagnosticsProperty('isDisliked', isDisliked))
       ..add(DiagnosticsProperty('isBookmarked', isBookmarked))
-      ..add(DiagnosticsProperty('isRichText', isRichText));
+      ..add(DiagnosticsProperty('isRichText', isRichText))
+      ..add(DiagnosticsProperty('isPinnedToProfile', isPinnedToProfile))
+      ..add(DiagnosticsProperty('isPinnedToAltProfile', isPinnedToAltProfile))
+      ..add(DiagnosticsProperty('isPinnedToHerd', isPinnedToHerd));
   }
 
   @override
@@ -134,6 +142,8 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
+            (identical(other.pinnedAt, pinnedAt) ||
+                other.pinnedAt == pinnedAt) &&
             (identical(other.hotScore, hotScore) ||
                 other.hotScore == hotScore) &&
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
@@ -160,7 +170,13 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
             (identical(other.isBookmarked, isBookmarked) ||
                 other.isBookmarked == isBookmarked) &&
             (identical(other.isRichText, isRichText) ||
-                other.isRichText == isRichText));
+                other.isRichText == isRichText) &&
+            (identical(other.isPinnedToProfile, isPinnedToProfile) ||
+                other.isPinnedToProfile == isPinnedToProfile) &&
+            (identical(other.isPinnedToAltProfile, isPinnedToAltProfile) ||
+                other.isPinnedToAltProfile == isPinnedToAltProfile) &&
+            (identical(other.isPinnedToHerd, isPinnedToHerd) ||
+                other.isPinnedToHerd == isPinnedToHerd));
   }
 
   @override
@@ -185,6 +201,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
         commentCount,
         createdAt,
         updatedAt,
+        pinnedAt,
         hotScore,
         herdId,
         herdName,
@@ -199,12 +216,15 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
         isLiked,
         isDisliked,
         isBookmarked,
-        isRichText
+        isRichText,
+        isPinnedToProfile,
+        isPinnedToAltProfile,
+        isPinnedToHerd
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, pinnedAt: $pinnedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText, isPinnedToProfile: $isPinnedToProfile, isPinnedToAltProfile: $isPinnedToAltProfile, isPinnedToHerd: $isPinnedToHerd)';
   }
 }
 
@@ -233,6 +253,7 @@ abstract mixin class $PostModelCopyWith<$Res> {
       int commentCount,
       DateTime? createdAt,
       DateTime? updatedAt,
+      DateTime? pinnedAt,
       double? hotScore,
       String? herdId,
       String? herdName,
@@ -247,7 +268,10 @@ abstract mixin class $PostModelCopyWith<$Res> {
       bool isLiked,
       bool isDisliked,
       bool isBookmarked,
-      bool isRichText});
+      bool isRichText,
+      bool isPinnedToProfile,
+      bool isPinnedToAltProfile,
+      bool isPinnedToHerd});
 }
 
 /// @nodoc
@@ -281,6 +305,7 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
     Object? commentCount = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
+    Object? pinnedAt = freezed,
     Object? hotScore = freezed,
     Object? herdId = freezed,
     Object? herdName = freezed,
@@ -296,6 +321,9 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
     Object? isDisliked = null,
     Object? isBookmarked = null,
     Object? isRichText = null,
+    Object? isPinnedToProfile = null,
+    Object? isPinnedToAltProfile = null,
+    Object? isPinnedToHerd = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -374,6 +402,10 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
           ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      pinnedAt: freezed == pinnedAt
+          ? _self.pinnedAt
+          : pinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       hotScore: freezed == hotScore
           ? _self.hotScore
           : hotScore // ignore: cast_nullable_to_non_nullable
@@ -434,6 +466,18 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
           ? _self.isRichText
           : isRichText // ignore: cast_nullable_to_non_nullable
               as bool,
+      isPinnedToProfile: null == isPinnedToProfile
+          ? _self.isPinnedToProfile
+          : isPinnedToProfile // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPinnedToAltProfile: null == isPinnedToAltProfile
+          ? _self.isPinnedToAltProfile
+          : isPinnedToAltProfile // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPinnedToHerd: null == isPinnedToHerd
+          ? _self.isPinnedToHerd
+          : isPinnedToHerd // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -461,6 +505,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.commentCount = 0,
       this.createdAt,
       this.updatedAt,
+      this.pinnedAt,
       this.hotScore,
       this.herdId,
       this.herdName,
@@ -475,7 +520,10 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.isLiked = false,
       this.isDisliked = false,
       this.isBookmarked = false,
-      this.isRichText = false})
+      this.isRichText = false,
+      this.isPinnedToProfile = false,
+      this.isPinnedToAltProfile = false,
+      this.isPinnedToHerd = false})
       : _mediaItems = mediaItems,
         _tags = tags,
         _mentions = mentions,
@@ -546,6 +594,9 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
   @override
   final DateTime? updatedAt;
   @override
+  final DateTime? pinnedAt;
+// When the post was pinned
+  @override
   final double? hotScore;
 // Herd-related fields
   @override
@@ -587,6 +638,18 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool isRichText;
+// Pinning fields
+  @override
+  @JsonKey()
+  final bool isPinnedToProfile;
+// Pinned to user's profile
+  @override
+  @JsonKey()
+  final bool isPinnedToAltProfile;
+// Pinned to user's alt profile
+  @override
+  @JsonKey()
+  final bool isPinnedToHerd;
 
   /// Create a copy of PostModel
   /// with the given fields replaced by the non-null parameter values.
@@ -619,6 +682,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('commentCount', commentCount))
       ..add(DiagnosticsProperty('createdAt', createdAt))
       ..add(DiagnosticsProperty('updatedAt', updatedAt))
+      ..add(DiagnosticsProperty('pinnedAt', pinnedAt))
       ..add(DiagnosticsProperty('hotScore', hotScore))
       ..add(DiagnosticsProperty('herdId', herdId))
       ..add(DiagnosticsProperty('herdName', herdName))
@@ -633,7 +697,10 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isLiked', isLiked))
       ..add(DiagnosticsProperty('isDisliked', isDisliked))
       ..add(DiagnosticsProperty('isBookmarked', isBookmarked))
-      ..add(DiagnosticsProperty('isRichText', isRichText));
+      ..add(DiagnosticsProperty('isRichText', isRichText))
+      ..add(DiagnosticsProperty('isPinnedToProfile', isPinnedToProfile))
+      ..add(DiagnosticsProperty('isPinnedToAltProfile', isPinnedToAltProfile))
+      ..add(DiagnosticsProperty('isPinnedToHerd', isPinnedToHerd));
   }
 
   @override
@@ -673,6 +740,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
+            (identical(other.pinnedAt, pinnedAt) ||
+                other.pinnedAt == pinnedAt) &&
             (identical(other.hotScore, hotScore) ||
                 other.hotScore == hotScore) &&
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
@@ -699,7 +768,13 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
             (identical(other.isBookmarked, isBookmarked) ||
                 other.isBookmarked == isBookmarked) &&
             (identical(other.isRichText, isRichText) ||
-                other.isRichText == isRichText));
+                other.isRichText == isRichText) &&
+            (identical(other.isPinnedToProfile, isPinnedToProfile) ||
+                other.isPinnedToProfile == isPinnedToProfile) &&
+            (identical(other.isPinnedToAltProfile, isPinnedToAltProfile) ||
+                other.isPinnedToAltProfile == isPinnedToAltProfile) &&
+            (identical(other.isPinnedToHerd, isPinnedToHerd) ||
+                other.isPinnedToHerd == isPinnedToHerd));
   }
 
   @override
@@ -724,6 +799,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
         commentCount,
         createdAt,
         updatedAt,
+        pinnedAt,
         hotScore,
         herdId,
         herdName,
@@ -738,12 +814,15 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
         isLiked,
         isDisliked,
         isBookmarked,
-        isRichText
+        isRichText,
+        isPinnedToProfile,
+        isPinnedToAltProfile,
+        isPinnedToHerd
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, pinnedAt: $pinnedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText, isPinnedToProfile: $isPinnedToProfile, isPinnedToAltProfile: $isPinnedToAltProfile, isPinnedToHerd: $isPinnedToHerd)';
   }
 }
 
@@ -775,6 +854,7 @@ abstract mixin class _$PostModelCopyWith<$Res>
       int commentCount,
       DateTime? createdAt,
       DateTime? updatedAt,
+      DateTime? pinnedAt,
       double? hotScore,
       String? herdId,
       String? herdName,
@@ -789,7 +869,10 @@ abstract mixin class _$PostModelCopyWith<$Res>
       bool isLiked,
       bool isDisliked,
       bool isBookmarked,
-      bool isRichText});
+      bool isRichText,
+      bool isPinnedToProfile,
+      bool isPinnedToAltProfile,
+      bool isPinnedToHerd});
 }
 
 /// @nodoc
@@ -823,6 +906,7 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
     Object? commentCount = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
+    Object? pinnedAt = freezed,
     Object? hotScore = freezed,
     Object? herdId = freezed,
     Object? herdName = freezed,
@@ -838,6 +922,9 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
     Object? isDisliked = null,
     Object? isBookmarked = null,
     Object? isRichText = null,
+    Object? isPinnedToProfile = null,
+    Object? isPinnedToAltProfile = null,
+    Object? isPinnedToHerd = null,
   }) {
     return _then(_PostModel(
       id: null == id
@@ -916,6 +1003,10 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
           ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      pinnedAt: freezed == pinnedAt
+          ? _self.pinnedAt
+          : pinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       hotScore: freezed == hotScore
           ? _self.hotScore
           : hotScore // ignore: cast_nullable_to_non_nullable
@@ -975,6 +1066,18 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
       isRichText: null == isRichText
           ? _self.isRichText
           : isRichText // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPinnedToProfile: null == isPinnedToProfile
+          ? _self.isPinnedToProfile
+          : isPinnedToProfile // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPinnedToAltProfile: null == isPinnedToAltProfile
+          ? _self.isPinnedToAltProfile
+          : isPinnedToAltProfile // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPinnedToHerd: null == isPinnedToHerd
+          ? _self.isPinnedToHerd
+          : isPinnedToHerd // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }

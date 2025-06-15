@@ -34,7 +34,7 @@ class DataCacheService {
 
   /// Initialize the cache service
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (kIsWeb || _initialized) return;
 
     try {
       // Get appropriate cache directory
@@ -82,6 +82,7 @@ class DataCacheService {
 
   /// Cache a post
   Future<void> cachePost(PostModel post) async {
+    if (kIsWeb) return;
     if (!_initialized) await initialize();
 
     try {
@@ -118,6 +119,7 @@ class DataCacheService {
   /// Cache a feed (list of posts)]
   Future<void> cacheFeed(List<PostModel> posts, String userId,
       {bool isAlt = false, String? herdId}) async {
+    if (kIsWeb) return;
     if (!_initialized) await initialize();
 
     try {
@@ -157,6 +159,7 @@ class DataCacheService {
 
   /// Get a post from cache
   Future<PostModel?> getPost(String postId, {bool isAlt = false}) async {
+    if (kIsWeb) return null;
     if (!_initialized) await initialize();
 
     try {
@@ -210,6 +213,7 @@ class DataCacheService {
   /// Get a feed from cache
   Future<List<PostModel>> getFeed(String userId,
       {bool isAlt = false, String? herdId}) async {
+    if (kIsWeb) return [];
     if (!_initialized) await initialize();
 
     try {
@@ -258,6 +262,7 @@ class DataCacheService {
 
   /// Check if a post exists in cache
   Future<bool> hasPost(String postId, {bool isAlt = false}) async {
+    if (kIsWeb) return false;
     if (!_initialized) await initialize();
 
     final key = _generatePostKey(postId, isAlt);
@@ -275,6 +280,7 @@ class DataCacheService {
   /// Check if a feed exists in cache
   Future<bool> hasFeed(String userId,
       {bool isAlt = false, String? herdId}) async {
+    if (kIsWeb) return false;
     if (!_initialized) await initialize();
 
     final key = _generateFeedKey(userId, isAlt: isAlt, herdId: herdId);
@@ -291,6 +297,7 @@ class DataCacheService {
 
   /// Save post metadata
   Future<void> _savePostMetadata(String key, String postId, bool isAlt) async {
+    if (kIsWeb) return;
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -353,6 +360,7 @@ class DataCacheService {
 
   /// Update last accessed time
   Future<void> _updateLastAccessed(String key, {required bool isPost}) async {
+    if (kIsWeb) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final metadataKey =
@@ -398,6 +406,7 @@ class DataCacheService {
 
   /// Load cache metadata from shared preferences
   Future<void> _loadCacheMetadata() async {
+    if (kIsWeb) return;
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -535,6 +544,7 @@ class DataCacheService {
 
   /// Clean up old cache entries
   Future<void> _cleanupCacheIfNeeded() async {
+    if (kIsWeb) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final now = DateTime.now();
@@ -622,6 +632,7 @@ class DataCacheService {
 
   /// Delete a post from cache
   Future<void> _deletePost(String key) async {
+    if (kIsWeb) return;
     try {
       // Remove from memory cache
       _postCache.remove(key);
@@ -642,6 +653,7 @@ class DataCacheService {
 
   /// Delete a feed from cache
   Future<void> _deleteFeed(String key) async {
+    if (kIsWeb) return;
     try {
       // Remove from memory cache
       _feedCache.remove(key);
@@ -662,6 +674,7 @@ class DataCacheService {
 
   /// Clear all cached data
   Future<void> clearCache() async {
+    if (kIsWeb) return;
     try {
       if (!_initialized) await initialize();
 
@@ -702,6 +715,17 @@ class DataCacheService {
 
   /// Get cache statistics
   Future<Map<String, dynamic>> getCacheStats() async {
+    if (kIsWeb) {
+      return {
+        'postCount': 0,
+        'feedCount': 0,
+        'totalCount': 0,
+        'inMemoryPostCacheSize': _postCache.length,
+        'inMemoryFeedCacheSize': _feedCache.length,
+        'postFilePaths': [],
+        'feedFilePaths': [],
+      };
+    }
     try {
       if (!_initialized) await initialize();
 

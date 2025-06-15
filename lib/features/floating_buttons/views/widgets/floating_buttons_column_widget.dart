@@ -38,13 +38,14 @@ class FloatingButtonsColumn extends ConsumerWidget {
             child: FloatingActionButton(
               heroTag: "floatingProfileBtn",
               backgroundColor: Colors.black,
+              elevation: 0,
               mini: false,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
               ),
               child: Icon(Icons.person,
                   color: currentFeed == FeedType.alt
-                      ? Colors.purpleAccent
+                      ? Theme.of(context).colorScheme.primary
                       : Colors.white),
               onPressed: () {
                 final navService = ref.read(navigationServiceProvider);
@@ -79,12 +80,14 @@ class FloatingButtonsColumn extends ConsumerWidget {
             child: FloatingActionButton(
               heroTag: "floatingNotificationsBtn",
               backgroundColor: Colors.black,
+              elevation: 0,
               mini: false,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
               ),
               child: notifications.hasValue
-                  ? Icon(Icons.notifications, color: Colors.purpleAccent)
+                  ? Icon(Icons.notifications,
+                      color: Theme.of(context).colorScheme.primary)
                   : Icon(Icons.notifications, color: Colors.white),
               onPressed: () {
                 HapticFeedback.mediumImpact();
@@ -98,6 +101,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
           FloatingActionButton(
             heroTag: "floatingSearchBtn",
             backgroundColor: Colors.black,
+            elevation: 0,
             mini: false,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30.0),
