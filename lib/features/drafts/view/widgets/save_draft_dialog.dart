@@ -10,6 +10,7 @@ class SaveDraftDialog extends ConsumerWidget {
   final bool isAlt;
   final String? herdId;
   final String? herdName;
+  final List<String>? tags;
 
   const SaveDraftDialog({
     super.key,
@@ -18,6 +19,7 @@ class SaveDraftDialog extends ConsumerWidget {
     required this.isAlt,
     this.herdId,
     this.herdName,
+    this.tags
   });
 
   @override

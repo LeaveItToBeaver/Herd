@@ -33,6 +33,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     String herdName = '',
     String herdProfileImageURL = '',
     List<String>? mentions, // Add mentions parameter
+    List<String>? tags,
   }) async {
     String? postId;
     List<PostMediaModel> mediaItems = [];
