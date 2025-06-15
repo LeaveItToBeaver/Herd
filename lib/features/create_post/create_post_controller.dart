@@ -107,7 +107,7 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         isAlt: isAlt,
         isNSFW: isNSFW,
         isRichText: true,
-        tags: [],
+        tags: tags ?? [],
         mentions: mentions ?? [], // Add mentions to the post model
       );
 
