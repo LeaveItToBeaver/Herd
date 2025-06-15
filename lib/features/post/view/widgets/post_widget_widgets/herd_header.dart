@@ -25,6 +25,23 @@ class HerdHeaderWidget extends ConsumerWidget {
     required this.buildShimmerText,
   });
 
+  Widget _buildHerdProfileImage(BuildContext context, String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        child: Icon(Icons.group,
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: Colors.white,
+      backgroundImage: NetworkImage(imageUrl),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     debugPrint(
@@ -51,10 +68,7 @@ class HerdHeaderWidget extends ConsumerWidget {
               child: Row(
                 children: [
                   // Use the UserProfileImage widget for herd avatar
-                  UserProfileImage(
-                    radius: isCompact ? 16 : 20,
-                    profileImageUrl: herd.profileImageURL,
-                  ),
+                  _buildHerdProfileImage(context, herd.profileImageURL),
 
                   const SizedBox(width: 12),
 

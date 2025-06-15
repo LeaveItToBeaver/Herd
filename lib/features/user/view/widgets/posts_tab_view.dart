@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/post/view/providers/pinned_post_provider.dart';
 import 'package:herdapp/features/post/view/widgets/pinned_posts/pinned_post_widget.dart';
+import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../post/data/models/post_model.dart';
 import '../../profile_controller.dart';
