@@ -421,20 +421,28 @@ class FeedRepository {
     bool? isAlt,
     int limit = 20,
     DocumentSnapshot? lastDocument,
+    PostModel? lastPost, // Add this parameter
   }) async {
     try {
+      // Determine which collection to query
+      String collectionName = (isAlt == true) ? 'altPosts' : 'posts';
+
       // Base query for user's posts
-      Query<Map<String, dynamic>> query = posts
+      Query<Map<String, dynamic>> query = firestore
+          .collection(collectionName)
           .where('authorId', isEqualTo: userId)
           .orderBy('createdAt', descending: true);
 
-      // Filter by post type if specified
-      if (isAlt != null) {
-        query = query.where('isAlt', isEqualTo: isAlt);
-      }
+      // Apply pagination - use lastPost if provided, otherwise lastDocument
+      if (lastPost != null) {
+        // Convert PostModel to DocumentSnapshot by fetching the document
+        final lastDoc =
+            await firestore.collection(collectionName).doc(lastPost.id).get();
 
-      // Apply pagination if lastDocument is provided
-      if (lastDocument != null) {
+        if (lastDoc.exists) {
+          query = query.startAfterDocument(lastDoc);
+        }
+      } else if (lastDocument != null) {
         query = query.startAfterDocument(lastDocument);
       }
 

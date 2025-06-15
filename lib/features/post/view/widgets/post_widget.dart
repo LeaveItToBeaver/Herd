@@ -1,24 +1,25 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
-import 'package:herdapp/features/rich_text_editing/view/widgets/quill_viewer_widget.dart';
+import 'package:herdapp/features/post/view/providers/pinned_post_provider.dart';
+import 'package:herdapp/features/post/view/widgets/build_post_content.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/author_header_widget.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/herd_header.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/media_preview_widget.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/nsfw_hidden_message.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/nsfw_overlay_widget.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/post_menu_widget.dart';
+import 'package:herdapp/features/post/view/widgets/post_widget_widgets/type_indicator_widget.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../create_post/create_post_controller.dart';
-import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/view/providers/current_user_provider.dart';
-import '../../../user/view/providers/user_provider.dart';
-import '../../../user/view/widgets/user_profile_image.dart';
 import '../../data/models/post_media_model.dart';
 import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../providers/state/post_interaction_state.dart';
-import 'media_carousel_widget.dart';
 
 class PostWidget extends ConsumerStatefulWidget {
   final PostModel post;
@@ -46,7 +47,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   @override
   void initState() {
     super.initState();
-
     _hasInitializedInteraction = true;
   }
 
@@ -114,7 +114,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         margin: EdgeInsets.symmetric(
             vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -190,6 +190,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                       ),
                     ],
 
+
                     // Either media or text content with NSFW blur option
                     const SizedBox(height: 4),
 
@@ -209,6 +210,10 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     // --- End NSFW Content Handling ---
 
                     const SizedBox(height: 4),
+                    // ******************************************************
+                    // ** [追加] タグ表示セクションをここに配置 **
+                    // ******************************************************
+                    _buildTagsSection(),
 
                     // Action row
                     _buildActionBar(
@@ -225,107 +230,81 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       ),
     );
   }
-
-  // I need to add images and media to the rich text viewer if they exist.
-  Widget _buildActualContent(ThemeData theme) {
-    // Check if the post content is meant to be rich text
-    if (widget.post.isRichText) {
-      if (widget.post.mediaItems.isNotEmpty ||
-          (widget.post.mediaThumbnailURL != null &&
-              widget.post.mediaThumbnailURL!.isNotEmpty) ||
-          (widget.post.mediaURL != null && widget.post.mediaURL!.isNotEmpty)) {
-        // If it's not rich text but has media, show the media preview
-        return _buildMediaPreview(widget.post);
-      }
-      if (widget.post.content.isNotEmpty) {
-        return QuillViewerWidget(
-          key: ValueKey(
-              'quill_viewer_${widget.post.id}_widget'), // Add a key for PostWidget
-          jsonContent: widget.post.content,
-          source: RichTextSource.postWidget,
-          isExpanded: _isExpanded, // Pass the expansion state
-        );
-      } else {
-        // Handle empty rich text content, perhaps show a placeholder or nothing
-        return const SizedBox.shrink();
-      }
-    } else if (_shouldShowMedia()) {
-      return _buildMediaPreview(widget.post);
-    } else {
-      // Fallback to rendering plain text if isRichText is false
-      return _buildContentText(theme);
+  
+  // ******************************************************
+  // ** [追加] タグを表示するための新しいメソッド **
+  // ******************************************************
+  /// 投稿にタグがあればChipとして表示する
+  Widget _buildTagsSection() {
+    // PostModelに 'tags' プロパティ (List<String>) があることを前提とします。
+    // もし存在しない、または空の場合は何も表示しません。
+    if (widget.post.tags == null || widget.post.tags!.isEmpty) {
+      return const SizedBox.shrink();
     }
-  }
 
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      child: Wrap(
+        spacing: 8.0, // Chip間の横スペース
+        runSpacing: 4.0, // Chip間の縦スペース
+        children: widget.post.tags!.map<Widget>((tag) {
+          return GestureDetector(
+            onTap: () {
+              // TODO: ここにタグ検索ページへのナビゲーションを実装
+              debugPrint('Tag tapped: $tag');
+              // 例: context.push('/search?tag=$tag');
+            },
+            child: Chip(
+              label: Text(
+                tag,
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.4),
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+  
   Widget _buildNSFWOverlay() {
-    return GestureDetector(
+    return NSFWOverlayWidget(
       onTap: () {
-        // Correctly update the state variable for revealing THIS post
         setState(() {
           _isNsfwRevealed = true;
         });
       },
-      child: Container(
-        height: 200, // Or adjust height as needed
-        width: double.infinity,
-        decoration: BoxDecoration(
-          // Consider using a blur effect instead of just grey
-          color: Colors.grey.shade700.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.visibility_off, size: 48, color: Colors.white70),
-            const SizedBox(height: 16),
-            const Text(
-              'NSFW Content',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap to view',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
+      height: 200,
+    );
+  }
+
+  // I need to add images and media to the rich text viewer if they exist.
+  Widget _buildActualContent(ThemeData theme) {
+    return PostContentWidget(
+      post: widget.post,
+      isExpanded: _isExpanded,
+      isCompact: widget.isCompact,
+      onToggleExpansion: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      buildMediaPreview: _buildMediaPreview,
+      shouldShowMedia: _shouldShowMedia(),
     );
   }
 
   Widget _buildNsfwHiddenMessage() {
-    return Container(
-      height: 150, // Or adjust height
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.block, size: 40, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'NSFW Content Hidden',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Adjust your settings to view',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-          ),
-        ],
-      ),
-    );
+    return const NSFWHiddenMessageWidget();
   }
 
   Widget _buildTypeIndicator({
@@ -333,233 +312,32 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     required String label,
     required Color color,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
+    return TypeIndicatorWidget(
+      icon: icon,
+      label: label,
+      color: color,
     );
   }
 
   Widget _buildAuthorHeader(String formattedTimestamp) {
-    debugPrint(
-        'Building author header for post ${widget.post.id}, timestamp: $formattedTimestamp');
-    return Consumer(
-      builder: (context, ref, child) {
-        final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
-
-        return userAsyncValue.when(
-          loading: () => _buildLoadingHeader(),
-          error: (error, stack) => Text('Error loading user',
-              style: TextStyle(color: Colors.red.shade300)),
-          data: (user) {
-            if (user == null) return const Text('User not found');
-
-            // Use appropriate profile image based on post privacy
-            final profileImageUrl = widget.post.isAlt
-                ? (user.altProfileImageURL ?? user.profileImageURL)
-                : user.profileImageURL;
-
-            // Use appropriate name based on post privacy
-            final displayName = widget.post.isAlt
-                ? (user.username)
-                : '${user.firstName} ${user.lastName}'.trim();
-
-            return Row(
-              children: [
-                // Profile image
-                GestureDetector(
-                  onTap: () => _navigateToProfile(user.id),
-                  child: CircleAvatar(
-                    radius: widget.isCompact ? 16 : 20,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage:
-                        profileImageUrl != null && profileImageUrl.isNotEmpty
-                            ? NetworkImage(profileImageUrl)
-                            : null,
-                    child: profileImageUrl == null || profileImageUrl.isEmpty
-                        ? Icon(
-                            Icons.person,
-                            color: Colors.grey.shade400,
-                            size: widget.isCompact ? 16 : 20,
-                          )
-                        : null,
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // User info
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _navigateToProfile(user.id),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Username
-                        Row(
-                          children: [
-                            Text(
-                              displayName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: widget.isCompact ? 13 : 15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (widget.post.isAlt) ...[
-                              const SizedBox(width: 4),
-                              Icon(Icons.lock,
-                                  size: 12, color: Colors.blue.shade400),
-                            ],
-                          ],
-                        ),
-
-                        // Timestamp - always show
-                        Text(
-                          formattedTimestamp,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Post options menu
-                _buildPostMenu(),
-              ],
-            );
-          },
-        );
-      },
+    return AuthorHeaderWidget(
+      post: widget.post,
+      formattedTimestamp: formattedTimestamp,
+      isCompact: widget.isCompact,
+      onProfileTap: () => _navigateToProfile(widget.post.authorId),
+      postMenu: _buildPostMenu(),
+      buildLoadingHeader: _buildLoadingHeader,
     );
   }
 
   Widget _buildHerdHeader(String formattedTimestamp) {
-    debugPrint(
-        'Building herd header for post ${widget.post.id}, timestamp: $formattedTimestamp');
-    return Consumer(
-      builder: (context, ref, child) {
-        final herdId = widget.post.herdId!;
-        final herdAsyncValue = ref.watch(herdProvider(herdId));
-        final userAsyncValue = ref.watch(userProvider(widget.post.authorId));
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Herd name row
-            herdAsyncValue.when(
-              loading: () => _buildShimmerText(width: 150, height: 18),
-              error: (_, __) => const Text('Unknown herd',
-                  style: TextStyle(fontStyle: FontStyle.italic)),
-              data: (herd) {
-                if (herd == null) return const Text('Unknown herd');
-
-                return GestureDetector(
-                  onTap: () =>
-                      context.pushNamed('herd', pathParameters: {'id': herdId}),
-                  child: Row(
-                    children: [
-                      // Use the UserProfileImage widget for herd avatar
-                      UserProfileImage(
-                        radius: widget.isCompact ? 16 : 20,
-                        profileImageUrl: herd.profileImageURL,
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Herd name (without h/ prefix)
-                      Expanded(
-                        child: Text(
-                          herd.name, // No h/ prefix
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade700,
-                            fontSize: widget.isCompact ? 14 : 16,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-
-                      // Post menu
-                      _buildPostMenu(),
-                    ],
-                  ),
-                );
-              },
-            ),
-
-            // Author and timestamp row - always show
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-              child: Row(
-                children: [
-                  userAsyncValue.when(
-                    loading: () => _buildShimmerText(width: 100, height: 12),
-                    error: (_, __) => const Text('Unknown user',
-                        style: TextStyle(
-                            fontStyle: FontStyle.italic, fontSize: 12)),
-                    data: (user) {
-                      final displayName = user != null
-                          ? (widget.post.isAlt
-                              ? (user.username)
-                              : '${user.firstName} ${user.lastName}'.trim())
-                          : 'Anonymous';
-
-                      return GestureDetector(
-                        onTap: () =>
-                            user != null ? _navigateToProfile(user.id) : null,
-                        child: Text(
-                          'Posted by $displayName',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: widget.isCompact ? 11 : 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    formattedTimestamp,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: widget.isCompact ? 11 : 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
+    return HerdHeaderWidget(
+      post: widget.post,
+      formattedTimestamp: formattedTimestamp,
+      isCompact: widget.isCompact,
+      onProfileTap: () => _navigateToProfile(widget.post.authorId),
+      postMenu: _buildPostMenu(),
+      buildShimmerText: _buildShimmerText,
     );
   }
 
@@ -577,82 +355,152 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           ],
         ),
         const Spacer(),
-        const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+        const Icon(
+          Icons.more_vert,
+          size: 20,
+          //color: Colors.grey
+        ),
       ],
     );
   }
 
   Widget _buildPostMenu() {
+    return PostMenuWidget(
+      post: widget.post,
+      onEdit: () => _navigateToEditScreen(context),
+      onDelete: () => _showDeleteConfirmation(context),
+      onSave: _savePost,
+      onReport: _showReportDialog,
+      onPinToProfile: _pinToProfile,
+      onUnpinFromProfile: _unpinFromProfile,
+      onPinToHerd: _pinToHerd,
+      onUnpinFromHerd: _unpinFromHerd,
+    );
+  }
+
+  void _pinToProfile({required bool isAlt}) async {
     final user = ref.read(currentUserProvider);
     final userId = user.userId;
-    final isCurrentUserAuthor = userId == widget.post.authorId;
 
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
-      offset: const Offset(0, 36),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) {
-        switch (value) {
-          case 'report':
-            _showReportDialog();
-            break;
-          case 'edit':
-            _navigateToEditScreen(context);
-            break;
-          case 'delete':
-            _showDeleteConfirmation(context);
-            break;
-          case 'save':
-            _savePost();
-            break;
-        }
-      },
-      itemBuilder: (context) => [
-        if (isCurrentUserAuthor)
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit, size: 20),
-                SizedBox(width: 8),
-                Text('Edit post'),
-              ],
-            ),
+    if (userId == null) return;
+
+    try {
+      final controller = ref.read(pinnedPostsControllerProvider);
+      await controller.pinToProfile(userId, widget.post.id, isAlt: isAlt);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isAlt
+                ? 'Post pinned to alt profile'
+                : 'Post pinned to profile'),
+            backgroundColor: Colors.green,
           ),
-        if (isCurrentUserAuthor)
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                SizedBox(width: 8),
-                Text('Delete post', style: TextStyle(color: Colors.red)),
-              ],
-            ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pin post: $e'),
+            backgroundColor: Colors.red,
           ),
-        const PopupMenuItem(
-          value: 'save',
-          child: Row(
-            children: [
-              Icon(Icons.bookmark_border, size: 20),
-              SizedBox(width: 8),
-              Text('Save post'),
-            ],
+        );
+      }
+    }
+  }
+
+  void _unpinFromProfile({required bool isAlt}) async {
+    final user = ref.read(currentUserProvider);
+    final userId = user.userId;
+
+    if (userId == null) return;
+
+    try {
+      final controller = ref.read(pinnedPostsControllerProvider);
+      await controller.unpinFromProfile(userId, widget.post.id, isAlt: isAlt);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isAlt
+                ? 'Post unpinned from alt profile'
+                : 'Post unpinned from profile'),
+            //backgroundColor: Colors.orange,
           ),
-        ),
-        if (!isCurrentUserAuthor)
-          const PopupMenuItem(
-            value: 'report',
-            child: Row(
-              children: [
-                Icon(Icons.flag_outlined, size: 20),
-                SizedBox(width: 8),
-                Text('Report post'),
-              ],
-            ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to unpin post: $e'),
+            backgroundColor: Colors.red,
           ),
-      ],
-    );
+        );
+      }
+    }
+  }
+
+  void _pinToHerd() async {
+    final user = ref.read(currentUserProvider);
+    final userId = user.userId;
+
+    if (userId == null || widget.post.herdId == null) return;
+
+    try {
+      final controller = ref.read(pinnedPostsControllerProvider);
+      await controller.pinToHerd(widget.post.herdId!, widget.post.id, userId);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post pinned to herd'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pin post: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _unpinFromHerd() async {
+    final user = ref.read(currentUserProvider);
+    final userId = user.userId;
+
+    if (userId == null || widget.post.herdId == null) return;
+
+    try {
+      final controller = ref.read(pinnedPostsControllerProvider);
+      await controller.unpinFromHerd(
+          widget.post.herdId!, widget.post.id, userId);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post unpinned from herd'),
+            //backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to unpin post: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildShimmerCircle({required double radius}) {
@@ -768,19 +616,11 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   }
 
   Widget _buildMediaPreview(PostModel post) {
-    List<PostMediaModel> mediaItems = getMediaItemsFromPost(post);
-
-    if (mediaItems.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    // Create a carousel with improved configuration
-    return MediaCarouselWidget(
-      mediaItems: mediaItems,
+    return MediaPreviewWidget(
+      post: post,
       height: 350,
       autoPlay: false,
-      showIndicator:
-          mediaItems.length > 1, // Only show indicators if multiple items
+      showIndicatorCondition: (mediaCount) => mediaCount > 1,
       onMediaTap: (media, index) {
         // Use GoRouter to navigate to the fullscreen gallery
         context.pushNamed(
@@ -801,7 +641,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       padding: const EdgeInsets.symmetric(vertical: 0),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: theme.dividerColor.withOpacity(0.1), width: 1),
+          top: BorderSide(color: theme.dividerColor.withOpacity(0.3), width: 1),
         ),
       ),
       child: Row(
@@ -893,17 +733,20 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     ThemeData? theme,
     required VoidCallback? onPressed,
   }) {
+    final effectiveTheme = theme ?? Theme.of(context);
+    final Color defaultIconTextColor =
+        color ?? effectiveTheme.colorScheme.onSurfaceVariant;
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(
         icon,
         size: 18,
-        color: color ?? theme?.buttonTheme.colorScheme?.primary,
+        color: defaultIconTextColor,
       ),
       label: Text(
         count,
         style: TextStyle(
-          color: color ?? theme?.buttonTheme.colorScheme?.primary,
+          color: defaultIconTextColor,
           fontWeight: FontWeight.w500,
         ),
       ),

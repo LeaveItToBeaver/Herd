@@ -164,7 +164,12 @@ class NotificationListItem extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary),
             ),
-            const TextSpan(text: ' started following you'),
+            TextSpan(
+              text: ' started following you',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
           ],
         );
         break;
