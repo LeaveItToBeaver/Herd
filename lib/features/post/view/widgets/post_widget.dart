@@ -47,7 +47,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   @override
   void initState() {
     super.initState();
-
     _hasInitializedInteraction = true;
   }
 
@@ -191,6 +190,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                       ),
                     ],
 
+
                     // Either media or text content with NSFW blur option
                     const SizedBox(height: 4),
 
@@ -210,6 +210,10 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     // --- End NSFW Content Handling ---
 
                     const SizedBox(height: 4),
+                    // ******************************************************
+                    // ** [追加] タグ表示セクションをここに配置 **
+                    // ******************************************************
+                    _buildTagsSection(),
 
                     // Action row
                     _buildActionBar(
@@ -226,7 +230,52 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       ),
     );
   }
+  
+  // ******************************************************
+  // ** [追加] タグを表示するための新しいメソッド **
+  // ******************************************************
+  /// 投稿にタグがあればChipとして表示する
+  Widget _buildTagsSection() {
+    // PostModelに 'tags' プロパティ (List<String>) があることを前提とします。
+    // もし存在しない、または空の場合は何も表示しません。
+    if (widget.post.tags == null || widget.post.tags!.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      child: Wrap(
+        spacing: 8.0, // Chip間の横スペース
+        runSpacing: 4.0, // Chip間の縦スペース
+        children: widget.post.tags!.map<Widget>((tag) {
+          return GestureDetector(
+            onTap: () {
+              // TODO: ここにタグ検索ページへのナビゲーションを実装
+              debugPrint('Tag tapped: $tag');
+              // 例: context.push('/search?tag=$tag');
+            },
+            child: Chip(
+              label: Text(
+                tag,
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.4),
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+  
   Widget _buildNSFWOverlay() {
     return NSFWOverlayWidget(
       onTap: () {
