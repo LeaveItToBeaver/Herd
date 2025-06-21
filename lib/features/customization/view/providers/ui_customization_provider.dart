@@ -27,33 +27,50 @@ class UICustomizationNotifier
   final UICustomizationRepository _repository;
   final String? _userId;
   final Ref _ref;
+  bool _disposed = false;
 
   UICustomizationNotifier(this._repository, this._userId, this._ref)
       : super(const AsyncValue.loading()) {
     if (_userId != null) {
       _loadCustomization();
     } else {
-      state = const AsyncValue.data(null);
+      if (!_disposed) {
+        state = const AsyncValue.data(null);
+      }
     }
   }
 
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   Future<void> _loadCustomization() async {
+    if (_disposed) return;
+    
     try {
       if (_userId == null) {
-        state = const AsyncValue.data(null);
+        if (!_disposed) {
+          state = const AsyncValue.data(null);
+        }
         return;
       }
 
       final customization = await _repository.getUserCustomization(_userId);
-      state = AsyncValue.data(customization);
+      if (!_disposed) {
+        state = AsyncValue.data(customization);
+      }
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      if (!_disposed) {
+        state = AsyncValue.error(e, stack);
+      }
     }
   }
 
   // Update app theme
   Future<void> updateAppTheme(AppThemeSettings theme) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.updateCustomization(_userId, {
@@ -70,7 +87,7 @@ class UICustomizationNotifier
   // Update profile customization
   Future<void> updateProfileCustomization(
       ProfileCustomization customization) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.updateCustomization(_userId, {
@@ -86,7 +103,7 @@ class UICustomizationNotifier
 
   // Update component styles
   Future<void> updateComponentStyles(ComponentStyles styles) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.updateCustomization(_userId, {
@@ -102,7 +119,7 @@ class UICustomizationNotifier
 
   // Update layout preferences
   Future<void> updateLayoutPreferences(LayoutPreferences preferences) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.updateCustomization(_userId, {
@@ -118,7 +135,7 @@ class UICustomizationNotifier
 
   // Update typography settings
   Future<void> updateTypography(TypographySettings typography) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.updateCustomization(_userId, {
@@ -134,7 +151,7 @@ class UICustomizationNotifier
 
   // Update animation settings
   Future<void> updateAnimationSettings(AnimationSettings animations) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.updateCustomization(_userId, {
@@ -150,7 +167,7 @@ class UICustomizationNotifier
 
   // Apply preset theme
   Future<void> applyPreset(String presetId) async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.applyPresetTheme(_userId, presetId);
@@ -164,7 +181,7 @@ class UICustomizationNotifier
 
   // Reset to defaults
   Future<void> resetToDefaults() async {
-    if (_userId == null) return;
+    if (_disposed || _userId == null) return;
 
     try {
       await _repository.resetToDefault(_userId);
@@ -178,6 +195,8 @@ class UICustomizationNotifier
 
   // Quick color update (for real-time color picker)
   void updateColorInstant(String colorKey, Color color) {
+    if (_disposed) return;
+    
     final current = state.value;
     if (current == null) return;
 
@@ -196,11 +215,15 @@ class UICustomizationNotifier
       textColor: colorKey == 'text' ? hexColor : current.appTheme.textColor,
     );
 
-    state = AsyncValue.data(current.copyWith(appTheme: updatedTheme));
+    if (!_disposed) {
+      state = AsyncValue.data(current.copyWith(appTheme: updatedTheme));
+    }
   }
 
   // Commit color changes to Firebase
   Future<void> commitColorChanges() async {
+    if (_disposed) return;
+    
     final current = state.value;
     if (current == null || _userId == null) return;
 
@@ -209,8 +232,8 @@ class UICustomizationNotifier
 }
 
 // Main provider for UI customization
-final uiCustomizationProvider = StateNotifierProvider<UICustomizationNotifier,
-    AsyncValue<UICustomizationModel?>>((ref) {
+final uiCustomizationProvider = StateNotifierProvider<
+    UICustomizationNotifier, AsyncValue<UICustomizationModel?>>((ref) {  // Remove autoDispose
   final auth = ref.watch(authProvider);
   final repository = ref.watch(uiCustomizationRepositoryProvider);
 
@@ -234,6 +257,15 @@ final currentThemeProvider = Provider<ThemeData>((ref) {
           WidgetsBinding.instance.platformDispatcher.platformBrightness ==
               Brightness.dark);
 
+  // Create consistent TextStyles that can be safely interpolated
+  final baseTextStyle = TextStyle(
+    inherit: true, // Ensure all TextStyles have the same inherit value
+    fontFamily: customization.typography.primaryFont,
+    letterSpacing: customization.typography.letterSpacing,
+    height: customization.typography.lineHeightMultiplier,
+    color: appTheme.getTextColor(),
+  );
+
   return ThemeData(
     useMaterial3: appTheme.useMaterial3,
     brightness: isDark ? Brightness.dark : Brightness.light,
@@ -255,9 +287,9 @@ final currentThemeProvider = Provider<ThemeData>((ref) {
 
     // Apply component styles
     elevatedButtonTheme: _buildElevatedButtonTheme(
-        customization.componentStyles.primaryButton, appTheme),
+        customization.componentStyles.primaryButton, appTheme, baseTextStyle),
     outlinedButtonTheme: _buildOutlinedButtonTheme(
-        customization.componentStyles.secondaryButton, appTheme),
+        customization.componentStyles.secondaryButton, appTheme, baseTextStyle),
 
     // Apply card theme
     cardTheme: CardThemeData(
@@ -278,12 +310,16 @@ final currentThemeProvider = Provider<ThemeData>((ref) {
     inputDecorationTheme: _buildInputDecorationTheme(
         customization.componentStyles.inputField, appTheme),
 
-    textTheme: _buildTextTheme(customization.typography, appTheme),
+    textTheme: _buildTextTheme(customization.typography, appTheme, baseTextStyle),
 
     appBarTheme: AppBarTheme(
       backgroundColor: appTheme.getSurfaceColor(),
       foregroundColor: appTheme.getTextColor(),
       elevation: appTheme.enableShadows ? 2 : 0,
+      titleTextStyle: baseTextStyle.copyWith(
+        fontSize: 20,
+        fontWeight: FontWeight.w500,
+      ),
     ),
 
     dialogTheme: DialogThemeData(
@@ -300,9 +336,9 @@ Color _getOnColor(Color color) {
   return color.computeLuminance() > 0.5 ? Colors.black : Colors.white;
 }
 
-// Build elevated button theme
+// Build elevated button theme with consistent TextStyle
 ElevatedButtonThemeData _buildElevatedButtonTheme(
-    ButtonStyle buttonStyle, AppThemeSettings appTheme) {
+    ButtonStyle buttonStyle, AppThemeSettings appTheme, TextStyle baseTextStyle) {
   return ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       shape: _getButtonShape(buttonStyle),
@@ -311,18 +347,19 @@ ElevatedButtonThemeData _buildElevatedButtonTheme(
         horizontal: buttonStyle.horizontalPadding,
         vertical: buttonStyle.verticalPadding,
       ),
-      textStyle: TextStyle(
+      textStyle: baseTextStyle.copyWith(
         fontSize: buttonStyle.fontSize,
         fontWeight: _getFontWeight(buttonStyle.fontWeight),
         letterSpacing: buttonStyle.letterSpacing,
+        inherit: true, // Ensure consistent inherit value
       ),
     ),
   );
 }
 
-// Build outlined button theme
+// Build outlined button theme with consistent TextStyle
 OutlinedButtonThemeData _buildOutlinedButtonTheme(
-    ButtonStyle buttonStyle, AppThemeSettings appTheme) {
+    ButtonStyle buttonStyle, AppThemeSettings appTheme, TextStyle baseTextStyle) {
   return OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
       shape: _getButtonShape(buttonStyle),
@@ -330,10 +367,11 @@ OutlinedButtonThemeData _buildOutlinedButtonTheme(
         horizontal: buttonStyle.horizontalPadding,
         vertical: buttonStyle.verticalPadding,
       ),
-      textStyle: TextStyle(
+      textStyle: baseTextStyle.copyWith(
         fontSize: buttonStyle.fontSize,
         fontWeight: _getFontWeight(buttonStyle.fontWeight),
         letterSpacing: buttonStyle.letterSpacing,
+        inherit: true, // Ensure consistent inherit value
       ),
     ),
   );
@@ -432,34 +470,53 @@ InputBorder _getInputBorder(InputFieldStyle inputStyle,
   }
 }
 
-// Build text theme
+// Build text theme with consistent inherit values
 TextTheme _buildTextTheme(
-    TypographySettings typography, AppThemeSettings appTheme) {
-  final baseTextStyle = TextStyle(
-    fontFamily: typography.primaryFont,
-    letterSpacing: typography.letterSpacing,
-    height: typography.lineHeightMultiplier,
-    color: appTheme.getTextColor(),
+    TypographySettings typography, AppThemeSettings appTheme, TextStyle baseTextStyle) {
+  
+    final consistentBaseStyle = baseTextStyle.copyWith(inherit: true);
+  
+  final textTheme = TextTheme(
+    displayLarge: baseTextStyle.copyWith(
+      fontSize: 96 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    displayMedium: baseTextStyle.copyWith(
+      fontSize: 60 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    displaySmall: baseTextStyle.copyWith(
+      fontSize: 48 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    headlineMedium: baseTextStyle.copyWith(
+      fontSize: 34 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    headlineSmall: baseTextStyle.copyWith(
+      fontSize: 24 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    titleLarge: baseTextStyle.copyWith(
+      fontSize: 20 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    bodyLarge: baseTextStyle.copyWith(
+      fontSize: 16 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    bodyMedium: baseTextStyle.copyWith(
+      fontSize: 14 * typography.fontScaleFactor,
+      inherit: true,
+    ),
+    labelLarge: baseTextStyle.copyWith(
+      fontSize: 14 * typography.fontScaleFactor,
+      inherit: true,
+    ),
   );
 
-  return TextTheme(
-    displayLarge:
-        baseTextStyle.copyWith(fontSize: 96 * typography.fontScaleFactor),
-    displayMedium:
-        baseTextStyle.copyWith(fontSize: 60 * typography.fontScaleFactor),
-    displaySmall:
-        baseTextStyle.copyWith(fontSize: 48 * typography.fontScaleFactor),
-    headlineMedium:
-        baseTextStyle.copyWith(fontSize: 34 * typography.fontScaleFactor),
-    headlineSmall:
-        baseTextStyle.copyWith(fontSize: 24 * typography.fontScaleFactor),
-    titleLarge:
-        baseTextStyle.copyWith(fontSize: 20 * typography.fontScaleFactor),
-    bodyLarge:
-        baseTextStyle.copyWith(fontSize: 16 * typography.fontScaleFactor),
-    bodyMedium:
-        baseTextStyle.copyWith(fontSize: 14 * typography.fontScaleFactor),
-    labelLarge:
-        baseTextStyle.copyWith(fontSize: 14 * typography.fontScaleFactor),
+  return textTheme.apply(
+    displayColor: appTheme.getTextColor(),
+    bodyColor: appTheme.getTextColor(),
   );
 }
