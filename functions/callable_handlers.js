@@ -277,14 +277,12 @@ const retroactivelyFillUserFeeds = onCall({
     enforceAppCheck: false,
     timeoutSeconds: 540, // 9 minutes, close to the max timeout
 }, async (request) => {
-    // Admin-only check (you should implement proper admin verification)
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     const callerUid = request.auth.uid;
 
-    // Verify admin status (implement this based on your admin structure)
     const adminDoc = await firestore.collection('admins').doc(callerUid).get();
     if (!adminDoc.exists) {
         throw new HttpsError('permission-denied', 'Admin access required');

@@ -2,12 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-// FontWeight Converter
-class FontWeightConverter implements JsonConverter<FontWeight, String> {
+// FontWeight Converter with null safety
+class FontWeightConverter implements JsonConverter<FontWeight, String?> {
   const FontWeightConverter();
 
   @override
-  FontWeight fromJson(String json) {
+  FontWeight fromJson(String? json) {
+    if (json == null) return FontWeight.w400;
+    
     switch (json) {
       case 'w100':
         return FontWeight.w100;
@@ -59,12 +61,14 @@ class FontWeightConverter implements JsonConverter<FontWeight, String> {
   }
 }
 
-// ThemeMode Converter
-class ThemeModeConverter implements JsonConverter<ThemeMode, String> {
+// ThemeMode Converter with null safety
+class ThemeModeConverter implements JsonConverter<ThemeMode, String?> {
   const ThemeModeConverter();
 
   @override
-  ThemeMode fromJson(String json) {
+  ThemeMode fromJson(String? json) {
+    if (json == null) return ThemeMode.system;
+    
     switch (json) {
       case 'light':
         return ThemeMode.light;
@@ -90,12 +94,14 @@ class ThemeModeConverter implements JsonConverter<ThemeMode, String> {
   }
 }
 
-// Curves Converter
-class CurvesConverter implements JsonConverter<Curve, String> {
+// Curves Converter with null safety
+class CurvesConverter implements JsonConverter<Curve, String?> {
   const CurvesConverter();
 
   @override
-  Curve fromJson(String json) {
+  Curve fromJson(String? json) {
+    if (json == null) return Curves.easeInOut;
+    
     switch (json) {
       case 'linear':
         return Curves.linear;
@@ -235,21 +241,23 @@ class CurvesConverter implements JsonConverter<Curve, String> {
   }
 }
 
-// Alignment Converter
+// Alignment Converter with null safety
 class AlignmentConverter
-    implements JsonConverter<Alignment, Map<String, double>> {
+    implements JsonConverter<Alignment, Map<String, dynamic>?> {
   const AlignmentConverter();
 
   @override
-  Alignment fromJson(Map<String, double> json) {
+  Alignment fromJson(Map<String, dynamic>? json) {
+    if (json == null) return Alignment.center;
+    
     return Alignment(
-      json['x'] ?? 0.0,
-      json['y'] ?? 0.0,
+      (json['x'] as num?)?.toDouble() ?? 0.0,
+      (json['y'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
   @override
-  Map<String, double> toJson(Alignment object) {
+  Map<String, dynamic> toJson(Alignment object) {
     return {
       'x': object.x,
       'y': object.y,
@@ -258,11 +266,11 @@ class AlignmentConverter
 }
 
 // Simple converters for enums that don't need custom handling
-class EnumToStringConverter<T> implements JsonConverter<T, String> {
+class EnumToStringConverter<T> implements JsonConverter<T, String?> {
   const EnumToStringConverter();
 
   @override
-  T fromJson(String json) {
+  T fromJson(String? json) {
     // This would need to be implemented based on the specific enum
     throw UnimplementedError();
   }
@@ -274,27 +282,256 @@ class EnumToStringConverter<T> implements JsonConverter<T, String> {
 }
 
 class TimestampOrStringDateTimeConverter
-    implements JsonConverter<DateTime, Object> {
+    implements JsonConverter<DateTime, Object?> {
   const TimestampOrStringDateTimeConverter();
 
   @override
-  DateTime fromJson(Object json) {
+  DateTime fromJson(Object? json) {
+    if (json == null) return DateTime.now();
+    
     if (json is String) {
-      return DateTime.parse(json);
+      try {
+        return DateTime.parse(json);
+      } catch (e) {
+        // If parsing fails, return current time
+        return DateTime.now();
+      }
     }
+    
     if (json is Timestamp) {
       return json.toDate();
     }
-    // As a fallback, though ideally, the data should always be String or Timestamp.
-    // I will add error handling for unexpected types.
-    // This is important to ensure that the converter can handle both cases.
-    // For now, let's throw an ArgumentError for unexpected types.
-    throw ArgumentError.value(
-        json, 'json', 'Must be a String or Timestamp to convert to DateTime');
+    
+    // Handle numeric timestamps (milliseconds since epoch)
+    if (json is num) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(json.toInt());
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    
+    // Handle Map representation of DateTime
+    if (json is Map<String, dynamic>) {
+      try {
+        // Check for Firestore Timestamp representation
+        if (json.containsKey('_seconds') && json.containsKey('_nanoseconds')) {
+          final seconds = (json['_seconds'] as num).toInt();
+          final nanoseconds = (json['_nanoseconds'] as num).toInt();
+          return DateTime.fromMillisecondsSinceEpoch(
+            seconds * 1000 + (nanoseconds / 1000000).round()
+          );
+        }
+        
+        // Check for standard DateTime JSON representation
+        if (json.containsKey('year')) {
+          return DateTime(
+            (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+            (json['month'] as num?)?.toInt() ?? DateTime.now().month,
+            (json['day'] as num?)?.toInt() ?? DateTime.now().day,
+            (json['hour'] as num?)?.toInt() ?? 0,
+            (json['minute'] as num?)?.toInt() ?? 0,
+            (json['second'] as num?)?.toInt() ?? 0,
+            (json['millisecond'] as num?)?.toInt() ?? 0,
+          );
+        }
+      } catch (e) {
+        // If any parsing fails, return current time
+        return DateTime.now();
+      }
+    }
+    
+    // As a fallback, return current time instead of throwing an error
+    return DateTime.now();
   }
 
   @override
   Object toJson(DateTime date) {
     return date.toIso8601String();
+  }
+}
+
+// Safe Color Converter to handle color strings
+class SafeColorConverter implements JsonConverter<Color, String?> {
+  const SafeColorConverter();
+
+  @override
+  Color fromJson(String? json) {
+    if (json == null || json.isEmpty) {
+      return Colors.transparent;
+    }
+    
+    try {
+      // Remove # if present
+      String colorString = json.replaceFirst('#', '');
+      
+      // Ensure we have a valid hex color
+      if (colorString.length == 6) {
+        colorString = 'FF$colorString'; // Add alpha if missing
+      }
+      
+      if (colorString.length == 8) {
+        return Color(int.parse(colorString, radix: 16));
+      }
+      
+      // If parsing fails, return a default color
+      return Colors.transparent;
+    } catch (e) {
+      return Colors.transparent;
+    }
+  }
+
+  @override
+  String toJson(Color color) {
+    // Convert to hex string without alpha if it's fully opaque
+    if (color.alpha == 255) {
+      return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    } else {
+      return '#${color.value.toRadixString(16).toUpperCase()}';
+    }
+  }
+}
+
+// Safe Number Converter to handle various numeric types
+class SafeDoubleConverter implements JsonConverter<double, Object?> {
+  const SafeDoubleConverter();
+
+  @override
+  double fromJson(Object? json) {
+    if (json == null) return 0.0;
+    
+    if (json is double) return json;
+    if (json is int) return json.toDouble();
+    if (json is String) {
+      try {
+        return double.parse(json);
+      } catch (e) {
+        return 0.0;
+      }
+    }
+    
+    return 0.0;
+  }
+
+  @override
+  Object toJson(double value) {
+    return value;
+  }
+}
+
+// Safe Integer Converter
+class SafeIntConverter implements JsonConverter<int, Object?> {
+  const SafeIntConverter();
+
+  @override
+  int fromJson(Object? json) {
+    if (json == null) return 0;
+    
+    if (json is int) return json;
+    if (json is double) return json.round();
+    if (json is String) {
+      try {
+        return int.parse(json);
+      } catch (e) {
+        try {
+          return double.parse(json).round();
+        } catch (e) {
+          return 0;
+        }
+      }
+    }
+    
+    return 0;
+  }
+
+  @override
+  Object toJson(int value) {
+    return value;
+  }
+}
+
+// Safe Boolean Converter
+class SafeBoolConverter implements JsonConverter<bool, Object?> {
+  const SafeBoolConverter();
+
+  @override
+  bool fromJson(Object? json) {
+    if (json == null) return false;
+    
+    if (json is bool) return json;
+    if (json is String) {
+      final lower = json.toLowerCase();
+      return lower == 'true' || lower == '1' || lower == 'yes';
+    }
+    if (json is num) {
+      return json != 0;
+    }
+    
+    return false;
+  }
+
+  @override
+  Object toJson(bool value) {
+    return value;
+  }
+}
+
+// Safe String List Converter
+class SafeStringListConverter implements JsonConverter<List<String>, Object?> {
+  const SafeStringListConverter();
+
+  @override
+  List<String> fromJson(Object? json) {
+    if (json == null) return [];
+    
+    if (json is List) {
+      return json.map((item) => item?.toString() ?? '').toList();
+    }
+    
+    if (json is String) {
+      // Handle comma-separated strings
+      try {
+        return json.split(',').map((s) => s.trim()).toList();
+      } catch (e) {
+        return [json];
+      }
+    }
+    
+    return [];
+  }
+
+  @override
+  Object toJson(List<String> value) {
+    return value;
+  }
+}
+
+// Safe Map Converter
+class SafeMapConverter implements JsonConverter<Map<String, dynamic>, Object?> {
+  const SafeMapConverter();
+
+  @override
+  Map<String, dynamic> fromJson(Object? json) {
+    if (json == null) return {};
+    
+    if (json is Map<String, dynamic>) {
+      return json;
+    }
+    
+    if (json is Map) {
+      // Convert to Map<String, dynamic>
+      final result = <String, dynamic>{};
+      json.forEach((key, value) {
+        result[key.toString()] = value;
+      });
+      return result;
+    }
+    
+    return {};
+  }
+
+  @override
+  Object toJson(Map<String, dynamic> value) {
+    return value;
   }
 }

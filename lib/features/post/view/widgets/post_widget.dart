@@ -115,18 +115,27 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: theme.colorScheme.shadow.withValues(
+                alpha: 0.3,
+              ),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
           border: widget.post.isAlt
               ? Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.2), width: 1)
-              : null,
+                  color: theme.colorScheme.primary.withValues(
+                    alpha: 0.3,
+                  ),
+                  width: 2)
+              : Border.all(
+                  color: theme.colorScheme.secondary.withValues(
+                    alpha: 0.3,
+                  ),
+                  width: 2),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -165,7 +174,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
               // Post Content
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -190,7 +199,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                       ),
                     ],
 
-
                     // Either media or text content with NSFW blur option
                     const SizedBox(height: 4),
 
@@ -210,9 +218,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     // --- End NSFW Content Handling ---
 
                     const SizedBox(height: 4),
-                    // ******************************************************
-                    // ** [追加] タグ表示セクションをここに配置 **
-                    // ******************************************************
+                    // Tag display section
+                    // タグ表示セクション
                     _buildTagsSection(),
 
                     // Action row
@@ -230,14 +237,14 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       ),
     );
   }
-  
-  // ******************************************************
-  // ** [追加] タグを表示するための新しいメソッド **
-  // ******************************************************
+
   /// 投稿にタグがあればChipとして表示する
+  /// Display tags as Chips if they exist in the post.
   Widget _buildTagsSection() {
     // PostModelに 'tags' プロパティ (List<String>) があることを前提とします。
+    // This method assumes that PostModel has a 'tags' property (List<String>).
     // もし存在しない、または空の場合は何も表示しません。
+    // If the post does not have tags or the tags list is empty, return an empty widget.
     if (widget.post.tags == null || widget.post.tags!.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -247,8 +254,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       child: Wrap(
-        spacing: 8.0, // Chip間の横スペース
-        runSpacing: 4.0, // Chip間の縦スペース
+        spacing: 8.0, // Chip間の横スペース // Space between Chips
+        runSpacing: 4.0, // Chip間の縦スペース // Space between Chips
         children: widget.post.tags!.map<Widget>((tag) {
           return GestureDetector(
             onTap: () {
@@ -265,9 +272,11 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                   fontSize: 12,
                 ),
               ),
-              backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.4),
+              backgroundColor:
+                  theme.colorScheme.primaryContainer.withOpacity(0.4),
               side: BorderSide.none,
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           );
@@ -275,7 +284,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       ),
     );
   }
-  
+
   Widget _buildNSFWOverlay() {
     return NSFWOverlayWidget(
       onTap: () {
