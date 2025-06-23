@@ -11,7 +11,7 @@ _UICustomizationModel _$UICustomizationModelFromJson(
     _UICustomizationModel(
       userId: json['userId'] as String,
       lastUpdated: const TimestampOrStringDateTimeConverter()
-          .fromJson(json['lastUpdated'] as Object),
+          .fromJson(json['lastUpdated']),
       appTheme: json['appTheme'] == null
           ? const AppThemeSettings()
           : AppThemeSettings.fromJson(json['appTheme'] as Map<String, dynamic>),
@@ -43,12 +43,12 @@ Map<String, dynamic> _$UICustomizationModelToJson(
       'userId': instance.userId,
       'lastUpdated': const TimestampOrStringDateTimeConverter()
           .toJson(instance.lastUpdated),
-      'appTheme': instance.appTheme,
-      'profileCustomization': instance.profileCustomization,
-      'componentStyles': instance.componentStyles,
-      'layoutPreferences': instance.layoutPreferences,
-      'animationSettings': instance.animationSettings,
-      'typography': instance.typography,
+      'appTheme': instance.appTheme.toJson(),
+      'profileCustomization': instance.profileCustomization.toJson(),
+      'componentStyles': instance.componentStyles.toJson(),
+      'layoutPreferences': instance.layoutPreferences.toJson(),
+      'animationSettings': instance.animationSettings.toJson(),
+      'typography': instance.typography.toJson(),
     };
 
 _AppThemeSettings _$AppThemeSettingsFromJson(Map<String, dynamic> json) =>
@@ -91,7 +91,7 @@ _AppThemeSettings _$AppThemeSettingsFromJson(Map<String, dynamic> json) =>
       useMaterial3: json['useMaterial3'] as bool? ?? true,
       enableGlassmorphism: json['enableGlassmorphism'] as bool? ?? false,
       enableGradients: json['enableGradients'] as bool? ?? false,
-      enableShadows: json['enableShadows'] as bool? ?? false,
+      enableShadows: json['enableShadows'] as bool? ?? true,
       shadowIntensity: (json['shadowIntensity'] as num?)?.toDouble() ?? 1.0,
     );
 
@@ -202,7 +202,7 @@ Map<String, dynamic> _$ProfileCustomizationToJson(
       'cardElevation': instance.cardElevation,
       'cardBackgroundColor': instance.cardBackgroundColor,
       'cardOpacity': instance.cardOpacity,
-      'customWidgets': instance.customWidgets,
+      'customWidgets': instance.customWidgets.map((e) => e.toJson()).toList(),
     };
 
 _ComponentStyles _$ComponentStylesFromJson(Map<String, dynamic> json) =>
@@ -235,14 +235,14 @@ _ComponentStyles _$ComponentStylesFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ComponentStylesToJson(_ComponentStyles instance) =>
     <String, dynamic>{
-      'primaryButton': instance.primaryButton,
-      'secondaryButton': instance.secondaryButton,
+      'primaryButton': instance.primaryButton.toJson(),
+      'secondaryButton': instance.secondaryButton.toJson(),
       'cardBorderRadius': instance.cardBorderRadius,
       'cardElevation': instance.cardElevation,
       'cardOutline': instance.cardOutline,
       'cardOutlineColor': instance.cardOutlineColor,
-      'inputField': instance.inputField,
-      'navigation': instance.navigation,
+      'inputField': instance.inputField.toJson(),
+      'navigation': instance.navigation.toJson(),
       'dialogBorderRadius': instance.dialogBorderRadius,
       'dialogBlurBackground': instance.dialogBlurBackground,
       'dialogBlurIntensity': instance.dialogBlurIntensity,
