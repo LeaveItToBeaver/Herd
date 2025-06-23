@@ -478,48 +478,39 @@ class __$UICustomizationModelCopyWithImpl<$Res>
 
 /// @nodoc
 mixin _$AppThemeSettings {
-// Core colors (stored as hex strings)
+// Core colors (stored as hex strings) with safe defaults
   String get primaryColor;
   String get secondaryColor;
   String get backgroundColor;
-  String get surfaceColor; // Often used for card backgrounds, dialogs etc.
-  String get textColor; // Main text color, often on surface/background
-  String
-      get secondaryTextColor; // Less prominent text, or text on different surfaces
+  String get surfaceColor;
+  String get textColor;
+  String get secondaryTextColor;
   String get errorColor;
   String get warningColor;
-  String
-      get successColor; // New "On" Colors (for text/icons on top of the above colors)
+  String get successColor; // "On" Colors with safe defaults
   String get onPrimaryColor;
   String get onSecondaryColor;
-  String get onBackgroundColor; // If backgroundColor is light
-  String
-      get onErrorColor; // textColor can serve as onSurfaceColor, but if you need distinct:
-  String
-      get onSurfaceColor; // Explicit text/icon color for surfaceColor elements
-// New Container Colors (for elements requiring a fill color related to primary/secondary/tertiary)
-  String get primaryContainerColor; // Lighter/softer version of primary
-  String get onPrimaryContainerColor; // Text/icon for primaryContainerColor
-  String get secondaryContainerColor; // Lighter/softer version of secondary
-  String get onSecondaryContainerColor; // Text/icon for secondaryContainerColor
-  String
-      get tertiaryContainerColor; // Lighter/softer version of a tertiary/accent color
-  String get onTertiaryContainerColor; // Text/icon for tertiaryContainerColor
-// New Accent/Tertiary Color
-  String get tertiaryColor; // An accent color distinct from primary/secondary
-// New Utility Colors
-  String get outlineColor; // For borders, dividers
-  String get shadowColor; // Base color for shadows (opacity applied separately)
-  String get surfaceVariantColor; // Another variation of surface color
-  String get onSurfaceVariantColor; // Text/icon for surfaceVariantColor
-  String get disabledColor; // For disabled elements/text
-  String get hintColor; // For hint text in input fields
-// Theme mode as string
-  String get themeMode; // 'light', 'dark', 'system'
-  bool get useMaterial3; // Special effects
+  String get onBackgroundColor;
+  String get onErrorColor;
+  String get onSurfaceColor; // Container Colors with safe defaults
+  String get primaryContainerColor;
+  String get onPrimaryContainerColor;
+  String get secondaryContainerColor;
+  String get onSecondaryContainerColor;
+  String get tertiaryContainerColor;
+  String get onTertiaryContainerColor; // Tertiary Color
+  String get tertiaryColor; // Utility Colors with safe defaults
+  String get outlineColor;
+  String get shadowColor;
+  String get surfaceVariantColor;
+  String get onSurfaceVariantColor;
+  String get disabledColor;
+  String get hintColor; // Theme mode as string with safe default
+  String get themeMode;
+  bool get useMaterial3; // Special effects with safe defaults
   bool get enableGlassmorphism;
   bool get enableGradients;
-  bool get enableShadows;
+  bool get enableShadows; // Changed default to true
   double get shadowIntensity;
 
   /// Create a copy of AppThemeSettings
@@ -911,13 +902,13 @@ class _AppThemeSettings extends AppThemeSettings {
       this.useMaterial3 = true,
       this.enableGlassmorphism = false,
       this.enableGradients = false,
-      this.enableShadows = false,
+      this.enableShadows = true,
       this.shadowIntensity = 1.0})
       : super._();
   factory _AppThemeSettings.fromJson(Map<String, dynamic> json) =>
       _$AppThemeSettingsFromJson(json);
 
-// Core colors (stored as hex strings)
+// Core colors (stored as hex strings) with safe defaults
   @override
   @JsonKey()
   final String primaryColor;
@@ -930,15 +921,12 @@ class _AppThemeSettings extends AppThemeSettings {
   @override
   @JsonKey()
   final String surfaceColor;
-// Often used for card backgrounds, dialogs etc.
   @override
   @JsonKey()
   final String textColor;
-// Main text color, often on surface/background
   @override
   @JsonKey()
   final String secondaryTextColor;
-// Less prominent text, or text on different surfaces
   @override
   @JsonKey()
   final String errorColor;
@@ -948,7 +936,7 @@ class _AppThemeSettings extends AppThemeSettings {
   @override
   @JsonKey()
   final String successColor;
-// New "On" Colors (for text/icons on top of the above colors)
+// "On" Colors with safe defaults
   @override
   @JsonKey()
   final String onPrimaryColor;
@@ -958,79 +946,62 @@ class _AppThemeSettings extends AppThemeSettings {
   @override
   @JsonKey()
   final String onBackgroundColor;
-// If backgroundColor is light
   @override
   @JsonKey()
   final String onErrorColor;
-// textColor can serve as onSurfaceColor, but if you need distinct:
   @override
   @JsonKey()
   final String onSurfaceColor;
-// Explicit text/icon color for surfaceColor elements
-// New Container Colors (for elements requiring a fill color related to primary/secondary/tertiary)
+// Container Colors with safe defaults
   @override
   @JsonKey()
   final String primaryContainerColor;
-// Lighter/softer version of primary
   @override
   @JsonKey()
   final String onPrimaryContainerColor;
-// Text/icon for primaryContainerColor
   @override
   @JsonKey()
   final String secondaryContainerColor;
-// Lighter/softer version of secondary
   @override
   @JsonKey()
   final String onSecondaryContainerColor;
-// Text/icon for secondaryContainerColor
   @override
   @JsonKey()
   final String tertiaryContainerColor;
-// Lighter/softer version of a tertiary/accent color
   @override
   @JsonKey()
   final String onTertiaryContainerColor;
-// Text/icon for tertiaryContainerColor
-// New Accent/Tertiary Color
+// Tertiary Color
   @override
   @JsonKey()
   final String tertiaryColor;
-// An accent color distinct from primary/secondary
-// New Utility Colors
+// Utility Colors with safe defaults
   @override
   @JsonKey()
   final String outlineColor;
-// For borders, dividers
   @override
   @JsonKey()
   final String shadowColor;
-// Base color for shadows (opacity applied separately)
   @override
   @JsonKey()
   final String surfaceVariantColor;
-// Another variation of surface color
   @override
   @JsonKey()
   final String onSurfaceVariantColor;
-// Text/icon for surfaceVariantColor
   @override
   @JsonKey()
   final String disabledColor;
-// For disabled elements/text
   @override
   @JsonKey()
   final String hintColor;
-// For hint text in input fields
-// Theme mode as string
+// Theme mode as string with safe default
   @override
   @JsonKey()
   final String themeMode;
-// 'light', 'dark', 'system'
   @override
   @JsonKey()
   final bool useMaterial3;
-// Special effects
+// Special effects with safe defaults
   @override
   @JsonKey()
   final bool enableGlassmorphism;
@@ -1040,6 +1011,7 @@ class _AppThemeSettings extends AppThemeSettings {
   @override
   @JsonKey()
   final bool enableShadows;
+// Changed default to true
   @override
   @JsonKey()
   final double shadowIntensity;
@@ -1406,34 +1378,34 @@ class __$AppThemeSettingsCopyWithImpl<$Res>
 
 /// @nodoc
 mixin _$ProfileCustomization {
-// Background customization
+// Background customization with safe defaults
   String? get backgroundImageUrl;
   String? get backgroundColor;
-  String get backgroundType; // 'solid', 'gradient', 'image', 'animated'
+  String get backgroundType;
   List<String> get gradientColors;
-  double get gradientAngle; // Layout customization
-  String get layout; // 'classic', 'modern', 'minimal', 'creative'
+  double get gradientAngle; // Layout customization with safe defaults
+  String get layout;
   bool get showCoverImage;
   bool get showProfileImage;
-  String get profileImageShape; // 'circle', 'square', 'rounded'
-  double get profileImageSize; // Content sections
+  String get profileImageShape;
+  double get profileImageSize; // Content sections with safe defaults
   bool get showBio;
   bool get showStats;
   bool get showPosts;
-  bool get showAboutSection; // Special effects
+  bool get showAboutSection; // Special effects with safe defaults
   bool get enableParticles;
   bool get enableAnimatedBackground;
   bool get enableCustomCursor;
-  String? get customCursorUrl; // Custom CSS (MySpace-style)
-  String? get customCSS; // Music player
+  String? get customCursorUrl; // Custom CSS
+  String? get customCSS; // Music player with safe defaults
   bool get enableMusicPlayer;
   String? get musicUrl;
   bool get autoPlayMusic;
-  double get musicVolume; // Profile card styling
+  double get musicVolume; // Profile card styling with safe defaults
   double get cardBorderRadius;
   double get cardElevation;
   String? get cardBackgroundColor;
-  double get cardOpacity; // Custom widgets
+  double get cardOpacity; // Custom widgets with safe defaults
   List<CustomWidget> get customWidgets;
 
   /// Create a copy of ProfileCustomization
@@ -1782,7 +1754,7 @@ class _ProfileCustomization implements ProfileCustomization {
   factory _ProfileCustomization.fromJson(Map<String, dynamic> json) =>
       _$ProfileCustomizationFromJson(json);
 
-// Background customization
+// Background customization with safe defaults
   @override
   final String? backgroundImageUrl;
   @override
@@ -1790,9 +1762,7 @@ class _ProfileCustomization implements ProfileCustomization {
   @override
   @JsonKey()
   final String backgroundType;
-// 'solid', 'gradient', 'image', 'animated'
   final List<String> _gradientColors;
-// 'solid', 'gradient', 'image', 'animated'
   @override
   @JsonKey()
   List<String> get gradientColors {
@@ -1804,11 +1774,10 @@ class _ProfileCustomization implements ProfileCustomization {
   @override
   @JsonKey()
   final double gradientAngle;
-// Layout customization
+// Layout customization with safe defaults
   @override
   @JsonKey()
   final String layout;
-// 'classic', 'modern', 'minimal', 'creative'
   @override
   @JsonKey()
   final bool showCoverImage;
@@ -1818,11 +1787,10 @@ class _ProfileCustomization implements ProfileCustomization {
   @override
   @JsonKey()
   final String profileImageShape;
-// 'circle', 'square', 'rounded'
   @override
   @JsonKey()
   final double profileImageSize;
-// Content sections
+// Content sections with safe defaults
   @override
   @JsonKey()
   final bool showBio;
@@ -1835,7 +1803,7 @@ class _ProfileCustomization implements ProfileCustomization {
   @override
   @JsonKey()
   final bool showAboutSection;
-// Special effects
+// Special effects with safe defaults
   @override
   @JsonKey()
   final bool enableParticles;
@@ -1847,10 +1815,10 @@ class _ProfileCustomization implements ProfileCustomization {
   final bool enableCustomCursor;
   @override
   final String? customCursorUrl;
-// Custom CSS (MySpace-style)
+// Custom CSS
   @override
   final String? customCSS;
-// Music player
+// Music player with safe defaults
   @override
   @JsonKey()
   final bool enableMusicPlayer;
@@ -1862,7 +1830,7 @@ class _ProfileCustomization implements ProfileCustomization {
   @override
   @JsonKey()
   final double musicVolume;
-// Profile card styling
+// Profile card styling with safe defaults
   @override
   @JsonKey()
   final double cardBorderRadius;
@@ -1874,9 +1842,9 @@ class _ProfileCustomization implements ProfileCustomization {
   @override
   @JsonKey()
   final double cardOpacity;
-// Custom widgets
+// Custom widgets with safe defaults
   final List<CustomWidget> _customWidgets;
-// Custom widgets
+// Custom widgets with safe defaults
   @override
   @JsonKey()
   List<CustomWidget> get customWidgets {
@@ -2203,15 +2171,15 @@ class __$ProfileCustomizationCopyWithImpl<$Res>
 
 /// @nodoc
 mixin _$ComponentStyles {
-// Button styling
+// Button styling with safe defaults
   ButtonStyle get primaryButton;
-  ButtonStyle get secondaryButton; // Card styling
+  ButtonStyle get secondaryButton; // Card styling with safe defaults
   double get cardBorderRadius;
   double get cardElevation;
   bool get cardOutline;
-  String get cardOutlineColor; // Input field styling
-  InputFieldStyle get inputField; // Navigation bar styling
-  NavigationStyle get navigation; // Dialog styling
+  String get cardOutlineColor; // Input field styling with safe defaults
+  InputFieldStyle get inputField; // Navigation bar styling with safe defaults
+  NavigationStyle get navigation; // Dialog styling with safe defaults
   double get dialogBorderRadius;
   bool get dialogBlurBackground;
   double get dialogBlurIntensity;
@@ -2435,14 +2403,14 @@ class _ComponentStyles implements ComponentStyles {
   factory _ComponentStyles.fromJson(Map<String, dynamic> json) =>
       _$ComponentStylesFromJson(json);
 
-// Button styling
+// Button styling with safe defaults
   @override
   @JsonKey()
   final ButtonStyle primaryButton;
   @override
   @JsonKey()
   final ButtonStyle secondaryButton;
-// Card styling
+// Card styling with safe defaults
   @override
   @JsonKey()
   final double cardBorderRadius;
@@ -2455,15 +2423,15 @@ class _ComponentStyles implements ComponentStyles {
   @override
   @JsonKey()
   final String cardOutlineColor;
-// Input field styling
+// Input field styling with safe defaults
   @override
   @JsonKey()
   final InputFieldStyle inputField;
-// Navigation bar styling
+// Navigation bar styling with safe defaults
   @override
   @JsonKey()
   final NavigationStyle navigation;
-// Dialog styling
+// Dialog styling with safe defaults
   @override
   @JsonKey()
   final double dialogBorderRadius;
@@ -2693,10 +2661,10 @@ mixin _$ButtonStyle {
   double get elevation;
   bool get enableGradient;
   List<String> get gradientColors;
-  String get shape; // 'rounded', 'pill', 'square'
+  String get shape;
   bool get enableRipple;
   String? get rippleColor;
-  String get fontWeight; // 'w100' through 'w900'
+  String get fontWeight;
   double get fontSize;
   bool get uppercase;
   double get letterSpacing;
@@ -2920,7 +2888,6 @@ class _ButtonStyle implements ButtonStyle {
   @override
   @JsonKey()
   final String shape;
-// 'rounded', 'pill', 'square'
   @override
   @JsonKey()
   final bool enableRipple;
@@ -2929,7 +2896,6 @@ class _ButtonStyle implements ButtonStyle {
   @override
   @JsonKey()
   final String fontWeight;
-// 'w100' through 'w900'
   @override
   @JsonKey()
   final double fontSize;
@@ -3121,7 +3087,7 @@ class __$ButtonStyleCopyWithImpl<$Res> implements _$ButtonStyleCopyWith<$Res> {
 /// @nodoc
 mixin _$InputFieldStyle {
   double get borderRadius;
-  String get borderType; // 'outline', 'underline', 'none', 'filled'
+  String get borderType;
   double get borderWidth;
   bool get filled;
   String? get fillColor;
@@ -3278,7 +3244,6 @@ class _InputFieldStyle implements InputFieldStyle {
   @override
   @JsonKey()
   final String borderType;
-// 'outline', 'underline', 'none', 'filled'
   @override
   @JsonKey()
   final double borderWidth;
@@ -3433,7 +3398,7 @@ class __$InputFieldStyleCopyWithImpl<$Res>
 
 /// @nodoc
 mixin _$NavigationStyle {
-  String get type; // 'bottom', 'side', 'floating'
+  String get type;
   bool get floating;
   double get borderRadius;
   double get margin;
@@ -3620,7 +3585,6 @@ class _NavigationStyle implements NavigationStyle {
   @override
   @JsonKey()
   final String type;
-// 'bottom', 'side', 'floating'
   @override
   @JsonKey()
   final bool floating;
@@ -3819,7 +3783,7 @@ class __$NavigationStyleCopyWithImpl<$Res>
 
 /// @nodoc
 mixin _$LayoutPreferences {
-  String get density; // 'compact', 'comfortable', 'spacious'
+  String get density;
   double get defaultSpacing;
   double get defaultPadding;
   bool get useCompactPosts;
@@ -3996,7 +3960,6 @@ class _LayoutPreferences implements LayoutPreferences {
   @override
   @JsonKey()
   final String density;
-// 'compact', 'comfortable', 'spacious'
   @override
   @JsonKey()
   final double defaultSpacing;
@@ -4180,9 +4143,9 @@ class __$LayoutPreferencesCopyWithImpl<$Res>
 /// @nodoc
 mixin _$AnimationSettings {
   bool get enableAnimations;
-  String get speed; // 'slow', 'normal', 'fast', 'instant'
+  String get speed;
   bool get enablePageTransitions;
-  String get pageTransitionType; // 'fade', 'slide', 'scale', 'rotation'
+  String get pageTransitionType;
   bool get enableHoverEffects;
   bool get enableScrollAnimations;
   bool get enableParallaxEffects;
@@ -4349,14 +4312,12 @@ class _AnimationSettings implements AnimationSettings {
   @override
   @JsonKey()
   final String speed;
-// 'slow', 'normal', 'fast', 'instant'
   @override
   @JsonKey()
   final bool enablePageTransitions;
   @override
   @JsonKey()
   final String pageTransitionType;
-// 'fade', 'slide', 'scale', 'rotation'
   @override
   @JsonKey()
   final bool enableHoverEffects;
@@ -4524,7 +4485,7 @@ mixin _$TypographySettings {
   double get fontScaleFactor;
   bool get useCustomFonts;
   Map<String, String> get customFontUrls;
-  String get renderingStyle; // 'optimal', 'speed', 'precision'
+  String get renderingStyle;
   double get lineHeightMultiplier;
   double get letterSpacing;
 
@@ -4697,7 +4658,6 @@ class _TypographySettings implements TypographySettings {
   @override
   @JsonKey()
   final String renderingStyle;
-// 'optimal', 'speed', 'precision'
   @override
   @JsonKey()
   final double lineHeightMultiplier;
