@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -17,6 +19,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = false;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -27,6 +30,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -920,13 +924,18 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
   }
 
   Future<void> _updateFontScale(double scale) async {
-    final current = ref.read(uiCustomizationProvider).value;
-    if (current == null) return;
+    if (_debounceTimer?.isActive ?? false) {
+      _debounceTimer!.cancel();
+    }
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final current = ref.read(uiCustomizationProvider).value;
+      if (current == null) return;
 
-    final updatedTypo = current.typography.copyWith(fontScaleFactor: scale);
-    await ref
-        .read(uiCustomizationProvider.notifier)
-        .updateTypography(updatedTypo);
+      final updatedTypo = current.typography.copyWith(fontScaleFactor: scale);
+      await ref
+          .read(uiCustomizationProvider.notifier)
+          .updateTypography(updatedTypo);
+    });
   }
 
   Future<void> _updateAnimationEnabled(bool enabled) async {
