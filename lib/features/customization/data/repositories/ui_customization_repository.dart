@@ -21,6 +21,11 @@ class UICustomizationRepository {
   // Get user's UI customization with caching
   Future<UICustomizationModel> getUserCustomization(String userId) async {
     try {
+      // Validate input
+      if (userId.isEmpty) {
+        throw ArgumentError('UserId cannot be empty');
+      }
+
       // First, try to get from local cache
       final cached = await _getFromCache(userId);
       if (cached != null) {
@@ -39,96 +44,196 @@ class UICustomizationRepository {
         return defaultCustomization;
       }
 
-      final customization = UICustomizationModel.fromJson(doc.data()!);
+      final data = doc.data()!;
+      // Ensure all required fields have default values
+      final sanitizedData = _sanitizeCustomizationData(data, userId);
+      
+      final customization = UICustomizationModel.fromJson(sanitizedData);
 
       // Cache the result
       await _saveToCache(customization);
       debugPrint('🎨 Loaded UI customization from Firestore');
 
       return customization;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error loading UI customization: $e');
-      // Return default on error
+      debugPrint('Stack trace: $stackTrace');
+      // Return default on error instead of throwing
       return UICustomizationModel.defaultForUser(userId);
     }
+  }
+
+  // Sanitize customization data to ensure all fields have proper values
+  Map<String, dynamic> _sanitizeCustomizationData(Map<String, dynamic> data, String userId) {
+    final sanitized = Map<String, dynamic>.from(data);
+    
+    // Ensure userId is set
+    sanitized['userId'] = userId;
+    
+    // Ensure lastUpdated is set
+    if (!sanitized.containsKey('lastUpdated') || sanitized['lastUpdated'] == null) {
+      sanitized['lastUpdated'] = DateTime.now().toIso8601String();
+    }
+    
+    // Ensure appTheme exists with default values
+    if (!sanitized.containsKey('appTheme') || sanitized['appTheme'] == null) {
+      sanitized['appTheme'] = const AppThemeSettings().toJson();
+    } else {
+      // Merge with defaults to ensure all fields are present
+      final defaultTheme = const AppThemeSettings().toJson();
+      final userTheme = sanitized['appTheme'] as Map<String, dynamic>;
+      sanitized['appTheme'] = {...defaultTheme, ...userTheme};
+    }
+    
+    // Ensure profileCustomization exists
+    if (!sanitized.containsKey('profileCustomization') || sanitized['profileCustomization'] == null) {
+      sanitized['profileCustomization'] = const ProfileCustomization().toJson();
+    }
+    
+    // Ensure componentStyles exists
+    if (!sanitized.containsKey('componentStyles') || sanitized['componentStyles'] == null) {
+      sanitized['componentStyles'] = const ComponentStyles().toJson();
+    }
+    
+    // Ensure layoutPreferences exists
+    if (!sanitized.containsKey('layoutPreferences') || sanitized['layoutPreferences'] == null) {
+      sanitized['layoutPreferences'] = const LayoutPreferences().toJson();
+    }
+    
+    // Ensure animationSettings exists
+    if (!sanitized.containsKey('animationSettings') || sanitized['animationSettings'] == null) {
+      sanitized['animationSettings'] = const AnimationSettings().toJson();
+    }
+    
+    // Ensure typography exists
+    if (!sanitized.containsKey('typography') || sanitized['typography'] == null) {
+      sanitized['typography'] = const TypographySettings().toJson();
+    }
+    
+    return sanitized;
   }
 
   // Save user's UI customization
   Future<void> saveUserCustomization(UICustomizationModel customization) async {
     try {
-      final data = {
-        ...customization.toJson(),
-        'lastUpdated': FieldValue.serverTimestamp(),
-      };
+      if (customization.userId.isEmpty) {
+        throw ArgumentError('UserId cannot be empty');
+      }
+
+      final data = customization.toJson();
+      data['lastUpdated'] = FieldValue.serverTimestamp();
 
       await _firestore
           .collection(_collection)
           .doc(customization.userId)
-          .set(data);
+          .set(data, SetOptions(merge: true));
 
       // Update cache
       await _saveToCache(customization);
       debugPrint('✅ UI customization saved');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error saving UI customization: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
 
-  // Update specific customization fields - FIXED to use set with merge
+  // Update specific customization fields
   Future<void> updateCustomization(
     String userId,
     Map<String, dynamic> updates,
   ) async {
     try {
-      updates['lastUpdated'] = FieldValue.serverTimestamp();
-      updates['userId'] = userId; // Ensure userId is always included
+      if (userId.isEmpty) {
+        throw ArgumentError('UserId cannot be empty');
+      }
 
-      // Use set with merge instead of update to handle non-existent documents
+      if (updates.isEmpty) {
+        debugPrint('⚠️ No updates provided');
+        return;
+      }
+
+      // Sanitize updates to remove null values
+      final sanitizedUpdates = <String, dynamic>{};
+      for (final entry in updates.entries) {
+        if (entry.value != null) {
+          sanitizedUpdates[entry.key] = entry.value;
+        }
+      }
+
+      if (sanitizedUpdates.isEmpty) {
+        debugPrint('⚠️ All updates were null, skipping');
+        return;
+      }
+
+      sanitizedUpdates['lastUpdated'] = FieldValue.serverTimestamp();
+      sanitizedUpdates['userId'] = userId;
+
       await _firestore.collection(_collection).doc(userId).set(
-            updates,
+            sanitizedUpdates,
             SetOptions(merge: true),
           );
 
       // Clear cache to force reload
       await _clearCache(userId);
       debugPrint('✅ UI customization updated');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error updating UI customization: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
 
   // Stream user's UI customization for real-time updates
   Stream<UICustomizationModel> streamUserCustomization(String userId) {
+    if (userId.isEmpty) {
+      return Stream.value(UICustomizationModel.defaultForUser(userId));
+    }
+
     return _firestore
         .collection(_collection)
         .doc(userId)
         .snapshots()
         .map((doc) {
-      if (!doc.exists || doc.data() == null) {
+      try {
+        if (!doc.exists || doc.data() == null) {
+          return UICustomizationModel.defaultForUser(userId);
+        }
+
+        final data = doc.data()!;
+        final sanitizedData = _sanitizeCustomizationData(data, userId);
+        final customization = UICustomizationModel.fromJson(sanitizedData);
+
+        // Update cache whenever we get new data
+        _saveToCache(customization).catchError((e) {
+          debugPrint('⚠️ Failed to cache customization: $e');
+        });
+
+        return customization;
+      } catch (e, stackTrace) {
+        debugPrint('❌ Error in stream customization: $e');
+        debugPrint('Stack trace: $stackTrace');
         return UICustomizationModel.defaultForUser(userId);
       }
-
-      final customization = UICustomizationModel.fromJson(doc.data()!);
-
-      // Update cache whenever we get new data
-      _saveToCache(customization).catchError((e) {
-        debugPrint('⚠️ Failed to cache customization: $e');
-      });
-
-      return customization;
+    }).handleError((error, stackTrace) {
+      debugPrint('❌ Stream error: $error');
+      debugPrint('Stack trace: $stackTrace');
     });
   }
 
   // Reset to default customization
   Future<void> resetToDefault(String userId) async {
     try {
+      if (userId.isEmpty) {
+        throw ArgumentError('UserId cannot be empty');
+      }
+
       final defaultCustomization = UICustomizationModel.defaultForUser(userId);
       await saveUserCustomization(defaultCustomization);
       debugPrint('✅ UI customization reset to default');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error resetting UI customization: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -136,6 +241,14 @@ class UICustomizationRepository {
   // Apply a preset theme
   Future<void> applyPresetTheme(String userId, String presetId) async {
     try {
+      if (userId.isEmpty) {
+        throw ArgumentError('UserId cannot be empty');
+      }
+
+      if (presetId.isEmpty) {
+        throw ArgumentError('PresetId cannot be empty');
+      }
+
       final preset = _getPresetTheme(presetId);
       if (preset == null) {
         throw Exception('Preset theme not found: $presetId');
@@ -146,8 +259,9 @@ class UICustomizationRepository {
       });
 
       debugPrint('✅ Preset theme applied: $presetId');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error applying preset theme: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -157,8 +271,9 @@ class UICustomizationRepository {
     try {
       final customization = await getUserCustomization(userId);
       return jsonEncode(customization.toJson());
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error exporting customization: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -166,15 +281,25 @@ class UICustomizationRepository {
   // Import customization from JSON
   Future<void> importCustomization(String userId, String jsonData) async {
     try {
+      if (userId.isEmpty) {
+        throw ArgumentError('UserId cannot be empty');
+      }
+
+      if (jsonData.isEmpty) {
+        throw ArgumentError('JSON data cannot be empty');
+      }
+
       final data = jsonDecode(jsonData) as Map<String, dynamic>;
       data['userId'] = userId; // Ensure correct user ID
 
-      final customization = UICustomizationModel.fromJson(data);
+      final sanitizedData = _sanitizeCustomizationData(data, userId);
+      final customization = UICustomizationModel.fromJson(sanitizedData);
       await saveUserCustomization(customization);
 
       debugPrint('✅ Customization imported successfully');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error importing customization: $e');
+      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -197,8 +322,9 @@ class UICustomizationRepository {
         return null;
       }
 
-      return UICustomizationModel.fromJson(
-          cachedData['data'] as Map<String, dynamic>);
+      final data = cachedData['data'] as Map<String, dynamic>;
+      final sanitizedData = _sanitizeCustomizationData(data, userId);
+      return UICustomizationModel.fromJson(sanitizedData);
     } catch (e) {
       debugPrint('⚠️ Cache read error: $e');
       return null;
@@ -232,9 +358,9 @@ class UICustomizationRepository {
   }
 
   static const AppThemeSettings appDefaultThemeSettings = AppThemeSettings(
-    // --- Define the app's true default colors and settings here ---
-    primaryColor: '#6200EE', // Material Purple
-    secondaryColor: '#03DAC6', // Material Teal
+    // ... (keeping the existing default theme settings)
+    primaryColor: '#6200EE',
+    secondaryColor: '#03DAC6',
     backgroundColor: '#FFFFFF',
     surfaceColor: '#FFFFFF',
     textColor: '#000000',
@@ -242,74 +368,65 @@ class UICustomizationRepository {
     errorColor: '#B00020',
     warningColor: '#FFC107',
     successColor: '#4CAF50',
-
     onPrimaryColor: '#FFFFFF',
     onSecondaryColor: '#000000',
     onBackgroundColor: '#000000',
     onErrorColor: '#FFFFFF',
     onSurfaceColor: '#000000',
-
-    primaryContainerColor: '#EADDFF', // Light purple
+    primaryContainerColor: '#EADDFF',
     onPrimaryContainerColor: '#21005D',
-    secondaryContainerColor: '#CCF7F1', // Light teal
+    secondaryContainerColor: '#CCF7F1',
     onSecondaryContainerColor: '#00201D',
-    tertiaryColor: '#7D5260', // M3 Tertiary
+    tertiaryColor: '#7D5260',
     onTertiaryContainerColor: '#FFFFFF',
     tertiaryContainerColor: '#FFD8E4',
-
     outlineColor: '#79747E',
     shadowColor: '#000000',
     surfaceVariantColor: '#E7E0EC',
     onSurfaceVariantColor: '#49454F',
     disabledColor: '#BDBDBD',
     hintColor: '#9E9E9E',
-
     themeMode: 'system',
     useMaterial3: true,
     enableGlassmorphism: false,
     enableGradients: false,
     enableShadows: true,
     shadowIntensity: 1.0,
-    // Ensure ALL fields from AppThemeSettings are covered
-    // We might need to add more fields in the future
   );
 
-  // Preset themes
+  // Preset themes (keeping existing presets)
   AppThemeSettings? _getPresetTheme(String presetId) {
     final presets = <String, AppThemeSettings>{
       'dark': const AppThemeSettings(
-        // Existing
         primaryColor: '#BB86FC',
         secondaryColor: '#03DAC6',
         backgroundColor: '#121212',
         surfaceColor: '#1E1E1E',
-        textColor: '#E0E0E0', // Main text on surface/background
-        secondaryTextColor: '#9E9E9E', // Subdued text
+        textColor: '#E0E0E0',
+        secondaryTextColor: '#9E9E9E',
         themeMode: 'dark',
-        // New
         onPrimaryColor: '#000000',
         onSecondaryColor: '#000000',
         onBackgroundColor: '#FFFFFF',
-        onErrorColor: '#000000', // Text on default error color
-        onSurfaceColor: '#FFFFFF', // Explicit text on surfaceColor
+        onErrorColor: '#000000',
+        onSurfaceColor: '#FFFFFF',
         primaryContainerColor: '#3700B3',
         onPrimaryContainerColor: '#FFFFFF',
         secondaryContainerColor: '#018786',
         onSecondaryContainerColor: '#000000',
-        tertiaryColor: '#CF6679', // Material dark theme error-like accent
+        tertiaryColor: '#CF6679',
         onTertiaryContainerColor: '#FFFFFF',
         tertiaryContainerColor: '#B00020',
         outlineColor: '#424242',
         shadowColor: '#000000',
-        surfaceVariantColor: '#303030', // Darker surface variant
-        onSurfaceVariantColor: '#BDBDBD', // Text for surfaceVariantColor
+        surfaceVariantColor: '#303030',
+        onSurfaceVariantColor: '#BDBDBD',
         disabledColor: '#555555',
         hintColor: '#888888',
       ),
       'neon': const AppThemeSettings(
-        // Existing
-        primaryColor: '#FF006E', // Neon Pink
-        secondaryColor: '#FFBE0B', // Neon Yellow
+        primaryColor: '#FF006E',
+        secondaryColor: '#FFBE0B',
         backgroundColor: '#0A0A0A',
         surfaceColor: '#1A1A1A',
         textColor: '#FFFFFF',
@@ -317,179 +434,168 @@ class UICustomizationRepository {
         enableGlassmorphism: true,
         enableShadows: true,
         shadowIntensity: 2.0,
-        // New
         onPrimaryColor: '#FFFFFF',
         onSecondaryColor: '#000000',
         onBackgroundColor: '#FFFFFF',
         onErrorColor: '#000000',
         onSurfaceColor: '#FFFFFF',
-        primaryContainerColor: '#4D0022', // Darker neon pink base
-        onPrimaryContainerColor: '#FFB3D1', // Light pink text
-        secondaryContainerColor: '#4D3800', // Darker neon yellow base
-        onSecondaryContainerColor: '#FFEAAD', // Light yellow text
-        tertiaryColor: '#00FFF0', // Neon Cyan/Aqua
+        primaryContainerColor: '#4D0022',
+        onPrimaryContainerColor: '#FFB3D1',
+        secondaryContainerColor: '#4D3800',
+        onSecondaryContainerColor: '#FFEAAD',
+        tertiaryColor: '#00FFF0',
         onTertiaryContainerColor: '#000000',
-        tertiaryContainerColor: '#004D4A', // Dark cyan base
+        tertiaryContainerColor: '#004D4A',
         outlineColor: '#555555',
         shadowColor: '#000000',
         surfaceVariantColor: '#2C2C2C',
         onSurfaceVariantColor: '#AAAAAA',
         disabledColor: '#404040',
         hintColor: '#808080',
-        themeMode: 'dark', // Neon themes usually are dark
+        themeMode: 'dark',
       ),
       'pastel': const AppThemeSettings(
-        // Existing
-        primaryColor: '#FFB3D9', // Pastel Pink
-        secondaryColor: '#B3E5FF', // Pastel Blue
-        backgroundColor: '#FFF5F5', // Very light pinkish white
+        primaryColor: '#FFB3D9',
+        secondaryColor: '#B3E5FF',
+        backgroundColor: '#FFF5F5',
         surfaceColor: '#FFFFFF',
-        textColor: '#4A4A4A', // Dark gray for text
+        textColor: '#4A4A4A',
         secondaryTextColor: '#7A7A7A',
-        // New
         onPrimaryColor: '#000000',
         onSecondaryColor: '#000000',
         onBackgroundColor: '#4A4A4A',
-        onErrorColor:
-            '#FFFFFF', // Text on default error color (which is dark red)
-        onSurfaceColor: '#4A4A4A', // Text on white surface
-        primaryContainerColor: '#FFD9EB', // Very light pink
-        onPrimaryContainerColor: '#6B274D', // Darker pink for contrast
-        secondaryContainerColor: '#D9F2FF', // Very light blue
-        onSecondaryContainerColor: '#27576B', // Darker blue for contrast
-        tertiaryColor: '#FFFACD', // Pastel Yellow (Lemon Chiffon)
-        onTertiaryContainerColor: '#5D542E', // Darker yellow for contrast
-        tertiaryContainerColor: '#FFFDE7', // Even lighter yellow
-        outlineColor: '#D1C4E9', // Pastel Lavender for outlines
-        shadowColor: '#B0BEC5', // Soft gray shadow
-        surfaceVariantColor:
-            '#FCE4EC', // Another light pastel (e.g., light pink variant)
-        onSurfaceVariantColor: '#616161', // Darker gray text on variant
-        disabledColor: '#E0E0E0', // Light gray
-        hintColor: '#BDBDBD', // Medium light gray
+        onErrorColor: '#FFFFFF',
+        onSurfaceColor: '#4A4A4A',
+        primaryContainerColor: '#FFD9EB',
+        onPrimaryContainerColor: '#6B274D',
+        secondaryContainerColor: '#D9F2FF',
+        onSecondaryContainerColor: '#27576B',
+        tertiaryColor: '#FFFACD',
+        onTertiaryContainerColor: '#5D542E',
+        tertiaryContainerColor: '#FFFDE7',
+        outlineColor: '#D1C4E9',
+        shadowColor: '#B0BEC5',
+        surfaceVariantColor: '#FCE4EC',
+        onSurfaceVariantColor: '#616161',
+        disabledColor: '#E0E0E0',
+        hintColor: '#BDBDBD',
         themeMode: 'light',
       ),
       'retro': const AppThemeSettings(
-        // Existing
-        primaryColor: '#FF6B6B', // Coral Red
-        secondaryColor: '#4ECDC4', // Teal
-        backgroundColor: '#F7FFF7', // Off-white with a hint of green
-        surfaceColor: '#FFE66D', // Mustard Yellow
-        textColor: '#2A2A2A', // Dark, almost black
+        primaryColor: '#FF6B6B',
+        secondaryColor: '#4ECDC4',
+        backgroundColor: '#F7FFF7',
+        surfaceColor: '#FFE66D',
+        textColor: '#2A2A2A',
         enableShadows: true,
-        // New
         onPrimaryColor: '#FFFFFF',
         onSecondaryColor: '#000000',
         onBackgroundColor: '#2A2A2A',
         onErrorColor: '#FFFFFF',
-        onSurfaceColor: '#000000', // Black text on mustard yellow
-        primaryContainerColor: '#FFCDD2', // Light Coral
-        onPrimaryContainerColor: '#B71C1C', // Dark Red
-        secondaryContainerColor: '#B2DFDB', // Light Teal
-        onSecondaryContainerColor: '#004D40', // Dark Teal
-        tertiaryColor: '#FF9800', // Retro Orange
+        onSurfaceColor: '#000000',
+        primaryContainerColor: '#FFCDD2',
+        onPrimaryContainerColor: '#B71C1C',
+        secondaryContainerColor: '#B2DFDB',
+        onSecondaryContainerColor: '#004D40',
+        tertiaryColor: '#FF9800',
         onTertiaryContainerColor: '#000000',
-        tertiaryContainerColor: '#FFE0B2', // Light Orange
-        outlineColor: '#795548', // Brownish for outlines
+        tertiaryContainerColor: '#FFE0B2',
+        outlineColor: '#795548',
         shadowColor: '#000000',
-        surfaceVariantColor: '#FFF9C4', // Lighter Yellow/Cream
-        onSurfaceVariantColor: '#4E342E', // Dark Brown text
-        disabledColor: '#D7CCC8', // Muted brown/gray
-        hintColor: '#A1887F', // Muted brown
+        surfaceVariantColor: '#FFF9C4',
+        onSurfaceVariantColor: '#4E342E',
+        disabledColor: '#D7CCC8',
+        hintColor: '#A1887F',
         themeMode: 'light',
       ),
       'minimal': const AppThemeSettings(
-        // Existing
-        primaryColor: '#000000', // Black
-        secondaryColor: '#666666', // Dark Gray
-        backgroundColor: '#FFFFFF', // White
-        surfaceColor: '#F5F5F5', // Light Gray
-        textColor: '#000000', // Black text
-        secondaryTextColor: '#666666', // Dark Gray text
+        primaryColor: '#000000',
+        secondaryColor: '#666666',
+        backgroundColor: '#FFFFFF',
+        surfaceColor: '#F5F5F5',
+        textColor: '#000000',
+        secondaryTextColor: '#666666',
         enableShadows: false,
-        // New
         onPrimaryColor: '#FFFFFF',
         onSecondaryColor: '#FFFFFF',
         onBackgroundColor: '#000000',
         onErrorColor: '#FFFFFF',
-        onSurfaceColor: '#000000', // Black text on light gray surface
-        primaryContainerColor: '#E0E0E0', // Very light gray, almost white
+        onSurfaceColor: '#000000',
+        primaryContainerColor: '#E0E0E0',
         onPrimaryContainerColor: '#000000',
-        secondaryContainerColor: '#BDBDBD', // Medium Gray
+        secondaryContainerColor: '#BDBDBD',
         onSecondaryContainerColor: '#000000',
-        tertiaryColor: '#9E9E9E', // Another Gray
+        tertiaryColor: '#9E9E9E',
         onTertiaryContainerColor: '#000000',
-        tertiaryContainerColor: '#EEEEEE', // Very light gray
-        outlineColor: '#BDBDBD', // Gray for outlines
-        shadowColor: '#000000', // Though shadows are disabled by default here
-        surfaceVariantColor: '#EEEEEE', // Slightly different light gray
-        onSurfaceVariantColor: '#333333', // Darker gray text
+        tertiaryContainerColor: '#EEEEEE',
+        outlineColor: '#BDBDBD',
+        shadowColor: '#000000',
+        surfaceVariantColor: '#EEEEEE',
+        onSurfaceVariantColor: '#333333',
         disabledColor: '#E0E0E0',
         hintColor: '#9E9E9E',
         themeMode: 'light',
       ),
       'ocean': const AppThemeSettings(
-        // Existing
-        primaryColor: '#006BA6', // Deep Ocean Blue
-        secondaryColor: '#0496FF', // Bright Sky Blue
-        backgroundColor: '#E8F4F8', // Very Light Blue (like sea foam)
-        surfaceColor: '#FFFFFF', // White (like wave crests)
-        textColor: '#0A2540', // Dark Navy (deep water text)
+        primaryColor: '#006BA6',
+        secondaryColor: '#0496FF',
+        backgroundColor: '#E8F4F8',
+        surfaceColor: '#FFFFFF',
+        textColor: '#0A2540',
         enableGradients: true,
-        // New
         onPrimaryColor: '#FFFFFF',
         onSecondaryColor: '#FFFFFF',
         onBackgroundColor: '#0A2540',
         onErrorColor: '#FFFFFF',
-        onSurfaceColor: '#0A2540', // Dark navy text on white surface
-        primaryContainerColor: '#B3E5FC', // Light Sky Blue (lighter primary)
-        onPrimaryContainerColor: '#01476A', // Darker blue text
-        secondaryContainerColor: '#81D4FA', // Brighter Light Blue
-        onSecondaryContainerColor: '#013A63', // Darker blue text
-        tertiaryColor: '#FFCC80', // Sandy Beige/Light Orange (beach)
-        onTertiaryContainerColor: '#5D4037', // Brownish text
-        tertiaryContainerColor: '#FFE0B2', // Lighter sandy color
-        outlineColor: '#ADD8E6', // Light Blue for outlines
+        onSurfaceColor: '#0A2540',
+        primaryContainerColor: '#B3E5FC',
+        onPrimaryContainerColor: '#01476A',
+        secondaryContainerColor: '#81D4FA',
+        onSecondaryContainerColor: '#013A63',
+        tertiaryColor: '#FFCC80',
+        onTertiaryContainerColor: '#5D4037',
+        tertiaryContainerColor: '#FFE0B2',
+        outlineColor: '#ADD8E6',
         shadowColor: '#000000',
-        surfaceVariantColor: '#E1F5FE', // Very light sky blue, almost white
-        onSurfaceVariantColor: '#0277BD', // Medium blue text
-        disabledColor: '#CFD8DC', // Bluish gray
-        hintColor: '#90A4AE', // Muted blue-gray
+        surfaceVariantColor: '#E1F5FE',
+        onSurfaceVariantColor: '#0277BD',
+        disabledColor: '#CFD8DC',
+        hintColor: '#90A4AE',
         themeMode: 'light',
       ),
       'rainyForest': const AppThemeSettings(
-        primaryColor: '#3B5D55', // Desaturated Forest Green
-        secondaryColor: '#6A7A83', // Misty Gray-Blue
-        backgroundColor: '#263238', // Blue Grey Dark
-        surfaceColor: '#37474F', // Slightly lighter Blue Grey (damp stone)
-        textColor: '#ECEFF1', // Light Blue Grey (general text)
-        secondaryTextColor: '#B0BEC5', // Muted Light Blue Grey (subdued text)
-        errorColor: '#EF9A9A', // Muted Red, suitable for dark themes
-        warningColor: '#FFCC80', // Muted Orange/Amber
-        successColor: '#A5D6A7', // Muted Green
+        primaryColor: '#3B5D55',
+        secondaryColor: '#6A7A83',
+        backgroundColor: '#263238',
+        surfaceColor: '#37474F',
+        textColor: '#ECEFF1',
+        secondaryTextColor: '#B0BEC5',
+        errorColor: '#EF9A9A',
+        warningColor: '#FFCC80',
+        successColor: '#A5D6A7',
         themeMode: 'dark',
         useMaterial3: true,
         enableShadows: true,
         shadowIntensity: 0.8,
-        onPrimaryColor: '#E0F2F1', // Very light cyan/green
+        onPrimaryColor: '#E0F2F1',
         onSecondaryColor: '#FFFFFF',
-        onBackgroundColor: '#ECEFF1', // Light text on dark background
-        onErrorColor: '#000000', // Black text on muted red
-        onSurfaceColor: '#ECEFF1', // Light text on surfaceColor
-        primaryContainerColor: '#2E4B45', // Darker, desaturated version
-        onPrimaryContainerColor: '#A7C7C1', // Muted light green text
-        secondaryContainerColor: '#4E5A60', // Darker version of secondary
-        onSecondaryContainerColor: '#B8C2C8', // Muted light grey-blue text
-        tertiaryColor: '#8B4513', // Saddle Brown (wet bark/earth)
-        onTertiaryContainerColor: '#EFEBE9', // Text on tertiaryContainerColor
-        tertiaryContainerColor: '#6D4C41', // Text on tertiaryColor
-        outlineColor: '#546E7A', // Blue Grey for outlines
+        onBackgroundColor: '#ECEFF1',
+        onErrorColor: '#000000',
+        onSurfaceColor: '#ECEFF1',
+        primaryContainerColor: '#2E4B45',
+        onPrimaryContainerColor: '#A7C7C1',
+        secondaryContainerColor: '#4E5A60',
+        onSecondaryContainerColor: '#B8C2C8',
+        tertiaryColor: '#8B4513',
+        onTertiaryContainerColor: '#EFEBE9',
+        tertiaryContainerColor: '#6D4C41',
+        outlineColor: '#546E7A',
         shadowColor: '#000000',
-        surfaceVariantColor: '#455A64', // Another Blue Grey variant
-        onSurfaceVariantColor: '#CFD8DC', // Light Blue Grey text
-        disabledColor: '#607D8B', // Muted Blue Grey
-        hintColor: '#90A4AE', // Lighter Muted Blue Grey
-        enableGradients: false, // Optional: true for misty effect
+        surfaceVariantColor: '#455A64',
+        onSurfaceVariantColor: '#CFD8DC',
+        disabledColor: '#607D8B',
+        hintColor: '#90A4AE',
+        enableGradients: false,
       ),
     };
 
