@@ -6,6 +6,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
 import 'package:herdapp/features/customization/data/repositories/ui_customization_repository.dart';
 import 'package:herdapp/features/customization/view/providers/ui_customization_provider.dart';
+import 'package:herdapp/features/customization/view/providers/ui_customization_slider_providers.dart';
+import 'package:herdapp/features/customization/view/widgets/optimistic_slider_widget.dart';
 
 class UICustomizationScreen extends ConsumerStatefulWidget {
   const UICustomizationScreen({super.key});
@@ -20,6 +22,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
   late TabController _tabController;
   bool _isLoading = false;
   Timer? _debounceTimer;
+  double? _localFontScale;
 
   @override
   void initState() {
@@ -94,6 +97,21 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
               child: Text('Please sign in to customize your experience'),
             );
           }
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(fontScaleSliderProvider.notifier).updatePersistedValue(
+                  customization.typography.fontScaleFactor,
+                );
+            ref
+                .read(shadowIntensitySliderProvider.notifier)
+                .updatePersistedValue(customization.appTheme.shadowIntensity);
+            ref.read(cardRadiusSliderProvider.notifier).updatePersistedValue(
+                customization.componentStyles.cardBorderRadius);
+            ref.read(gridColumnsSliderProvider.notifier).updatePersistedValue(
+                customization.layoutPreferences.gridColumns);
+            ref.read(buttonShapeSliderProvider.notifier).updatePersistedValue(
+                customization.componentStyles.buttonBorderRadius);
+          });
 
           return TabBarView(
             controller: _tabController,
@@ -183,14 +201,12 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
             onChanged: (value) => _updateThemeEffect('enableShadows', value),
           ),
           if (customization.appTheme.enableShadows)
-            _buildSlider(
-              'Shadow Intensity',
-              customization.appTheme.shadowIntensity,
-              0.0,
-              3.0,
-              (value) => _updateThemeEffect('shadowIntensity', value),
+            OptimisticSlider<double>(
+              provider: shadowIntensitySliderProvider,
+              label: 'Shadow Intensity',
+              min: 0.0,
+              max: 3.0,
               divisions: 6,
-              key: 'shadow_intensity_slider',
             ),
         ],
       ),
@@ -336,25 +352,20 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
           ),
 
           // Button radius
-          _buildSlider(
-            'Corner Radius',
-            customization.componentStyles.primaryButton.borderRadius,
-            0,
-            30,
-            (value) => _updateButtonRadius(value),
-            key: 'button_radius_slider',
+          OptimisticSlider<double>(
+            provider: buttonShapeSliderProvider,
+            label: 'Button Corner Radius',
+            min: 0,
+            max: 30,
           ),
-
           const SizedBox(height: 24),
 
           _buildSectionHeader('Card Styles'),
-          _buildSlider(
-            'Card Corner Radius',
-            customization.componentStyles.cardBorderRadius,
-            0,
-            30,
-            (value) => _updateCardRadius(value),
-            key: 'card_radius_slider',
+          OptimisticSlider<double>(
+            provider: cardRadiusSliderProvider,
+            label: 'Card Corner Radius',
+            min: 0,
+            max: 30,
           ),
           _buildSlider(
             'Card Elevation',
@@ -436,14 +447,13 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
             onChanged: (value) => _updateLayoutOption('useListLayout', value),
           ),
           if (!customization.layoutPreferences.useListLayout)
-            _buildSlider(
-              'Grid Columns',
-              customization.layoutPreferences.gridColumns.toDouble(),
-              1,
-              4,
-              (value) => _updateGridColumns(value.toInt()),
+            OptimisticSlider<int>(
+              provider: gridColumnsSliderProvider,
+              label: 'Grid Columns',
+              min: 1,
+              max: 4,
               divisions: 3,
-              key: 'grid_columns_slider',
+              valueFormatter: (value) => value.toString(),
             ),
         ],
       ),
@@ -472,13 +482,12 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
             (value) => _updateFont(value!),
             key: 'font_dropdown',
           ),
-          _buildSlider(
-            'Font Scale',
-            customization.typography.fontScaleFactor,
-            0.8,
-            1.5,
-            (value) => _updateFontScale(value),
-            key: 'font_scale_slider',
+          OptimisticSlider<double>(
+            provider: fontScaleSliderProvider,
+            label: 'Font Scale',
+            min: 0.8,
+            max: 1.5,
+            valueFormatter: (value) => '${(value * 100).round()}%',
           ),
           const SizedBox(height: 24),
           _buildSectionHeader('Animations'),
@@ -924,17 +933,44 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
   }
 
   Future<void> _updateFontScale(double scale) async {
+// Update local state immediately for responsive UI
+    setState(() {
+      _localFontScale = scale;
+    });
+
+    // Cancel any existing timer
     if (_debounceTimer?.isActive ?? false) {
       _debounceTimer!.cancel();
     }
+
+    // Debounce only the persistence, not the UI update
     _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
       final current = ref.read(uiCustomizationProvider).value;
       if (current == null) return;
 
-      final updatedTypo = current.typography.copyWith(fontScaleFactor: scale);
-      await ref
-          .read(uiCustomizationProvider.notifier)
-          .updateTypography(updatedTypo);
+      try {
+        final updatedTypo = current.typography.copyWith(fontScaleFactor: scale);
+        await ref
+            .read(uiCustomizationProvider.notifier)
+            .updateTypography(updatedTypo);
+
+        // Clear local state after successful persistence
+        if (mounted) {
+          setState(() {
+            _localFontScale = null;
+          });
+        }
+      } catch (e) {
+        // Handle error - maybe revert local state or show error
+        if (mounted) {
+          setState(() {
+            _localFontScale = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update font scale: $e')),
+          );
+        }
+      }
     });
   }
 
