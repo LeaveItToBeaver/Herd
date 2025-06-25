@@ -138,37 +138,61 @@ abstract class AppThemeSettings with _$AppThemeSettings {
       _$AppThemeSettingsFromJson(json);
 
   // Safe color conversion with fallbacks
-  Color getPrimaryColor() => _hexToColorSafe(primaryColor, const Color(0xFF3D5AFE));
-  Color getSecondaryColor() => _hexToColorSafe(secondaryColor, const Color(0xFF00C853));
-  Color getBackgroundColor() => _hexToColorSafe(backgroundColor, const Color(0xFFFFFFFF));
-  Color getSurfaceColor() => _hexToColorSafe(surfaceColor, const Color(0xFFF5F5F5));
+  Color getPrimaryColor() =>
+      _hexToColorSafe(primaryColor, const Color(0xFF3D5AFE));
+  Color getSecondaryColor() =>
+      _hexToColorSafe(secondaryColor, const Color(0xFF00C853));
+  Color getBackgroundColor() =>
+      _hexToColorSafe(backgroundColor, const Color(0xFFFFFFFF));
+  Color getSurfaceColor() =>
+      _hexToColorSafe(surfaceColor, const Color(0xFFF5F5F5));
   Color getTextColor() => _hexToColorSafe(textColor, const Color(0xFF212121));
-  Color getSecondaryTextColor() => _hexToColorSafe(secondaryTextColor, const Color(0xFF757575));
+  Color getSecondaryTextColor() =>
+      _hexToColorSafe(secondaryTextColor, const Color(0xFF757575));
   Color getErrorColor() => _hexToColorSafe(errorColor, const Color(0xFFD32F2F));
-  Color getWarningColor() => _hexToColorSafe(warningColor, const Color(0xFFFF9800));
-  Color getSuccessColor() => _hexToColorSafe(successColor, const Color(0xFF4CAF50));
+  Color getWarningColor() =>
+      _hexToColorSafe(warningColor, const Color(0xFFFF9800));
+  Color getSuccessColor() =>
+      _hexToColorSafe(successColor, const Color(0xFF4CAF50));
 
   // New safe getter methods
-  Color getOnPrimaryColor() => _hexToColorSafe(onPrimaryColor, const Color(0xFFFFFFFF));
-  Color getOnSecondaryColor() => _hexToColorSafe(onSecondaryColor, const Color(0xFF000000));
-  Color getOnBackgroundColor() => _hexToColorSafe(onBackgroundColor, const Color(0xFF000000));
-  Color getOnErrorColor() => _hexToColorSafe(onErrorColor, const Color(0xFFFFFFFF));
-  Color getOnSurfaceColor() => _hexToColorSafe(onSurfaceColor, const Color(0xFF212121));
+  Color getOnPrimaryColor() =>
+      _hexToColorSafe(onPrimaryColor, const Color(0xFFFFFFFF));
+  Color getOnSecondaryColor() =>
+      _hexToColorSafe(onSecondaryColor, const Color(0xFF000000));
+  Color getOnBackgroundColor() =>
+      _hexToColorSafe(onBackgroundColor, const Color(0xFF000000));
+  Color getOnErrorColor() =>
+      _hexToColorSafe(onErrorColor, const Color(0xFFFFFFFF));
+  Color getOnSurfaceColor() =>
+      _hexToColorSafe(onSurfaceColor, const Color(0xFF212121));
 
-  Color getPrimaryContainerColor() => _hexToColorSafe(primaryContainerColor, const Color(0xFFE8EAF6));
-  Color getOnPrimaryContainerColor() => _hexToColorSafe(onPrimaryContainerColor, const Color(0xFF1A237E));
-  Color getSecondaryContainerColor() => _hexToColorSafe(secondaryContainerColor, const Color(0xFFE8F5E9));
-  Color getOnSecondaryContainerColor() => _hexToColorSafe(onSecondaryContainerColor, const Color(0xFF1B5E20));
-  Color getTertiaryContainerColor() => _hexToColorSafe(tertiaryContainerColor, const Color(0xFFFFECB3));
-  Color getOnTertiaryContainerColor() => _hexToColorSafe(onTertiaryContainerColor, const Color(0xFFFF6F00));
+  Color getPrimaryContainerColor() =>
+      _hexToColorSafe(primaryContainerColor, const Color(0xFFE8EAF6));
+  Color getOnPrimaryContainerColor() =>
+      _hexToColorSafe(onPrimaryContainerColor, const Color(0xFF1A237E));
+  Color getSecondaryContainerColor() =>
+      _hexToColorSafe(secondaryContainerColor, const Color(0xFFE8F5E9));
+  Color getOnSecondaryContainerColor() =>
+      _hexToColorSafe(onSecondaryContainerColor, const Color(0xFF1B5E20));
+  Color getTertiaryContainerColor() =>
+      _hexToColorSafe(tertiaryContainerColor, const Color(0xFFFFECB3));
+  Color getOnTertiaryContainerColor() =>
+      _hexToColorSafe(onTertiaryContainerColor, const Color(0xFFFF6F00));
 
-  Color getTertiaryColor() => _hexToColorSafe(tertiaryColor, const Color(0xFFFFAB00));
+  Color getTertiaryColor() =>
+      _hexToColorSafe(tertiaryColor, const Color(0xFFFFAB00));
 
-  Color getOutlineColor() => _hexToColorSafe(outlineColor, const Color(0xFFBDBDBD));
-  Color getShadowColor() => _hexToColorSafe(shadowColor, const Color(0xFF000000));
-  Color getSurfaceVariantColor() => _hexToColorSafe(surfaceVariantColor, const Color(0xFFE0E0E0));
-  Color getOnSurfaceVariantColor() => _hexToColorSafe(onSurfaceVariantColor, const Color(0xFF424242));
-  Color getDisabledColor() => _hexToColorSafe(disabledColor, const Color(0xFFBDBDBD));
+  Color getOutlineColor() =>
+      _hexToColorSafe(outlineColor, const Color(0xFFBDBDBD));
+  Color getShadowColor() =>
+      _hexToColorSafe(shadowColor, const Color(0xFF000000));
+  Color getSurfaceVariantColor() =>
+      _hexToColorSafe(surfaceVariantColor, const Color(0xFFE0E0E0));
+  Color getOnSurfaceVariantColor() =>
+      _hexToColorSafe(onSurfaceVariantColor, const Color(0xFF424242));
+  Color getDisabledColor() =>
+      _hexToColorSafe(disabledColor, const Color(0xFFBDBDBD));
   Color getHintColor() => _hexToColorSafe(hintColor, const Color(0xFF9E9E9E));
 
   // Safe theme mode getter
@@ -188,13 +212,13 @@ abstract class AppThemeSettings with _$AppThemeSettings {
   static Color _hexToColorSafe(String hex, Color fallback) {
     try {
       if (hex.isEmpty) return fallback;
-      
+
       final buffer = StringBuffer();
       if (hex.length == 6 || hex.length == 7) {
         buffer.write('ff'); // Ensure alpha if not present
       }
       buffer.write(hex.replaceFirst('#', ''));
-      
+
       if (buffer.length == 6) {
         // Prepend 'ff' if still only 6 chars
         final temp = buffer.toString();
@@ -202,12 +226,12 @@ abstract class AppThemeSettings with _$AppThemeSettings {
         buffer.write('ff');
         buffer.write(temp);
       }
-      
+
       if (buffer.length != 8) return fallback;
-      
+
       final colorValue = int.tryParse(buffer.toString(), radix: 16);
       if (colorValue == null) return fallback;
-      
+
       return Color(colorValue);
     } catch (e) {
       return fallback;
@@ -273,6 +297,7 @@ abstract class ComponentStyles with _$ComponentStyles {
     // Button styling with safe defaults
     @Default(ButtonStyle()) ButtonStyle primaryButton,
     @Default(ButtonStyle()) ButtonStyle secondaryButton,
+    @Default(15.0) double buttonBorderRadius,
 
     // Card styling with safe defaults
     @Default(16.0) double cardBorderRadius,
@@ -504,23 +529,25 @@ extension UICustomizationHelpers on UICustomizationModel {
     try {
       // Check if userId is valid
       if (userId.isEmpty) return false;
-      
+
       // Check if required colors are valid
       appTheme.getPrimaryColor();
       appTheme.getSecondaryColor();
       appTheme.getBackgroundColor();
-      
+
       // Check if font scale is reasonable
-      if (typography.fontScaleFactor < 0.5 || typography.fontScaleFactor > 3.0) {
+      if (typography.fontScaleFactor < 0.5 ||
+          typography.fontScaleFactor > 3.0) {
         return false;
       }
-      
+
       // Check if animation settings are reasonable
-      if (animationSettings.enableAnimations && 
-          !['slow', 'normal', 'fast', 'instant'].contains(animationSettings.speed)) {
+      if (animationSettings.enableAnimations &&
+          !['slow', 'normal', 'fast', 'instant']
+              .contains(animationSettings.speed)) {
         return false;
       }
-      
+
       return true;
     } catch (e) {
       return false;
