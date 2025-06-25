@@ -12,6 +12,94 @@ const logger = functions.logger;
 module.exports = function (admin) {
     const firestore = admin.firestore();
 
+    const debugFCMToken = onCall(async (request) => {
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+        }
+
+        const userId = request.auth.uid;
+
+        try {
+            // Get user document
+            const userDoc = await firestore.collection('users').doc(userId).get();
+            const userData = userDoc.data();
+
+            console.log(`=== FCM DEBUG FOR USER ${userId} ===`);
+            console.log('User exists:', userDoc.exists);
+            console.log('FCM Token:', userData?.fcmToken ? `${userData.fcmToken.substring(0, 20)}...` : 'NO TOKEN');
+            console.log('Token updated at:', userData?.fcmTokenUpdatedAt);
+
+            if (userData?.fcmToken) {
+                // Test sending a simple message
+                const testMessage = {
+                    token: userData.fcmToken,
+                    notification: {
+                        title: 'Test Notification',
+                        body: 'This is a test from Firebase Cloud Functions'
+                    },
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            channelId: 'high_importance_channel',
+                            priority: 'high',
+                            defaultSound: true,
+                            defaultVibrateTimings: true,
+                        }
+                    },
+                    apns: {
+                        headers: {
+                            'apns-priority': '10',
+                            'apns-push-type': 'alert',
+                        },
+                        payload: {
+                            aps: {
+                                alert: {
+                                    title: 'Test Notification',
+                                    body: 'This is a test from Firebase Cloud Functions'
+                                },
+                                sound: 'default',
+                            }
+                        }
+                    }
+                };
+
+                try {
+                    const response = await admin.messaging().send(testMessage);
+                    console.log('✅ Test message sent successfully:', response);
+
+                    return {
+                        success: true,
+                        hasToken: true,
+                        tokenPreview: userData.fcmToken.substring(0, 20),
+                        messageSent: true,
+                        messageId: response
+                    };
+                } catch (sendError) {
+                    console.log('❌ Error sending test message:', sendError);
+
+                    return {
+                        success: false,
+                        hasToken: true,
+                        tokenPreview: userData.fcmToken.substring(0, 20),
+                        messageSent: false,
+                        error: sendError.message,
+                        errorCode: sendError.code
+                    };
+                }
+            } else {
+                return {
+                    success: false,
+                    hasToken: false,
+                    message: 'No FCM token found for user'
+                };
+            }
+
+        } catch (error) {
+            console.log('❌ Error in FCM debug:', error);
+            throw new functions.https.HttpsError('internal', error.message);
+        }
+    });
+
     /**
      * Helper function to remove undefined values from an object
      */
@@ -601,7 +689,12 @@ module.exports = function (admin) {
                 const followerId = event.params.followerId;
                 const followedId = event.params.followedId;
 
+                console.log(`🔔 === FOLLOW NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`📋 Follower: ${followerId}, Followed: ${followedId}`);
+                console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
+
                 logger.log(`👥 New follow: ${followerId} → ${followedId}`);
+
 
                 await createNotification({
                     recipientId: followedId,
@@ -667,6 +760,9 @@ module.exports = function (admin) {
             async (event) => {
                 const postId = event.params.postId;
                 const likerId = event.params.userId;
+                console.log(`🔔 === LIKE NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`📋 Post: ${postId}, Liker: ${likerId}`);
+                console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
 
                 logger.log(`❤️ Post liked: ${postId} by ${likerId}`);
 
@@ -816,6 +912,7 @@ module.exports = function (admin) {
         getUnreadNotificationCount,
         markNotificationsAsRead,
         updateFCMToken,
+        debugFCMToken,
 
         // Existing functions
         deleteNotifications: onCall(async (request) => {

@@ -243,6 +243,40 @@ class NotificationRepository {
     }
   }
 
+  /// Debug FCM token and test push notification
+  Future<Map<String, dynamic>> debugFCMToken() async {
+    try {
+      debugPrint('🧪 Testing FCM token...');
+
+      // First check if we can get the token locally
+      final token = await _messaging.getToken();
+      debugPrint('📱 Current FCM token: ${token?.substring(0, 20)}...');
+
+      // Check notification permissions
+      final settings = await _messaging.getNotificationSettings();
+      debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
+
+      // Call the debug cloud function
+      final callable = _functions.httpsCallable('debugFCMToken');
+      final result = await callable.call();
+
+      final data = result.data as Map<String, dynamic>;
+      debugPrint('☁️ Cloud function result: $data');
+
+      return {
+        'localToken': token,
+        'hasLocalToken': token != null,
+        'permissionStatus': settings.authorizationStatus.name,
+        'cloudFunctionResult': data,
+      };
+    } catch (e) {
+      debugPrint('❌ Error in FCM debug: $e');
+      return {
+        'error': e.toString(),
+      };
+    }
+  }
+
   // ========== HELPER METHODS ==========
 
   /// Parse notification data from cloud function response
@@ -405,35 +439,56 @@ class NotificationRepository {
   /// Initialize FCM and get token
   Future<String?> initializeFCM() async {
     try {
+      debugPrint('🚀 ===== FCM INITIALIZATION START =====');
+
       // Request permissions
+      debugPrint('🔐 Requesting FCM permissions...');
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
 
+      debugPrint('🔐 Permission result: ${settings.authorizationStatus}');
       if (settings.authorizationStatus != AuthorizationStatus.authorized) {
         debugPrint('⚠️ Notification permissions not granted');
         return null;
       }
 
       // Get FCM token
+      debugPrint('📱 Getting FCM token...');
       final token = await _messaging.getToken();
       debugPrint('📱 FCM Token obtained: ${token?.substring(0, 20)}...');
 
       if (token != null) {
         // Update token via cloud function
-        await updateFCMToken(token);
+        debugPrint('☁️ Updating FCM token via cloud function...');
+        try {
+          await updateFCMToken(token);
+          debugPrint('✅ FCM token updated successfully during initialization');
+        } catch (updateError) {
+          debugPrint(
+              '❌ ERROR updating FCM token during initialization: $updateError');
+          // Don't return null here - continue with initialization even if update fails
+        }
 
         // Listen for token refresh
+        debugPrint('👂 Setting up token refresh listener...');
         _messaging.onTokenRefresh.listen((newToken) {
-          debugPrint('🔄 FCM Token refreshed');
-          updateFCMToken(newToken);
+          debugPrint('🔄 FCM Token refreshed: ${newToken.substring(0, 20)}...');
+          updateFCMToken(newToken).catchError((error) {
+            debugPrint('❌ Error updating refreshed FCM token: $error');
+          });
         });
+
+        debugPrint('✅ ===== FCM INITIALIZATION COMPLETE =====');
+      } else {
+        debugPrint('❌ ===== FCM INITIALIZATION FAILED - NO TOKEN =====');
       }
 
       return token;
     } catch (e) {
+      debugPrint('❌ ===== FCM INITIALIZATION ERROR =====');
       debugPrint('❌ Error initializing FCM: $e');
       return null;
     }
@@ -490,29 +545,50 @@ class NotificationRepository {
     });
   }
 
-  // ========== LEGACY METHODS (for backward compatibility) ==========
+  // ========== DEBUG METHODS ==========
+  Future<Map<String, dynamic>> debugTokenUpdate() async {
+    try {
+      debugPrint('🔧 Debugging FCM token update...');
 
-  /// Create a new notification (deprecated - use cloud function triggers)
-  @deprecated
-  Future<NotificationModel> createNotification({
-    required String recipientId,
-    required String senderId,
-    required NotificationType type,
-    String? title,
-    String? body,
-    String? postId,
-    String? commentId,
-    String? senderName,
-    String? senderUsername,
-    String? senderProfileImage,
-    String? senderAltProfileImage,
-    bool isAlt = false,
-    int? count,
-    Map<String, dynamic>? data,
-  }) async {
-    throw UnsupportedError('Direct notification creation is deprecated. '
-        'Notifications should be created via cloud function triggers.');
+      // Get current token
+      final token = await _messaging.getToken();
+      debugPrint('📱 Current FCM token: ${token?.substring(0, 20)}...');
+
+      if (token == null) {
+        debugPrint('⚠️ No FCM token found');
+        return {'error': 'No FCM token found'};
+      }
+
+      // Check notification permissions
+      final settings = await _messaging.getNotificationSettings();
+      debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
+
+      try {
+        await updateFCMToken(token);
+        debugPrint('✅ FCM token updated successfully');
+      } catch (e) {
+        debugPrint('❌ Error checking notification settings: $e');
+        return {'error': 'Failed to update FCM token: $e'};
+      }
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      debugPrint('Checking if the token was saved successfully...');
+      final debugResult = await debugFCMToken();
+
+      return {
+        'localToken': token,
+        'hasLocalToken': token != null,
+        'permissionStatus': settings.authorizationStatus.name,
+        'cloudFunctionResult': debugResult,
+      };
+    } catch (e) {
+      debugPrint('❌ Error in debugTokenUpdate: $e');
+      return {'error': e.toString()};
+    }
   }
+
+  // ========== LEGACY METHODS (for backward compatibility) ==========
 
   /// Delete a notification (local operation for admin/cleanup)
   Future<void> deleteNotification(String notificationId) async {
@@ -576,8 +652,6 @@ class NotificationRepository {
       };
     }
   }
-
-  Future testNotificationQuery(String uid) async {}
 }
 
 // Provider for the repository
