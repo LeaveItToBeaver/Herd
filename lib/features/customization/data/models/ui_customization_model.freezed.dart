@@ -2173,7 +2173,8 @@ class __$ProfileCustomizationCopyWithImpl<$Res>
 mixin _$ComponentStyles {
 // Button styling with safe defaults
   ButtonStyle get primaryButton;
-  ButtonStyle get secondaryButton; // Card styling with safe defaults
+  ButtonStyle get secondaryButton;
+  double get buttonBorderRadius; // Card styling with safe defaults
   double get cardBorderRadius;
   double get cardElevation;
   bool get cardOutline;
@@ -2204,6 +2205,8 @@ mixin _$ComponentStyles {
                 other.primaryButton == primaryButton) &&
             (identical(other.secondaryButton, secondaryButton) ||
                 other.secondaryButton == secondaryButton) &&
+            (identical(other.buttonBorderRadius, buttonBorderRadius) ||
+                other.buttonBorderRadius == buttonBorderRadius) &&
             (identical(other.cardBorderRadius, cardBorderRadius) ||
                 other.cardBorderRadius == cardBorderRadius) &&
             (identical(other.cardElevation, cardElevation) ||
@@ -2230,6 +2233,7 @@ mixin _$ComponentStyles {
       runtimeType,
       primaryButton,
       secondaryButton,
+      buttonBorderRadius,
       cardBorderRadius,
       cardElevation,
       cardOutline,
@@ -2242,7 +2246,7 @@ mixin _$ComponentStyles {
 
   @override
   String toString() {
-    return 'ComponentStyles(primaryButton: $primaryButton, secondaryButton: $secondaryButton, cardBorderRadius: $cardBorderRadius, cardElevation: $cardElevation, cardOutline: $cardOutline, cardOutlineColor: $cardOutlineColor, inputField: $inputField, navigation: $navigation, dialogBorderRadius: $dialogBorderRadius, dialogBlurBackground: $dialogBlurBackground, dialogBlurIntensity: $dialogBlurIntensity)';
+    return 'ComponentStyles(primaryButton: $primaryButton, secondaryButton: $secondaryButton, buttonBorderRadius: $buttonBorderRadius, cardBorderRadius: $cardBorderRadius, cardElevation: $cardElevation, cardOutline: $cardOutline, cardOutlineColor: $cardOutlineColor, inputField: $inputField, navigation: $navigation, dialogBorderRadius: $dialogBorderRadius, dialogBlurBackground: $dialogBlurBackground, dialogBlurIntensity: $dialogBlurIntensity)';
   }
 }
 
@@ -2255,6 +2259,7 @@ abstract mixin class $ComponentStylesCopyWith<$Res> {
   $Res call(
       {ButtonStyle primaryButton,
       ButtonStyle secondaryButton,
+      double buttonBorderRadius,
       double cardBorderRadius,
       double cardElevation,
       bool cardOutline,
@@ -2286,6 +2291,7 @@ class _$ComponentStylesCopyWithImpl<$Res>
   $Res call({
     Object? primaryButton = null,
     Object? secondaryButton = null,
+    Object? buttonBorderRadius = null,
     Object? cardBorderRadius = null,
     Object? cardElevation = null,
     Object? cardOutline = null,
@@ -2305,6 +2311,10 @@ class _$ComponentStylesCopyWithImpl<$Res>
           ? _self.secondaryButton
           : secondaryButton // ignore: cast_nullable_to_non_nullable
               as ButtonStyle,
+      buttonBorderRadius: null == buttonBorderRadius
+          ? _self.buttonBorderRadius
+          : buttonBorderRadius // ignore: cast_nullable_to_non_nullable
+              as double,
       cardBorderRadius: null == cardBorderRadius
           ? _self.cardBorderRadius
           : cardBorderRadius // ignore: cast_nullable_to_non_nullable
@@ -2391,6 +2401,7 @@ class _ComponentStyles implements ComponentStyles {
   const _ComponentStyles(
       {this.primaryButton = const ButtonStyle(),
       this.secondaryButton = const ButtonStyle(),
+      this.buttonBorderRadius = 15.0,
       this.cardBorderRadius = 16.0,
       this.cardElevation = 2.0,
       this.cardOutline = false,
@@ -2410,6 +2421,9 @@ class _ComponentStyles implements ComponentStyles {
   @override
   @JsonKey()
   final ButtonStyle secondaryButton;
+  @override
+  @JsonKey()
+  final double buttonBorderRadius;
 // Card styling with safe defaults
   @override
   @JsonKey()
@@ -2466,6 +2480,8 @@ class _ComponentStyles implements ComponentStyles {
                 other.primaryButton == primaryButton) &&
             (identical(other.secondaryButton, secondaryButton) ||
                 other.secondaryButton == secondaryButton) &&
+            (identical(other.buttonBorderRadius, buttonBorderRadius) ||
+                other.buttonBorderRadius == buttonBorderRadius) &&
             (identical(other.cardBorderRadius, cardBorderRadius) ||
                 other.cardBorderRadius == cardBorderRadius) &&
             (identical(other.cardElevation, cardElevation) ||
@@ -2492,6 +2508,7 @@ class _ComponentStyles implements ComponentStyles {
       runtimeType,
       primaryButton,
       secondaryButton,
+      buttonBorderRadius,
       cardBorderRadius,
       cardElevation,
       cardOutline,
@@ -2504,7 +2521,7 @@ class _ComponentStyles implements ComponentStyles {
 
   @override
   String toString() {
-    return 'ComponentStyles(primaryButton: $primaryButton, secondaryButton: $secondaryButton, cardBorderRadius: $cardBorderRadius, cardElevation: $cardElevation, cardOutline: $cardOutline, cardOutlineColor: $cardOutlineColor, inputField: $inputField, navigation: $navigation, dialogBorderRadius: $dialogBorderRadius, dialogBlurBackground: $dialogBlurBackground, dialogBlurIntensity: $dialogBlurIntensity)';
+    return 'ComponentStyles(primaryButton: $primaryButton, secondaryButton: $secondaryButton, buttonBorderRadius: $buttonBorderRadius, cardBorderRadius: $cardBorderRadius, cardElevation: $cardElevation, cardOutline: $cardOutline, cardOutlineColor: $cardOutlineColor, inputField: $inputField, navigation: $navigation, dialogBorderRadius: $dialogBorderRadius, dialogBlurBackground: $dialogBlurBackground, dialogBlurIntensity: $dialogBlurIntensity)';
   }
 }
 
@@ -2519,6 +2536,7 @@ abstract mixin class _$ComponentStylesCopyWith<$Res>
   $Res call(
       {ButtonStyle primaryButton,
       ButtonStyle secondaryButton,
+      double buttonBorderRadius,
       double cardBorderRadius,
       double cardElevation,
       bool cardOutline,
@@ -2554,6 +2572,7 @@ class __$ComponentStylesCopyWithImpl<$Res>
   $Res call({
     Object? primaryButton = null,
     Object? secondaryButton = null,
+    Object? buttonBorderRadius = null,
     Object? cardBorderRadius = null,
     Object? cardElevation = null,
     Object? cardOutline = null,
@@ -2573,6 +2592,10 @@ class __$ComponentStylesCopyWithImpl<$Res>
           ? _self.secondaryButton
           : secondaryButton // ignore: cast_nullable_to_non_nullable
               as ButtonStyle,
+      buttonBorderRadius: null == buttonBorderRadius
+          ? _self.buttonBorderRadius
+          : buttonBorderRadius // ignore: cast_nullable_to_non_nullable
+              as double,
       cardBorderRadius: null == cardBorderRadius
           ? _self.cardBorderRadius
           : cardBorderRadius // ignore: cast_nullable_to_non_nullable
