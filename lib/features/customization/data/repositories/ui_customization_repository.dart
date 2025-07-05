@@ -20,12 +20,12 @@ class UICustomizationRepository {
 
   // Get user's UI customization with caching
   Future<UICustomizationModel> getUserCustomization(String userId) async {
-    try {
-      // Validate input
-      if (userId.isEmpty) {
-        throw ArgumentError('UserId cannot be empty');
-      }
+    // Validate input
+    if (userId.isEmpty) {
+      throw ArgumentError('UserId cannot be empty');
+    }
 
+    try {
       // First, try to get from local cache
       final cached = await _getFromCache(userId);
       if (cached != null) {
