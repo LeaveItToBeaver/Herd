@@ -424,126 +424,127 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
           ),
 
-          const SizedBox(height: 6),
           // Herd selection card
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: _isNSFW && _isAlt
-                    ? Colors.purple
-                    : _isNSFW && !_isAlt
-                        ? Colors.red
-                        : _isAlt
-                            ? Colors.blue
-                            : Theme.of(context).colorScheme.primary,
-                width: 1,
+          if (_isAlt)
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: _isNSFW && _isAlt
+                      ? Colors.purple
+                      : _isNSFW && !_isAlt
+                          ? Colors.red
+                          : _isAlt
+                              ? Colors.blue
+                              : Theme.of(context).colorScheme.primary,
+                  width: 1,
+                ),
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Posting To',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  InkWell(
-                    onTap: _showHerdSelectionDialog,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _isNSFW && _isAlt
-                              ? Colors.purple
-                              : _isNSFW && !_isAlt
-                                  ? Colors.red
-                                  : _isAlt
-                                      ? Colors.blue
-                                      : Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _selectedHerdId != null
-                                ? Icons.group
-                                : Icons.person,
-                            size: 18,
-                            color: _selectedHerdId != null
-                                ? Colors.blue
-                                : _isNSFW && _isAlt
-                                    ? Colors.purple
-                                    : _isNSFW && !_isAlt
-                                        ? Colors.red
-                                        : _isAlt
-                                            ? Colors.blue
-                                            : Colors.grey,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    //const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Posting To',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: _showHerdSelectionDialog,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _isNSFW && _isAlt
+                                ? Colors.purple
+                                : _isNSFW && !_isAlt
+                                    ? Colors.red
+                                    : _isAlt
+                                        ? Colors.blue
+                                        : Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
                               _selectedHerdId != null
-                                  ? '$_selectedHerdName'
-                                  : 'Personal post',
-                              style: TextStyle(
-                                color: _selectedHerdId != null
-                                    ? Colors.blue
-                                    : _isNSFW && _isAlt
-                                        ? Colors.purple
-                                        : _isNSFW && !_isAlt
-                                            ? Colors.red
-                                            : _isAlt
-                                                ? Colors.blue
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
+                                  ? Icons.group
+                                  : Icons.person,
+                              size: 18,
+                              color: _selectedHerdId != null
+                                  ? Colors.blue
+                                  : _isNSFW && _isAlt
+                                      ? Colors.purple
+                                      : _isNSFW && !_isAlt
+                                          ? Colors.red
+                                          : _isAlt
+                                              ? Colors.blue
+                                              : Colors.grey,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _selectedHerdId != null
+                                    ? '$_selectedHerdName'
+                                    : 'Personal post',
+                                style: TextStyle(
+                                  color: _selectedHerdId != null
+                                      ? Colors.blue
+                                      : _isNSFW && _isAlt
+                                          ? Colors.purple
+                                          : _isNSFW && !_isAlt
+                                              ? Colors.red
+                                              : _isAlt
+                                                  ? Colors.blue
+                                                  : Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
+                                ),
                               ),
                             ),
-                          ),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: _selectedHerdId != null
-                                ? Colors.blue
-                                : _isNSFW && _isAlt
-                                    ? Colors.purple
-                                    : _isNSFW && !_isAlt
-                                        ? Colors.red
-                                        : _isAlt
-                                            ? Colors.blue
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                          ),
-                        ],
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: _selectedHerdId != null
+                                  ? Colors.blue
+                                  : _isNSFW && _isAlt
+                                      ? Colors.purple
+                                      : _isNSFW && !_isAlt
+                                          ? Colors.red
+                                          : _isAlt
+                                              ? Colors.blue
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Post form
           _buildPostForm(context),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Submit button at the bottom
           SizedBox(
@@ -552,12 +553,24 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             child: ElevatedButton.icon(
               icon: Icon(
                 Icons.send,
-                //color: Theme.of(context).colorScheme.onPrimary,
+                color: _isNSFW && _isAlt
+                    ? Colors.black
+                    : _isNSFW && !_isAlt
+                        ? Colors.black
+                        : _isAlt
+                            ? Colors.black
+                            : Colors.white,
               ),
               label: Text(
                 _isAlt ? 'Create Alt Post' : 'Create Post',
                 style: TextStyle(
-                    //color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    color: _isNSFW && _isAlt
+                        ? Colors.black
+                        : _isNSFW && !_isAlt
+                            ? Colors.black
+                            : _isAlt
+                                ? Colors.black
+                                : Colors.white,
                     fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
@@ -567,7 +580,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         ? Colors.red
                         : _isAlt
                             ? Colors.blue
-                            : Theme.of(context).colorScheme.inversePrimary,
+                            : Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -630,79 +643,82 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   Widget _mediaPicker(BuildContext context) {
     return Column(
       children: [
-        GestureDetector(
-          onTap: () async {
-            if (_isSubmitting) {
-              return; // Prevent changing media while submitting
-            }
-
-            try {
-              // Use the image picker to select multiple images
-              final pickedFiles = await ImageHelper.pickMediaFilesWithVideo(
-                context: context,
-              );
-
-              if (pickedFiles != null && pickedFiles.isNotEmpty) {
-                setState(() {
-                  _mediaFiles = pickedFiles;
-                  _currentMediaIndex = 0;
-                  _postMedia = _mediaFiles.first; // For backward compatibility
-                });
+        Card(
+          child: GestureDetector(
+            onTap: () async {
+              if (_isSubmitting) {
+                return; // Prevent changing media while submitting
               }
-            } catch (e) {
-              if (context.mounted) {
-                _showErrorSnackBar(
-                    context, 'Failed to pick media. Please try again.');
+
+              try {
+                // Use the image picker to select multiple images
+                final pickedFiles = await ImageHelper.pickMediaFilesWithVideo(
+                  context: context,
+                );
+
+                if (pickedFiles != null && pickedFiles.isNotEmpty) {
+                  setState(() {
+                    _mediaFiles = pickedFiles;
+                    _currentMediaIndex = 0;
+                    _postMedia =
+                        _mediaFiles.first; // For backward compatibility
+                  });
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  _showErrorSnackBar(
+                      context, 'Failed to pick media. Please try again.');
+                }
               }
-            }
-          },
-          child: Container(
-            height: MediaQuery.of(context).size.height / 3,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _isNSFW && _isAlt
-                    ? Colors.purple
-                    : _isNSFW && !_isAlt
-                        ? Colors.red
-                        : _isAlt
-                            ? Colors.blue
-                            : Theme.of(context).colorScheme.primary,
+            },
+            child: Container(
+              height: MediaQuery.of(context).size.height / 3,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isNSFW && _isAlt
+                      ? Colors.purple
+                      : _isNSFW && !_isAlt
+                          ? Colors.red
+                          : _isAlt
+                              ? Colors.blue
+                              : Theme.of(context).colorScheme.primary,
+                ),
               ),
-            ),
-            child: _mediaFiles.isNotEmpty
-                ? _buildMediaFilesPreview()
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate,
-                        size: 64,
-                        color: _isNSFW && _isAlt
-                            ? Colors.purple
-                            : _isNSFW && !_isAlt
-                                ? Colors.red
-                                : _isAlt
-                                    ? Colors.blue
-                                    : Colors.grey,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap to add media (up to 10 images/videos)',
-                        style: TextStyle(
+              child: _mediaFiles.isNotEmpty
+                  ? _buildMediaFilesPreview()
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate,
+                          size: 64,
                           color: _isNSFW && _isAlt
                               ? Colors.purple
                               : _isNSFW && !_isAlt
                                   ? Colors.red
                                   : _isAlt
                                       ? Colors.blue
-                                      : Theme.of(context).colorScheme.primary,
+                                      : Colors.grey,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap to add media (up to 10 images/videos)',
+                          style: TextStyle(
+                            color: _isNSFW && _isAlt
+                                ? Colors.purple
+                                : _isNSFW && !_isAlt
+                                    ? Colors.red
+                                    : _isAlt
+                                        ? Colors.blue
+                                        : Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         ),
 
@@ -877,84 +893,101 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       key: _formKey,
       child: Column(
         children: [
-          TextFormField(
-            textCapitalization: TextCapitalization.sentences,
-            enabled: !_isSubmitting,
-            decoration: InputDecoration(
-              labelText: 'Title',
-              // Set the default border
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: borderColor),
-              ),
-              // Set the border when field is enabled but not focused
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: borderColor),
-              ),
-              // Set the border when field is focused
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
+          Card(
+            child: TextFormField(
+              textCapitalization: TextCapitalization.sentences,
+              enabled: !_isSubmitting,
+              decoration: InputDecoration(
+                labelText: 'Title',
+                // Set the default border
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                // Set the border when field is enabled but not focused
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                // Set the border when field is focused
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(
+                    color: borderColor,
+                    width: 2,
+                  ),
+                ),
+                // Set the border when field has an error
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: Colors.red),
+                ),
+                // Set the border when field has an error and is focused
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(color: Colors.red, width: 2),
+                ),
+                prefixIcon: Icon(
+                  Icons.title,
                   color: borderColor,
-                  width: 2,
                 ),
               ),
-              // Set the border when field has an error
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.red),
-              ),
-              // Set the border when field has an error and is focused
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.red, width: 2),
-              ),
-              prefixIcon: Icon(
-                Icons.title,
-                color: borderColor,
-              ),
+              onChanged: (value) {
+                _title = value;
+                _checkContentEntered();
+              },
+              validator: (value) => value == null || value.isEmpty
+                  ? 'Title cannot be empty.'
+                  : null,
             ),
-            onChanged: (value) {
-              _title = value;
-              _checkContentEntered();
-            },
-            validator: (value) => value == null || value.isEmpty
-                ? 'Title cannot be empty.'
-                : null,
           ),
-          const SizedBox(height: 8),
 
           // filterd tags
           if (_postTags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Align(
-                // Chipが左揃えになるようにAlignを追加
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 8.0,
-                  runSpacing: 4.0,
-                  children: _postTags.map((tag) {
-                    return Chip(
-                      label: Text('#$tag'), // # を付けて表示
-                      backgroundColor: Colors.blue.withOpacity(0.1),
-                      labelStyle: TextStyle(color: Colors.blue[700]),
-                      deleteIcon: const Icon(Icons.close, size: 18),
-                      onDeleted: () {
-                        // Quillエディタからタグを削除するロジックは複雑になるため、
-                        // ここではChipをタップしてもQuillエディタのテキストは変更しない。
-                        // 必要であれば、Quillドキュメントを直接編集するロジックを実装する。
-                        // 現状は表示から消すだけで、Quillエディタのテキストは残る。
-                        _safeSetState(() {
-                          _postTags.remove(tag);
-                        });
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: borderColor, width: 1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Align(
+                  // Chipが左揃えになるようにAlignを追加
+                  alignment: Alignment.center,
+                  child: Wrap(
+                    spacing: 8.0,
+                    runSpacing: 4.0,
+                    children: _postTags.map((tag) {
+                      return Chip(
+                        // Change border radius to match the card
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.transparent),
+                        ),
 
-                        // We might not have to notify the user here.
-                        //_showErrorSnackBar(context, 'Please remove the tag from the editor.'); // ユーザーに通知
-                      },
-                    );
-                  }).toList(),
+                        label: Text('#$tag'), // # を付けて表示
+                        backgroundColor:
+                            Theme.of(context).primaryColor.withOpacity(
+                                  0.1, // 背景色を少し透明にして目立たせる
+                                ),
+                        labelStyle:
+                            TextStyle(color: Theme.of(context).primaryColor),
+                        deleteIcon: const Icon(Icons.close),
+                        onDeleted: () {
+                          // Quillエディタからタグを削除するロジックは複雑になるため、
+                          // ここではChipをタップしてもQuillエディタのテキストは変更しない。
+                          // 必要であれば、Quillドキュメントを直接編集するロジックを実装する。
+                          // 現状は表示から消すだけで、Quillエディタのテキストは残る。
+                          _safeSetState(() {
+                            _postTags.remove(tag);
+                          });
+
+                          // We might not have to notify the user here.
+                          //_showErrorSnackBar(context, 'Please remove the tag from the editor.'); // ユーザーに通知
+                        },
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ),
@@ -962,88 +995,90 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           // Media picker
           if (_hasMedia) _mediaPicker(context),
 
-          const SizedBox(height: 8),
-          Column(
-            children: [
-              Container(
-                // Minimum height but no maximum height constraint
-                constraints: const BoxConstraints(
-                  minHeight: 200,
-                ),
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: borderColor,
+          //const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                Container(
+                  // Minimum height but no maximum height constraint
+                  constraints: const BoxConstraints(
+                    minHeight: 200,
+                  ),
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: borderColor,
+                      ),
+                      left: BorderSide(
+                        color: borderColor,
+                      ),
+                      right: BorderSide(
+                        color: borderColor,
+                      ),
                     ),
-                    left: BorderSide(
-                      color: borderColor,
-                    ),
-                    right: BorderSide(
-                      color: borderColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15),
                     ),
                   ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    topRight: Radius.circular(10),
-                  ),
-                ),
-                child: MentionOverlay(
-                  controller: _contentController,
-                  focusNode: _editorFocusNode,
-                  isAlt: _isAlt,
-                  child: quill.QuillEditor(
+                  child: MentionOverlay(
                     controller: _contentController,
                     focusNode: _editorFocusNode,
-                    scrollController: _editorScrollController,
-                    config: quill.QuillEditorConfig(
-                      scrollable: true,
-                      padding: EdgeInsets.zero,
-                      autoFocus: false,
-                      expands: false,
-                      placeholder: 'What\'s on your mind?',
-                      scrollBottomInset: 60,
-                      embedBuilders: [
-                        MentionEmbedBuilder(), // Keep this here too
-                      ],
+                    isAlt: _isAlt,
+                    child: quill.QuillEditor(
+                      controller: _contentController,
+                      focusNode: _editorFocusNode,
+                      scrollController: _editorScrollController,
+                      config: quill.QuillEditorConfig(
+                        scrollable: true,
+                        padding: EdgeInsets.zero,
+                        autoFocus: false,
+                        expands: false,
+                        placeholder: 'What\'s on your mind?',
+                        scrollBottomInset: 60,
+                        embedBuilders: [
+                          MentionEmbedBuilder(), // Keep this here too
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  //color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
+                Container(
+                  decoration: BoxDecoration(
+                    //color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(15),
+                      bottomRight: Radius.circular(15),
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: borderColor,
+                      ),
+                      left: BorderSide(
+                        color: borderColor,
+                      ),
+                      right: BorderSide(
+                        color: borderColor,
+                      ),
+                    ),
                   ),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: borderColor,
-                    ),
-                    left: BorderSide(
-                      color: borderColor,
-                    ),
-                    right: BorderSide(
-                      color: borderColor,
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: QuillSimpleToolbar(
+                      controller: _contentController,
+                      config: const QuillSimpleToolbarConfig(
+                        showFontFamily: false,
+                        showFontSize: false,
+                        showBackgroundColorButton: false,
+                        showClearFormat: false,
+                      ),
                     ),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: QuillSimpleToolbar(
-                    controller: _contentController,
-                    config: const QuillSimpleToolbarConfig(
-                      showFontFamily: false,
-                      showFontSize: false,
-                      showBackgroundColorButton: false,
-                      showClearFormat: false,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/rendering.dart'; // Add this import for PaintingBinding
+import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/utils/get_signed_url.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
@@ -67,9 +69,23 @@ class MediaCacheService {
     }
   }
 
-  /// Generate a unique but deterministic cache key for a URL
-  String _generateCacheKey(String url) {
+  String generateCacheKey(String url) {
     return md5.convert(utf8.encode(url)).toString();
+  }
+
+  Future<File?> getFileFromCache(String url,
+      {String mediaType = 'image'}) async {
+    // Use the gsu() utility to get the base URL for consistent caching
+    final baseUrl = gsu(url);
+    final path = await getCachedMediaPath(baseUrl, mediaType: mediaType);
+    if (path != null) {
+      final file = File(path);
+      // Check existence again to be safe
+      if (await file.exists()) {
+        return file;
+      }
+    }
+    return null;
   }
 
   /// Get the appropriate cache directory based on media type
@@ -152,6 +168,34 @@ class MediaCacheService {
     }
   }
 
+  ImageProvider getImageProvider(String url) {
+    // IMPORTANT: Use gsu() to strip tokens from the URL for the cache key
+    final baseUrl = gsu(url);
+    final cacheKey = generateCacheKey(baseUrl);
+
+    // Check if the file exists SYNCHRONOUSLY
+    // This is less ideal than async, but necessary for ImageProvider.
+    // The performance impact should be negligible for checking a file path.
+    final directory = _getDirectoryForMediaType('image');
+    final filePath =
+        '${directory.path}/$cacheKey${_getExtensionFromUrl(baseUrl)}';
+    final file = File(filePath);
+
+    if (file.existsSync()) {
+      // Update last access time asynchronously without waiting
+      _updateLastAccessed(cacheKey);
+      return FileImage(file);
+    } else {
+      // If not in our file cache, use CachedNetworkImageProvider.
+      // It will handle fetching and its own caching.
+      // We pass the *original URL* to fetch from, but it will be cached
+      // internally using its own keying mechanism.
+      return CachedNetworkImageProvider(url,
+          // You can specify the cache key for CachedNetworkImageProvider as well
+          cacheKey: cacheKey);
+    }
+  }
+
 // Provider for this service
   static final mediaCacheServiceProvider = Provider<MediaCacheService>((ref) {
     return MediaCacheService();
@@ -227,7 +271,7 @@ class MediaCacheService {
     if (!_initialized) await initialize();
 
     try {
-      final cacheKey = _generateCacheKey(url);
+      final cacheKey = generateCacheKey(url);
       final directory = _getDirectoryForMediaType(mediaType);
       final filePath =
           '${directory.path}/$cacheKey${_getExtensionFromUrl(url)}';
@@ -266,7 +310,7 @@ class MediaCacheService {
       }
 
       // Save to cache
-      final cacheKey = _generateCacheKey(url);
+      final cacheKey = generateCacheKey(url);
       final directory = _getDirectoryForMediaType(mediaType);
       final filePath =
           '${directory.path}/$cacheKey${_getExtensionFromUrl(url)}';
