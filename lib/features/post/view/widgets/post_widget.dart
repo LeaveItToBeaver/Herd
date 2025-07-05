@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
@@ -14,20 +11,15 @@ import 'package:herdapp/features/post/view/widgets/post_widget_widgets/nsfw_hidd
 import 'package:herdapp/features/post/view/widgets/post_widget_widgets/nsfw_overlay_widget.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget_widgets/post_menu_widget.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget_widgets/type_indicator_widget.dart';
-import 'package:herdapp/features/rich_text_editing/view/widgets/quill_viewer_widget.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../create_post/create_post_controller.dart';
-import '../../../herds/view/providers/herd_providers.dart';
 import '../../../user/view/providers/current_user_provider.dart';
-import '../../../user/view/providers/user_provider.dart';
-import '../../../user/view/widgets/user_profile_image.dart';
 import '../../data/models/post_media_model.dart';
 import '../../data/models/post_model.dart';
 import '../providers/post_provider.dart';
 import '../providers/state/post_interaction_state.dart';
-import 'media_carousel_widget.dart';
 
 class PostWidget extends ConsumerStatefulWidget {
   final PostModel post;
@@ -55,7 +47,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   @override
   void initState() {
     super.initState();
-
     _hasInitializedInteraction = true;
   }
 
@@ -123,19 +114,28 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         margin: EdgeInsets.symmetric(
             vertical: 6, horizontal: widget.isCompact ? 6 : 10),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: theme.colorScheme.shadow.withValues(
+                alpha: 0.3,
+              ),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
           border: widget.post.isAlt
               ? Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.2), width: 1)
-              : null,
+                  color: theme.colorScheme.primary.withValues(
+                    alpha: 0.3,
+                  ),
+                  width: 2)
+              : Border.all(
+                  color: theme.colorScheme.secondary.withValues(
+                    alpha: 0.3,
+                  ),
+                  width: 2),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -174,7 +174,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
               // Post Content
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -218,6 +218,9 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                     // --- End NSFW Content Handling ---
 
                     const SizedBox(height: 4),
+                    // Tag display section
+                    // タグ表示セクション
+                    _buildTagsSection(),
 
                     // Action row
                     _buildActionBar(
@@ -231,6 +234,53 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// 投稿にタグがあればChipとして表示する
+  /// Display tags as Chips if they exist in the post.
+  Widget _buildTagsSection() {
+    // PostModelに 'tags' プロパティ (List<String>) があることを前提とします。
+    // This method assumes that PostModel has a 'tags' property (List<String>).
+    // もし存在しない、または空の場合は何も表示しません。
+    // If the post does not have tags or the tags list is empty, return an empty widget.
+    if (widget.post.tags == null || widget.post.tags!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      child: Wrap(
+        spacing: 8.0, // Chip間の横スペース // Space between Chips
+        runSpacing: 4.0, // Chip間の縦スペース // Space between Chips
+        children: widget.post.tags!.map<Widget>((tag) {
+          return GestureDetector(
+            onTap: () {
+              // TODO: ここにタグ検索ページへのナビゲーションを実装
+              debugPrint('Tag tapped: $tag');
+              // 例: context.push('/search?tag=$tag');
+            },
+            child: Chip(
+              label: Text(
+                tag,
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor:
+                  theme.colorScheme.primaryContainer.withOpacity(0.4),
+              side: BorderSide.none,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -314,7 +364,11 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           ],
         ),
         const Spacer(),
-        const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+        const Icon(
+          Icons.more_vert,
+          size: 20,
+          //color: Colors.grey
+        ),
       ],
     );
   }
@@ -381,7 +435,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             content: Text(isAlt
                 ? 'Post unpinned from alt profile'
                 : 'Post unpinned from profile'),
-            backgroundColor: Colors.orange,
+            //backgroundColor: Colors.orange,
           ),
         );
       }
@@ -442,7 +496,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Post unpinned from herd'),
-            backgroundColor: Colors.orange,
+            //backgroundColor: Colors.orange,
           ),
         );
       }
@@ -596,7 +650,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       padding: const EdgeInsets.symmetric(vertical: 0),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: theme.dividerColor.withOpacity(0.1), width: 1),
+          top: BorderSide(color: theme.dividerColor.withOpacity(0.3), width: 1),
         ),
       ),
       child: Row(
@@ -688,17 +742,20 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     ThemeData? theme,
     required VoidCallback? onPressed,
   }) {
+    final effectiveTheme = theme ?? Theme.of(context);
+    final Color defaultIconTextColor =
+        color ?? effectiveTheme.colorScheme.onSurfaceVariant;
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(
         icon,
         size: 18,
-        color: color ?? theme?.buttonTheme.colorScheme?.primary,
+        color: defaultIconTextColor,
       ),
       label: Text(
         count,
         style: TextStyle(
-          color: color ?? theme?.buttonTheme.colorScheme?.primary,
+          color: defaultIconTextColor,
           fontWeight: FontWeight.w500,
         ),
       ),

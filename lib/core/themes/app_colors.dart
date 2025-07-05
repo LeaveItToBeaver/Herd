@@ -2,14 +2,50 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Primary brand colors
-  static const Color primary = Color(0xFF3D5AFE); // Indigo accent
-  static const Color primaryDark = Color(0xFF0031CA); // Darker shade
-  static const Color primaryLight = Color(0xFF8187FF); // Lighter shade
+  static const Color primary =
+      Color.fromARGB(255, 167, 61, 254); // Indigo accent
+  static const Color primaryDark =
+      Color.fromARGB(255, 95, 66, 129); // Darker shade
+  static const Color primaryLight =
+      Color.fromARGB(255, 167, 129, 255); // Lighter shade
 
   // Secondary colors
   static const Color secondary = Color(0xFF00C853); // Green accent
   static const Color secondaryDark = Color(0xFF009624); // Darker shade
   static const Color secondaryLight = Color(0xFF5EFC82); // Lighter shade
+
+  // MaterialColor swatches for theme compatibility
+  static const MaterialColor primarySwatch = MaterialColor(
+    0xFFA73DFE, // Primary color value
+    <int, Color>{
+      50: Color(0xFFF3E5FE),
+      100: Color(0xFFE1BEFE),
+      200: Color(0xFFCD93FE),
+      300: Color(0xFFB968FE),
+      400: Color(0xFFA947FE),
+      500: Color(0xFFA73DFE), // Primary color
+      600: Color(0xFF9F37F6),
+      700: Color(0xFF952FED),
+      800: Color(0xFF8B27E4),
+      900: Color(0xFF7919D7),
+    },
+  );
+
+  static const MaterialColor secondarySwatch = MaterialColor(
+    0xFF00C853, // Secondary color value
+    <int, Color>{
+      50: Color(0xFFE8F5E8),
+      100: Color(0xFFC8E6C9),
+      200: Color(0xFFA5D6A7),
+      300: Color(0xFF81C784),
+      400: Color(0xFF66BB6A),
+      500: Color(0xFF00C853), // Secondary color
+      600: Color(0xFF00B74A),
+      700: Color(0xFF00A640),
+      800: Color(0xFF009437),
+      900: Color(0xFF007B27),
+    },
+  );
 
   // Background colors
   static const Color backgroundLight = Color(0xFFF5F5F5);
@@ -72,4 +108,52 @@ class AppTheme {
     onSurfaceVariant: Color(0xFFCAC4D0),
     outline: Color(0xFF938F99),
   );
+
+  /// Creates a MaterialColor from any Color
+  /// Useful for dynamic theming when you need to generate a MaterialColor swatch
+  static MaterialColor createMaterialColor(Color color) {
+    final int red = color.red;
+    final int green = color.green;
+    final int blue = color.blue;
+    final int alpha = color.alpha;
+
+    final Map<int, Color> swatch = <int, Color>{
+      50: Color.fromARGB(
+          alpha,
+          (red + (255 - red) * 0.9).round(),
+          (green + (255 - green) * 0.9).round(),
+          (blue + (255 - blue) * 0.9).round()),
+      100: Color.fromARGB(
+          alpha,
+          (red + (255 - red) * 0.8).round(),
+          (green + (255 - green) * 0.8).round(),
+          (blue + (255 - blue) * 0.8).round()),
+      200: Color.fromARGB(
+          alpha,
+          (red + (255 - red) * 0.6).round(),
+          (green + (255 - green) * 0.6).round(),
+          (blue + (255 - blue) * 0.6).round()),
+      300: Color.fromARGB(
+          alpha,
+          (red + (255 - red) * 0.4).round(),
+          (green + (255 - green) * 0.4).round(),
+          (blue + (255 - blue) * 0.4).round()),
+      400: Color.fromARGB(
+          alpha,
+          (red + (255 - red) * 0.2).round(),
+          (green + (255 - green) * 0.2).round(),
+          (blue + (255 - blue) * 0.2).round()),
+      500: Color.fromARGB(alpha, red, green, blue), // Base color
+      600: Color.fromARGB(alpha, (red * 0.9).round(), (green * 0.9).round(),
+          (blue * 0.9).round()),
+      700: Color.fromARGB(alpha, (red * 0.8).round(), (green * 0.8).round(),
+          (blue * 0.8).round()),
+      800: Color.fromARGB(alpha, (red * 0.7).round(), (green * 0.7).round(),
+          (blue * 0.7).round()),
+      900: Color.fromARGB(alpha, (red * 0.6).round(), (green * 0.6).round(),
+          (blue * 0.6).round()),
+    };
+
+    return MaterialColor(color.value, swatch);
+  }
 }

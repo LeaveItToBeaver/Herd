@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/utils/validators.dart';
+import 'package:herdapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -486,6 +487,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
       // Create user document in Firestore
       await userRepository.createUser(userCredential.user!.uid, user);
+
+      final notificationRepo = ref.read(notificationRepositoryProvider);
+      await notificationRepo.initializeFCM();
 
       // Send email verification
       await userCredential.user!.sendEmailVerification();

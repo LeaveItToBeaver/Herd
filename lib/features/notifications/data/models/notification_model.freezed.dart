@@ -16,7 +16,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$NotificationModel implements DiagnosticableTreeMixin {
   String get id;
-  String get recipientId;
+  String?
+      get recipientId; // Made optional since it's now implicit in the document path
   String get senderId; // User who triggered the notification
   NotificationType get type;
   DateTime get timestamp;
@@ -140,7 +141,7 @@ abstract mixin class $NotificationModelCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String recipientId,
+      String? recipientId,
       String senderId,
       NotificationType type,
       DateTime timestamp,
@@ -173,7 +174,7 @@ class _$NotificationModelCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? recipientId = null,
+    Object? recipientId = freezed,
     Object? senderId = null,
     Object? type = null,
     Object? timestamp = null,
@@ -196,10 +197,10 @@ class _$NotificationModelCopyWithImpl<$Res>
           ? _self.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      recipientId: null == recipientId
+      recipientId: freezed == recipientId
           ? _self.recipientId
           : recipientId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       senderId: null == senderId
           ? _self.senderId
           : senderId // ignore: cast_nullable_to_non_nullable
@@ -274,7 +275,7 @@ class _NotificationModel extends NotificationModel
     with DiagnosticableTreeMixin {
   const _NotificationModel(
       {required this.id,
-      required this.recipientId,
+      this.recipientId,
       required this.senderId,
       required this.type,
       required this.timestamp,
@@ -299,7 +300,8 @@ class _NotificationModel extends NotificationModel
   @override
   final String id;
   @override
-  final String recipientId;
+  final String? recipientId;
+// Made optional since it's now implicit in the document path
   @override
   final String senderId;
 // User who triggered the notification
@@ -459,7 +461,7 @@ abstract mixin class _$NotificationModelCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
-      String recipientId,
+      String? recipientId,
       String senderId,
       NotificationType type,
       DateTime timestamp,
@@ -492,7 +494,7 @@ class __$NotificationModelCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   $Res call({
     Object? id = null,
-    Object? recipientId = null,
+    Object? recipientId = freezed,
     Object? senderId = null,
     Object? type = null,
     Object? timestamp = null,
@@ -515,10 +517,10 @@ class __$NotificationModelCopyWithImpl<$Res>
           ? _self.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      recipientId: null == recipientId
+      recipientId: freezed == recipientId
           ? _self.recipientId
           : recipientId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       senderId: null == senderId
           ? _self.senderId
           : senderId // ignore: cast_nullable_to_non_nullable

@@ -103,22 +103,25 @@ class BottomNavOverlay extends ConsumerWidget {
 
             // Customize the color based on feed type for the home icon
             Color iconColor = isSelected
-                ? const Color.fromARGB(255, 226, 62, 87)
+                ? Theme.of(context).colorScheme.primary
                 : Colors.grey;
 
             // If this is the home icon, apply a special color for alt feed
             if (item == BottomNavItem.altFeed &&
                 feedType == FeedType.alt &&
                 isSelected) {
-              iconColor =
-                  Colors.purpleAccent; // Use a different color for alt feed
+              iconColor = Theme.of(context)
+                  .colorScheme
+                  .secondary; // Use a different color for alt feed
             }
 
             // Customize the 'create' icon if we're in a herd context
             if (item == BottomNavItem.create &&
                 currentHerdId != null &&
                 isHerdMember) {
-              iconColor = isSelected ? Colors.green : Colors.grey;
+              iconColor = isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey;
             }
 
             return Expanded(
@@ -145,8 +148,8 @@ class BottomNavOverlay extends ConsumerWidget {
                             child: Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.purpleAccent,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -161,7 +164,7 @@ class BottomNavOverlay extends ConsumerWidget {
                             child: Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 color: Colors.green,
                                 shape: BoxShape.circle,
                               ),

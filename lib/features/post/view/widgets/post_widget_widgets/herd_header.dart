@@ -25,6 +25,23 @@ class HerdHeaderWidget extends ConsumerWidget {
     required this.buildShimmerText,
   });
 
+  Widget _buildHerdProfileImage(BuildContext context, String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        child: Icon(Icons.group,
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: Colors.white,
+      backgroundImage: NetworkImage(imageUrl),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     debugPrint(
@@ -51,10 +68,7 @@ class HerdHeaderWidget extends ConsumerWidget {
               child: Row(
                 children: [
                   // Use the UserProfileImage widget for herd avatar
-                  UserProfileImage(
-                    radius: isCompact ? 16 : 20,
-                    profileImageUrl: herd.profileImageURL,
-                  ),
+                  _buildHerdProfileImage(context, herd.profileImageURL),
 
                   const SizedBox(width: 12),
 
@@ -64,7 +78,7 @@ class HerdHeaderWidget extends ConsumerWidget {
                       herd.name, // No h/ prefix
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
+                        //color: Colors.blue.shade700,
                         fontSize: isCompact ? 14 : 16,
                       ),
                       maxLines: 1,
@@ -102,7 +116,7 @@ class HerdHeaderWidget extends ConsumerWidget {
                     child: Text(
                       'Posted by $displayName',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        //color: Colors.grey.shade600,
                         fontSize: isCompact ? 11 : 12,
                       ),
                       maxLines: 1,
@@ -115,7 +129,7 @@ class HerdHeaderWidget extends ConsumerWidget {
               Text(
                 formattedTimestamp,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  //color: Colors.grey.shade600,
                   fontSize: isCompact ? 11 : 12,
                 ),
               ),

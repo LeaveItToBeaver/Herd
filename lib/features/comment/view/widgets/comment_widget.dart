@@ -676,8 +676,9 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
       return;
     }
 
-    final userAsync = ref.read(currentUserProvider);
-    final user = userAsync.userOrNull; // Using our extension method to unwrap
+    final currentUserAsync = ref.read(currentUserProvider);
+    final user =
+        currentUserAsync.userOrNull; // Using our extension method to unwrap
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -689,11 +690,17 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
     setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(commentsProvider(widget.postId).notifier).createComment(
+      await ref.read(repliesProvider(widget.postId).notifier).addReply(
             authorId: user.id,
             content: _contentController.text.trim(),
             parentId: widget.parentId,
             isAltPost: widget.isAltPost,
+            authorName:
+                '${currentUserAsync.firstName} ${currentUserAsync.lastName}',
+            authorUsername: currentUserAsync.userName,
+            authorProfileImage: widget.isAltPost
+                ? currentUserAsync.safeAltProfileImageURL
+                : currentUserAsync.safeProfileImageURL,
             mediaFile: _mediaFile,
             ref: ref,
           );

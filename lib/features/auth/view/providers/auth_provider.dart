@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +10,21 @@ import '../../../../core/services/exception_logging_service.dart';
 class AuthNotifier extends StateNotifier<User?> {
   final FirebaseAuth _auth;
   final ExceptionLoggerService _logger;
+  StreamSubscription<User?>? _authStateSubscription;
 
   AuthNotifier(this._auth, this._logger) : super(_auth.currentUser) {
-    _auth.authStateChanges().listen((user) {
-      state = user;
+    _authStateSubscription = _auth.authStateChanges().listen((user) {
+      if (mounted) {
+        // Only update state if the widget is still mounted
+        state = user;
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _authStateSubscription?.cancel();
+    super.dispose();
   }
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();

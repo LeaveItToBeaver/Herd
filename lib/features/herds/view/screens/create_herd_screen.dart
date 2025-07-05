@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
@@ -28,6 +29,11 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
   File? _profileImage;
   File? _coverImage;
   bool _isSubmitting = false;
+
+  // Real-time validation state
+  String? _nameValidationError;
+  bool _isCheckingName = false;
+  Timer? _debounceTimer;
 
   final List<String> availableInterests = [
     'Technology',
@@ -63,6 +69,100 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
         _selectedInterests.add(interest);
       }
     });
+  }
+
+  // Validate herd name for special characters - no spaces allowed
+  String? _validateHerdNameFormat(String name) {
+    if (name.isEmpty) return null;
+
+    // Check length limit first (30 characters max)
+    if (name.length > 30) {
+      return 'Herd name cannot be longer than 30 characters.\nCurrent length: ${name.length}/30';
+    }
+
+    // Check for spaces
+    if (name.contains(' ')) {
+      return 'Herd name cannot contain spaces.\nUse formats like "TestTest" instead of "Test Test".';
+    }
+
+    // Check for invalid characters (no spaces or dashes allowed)
+    final regex = RegExp(r'^[a-zA-Z0-9\.\,\!\?]+$');
+    if (!regex.hasMatch(name.trim())) {
+      // Find the first invalid character for more specific feedback
+      final invalidChars = name
+          .split('')
+          .where((char) => !RegExp(r'[a-zA-Z0-9\.\,\!\?]').hasMatch(char))
+          .toSet();
+
+      if (invalidChars.isNotEmpty) {
+        return 'Invalid character(s): ${invalidChars.join(', ')}\nOnly letters, numbers, and basic punctuation (. , ! ?) are allowed.\nSpaces and dashes are not allowed.';
+      }
+      return 'Name can only contain letters, numbers,\nand basic punctuation (. , ! ?) - no spaces or dashes.';
+    }
+
+    return null;
+  }
+
+  // Real-time validation of herd name with immediate feedback
+  Future<void> _validateHerdNameRealTime(String name) async {
+    // Cancel any existing timer
+    _debounceTimer?.cancel();
+
+    // Immediate format validation (no delay)
+    final formatError = _validateHerdNameFormat(name);
+    if (formatError != null) {
+      setState(() {
+        _nameValidationError = formatError;
+        _isCheckingName = false;
+      });
+      return;
+    }
+
+    // Length validation
+    if (name.length < 3) {
+      setState(() {
+        _nameValidationError =
+            name.isEmpty ? null : 'Name must be at least 3 characters';
+        _isCheckingName = false;
+      });
+      return;
+    }
+
+    // Show loading immediately for name existence check
+    setState(() {
+      _isCheckingName = true;
+      _nameValidationError = null;
+    });
+
+    // Debounce the network call by 500ms
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final repository = ref.read(herdRepositoryProvider);
+        final nameExists = await repository.checkHerdNameExists(name);
+
+        if (mounted) {
+          setState(() {
+            _nameValidationError = nameExists
+                ? 'A herd with this name already exists.\nPlease choose a different name.'
+                : null;
+            _isCheckingName = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _nameValidationError = null; // Don't show error for network issues
+            _isCheckingName = false;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -168,10 +268,36 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
 
                 // Name field
                 TextFormField(
-                  decoration: const InputDecoration(
+                  maxLength: 30,
+                  decoration: InputDecoration(
                     labelText: 'Herd Name',
-                    prefixIcon: Icon(Icons.group),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.group),
+                    border: const OutlineInputBorder(),
+                    helperText:
+                        'Only letters, numbers, and basic punctuation allowed. No spaces or special characters.',
+                    helperMaxLines: 3,
+                    helperStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                    errorText: _nameValidationError,
+                    errorMaxLines: 3,
+                    errorStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                    suffixIcon: _isCheckingName
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : _nameValidationError == null && _name.length >= 3
+                            ? Icon(Icons.check, color: Colors.green)
+                            : null,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -180,9 +306,15 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                     if (value.length < 3) {
                       return 'Name must be at least 3 characters';
                     }
-                    return null;
+                    if (value.length > 30) {
+                      return 'Name cannot be longer than 30 characters';
+                    }
+                    return _nameValidationError;
                   },
-                  onChanged: (value) => _name = value,
+                  onChanged: (value) {
+                    _name = value;
+                    _validateHerdNameRealTime(value);
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -236,7 +368,19 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                           final isSelected =
                               _selectedInterests.contains(interest);
                           return FilterChip(
-                            label: Text(interest),
+                            label: Text(
+                              interest,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer
+                                    : Theme.of(context).colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                            ),
                             selected: isSelected,
                             onSelected: (_) => _toggleInterest(interest),
                             backgroundColor: Theme.of(context)
@@ -244,8 +388,21 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
                                 .surfaceContainerHighest,
                             selectedColor:
                                 Theme.of(context).colorScheme.primaryContainer,
-                            checkmarkColor:
-                                Theme.of(context).colorScheme.primary,
+                            showCheckmark: false,
+                            elevation: isSelected ? 4 : 1,
+                            shadowColor: isSelected
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.3)
+                                : Colors.black.withValues(alpha: 0.1),
+                            side: isSelected
+                                ? BorderSide(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    width: 1.5,
+                                  )
+                                : null,
                           );
                         }).toList(),
                       ),
@@ -395,8 +552,27 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Error creating herd: $e';
+
+        // Provide more user-friendly error messages
+        final errorString = e.toString();
+        if (errorString.contains('special characters') ||
+            errorString.contains('punctuation')) {
+          errorMessage =
+              'Herd name contains invalid characters.\nPlease use only letters, numbers, and basic punctuation. No spaces or dashes allowed.';
+        } else if (errorString.contains('cannot contain spaces')) {
+          errorMessage =
+              'Herd name cannot contain spaces.\nUse formats like "TestTest" instead of "Test Test".';
+        } else if (errorString.contains('already exists')) {
+          errorMessage =
+              'A herd with this name already exists.\nPlease choose a different name.';
+        } else if (errorString.contains('not eligible')) {
+          errorMessage =
+              'You don\'t meet the requirements to create a herd yet.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating herd: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
 
         setState(() {
