@@ -266,7 +266,8 @@ module.exports = function (admin) {
         try {
             const snapshot = await firestore
                 .collection('notifications')
-                .where('recipientId', '==', userId)
+                .doc(userId)
+                .collection('userNotifications')
                 .where('isRead', '==', false)
                 .select() // Only get document metadata, not full data
                 .get();
@@ -307,8 +308,12 @@ module.exports = function (admin) {
             const senderSnapshot = await firestore.collection('users').doc(senderId).get();
             const senderData = senderSnapshot.exists ? senderSnapshot.data() : null;
 
-            // Create notification document
-            const notificationRef = firestore.collection('notifications').doc();
+            // Create notification document in user's subcollection
+            const notificationRef = firestore
+                .collection('notifications')
+                .doc(recipientId)
+                .collection('userNotifications')
+                .doc();
             const notificationId = notificationRef.id;
 
             // Determine sender details based on public/alt event
@@ -326,7 +331,6 @@ module.exports = function (admin) {
             // Build notification data object, only including defined values
             const notificationData = {
                 id: notificationId,
-                recipientId,
                 senderId,
                 type,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -485,7 +489,8 @@ module.exports = function (admin) {
 
             let query = firestore
                 .collection('notifications')
-                .where('recipientId', '==', userId)
+                .doc(userId)
+                .collection('userNotifications')
                 .orderBy('timestamp', 'desc');
 
             // Apply type filter if provided
@@ -502,6 +507,8 @@ module.exports = function (admin) {
             if (lastNotificationId) {
                 const lastDoc = await firestore
                     .collection('notifications')
+                    .doc(userId)
+                    .collection('userNotifications')
                     .doc(lastNotificationId)
                     .get();
 
@@ -598,11 +605,15 @@ module.exports = function (admin) {
                 const batch = firestore.batch();
 
                 for (const id of notificationIds) {
-                    const notificationRef = firestore.collection('notifications').doc(id);
+                    const notificationRef = firestore
+                        .collection('notifications')
+                        .doc(userId)
+                        .collection('userNotifications')
+                        .doc(id);
 
-                    // Verify ownership before updating
+                    // Verify notification exists before updating
                     const notificationDoc = await notificationRef.get();
-                    if (notificationDoc.exists && notificationDoc.data().recipientId === userId) {
+                    if (notificationDoc.exists) {
                         batch.update(notificationRef, {
                             isRead: true,
                             readAt: admin.firestore.FieldValue.serverTimestamp()
@@ -622,7 +633,8 @@ module.exports = function (admin) {
                 // Mark all notifications as read
                 const notificationsSnapshot = await firestore
                     .collection('notifications')
-                    .where('recipientId', '==', userId)
+                    .doc(userId)
+                    .collection('userNotifications')
                     .where('isRead', '==', false)
                     .get();
 
@@ -932,10 +944,14 @@ module.exports = function (admin) {
                 const verifiedIds = [];
 
                 for (const id of notificationIds) {
-                    const notificationRef = firestore.collection('notifications').doc(id);
+                    const notificationRef = firestore
+                        .collection('notifications')
+                        .doc(userId)
+                        .collection('userNotifications')
+                        .doc(id);
                     const notificationDoc = await notificationRef.get();
 
-                    if (notificationDoc.exists && notificationDoc.data().recipientId === userId) {
+                    if (notificationDoc.exists) {
                         batch.delete(notificationRef);
                         verifiedIds.push(id);
                     }
@@ -957,25 +973,31 @@ module.exports = function (admin) {
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-            const oldNotificationsSnapshot = await firestore
-                .collection('notifications')
-                .where('timestamp', '<', thirtyDaysAgo)
-                .get();
+            try {
+                // Use collection group query to find old notifications across all users
+                const oldNotificationsSnapshot = await firestore
+                    .collectionGroup('userNotifications')
+                    .where('timestamp', '<', thirtyDaysAgo)
+                    .limit(500) // Process in batches to avoid timeout
+                    .get();
 
-            if (oldNotificationsSnapshot.empty) {
-                logger.log('🧹 No old notifications to clean up');
-                return;
+                if (oldNotificationsSnapshot.empty) {
+                    logger.log('🧹 No old notifications to clean up');
+                    return;
+                }
+
+                logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
+
+                const batch = firestore.batch();
+                oldNotificationsSnapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+                logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
+            } catch (error) {
+                logger.error('❌ Error cleaning up old notifications:', error);
             }
-
-            logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
-
-            const batch = firestore.batch();
-            oldNotificationsSnapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-
-            await batch.commit();
-            logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
         })
     };
 };
