@@ -1,12 +1,12 @@
 import 'dart:async';
 //import 'dart:io';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
+import 'package:herdapp/core/themes/app_colors.dart';
 import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
 import 'package:herdapp/features/customization/view/providers/ui_customization_provider.dart';
@@ -154,10 +154,10 @@ class MyApp extends ConsumerWidget {
             orElse: () => null,
           ) ??
           ThemeData(
-            primarySwatch: Colors.blue,
+            primarySwatch: AppTheme.primarySwatch,
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.blue,
+              seedColor: AppTheme.primary,
               brightness: Brightness.dark,
             ),
           ),

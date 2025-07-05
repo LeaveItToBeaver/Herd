@@ -110,7 +110,7 @@ class NotificationRepository {
         };
       }
 
-      final notificationsList = rawNotifications as List<dynamic>;
+      final notificationsList = rawNotifications;
       debugPrint(
           '📝 Processing ${notificationsList.length} raw notification items:');
 
@@ -228,6 +228,24 @@ class NotificationRepository {
     }
   }
 
+  Future<String> getUserFCMToken() async {
+    try {
+      debugPrint('🔔 Getting FCM token via cloud function');
+
+      final token = await _messaging.getToken();
+      if (token == null) {
+        debugPrint('❌ FCM token is null');
+        return '';
+      }
+
+      debugPrint('✅ FCM token retrieved successfully: $token');
+      return token;
+    } catch (e) {
+      debugPrint('❌ Error getting FCM token: $e');
+      rethrow;
+    }
+  }
+
   /// Update FCM token using cloud function
   Future<void> updateFCMToken(String token) async {
     try {
@@ -306,7 +324,6 @@ class NotificationRepository {
 
       return NotificationModel(
         id: notificationData['id']?.toString() ?? '',
-        recipientId: notificationData['recipientId']?.toString() ?? '',
         senderId: notificationData['senderId']?.toString() ?? '',
         type: _parseNotificationType(notificationData['type']),
         timestamp: _parseTimestamp(notificationData['timestamp']),
@@ -610,7 +627,8 @@ class NotificationRepository {
 
     return _firestore
         .collection('notifications')
-        .where('recipientId', isEqualTo: userId)
+        .doc(userId)
+        .collection('userNotifications')
         .orderBy('timestamp', descending: true)
         .limit(50) // Reasonable limit for real-time updates
         .snapshots()
