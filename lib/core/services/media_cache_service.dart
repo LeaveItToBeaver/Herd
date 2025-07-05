@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/rendering.dart'; // Add this import for PaintingBinding
+import 'package:flutter/rendering.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/utils/get_signed_url.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
@@ -37,7 +40,7 @@ class MediaCacheService {
 
   /// Initialize the cache service by creating necessary directories
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (kIsWeb || _initialized) return;
 
     try {
       // Get appropriate cache directory
@@ -66,9 +69,23 @@ class MediaCacheService {
     }
   }
 
-  /// Generate a unique but deterministic cache key for a URL
-  String _generateCacheKey(String url) {
+  String generateCacheKey(String url) {
     return md5.convert(utf8.encode(url)).toString();
+  }
+
+  Future<File?> getFileFromCache(String url,
+      {String mediaType = 'image'}) async {
+    // Use the gsu() utility to get the base URL for consistent caching
+    final baseUrl = gsu(url);
+    final path = await getCachedMediaPath(baseUrl, mediaType: mediaType);
+    if (path != null) {
+      final file = File(path);
+      // Check existence again to be safe
+      if (await file.exists()) {
+        return file;
+      }
+    }
+    return null;
   }
 
   /// Get the appropriate cache directory based on media type
@@ -85,6 +102,7 @@ class MediaCacheService {
   // 1. Add to MediaCacheService class
   Future<void> prefetchBatchedMediaItems(
       List<PostMediaModel> mediaItems) async {
+    if (kIsWeb) return;
     if (mediaItems.isEmpty) return;
 
     try {
@@ -150,6 +168,34 @@ class MediaCacheService {
     }
   }
 
+  ImageProvider getImageProvider(String url) {
+    // IMPORTANT: Use gsu() to strip tokens from the URL for the cache key
+    final baseUrl = gsu(url);
+    final cacheKey = generateCacheKey(baseUrl);
+
+    // Check if the file exists SYNCHRONOUSLY
+    // This is less ideal than async, but necessary for ImageProvider.
+    // The performance impact should be negligible for checking a file path.
+    final directory = _getDirectoryForMediaType('image');
+    final filePath =
+        '${directory.path}/$cacheKey${_getExtensionFromUrl(baseUrl)}';
+    final file = File(filePath);
+
+    if (file.existsSync()) {
+      // Update last access time asynchronously without waiting
+      _updateLastAccessed(cacheKey);
+      return FileImage(file);
+    } else {
+      // If not in our file cache, use CachedNetworkImageProvider.
+      // It will handle fetching and its own caching.
+      // We pass the *original URL* to fetch from, but it will be cached
+      // internally using its own keying mechanism.
+      return CachedNetworkImageProvider(url,
+          // You can specify the cache key for CachedNetworkImageProvider as well
+          cacheKey: cacheKey);
+    }
+  }
+
 // Provider for this service
   static final mediaCacheServiceProvider = Provider<MediaCacheService>((ref) {
     return MediaCacheService();
@@ -157,6 +203,11 @@ class MediaCacheService {
 
 // 3. Add this method to MediaCacheService
   Future<Map<String, dynamic>> getCacheStats() async {
+    if (kIsWeb) {
+      return {
+        'error': 'Cache stats not available on web platform',
+      };
+    }
     try {
       if (!_initialized) await initialize();
 
@@ -216,10 +267,11 @@ class MediaCacheService {
   /// Check if a media item is cached and return the local file path if it is
   Future<String?> getCachedMediaPath(String url,
       {String mediaType = 'image'}) async {
+    if (kIsWeb) return null; // Caching not supported on web
     if (!_initialized) await initialize();
 
     try {
-      final cacheKey = _generateCacheKey(url);
+      final cacheKey = generateCacheKey(url);
       final directory = _getDirectoryForMediaType(mediaType);
       final filePath =
           '${directory.path}/$cacheKey${_getExtensionFromUrl(url)}';
@@ -241,6 +293,7 @@ class MediaCacheService {
   /// Cache a media file from a URL
   Future<String?> cacheMediaFromUrl(String url,
       {String mediaType = 'image'}) async {
+    if (kIsWeb) return null; // Caching not supported on web
     if (!_initialized) await initialize();
 
     try {
@@ -257,7 +310,7 @@ class MediaCacheService {
       }
 
       // Save to cache
-      final cacheKey = _generateCacheKey(url);
+      final cacheKey = generateCacheKey(url);
       final directory = _getDirectoryForMediaType(mediaType);
       final filePath =
           '${directory.path}/$cacheKey${_getExtensionFromUrl(url)}';
@@ -289,6 +342,7 @@ class MediaCacheService {
 
   /// Load cache metadata from shared preferences
   Future<void> _loadCacheMetadata() async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -322,6 +376,7 @@ class MediaCacheService {
   /// Save cache metadata to shared preferences
   Future<void> _saveCacheMetadata(
       String cacheKey, String url, String mediaType, int fileSize) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -351,6 +406,7 @@ class MediaCacheService {
 
   /// Update last accessed time for cache entry
   Future<void> _updateLastAccessed(String cacheKey) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -380,6 +436,7 @@ class MediaCacheService {
 
   /// Clean up old cache entries if needed
   Future<void> _cleanupCacheIfNeeded({bool forceCleanup = false}) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       // Calculate current cache size
       int totalSize = 0;
@@ -452,6 +509,7 @@ class MediaCacheService {
 
   /// Delete all files associated with a cache key
   Future<void> _deleteFilesForCacheKey(String cacheKey) async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       // Remove from memory cache
       _mediaMetadataCache.remove(cacheKey);
@@ -485,6 +543,7 @@ class MediaCacheService {
 
   /// Clear the entire cache
   Future<void> clearCache() async {
+    if (kIsWeb) return; // Caching not supported on web
     try {
       if (!_initialized) await initialize();
 

@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart'; // Add this import for kDebugMode
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/notifications/data/models/notification_settings_model.dart';
+import 'package:herdapp/features/notifications/data/repositories/notification_repository.dart';
 import 'package:herdapp/features/notifications/view/providers/notification_provider.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
+import 'package:herdapp/features/notifications/utils/notification_service.dart'; // Add this import
 // Import intl for date formatting if not already done elsewhere globally
 import 'package:intl/intl.dart';
 
@@ -202,7 +205,450 @@ class _NotificationSettingsScreenState
                 : () => _showMuteDialog(userId),
           ),
         ],
+
+        // Debug section - only show in debug mode
+        if (kDebugMode) ...[
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'Debug Tools',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.red,
+              ),
+            ),
+          ),
+          _buildDebugSection(userId),
+        ],
       ],
+    );
+  }
+
+  /// Build the debug section with FCM testing tools
+  Widget _buildDebugSection(String userId) {
+    return Card(
+      margin: const EdgeInsets.all(16),
+      color: Colors.red.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bug_report, color: Colors.red.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'FCM Debug Tools',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'These tools help diagnose push notification issues',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Test Repository Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isUpdating ? null : () => _testRepository(),
+                icon: const Icon(Icons.cloud, size: 18),
+                label: const Text('Test Repository & FCM Token'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade100,
+                  foregroundColor: Colors.blue.shade800,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Test Local Notifications Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isUpdating ? null : () => _testLocalNotification(),
+                icon: const Icon(Icons.notifications, size: 18),
+                label: const Text('Test Local Notification'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade100,
+                  foregroundColor: Colors.green.shade800,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Full Debug Test Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isUpdating ? null : () => _runFullDebugTest(),
+                icon: const Icon(Icons.analytics, size: 18),
+                label: const Text('Full FCM Debug Test'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade100,
+                  foregroundColor: Colors.orange.shade800,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Check Permissions Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isUpdating ? null : () => _checkPermissions(),
+                icon: const Icon(Icons.security, size: 18),
+                label: const Text('Check Permissions'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade100,
+                  foregroundColor: Colors.purple.shade800,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isUpdating ? null : () => _debugTokenUpdate(),
+                icon: const Icon(Icons.sync, size: 18),
+                label: const Text('Debug FCM Token Update'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade100,
+                  foregroundColor: Colors.teal.shade800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _debugTokenUpdate() async {
+    try {
+      final repository = ref.read(notificationRepositoryProvider);
+
+      // Show loading dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Testing FCM token update process...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      final result = await repository.debugTokenUpdate();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showDebugResultDialog(
+            'FCM Token Update Debug', _formatTokenDebugResult(result));
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showDebugResultDialog('Token Update Error', e.toString());
+      }
+    }
+  }
+
+  String _formatTokenDebugResult(Map<String, dynamic> result) {
+    if (result.containsKey('error')) {
+      return '❌ Error: ${result['error']}';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+        '📱 Local Token: ${result['localToken']?.substring(0, 30)}...');
+    buffer
+        .writeln('☁️ Update Call Succeeded: ${result['updateCallSucceeded']}');
+
+    // Fix the logic here - check the actual cloud function result
+    final cloudResult = result['finalDebugResult']?['cloudFunctionResult'];
+    final tokenSaved = cloudResult?['hasToken'] == true;
+    final messageSent = cloudResult?['messageSent'] == true;
+
+    buffer.writeln('💾 Token Saved in Firestore: $tokenSaved');
+    buffer.writeln('📤 Test Message Sent: $messageSent');
+
+    if (tokenSaved && messageSent) {
+      buffer.writeln('\n🎉 SUCCESS: FCM is working perfectly!');
+      buffer.writeln('✅ Token saved to Firestore');
+      buffer.writeln('✅ Test notification sent');
+      buffer.writeln('📱 Check your device notification tray');
+      buffer.writeln('\n💡 If you don\'t see the notification:');
+      buffer.writeln('  • Make sure app is in background');
+      buffer.writeln('  • Check device notification settings');
+      buffer.writeln('  • Try "Test Local Notification" button');
+    } else if (tokenSaved && !messageSent) {
+      buffer.writeln('\n⚠️ PARTIAL SUCCESS: Token saved but message failed');
+      buffer.writeln('🔍 Check cloud function logs for send errors');
+    } else {
+      buffer.writeln('\n❌ ISSUE: Token not saved to Firestore');
+      buffer.writeln('🔍 Check updateFCMToken cloud function logs');
+    }
+
+    buffer.writeln('\n📊 Raw Debug Data:');
+    buffer.writeln(result.toString());
+
+    return buffer.toString();
+  }
+
+  // Debug methods
+  Future<void> _testRepository() async {
+    try {
+      final repository = ref.read(notificationRepositoryProvider);
+      final result = await repository.debugFCMToken();
+
+      if (mounted) {
+        _showDebugResultDialog('Repository Test Result', result.toString());
+      }
+    } catch (e) {
+      if (mounted) {
+        _showDebugResultDialog('Repository Test Error', e.toString());
+      }
+    }
+  }
+
+  Future<void> _testLocalNotification() async {
+    try {
+      final service = ref.read(notificationServiceProvider);
+      await service.showTestNotification();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Local notification sent! Check your device.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _runFullDebugTest() async {
+    try {
+      final service = ref.read(notificationServiceProvider);
+
+      // Show loading dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Running comprehensive FCM test...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      final result = await service.fullFCMDebugTest();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showFullDebugResults(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showDebugResultDialog('Full Debug Test Error', e.toString());
+      }
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    try {
+      final service = ref.read(notificationServiceProvider);
+      final enabled = await service.areNotificationsEnabled();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Notifications enabled: $enabled'),
+            backgroundColor: enabled ? Colors.green : Colors.red,
+            action: !enabled
+                ? SnackBarAction(
+                    label: 'Request',
+                    textColor: Colors.white,
+                    onPressed: () async {
+                      final granted = await service.requestPermissions();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Permission ${granted ? 'granted' : 'denied'}'),
+                            backgroundColor:
+                                granted ? Colors.green : Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                  )
+                : null,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error checking permissions: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _sanitizeText(String text) {
+    try {
+      // Remove any malformed UTF-16 characters
+      return text.replaceAll(RegExp(r'[\uD800-\uDFFF]'), '?');
+    } catch (e) {
+      return 'Text display error - check logs';
+    }
+  }
+
+// Update your debug dialog method:
+  void _showDebugResultDialog(String title, String content) {
+    // Clean the content to prevent UTF-16 errors
+    final cleanTitle = _sanitizeText(title);
+    final cleanContent = _sanitizeText(content);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(cleanTitle),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            cleanContent,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullDebugResults(Map<String, dynamic> result) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Full FCM Debug Results'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (result['recommendations'] != null) ...[
+                const Text(
+                  'Recommendations:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                ...((result['recommendations'] as List<String>).map(
+                  (rec) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rec.startsWith('✅')
+                              ? '✅ '
+                              : rec.startsWith('❌')
+                                  ? '❌ '
+                                  : rec.startsWith('💡')
+                                      ? '💡 '
+                                      : '• ',
+                          style: TextStyle(
+                            color: rec.startsWith('✅')
+                                ? Colors.green
+                                : rec.startsWith('❌')
+                                    ? Colors.red
+                                    : rec.startsWith('💡')
+                                        ? Colors.blue
+                                        : null,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            rec.replaceFirst(RegExp(r'^[✅❌💡]\s*'), ''),
+                            style: TextStyle(
+                              color: rec.startsWith('✅')
+                                  ? Colors.green.shade700
+                                  : rec.startsWith('❌')
+                                      ? Colors.red.shade700
+                                      : null,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+              ],
+              const Text(
+                'Raw Results:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              SelectableText(result.toString()),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -321,7 +767,4 @@ class _NotificationSettingsScreenState
         DateTime(now.year, now.month, now.day + 1, 8, 0); // 8:00 AM tomorrow
     return tomorrow.difference(now);
   }
-
-  // _formatDateTime is no longer used here as DateFormat is used directly
-  // String _formatDateTime(DateTime dateTime) { ... }
 }

@@ -170,9 +170,9 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                       ),
                                       Text(
                                         '${herd.memberCount} members',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                        ),
+                                        // style: TextStyle(
+                                        //   color: Colors.grey[600],
+                                        // ),
                                       ),
                                     ],
                                   ),

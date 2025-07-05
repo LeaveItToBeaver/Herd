@@ -29,12 +29,12 @@ class SideBubblesOverlay extends ConsumerWidget {
       bubbles.add(
         _buildBubble(
           context: context,
-          child: const Icon(
+          child: Icon(
             Icons.search,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onPrimary,
             size: 24,
           ),
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           onTap: () {
             context.pushNamed('search');
           },
@@ -46,12 +46,12 @@ class SideBubblesOverlay extends ConsumerWidget {
       bubbles.add(
         _buildBubble(
           context: context,
-          child: const Icon(
+          child: Icon(
             Icons.notifications,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onPrimary,
             size: 24,
           ),
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           onTap: () {
             context.pushNamed('notifications');
           },
@@ -64,12 +64,12 @@ class SideBubblesOverlay extends ConsumerWidget {
       bubbles.add(
         _buildBubble(
           context: context,
-          child: const Icon(
+          child: Icon(
             Icons.person,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onPrimary,
             size: 24,
           ),
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           onTap: () {
             final currentUser = ref.read(authProvider);
             if (currentUser?.uid != null) {
@@ -105,10 +105,13 @@ class SideBubblesOverlay extends ConsumerWidget {
       _buildBubble(
         context: context,
         child: feedType == FeedType.alt
-            ? const Icon(Icons.public, color: Colors.white, size: 24)
-            : const Icon(Icons.groups_outlined, color: Colors.white, size: 24),
-        backgroundColor:
-            feedType == FeedType.alt ? Colors.purpleAccent : Colors.black,
+            ? Icon(Icons.public,
+                color: Theme.of(context).colorScheme.onPrimary, size: 24)
+            : Icon(Icons.groups_outlined,
+                color: Theme.of(context).colorScheme.onSecondary, size: 24),
+        backgroundColor: feedType == FeedType.alt
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.secondary,
         onTap: () {
           // Toggle feed type
           final newFeedType =
@@ -133,13 +136,13 @@ class SideBubblesOverlay extends ConsumerWidget {
           context: context,
           child: Text(
             "${i + 1}",
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           onTap: () {
             // Navigate to community or open chat
           },
