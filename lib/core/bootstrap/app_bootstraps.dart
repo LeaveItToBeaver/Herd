@@ -252,7 +252,12 @@ class AppBootstrap {
       debugPrint('🚀 Starting app initialization...');
 
       // Initialize shared preferences
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences
+          .getInstance(); // This doesn't do anything... Yet
+      // SharedPreferences is used for caching and settings, so we initialize it
+      // but we don't need to store anything immediately.
+      // This is just to ensure it's ready for use later
+      // when needed.
       debugPrint('✅ Shared preferences initialized');
 
       // Initialize media cache with better error handling
@@ -371,7 +376,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return MaterialApp(
             home: Scaffold(
-              backgroundColor: Theme.of(context).primaryColor,
+              backgroundColor: Colors.black,
               body: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -383,6 +388,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
+                        color: Colors.white,
                       ),
                     ),
                   ],

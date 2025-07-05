@@ -91,8 +91,11 @@ class AuthorHeaderWidget extends ConsumerWidget {
                         ),
                         if (post.isAlt) ...[
                           const SizedBox(width: 4),
-                          Icon(Icons.lock,
-                              size: 12, color: Colors.blue.shade400),
+                          Icon(
+                            Icons.lock,
+                            size: 12,
+                            //color: Colors.blue.shade400
+                          ),
                         ],
                       ],
                     ),

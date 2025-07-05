@@ -15,7 +15,7 @@ class MediaPreviewWidget extends StatelessWidget {
     super.key,
     required this.post,
     this.height = 350,
-    this.autoPlay = false,
+    this.autoPlay = true,
     this.showIndicatorCondition,
     this.onMediaTap,
   });

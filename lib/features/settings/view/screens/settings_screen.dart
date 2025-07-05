@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../user/view/providers/user_settings_provider.dart';
 import 'cache_settings_screen.dart';
+import 'package:herdapp/core/widgets/markdown_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -220,6 +221,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     })
                                 : null,
                           );
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.palette),
+                        title: const Text('Customize Appearance'),
+                        subtitle: const Text('Personalize your app experience'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          context.push('/customization');
                         },
                       ),
                       ListTile(
@@ -717,44 +727,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showTermsOfService(BuildContext context) {
-    // Show terms of service dialog or navigate to terms of service screen
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Terms of Service'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'This is a placeholder for the Terms of Service. In a production app, this would contain the full terms governing the use of the application.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+    // Show terms of service dialog using markdown content
+    showMarkdownDialog(
+      context,
+      title: 'Terms of Service',
+      assetPath: 'assets/legal/terms.md',
     );
   }
 
   void _showPrivacyPolicy(BuildContext context) {
-    // Show privacy policy dialog or navigate to privacy policy screen
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'This is a placeholder for the Privacy Policy. In a production app, this would contain the full privacy policy explaining how user data is collected, used, and protected.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+    // Show privacy policy dialog using markdown content
+    showMarkdownDialog(
+      context,
+      title: 'Privacy Policy',
+      assetPath: 'assets/legal/privacy.md',
     );
   }
 

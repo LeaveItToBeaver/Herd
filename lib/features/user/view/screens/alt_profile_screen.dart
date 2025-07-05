@@ -605,7 +605,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
           Text(
             'An error occurred: $error',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
+            style: TextStyle(color: Colors.black12, fontSize: 16),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
@@ -636,14 +636,18 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final theme = Theme.of(context);
+    // Ensure currentThemeProvider sets scaffoldBackgroundColor from AppThemeSettings.backgroundColor
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: theme.scaffoldBackgroundColor,
       child: _tabBar,
     );
   }
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
+    return oldDelegate._tabBar != _tabBar ||
+        oldDelegate.minExtent != minExtent ||
+        oldDelegate.maxExtent != maxExtent;
   }
 }

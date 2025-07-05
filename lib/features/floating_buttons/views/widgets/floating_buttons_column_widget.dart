@@ -45,7 +45,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
               ),
               child: Icon(Icons.person,
                   color: currentFeed == FeedType.alt
-                      ? Colors.purpleAccent
+                      ? Theme.of(context).colorScheme.primary
                       : Colors.white),
               onPressed: () {
                 final navService = ref.read(navigationServiceProvider);
@@ -86,7 +86,8 @@ class FloatingButtonsColumn extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(30.0),
               ),
               child: notifications.hasValue
-                  ? Icon(Icons.notifications, color: Colors.purpleAccent)
+                  ? Icon(Icons.notifications,
+                      color: Theme.of(context).colorScheme.primary)
                   : Icon(Icons.notifications, color: Colors.white),
               onPressed: () {
                 HapticFeedback.mediumImpact();

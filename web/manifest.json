@@ -1,11 +1,11 @@
 {
-    "name": "herdapp",
-    "short_name": "herdapp",
+    "name": "Herd",
+    "short_name": "Herd",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#hexcode",
     "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "description": "A new way to socialize.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
