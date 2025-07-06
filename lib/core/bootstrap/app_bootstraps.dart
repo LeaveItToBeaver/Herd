@@ -376,7 +376,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return MaterialApp(
             home: Scaffold(
-              backgroundColor: Theme.of(context).primaryColor,
+              backgroundColor: Colors.black,
               body: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -388,6 +388,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
+                        color: Colors.white,
                       ),
                     ),
                   ],

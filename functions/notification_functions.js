@@ -12,6 +12,94 @@ const logger = functions.logger;
 module.exports = function (admin) {
     const firestore = admin.firestore();
 
+    const debugFCMToken = onCall(async (request) => {
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+        }
+
+        const userId = request.auth.uid;
+
+        try {
+            // Get user document
+            const userDoc = await firestore.collection('users').doc(userId).get();
+            const userData = userDoc.data();
+
+            console.log(`=== FCM DEBUG FOR USER ${userId} ===`);
+            console.log('User exists:', userDoc.exists);
+            console.log('FCM Token:', userData?.fcmToken ? `${userData.fcmToken.substring(0, 20)}...` : 'NO TOKEN');
+            console.log('Token updated at:', userData?.fcmTokenUpdatedAt);
+
+            if (userData?.fcmToken) {
+                // Test sending a simple message
+                const testMessage = {
+                    token: userData.fcmToken,
+                    notification: {
+                        title: 'Test Notification',
+                        body: 'This is a test from Firebase Cloud Functions'
+                    },
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            channelId: 'high_importance_channel',
+                            priority: 'high',
+                            defaultSound: true,
+                            defaultVibrateTimings: true,
+                        }
+                    },
+                    apns: {
+                        headers: {
+                            'apns-priority': '10',
+                            'apns-push-type': 'alert',
+                        },
+                        payload: {
+                            aps: {
+                                alert: {
+                                    title: 'Test Notification',
+                                    body: 'This is a test from Firebase Cloud Functions'
+                                },
+                                sound: 'default',
+                            }
+                        }
+                    }
+                };
+
+                try {
+                    const response = await admin.messaging().send(testMessage);
+                    console.log('✅ Test message sent successfully:', response);
+
+                    return {
+                        success: true,
+                        hasToken: true,
+                        tokenPreview: userData.fcmToken.substring(0, 20),
+                        messageSent: true,
+                        messageId: response
+                    };
+                } catch (sendError) {
+                    console.log('❌ Error sending test message:', sendError);
+
+                    return {
+                        success: false,
+                        hasToken: true,
+                        tokenPreview: userData.fcmToken.substring(0, 20),
+                        messageSent: false,
+                        error: sendError.message,
+                        errorCode: sendError.code
+                    };
+                }
+            } else {
+                return {
+                    success: false,
+                    hasToken: false,
+                    message: 'No FCM token found for user'
+                };
+            }
+
+        } catch (error) {
+            console.log('❌ Error in FCM debug:', error);
+            throw new functions.https.HttpsError('internal', error.message);
+        }
+    });
+
     /**
      * Helper function to remove undefined values from an object
      */
@@ -178,7 +266,8 @@ module.exports = function (admin) {
         try {
             const snapshot = await firestore
                 .collection('notifications')
-                .where('recipientId', '==', userId)
+                .doc(userId)
+                .collection('userNotifications')
                 .where('isRead', '==', false)
                 .select() // Only get document metadata, not full data
                 .get();
@@ -219,8 +308,12 @@ module.exports = function (admin) {
             const senderSnapshot = await firestore.collection('users').doc(senderId).get();
             const senderData = senderSnapshot.exists ? senderSnapshot.data() : null;
 
-            // Create notification document
-            const notificationRef = firestore.collection('notifications').doc();
+            // Create notification document in user's subcollection
+            const notificationRef = firestore
+                .collection('notifications')
+                .doc(recipientId)
+                .collection('userNotifications')
+                .doc();
             const notificationId = notificationRef.id;
 
             // Determine sender details based on public/alt event
@@ -238,7 +331,6 @@ module.exports = function (admin) {
             // Build notification data object, only including defined values
             const notificationData = {
                 id: notificationId,
-                recipientId,
                 senderId,
                 type,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -397,7 +489,8 @@ module.exports = function (admin) {
 
             let query = firestore
                 .collection('notifications')
-                .where('recipientId', '==', userId)
+                .doc(userId)
+                .collection('userNotifications')
                 .orderBy('timestamp', 'desc');
 
             // Apply type filter if provided
@@ -414,6 +507,8 @@ module.exports = function (admin) {
             if (lastNotificationId) {
                 const lastDoc = await firestore
                     .collection('notifications')
+                    .doc(userId)
+                    .collection('userNotifications')
                     .doc(lastNotificationId)
                     .get();
 
@@ -510,11 +605,15 @@ module.exports = function (admin) {
                 const batch = firestore.batch();
 
                 for (const id of notificationIds) {
-                    const notificationRef = firestore.collection('notifications').doc(id);
+                    const notificationRef = firestore
+                        .collection('notifications')
+                        .doc(userId)
+                        .collection('userNotifications')
+                        .doc(id);
 
-                    // Verify ownership before updating
+                    // Verify notification exists before updating
                     const notificationDoc = await notificationRef.get();
-                    if (notificationDoc.exists && notificationDoc.data().recipientId === userId) {
+                    if (notificationDoc.exists) {
                         batch.update(notificationRef, {
                             isRead: true,
                             readAt: admin.firestore.FieldValue.serverTimestamp()
@@ -534,7 +633,8 @@ module.exports = function (admin) {
                 // Mark all notifications as read
                 const notificationsSnapshot = await firestore
                     .collection('notifications')
-                    .where('recipientId', '==', userId)
+                    .doc(userId)
+                    .collection('userNotifications')
                     .where('isRead', '==', false)
                     .get();
 
@@ -601,7 +701,12 @@ module.exports = function (admin) {
                 const followerId = event.params.followerId;
                 const followedId = event.params.followedId;
 
+                console.log(`🔔 === FOLLOW NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`📋 Follower: ${followerId}, Followed: ${followedId}`);
+                console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
+
                 logger.log(`👥 New follow: ${followerId} → ${followedId}`);
+
 
                 await createNotification({
                     recipientId: followedId,
@@ -667,6 +772,9 @@ module.exports = function (admin) {
             async (event) => {
                 const postId = event.params.postId;
                 const likerId = event.params.userId;
+                console.log(`🔔 === LIKE NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`📋 Post: ${postId}, Liker: ${likerId}`);
+                console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
 
                 logger.log(`❤️ Post liked: ${postId} by ${likerId}`);
 
@@ -816,6 +924,7 @@ module.exports = function (admin) {
         getUnreadNotificationCount,
         markNotificationsAsRead,
         updateFCMToken,
+        debugFCMToken,
 
         // Existing functions
         deleteNotifications: onCall(async (request) => {
@@ -835,10 +944,14 @@ module.exports = function (admin) {
                 const verifiedIds = [];
 
                 for (const id of notificationIds) {
-                    const notificationRef = firestore.collection('notifications').doc(id);
+                    const notificationRef = firestore
+                        .collection('notifications')
+                        .doc(userId)
+                        .collection('userNotifications')
+                        .doc(id);
                     const notificationDoc = await notificationRef.get();
 
-                    if (notificationDoc.exists && notificationDoc.data().recipientId === userId) {
+                    if (notificationDoc.exists) {
                         batch.delete(notificationRef);
                         verifiedIds.push(id);
                     }
@@ -860,25 +973,31 @@ module.exports = function (admin) {
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-            const oldNotificationsSnapshot = await firestore
-                .collection('notifications')
-                .where('timestamp', '<', thirtyDaysAgo)
-                .get();
+            try {
+                // Use collection group query to find old notifications across all users
+                const oldNotificationsSnapshot = await firestore
+                    .collectionGroup('userNotifications')
+                    .where('timestamp', '<', thirtyDaysAgo)
+                    .limit(500) // Process in batches to avoid timeout
+                    .get();
 
-            if (oldNotificationsSnapshot.empty) {
-                logger.log('🧹 No old notifications to clean up');
-                return;
+                if (oldNotificationsSnapshot.empty) {
+                    logger.log('🧹 No old notifications to clean up');
+                    return;
+                }
+
+                logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
+
+                const batch = firestore.batch();
+                oldNotificationsSnapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+                logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
+            } catch (error) {
+                logger.error('❌ Error cleaning up old notifications:', error);
             }
-
-            logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
-
-            const batch = firestore.batch();
-            oldNotificationsSnapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-
-            await batch.commit();
-            logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
         })
     };
 };

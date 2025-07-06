@@ -24,6 +24,121 @@ class NotificationService {
         _localNotifications =
             localNotifications ?? FlutterLocalNotificationsPlugin();
 
+  Future<void> testLocalNotification() async {
+    debugPrint('🧪 Testing local notification...');
+
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'test_channel',
+        'Test Channel',
+        channelDescription: 'Test notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        enableVibration: true,
+        playSound: true,
+        icon: '@mipmap/ic_launcher',
+        color: Color(0xFF6B35FF),
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        999,
+        'Test Local Notification',
+        'This is a test of local notifications',
+        details,
+      );
+
+      debugPrint('✅ Local notification sent');
+    } catch (e) {
+      debugPrint('❌ Error sending local notification: $e');
+    }
+  }
+
+  /// Complete FCM debug test combining repository and service
+  Future<Map<String, dynamic>> fullFCMDebugTest() async {
+    debugPrint('🧪 Running full FCM debug test...');
+
+    try {
+      // Test 1: Repository debug
+      final repoResult = await _repository.debugFCMToken();
+      debugPrint('📊 Repository test result: $repoResult');
+
+      // Test 2: Local notification
+      await testLocalNotification();
+
+      // Test 3: Check permissions
+      final permissionsEnabled = await areNotificationsEnabled();
+      debugPrint('🔐 Notifications enabled: $permissionsEnabled');
+
+      return {
+        'repositoryTest': repoResult,
+        'localNotificationSent': true,
+        'permissionsEnabled': permissionsEnabled,
+        'recommendations':
+            _generateDebugRecommendations(repoResult, permissionsEnabled),
+      };
+    } catch (e) {
+      debugPrint('❌ Full debug test failed: $e');
+      return {
+        'error': e.toString(),
+        'recommendations': [
+          'Check Firebase configuration',
+          'Verify imports',
+          'Check device permissions'
+        ],
+      };
+    }
+  }
+
+  List<String> _generateDebugRecommendations(
+      Map<String, dynamic> repoResult, bool permissionsEnabled) {
+    final recommendations = <String>[];
+
+    if (!permissionsEnabled) {
+      recommendations.add('❌ Enable notification permissions');
+    }
+
+    if (repoResult.containsKey('error')) {
+      recommendations
+          .add('❌ Fix Firebase configuration: ${repoResult['error']}');
+    } else if (repoResult['cloudFunctionResult']?['success'] == false) {
+      final error =
+          repoResult['cloudFunctionResult']?['error'] ?? 'Unknown error';
+      if (error.contains('INVALID_REGISTRATION_TOKEN')) {
+        recommendations
+            .add('❌ FCM token is invalid - check google-services.json');
+      } else if (error.contains('SENDER_ID_MISMATCH')) {
+        recommendations.add(
+            '❌ Sender ID mismatch - verify Firebase project configuration');
+      } else {
+        recommendations.add('❌ Cloud function error: $error');
+      }
+    } else if (repoResult['cloudFunctionResult']?['messageSent'] == true) {
+      recommendations.add('✅ FCM is working correctly!');
+      recommendations.add('💡 If you still don\'t see notifications, check:');
+      recommendations.add('  - App is in background during test');
+      recommendations.add('  - Notification channel is created correctly');
+      recommendations.add('  - Device notification settings');
+    }
+
+    if (recommendations.isEmpty) {
+      recommendations.add('✅ All tests passed - FCM should be working');
+    }
+
+    return recommendations;
+  }
+
   /// Initialize the complete notification system
   Future<bool> initialize({
     required Function(NotificationModel) onNotificationTap,
