@@ -22,7 +22,8 @@ abstract class NotificationModel with _$NotificationModel {
 
   const factory NotificationModel({
     required String id,
-    required String recipientId,
+    String?
+        recipientId, // Made optional since it's now implicit in the document path
     required String senderId, // User who triggered the notification
     required NotificationType type,
     required DateTime timestamp,
@@ -56,7 +57,6 @@ abstract class NotificationModel with _$NotificationModel {
 
       return NotificationModel(
         id: doc.id,
-        recipientId: data['recipientId'] ?? '',
         senderId: data['senderId'] ?? '',
         type: _parseNotificationType(data['type']),
         timestamp: _parseTimestamp(data['timestamp']),
@@ -155,15 +155,11 @@ abstract class NotificationModel with _$NotificationModel {
       case NotificationType.connectionAccepted:
         // Connection accepted usually means alt profile interaction
         return senderId != null ? '/altProfile/$senderId' : null;
-
-      default:
-        return null;
     }
   }
 
   Map<String, dynamic> toFirestore() {
     return {
-      'recipientId': recipientId,
       'senderId': senderId,
       'type': type.toString().split('.').last,
       'timestamp': Timestamp.fromDate(timestamp),
@@ -209,8 +205,6 @@ abstract class NotificationModel with _$NotificationModel {
         return '$senderName accepted your connection request';
       case NotificationType.postMilestone:
         return 'Your post reached $count likes';
-      default:
-        return 'You have a new notification';
     }
   }
 

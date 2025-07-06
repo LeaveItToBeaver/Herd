@@ -20,12 +20,12 @@ class UICustomizationRepository {
 
   // Get user's UI customization with caching
   Future<UICustomizationModel> getUserCustomization(String userId) async {
-    try {
-      // Validate input
-      if (userId.isEmpty) {
-        throw ArgumentError('UserId cannot be empty');
-      }
+    // Validate input
+    if (userId.isEmpty) {
+      throw ArgumentError('UserId cannot be empty');
+    }
 
+    try {
       // First, try to get from local cache
       final cached = await _getFromCache(userId);
       if (cached != null) {
@@ -47,7 +47,7 @@ class UICustomizationRepository {
       final data = doc.data()!;
       // Ensure all required fields have default values
       final sanitizedData = _sanitizeCustomizationData(data, userId);
-      
+
       final customization = UICustomizationModel.fromJson(sanitizedData);
 
       // Cache the result
@@ -64,17 +64,19 @@ class UICustomizationRepository {
   }
 
   // Sanitize customization data to ensure all fields have proper values
-  Map<String, dynamic> _sanitizeCustomizationData(Map<String, dynamic> data, String userId) {
+  Map<String, dynamic> _sanitizeCustomizationData(
+      Map<String, dynamic> data, String userId) {
     final sanitized = Map<String, dynamic>.from(data);
-    
+
     // Ensure userId is set
     sanitized['userId'] = userId;
-    
+
     // Ensure lastUpdated is set
-    if (!sanitized.containsKey('lastUpdated') || sanitized['lastUpdated'] == null) {
+    if (!sanitized.containsKey('lastUpdated') ||
+        sanitized['lastUpdated'] == null) {
       sanitized['lastUpdated'] = DateTime.now().toIso8601String();
     }
-    
+
     // Ensure appTheme exists with default values
     if (!sanitized.containsKey('appTheme') || sanitized['appTheme'] == null) {
       sanitized['appTheme'] = const AppThemeSettings().toJson();
@@ -84,32 +86,37 @@ class UICustomizationRepository {
       final userTheme = sanitized['appTheme'] as Map<String, dynamic>;
       sanitized['appTheme'] = {...defaultTheme, ...userTheme};
     }
-    
+
     // Ensure profileCustomization exists
-    if (!sanitized.containsKey('profileCustomization') || sanitized['profileCustomization'] == null) {
+    if (!sanitized.containsKey('profileCustomization') ||
+        sanitized['profileCustomization'] == null) {
       sanitized['profileCustomization'] = const ProfileCustomization().toJson();
     }
-    
+
     // Ensure componentStyles exists
-    if (!sanitized.containsKey('componentStyles') || sanitized['componentStyles'] == null) {
+    if (!sanitized.containsKey('componentStyles') ||
+        sanitized['componentStyles'] == null) {
       sanitized['componentStyles'] = const ComponentStyles().toJson();
     }
-    
+
     // Ensure layoutPreferences exists
-    if (!sanitized.containsKey('layoutPreferences') || sanitized['layoutPreferences'] == null) {
+    if (!sanitized.containsKey('layoutPreferences') ||
+        sanitized['layoutPreferences'] == null) {
       sanitized['layoutPreferences'] = const LayoutPreferences().toJson();
     }
-    
+
     // Ensure animationSettings exists
-    if (!sanitized.containsKey('animationSettings') || sanitized['animationSettings'] == null) {
+    if (!sanitized.containsKey('animationSettings') ||
+        sanitized['animationSettings'] == null) {
       sanitized['animationSettings'] = const AnimationSettings().toJson();
     }
-    
+
     // Ensure typography exists
-    if (!sanitized.containsKey('typography') || sanitized['typography'] == null) {
+    if (!sanitized.containsKey('typography') ||
+        sanitized['typography'] == null) {
       sanitized['typography'] = const TypographySettings().toJson();
     }
-    
+
     return sanitized;
   }
 

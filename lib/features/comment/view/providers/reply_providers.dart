@@ -96,15 +96,16 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
 
   // Add a reply to a comment
   Future<CommentModel> addReply({
-    required String parentId,
     required String authorId,
     required String content,
-    String? authorName,
-    String? authorUsername,
+    String? parentId,
     String? authorProfileImage,
+    String? authorUsername,
+    String? authorName,
     String? authorAltProfileImage,
     bool isAltPost = false,
     File? mediaFile,
+    required WidgetRef ref,
   }) async {
     try {
       final reply = await _repository.createComment(
@@ -115,8 +116,8 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
         authorUsername: authorUsername ?? '',
         authorName: authorName ?? 'Anonymous',
         authorAltProfileImage: authorAltProfileImage ?? '',
-        isAuthorAlt: isAltPost,
         parentId: parentId,
+        isAuthorAlt: isAltPost,
         isAltPost: isAltPost,
         mediaFile: mediaFile,
       );
