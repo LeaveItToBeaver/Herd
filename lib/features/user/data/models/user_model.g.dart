@@ -38,6 +38,8 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      herdAndRole: json['herdAndRole'] as Map<String, dynamic>? ?? const {},
+      role: json['role'] as String?,
       altUserUID: json['altUserUID'] as String?,
       bio: json['bio'] as String?,
       profileImageURL: json['profileImageURL'] as String?,
@@ -186,6 +188,8 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'followersList': instance.followersList,
       'followingList': instance.followingList,
       'blockedUsers': instance.blockedUsers,
+      'herdAndRole': instance.herdAndRole,
+      'role': instance.role,
       'altUserUID': instance.altUserUID,
       'bio': instance.bio,
       'profileImageURL': instance.profileImageURL,
