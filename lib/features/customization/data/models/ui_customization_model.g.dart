@@ -214,6 +214,8 @@ _ComponentStyles _$ComponentStylesFromJson(Map<String, dynamic> json) =>
           ? const ButtonStyle()
           : ButtonStyle.fromJson(
               json['secondaryButton'] as Map<String, dynamic>),
+      buttonBorderRadius:
+          (json['buttonBorderRadius'] as num?)?.toDouble() ?? 15.0,
       cardBorderRadius: (json['cardBorderRadius'] as num?)?.toDouble() ?? 16.0,
       cardElevation: (json['cardElevation'] as num?)?.toDouble() ?? 2.0,
       cardOutline: json['cardOutline'] as bool? ?? false,
@@ -237,6 +239,7 @@ Map<String, dynamic> _$ComponentStylesToJson(_ComponentStyles instance) =>
     <String, dynamic>{
       'primaryButton': instance.primaryButton.toJson(),
       'secondaryButton': instance.secondaryButton.toJson(),
+      'buttonBorderRadius': instance.buttonBorderRadius,
       'cardBorderRadius': instance.cardBorderRadius,
       'cardElevation': instance.cardElevation,
       'cardOutline': instance.cardOutline,

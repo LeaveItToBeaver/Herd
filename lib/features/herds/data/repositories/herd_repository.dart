@@ -36,6 +36,9 @@ class HerdRepository {
   /// Create a new herd
   Future<String> createHerd(HerdModel herd, String userId) async {
     try {
+      // Validate herd name (special characters, spacing, and duplicates)
+      await _validateHerdCreation(herd.name);
+
       await exemptUserIds().doc(userId).get().then((doc) async {
         if (doc.exists) {
           // User is exempt from eligibility checks
@@ -48,7 +51,7 @@ class HerdRepository {
         }
       });
 
-      // Create herd document with generated ID
+      // Create herd document with generated ID (keep original name formatting)
       final docRef = await _herds.add(herd.toMap());
       final herdId = docRef.id;
 
@@ -981,6 +984,63 @@ class HerdRepository {
     } catch (e) {
       debugPrint('Error updating herd post pin status: $e');
       // Don't rethrow here as this is a secondary update
+    }
+  }
+
+  /// Validate herd name for special characters
+  bool _isValidHerdName(String name) {
+    // Allow only letters, numbers, and basic punctuation (no spaces or dashes)
+    final regex = RegExp(r'^[a-zA-Z0-9\.\,\!\?]+$');
+    return regex.hasMatch(name.trim());
+  }
+
+  /// Check if a herd name already exists (case insensitive)
+  Future<bool> _herdNameExists(String name) async {
+    try {
+      final normalizedName = name.toLowerCase().trim();
+      final querySnapshot =
+          await _herds.where('name', isEqualTo: normalizedName).limit(1).get();
+
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e, stackTrace) {
+      logError('_herdNameExists', e, stackTrace);
+      return false; // In case of error, allow creation to proceed
+    }
+  }
+
+  /// Public method to check if herd name exists (for real-time validation)
+  Future<bool> checkHerdNameExists(String name) async {
+    return await _herdNameExists(name);
+  }
+
+  /// Validate herd creation requirements
+  Future<void> _validateHerdCreation(String name) async {
+    // Check for empty names
+    if (name.trim().isEmpty) {
+      throw Exception('Herd name cannot be empty');
+    }
+
+    // Check character limit (30 characters max)
+    if (name.length > 30) {
+      throw Exception('Herd name cannot be longer than 30 characters');
+    }
+
+    // Check for spaces anywhere in the name
+    if (name.contains(' ')) {
+      throw Exception('Herd name cannot contain spaces');
+    }
+
+    // Check for special characters
+    if (!_isValidHerdName(name)) {
+      throw Exception(
+          'Herd name can only contain letters, numbers, and basic punctuation (. , ! ?) - no spaces or dashes allowed');
+    }
+
+    // Check for duplicate names
+    final nameExists = await _herdNameExists(name);
+    if (nameExists) {
+      throw Exception(
+          'A herd with this name already exists. Please choose a different name.');
     }
   }
 }
