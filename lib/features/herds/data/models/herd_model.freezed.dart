@@ -26,6 +26,9 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
   String? get profileImageURL;
   String? get coverImageURL;
   List<String> get moderatorIds;
+  List<String?> get bannedUserIds;
+  List<ModerationAction> get moderationLog;
+  List<String> get reportedPosts;
   int get memberCount;
   int get postCount;
   Map<String, dynamic> get customization;
@@ -54,6 +57,9 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('profileImageURL', profileImageURL))
       ..add(DiagnosticsProperty('coverImageURL', coverImageURL))
       ..add(DiagnosticsProperty('moderatorIds', moderatorIds))
+      ..add(DiagnosticsProperty('bannedUserIds', bannedUserIds))
+      ..add(DiagnosticsProperty('moderationLog', moderationLog))
+      ..add(DiagnosticsProperty('reportedPosts', reportedPosts))
       ..add(DiagnosticsProperty('memberCount', memberCount))
       ..add(DiagnosticsProperty('postCount', postCount))
       ..add(DiagnosticsProperty('customization', customization))
@@ -83,6 +89,12 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
                 other.coverImageURL == coverImageURL) &&
             const DeepCollectionEquality()
                 .equals(other.moderatorIds, moderatorIds) &&
+            const DeepCollectionEquality()
+                .equals(other.bannedUserIds, bannedUserIds) &&
+            const DeepCollectionEquality()
+                .equals(other.moderationLog, moderationLog) &&
+            const DeepCollectionEquality()
+                .equals(other.reportedPosts, reportedPosts) &&
             (identical(other.memberCount, memberCount) ||
                 other.memberCount == memberCount) &&
             (identical(other.postCount, postCount) ||
@@ -96,28 +108,32 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      description,
-      const DeepCollectionEquality().hash(interests),
-      rules,
-      faq,
-      createdAt,
-      creatorId,
-      profileImageURL,
-      coverImageURL,
-      const DeepCollectionEquality().hash(moderatorIds),
-      memberCount,
-      postCount,
-      const DeepCollectionEquality().hash(customization),
-      isPrivate,
-      const DeepCollectionEquality().hash(pinnedPosts));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        description,
+        const DeepCollectionEquality().hash(interests),
+        rules,
+        faq,
+        createdAt,
+        creatorId,
+        profileImageURL,
+        coverImageURL,
+        const DeepCollectionEquality().hash(moderatorIds),
+        const DeepCollectionEquality().hash(bannedUserIds),
+        const DeepCollectionEquality().hash(moderationLog),
+        const DeepCollectionEquality().hash(reportedPosts),
+        memberCount,
+        postCount,
+        const DeepCollectionEquality().hash(customization),
+        isPrivate,
+        const DeepCollectionEquality().hash(pinnedPosts)
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate, pinnedPosts: $pinnedPosts)';
+    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, bannedUserIds: $bannedUserIds, moderationLog: $moderationLog, reportedPosts: $reportedPosts, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate, pinnedPosts: $pinnedPosts)';
   }
 }
 
@@ -138,6 +154,9 @@ abstract mixin class $HerdModelCopyWith<$Res> {
       String? profileImageURL,
       String? coverImageURL,
       List<String> moderatorIds,
+      List<String?> bannedUserIds,
+      List<ModerationAction> moderationLog,
+      List<String> reportedPosts,
       int memberCount,
       int postCount,
       Map<String, dynamic> customization,
@@ -168,6 +187,9 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
     Object? profileImageURL = freezed,
     Object? coverImageURL = freezed,
     Object? moderatorIds = null,
+    Object? bannedUserIds = null,
+    Object? moderationLog = null,
+    Object? reportedPosts = null,
     Object? memberCount = null,
     Object? postCount = null,
     Object? customization = null,
@@ -219,6 +241,18 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
           ? _self.moderatorIds
           : moderatorIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      bannedUserIds: null == bannedUserIds
+          ? _self.bannedUserIds
+          : bannedUserIds // ignore: cast_nullable_to_non_nullable
+              as List<String?>,
+      moderationLog: null == moderationLog
+          ? _self.moderationLog
+          : moderationLog // ignore: cast_nullable_to_non_nullable
+              as List<ModerationAction>,
+      reportedPosts: null == reportedPosts
+          ? _self.reportedPosts
+          : reportedPosts // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       memberCount: null == memberCount
           ? _self.memberCount
           : memberCount // ignore: cast_nullable_to_non_nullable
@@ -258,6 +292,9 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       this.profileImageURL,
       this.coverImageURL,
       final List<String> moderatorIds = const [],
+      final List<String?> bannedUserIds = const [],
+      final List<ModerationAction> moderationLog = const [],
+      final List<String> reportedPosts = const [],
       this.memberCount = 0,
       this.postCount = 0,
       final Map<String, dynamic> customization = const {},
@@ -265,6 +302,9 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       final List<String> pinnedPosts = const []})
       : _interests = interests,
         _moderatorIds = moderatorIds,
+        _bannedUserIds = bannedUserIds,
+        _moderationLog = moderationLog,
+        _reportedPosts = reportedPosts,
         _customization = customization,
         _pinnedPosts = pinnedPosts,
         super._();
@@ -305,6 +345,33 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
     if (_moderatorIds is EqualUnmodifiableListView) return _moderatorIds;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_moderatorIds);
+  }
+
+  final List<String?> _bannedUserIds;
+  @override
+  @JsonKey()
+  List<String?> get bannedUserIds {
+    if (_bannedUserIds is EqualUnmodifiableListView) return _bannedUserIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_bannedUserIds);
+  }
+
+  final List<ModerationAction> _moderationLog;
+  @override
+  @JsonKey()
+  List<ModerationAction> get moderationLog {
+    if (_moderationLog is EqualUnmodifiableListView) return _moderationLog;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_moderationLog);
+  }
+
+  final List<String> _reportedPosts;
+  @override
+  @JsonKey()
+  List<String> get reportedPosts {
+    if (_reportedPosts is EqualUnmodifiableListView) return _reportedPosts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_reportedPosts);
   }
 
   @override
@@ -357,6 +424,9 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('profileImageURL', profileImageURL))
       ..add(DiagnosticsProperty('coverImageURL', coverImageURL))
       ..add(DiagnosticsProperty('moderatorIds', moderatorIds))
+      ..add(DiagnosticsProperty('bannedUserIds', bannedUserIds))
+      ..add(DiagnosticsProperty('moderationLog', moderationLog))
+      ..add(DiagnosticsProperty('reportedPosts', reportedPosts))
       ..add(DiagnosticsProperty('memberCount', memberCount))
       ..add(DiagnosticsProperty('postCount', postCount))
       ..add(DiagnosticsProperty('customization', customization))
@@ -387,6 +457,12 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
                 other.coverImageURL == coverImageURL) &&
             const DeepCollectionEquality()
                 .equals(other._moderatorIds, _moderatorIds) &&
+            const DeepCollectionEquality()
+                .equals(other._bannedUserIds, _bannedUserIds) &&
+            const DeepCollectionEquality()
+                .equals(other._moderationLog, _moderationLog) &&
+            const DeepCollectionEquality()
+                .equals(other._reportedPosts, _reportedPosts) &&
             (identical(other.memberCount, memberCount) ||
                 other.memberCount == memberCount) &&
             (identical(other.postCount, postCount) ||
@@ -400,28 +476,32 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      description,
-      const DeepCollectionEquality().hash(_interests),
-      rules,
-      faq,
-      createdAt,
-      creatorId,
-      profileImageURL,
-      coverImageURL,
-      const DeepCollectionEquality().hash(_moderatorIds),
-      memberCount,
-      postCount,
-      const DeepCollectionEquality().hash(_customization),
-      isPrivate,
-      const DeepCollectionEquality().hash(_pinnedPosts));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        description,
+        const DeepCollectionEquality().hash(_interests),
+        rules,
+        faq,
+        createdAt,
+        creatorId,
+        profileImageURL,
+        coverImageURL,
+        const DeepCollectionEquality().hash(_moderatorIds),
+        const DeepCollectionEquality().hash(_bannedUserIds),
+        const DeepCollectionEquality().hash(_moderationLog),
+        const DeepCollectionEquality().hash(_reportedPosts),
+        memberCount,
+        postCount,
+        const DeepCollectionEquality().hash(_customization),
+        isPrivate,
+        const DeepCollectionEquality().hash(_pinnedPosts)
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate, pinnedPosts: $pinnedPosts)';
+    return 'HerdModel(id: $id, name: $name, description: $description, interests: $interests, rules: $rules, faq: $faq, createdAt: $createdAt, creatorId: $creatorId, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, moderatorIds: $moderatorIds, bannedUserIds: $bannedUserIds, moderationLog: $moderationLog, reportedPosts: $reportedPosts, memberCount: $memberCount, postCount: $postCount, customization: $customization, isPrivate: $isPrivate, pinnedPosts: $pinnedPosts)';
   }
 }
 
@@ -445,6 +525,9 @@ abstract mixin class _$HerdModelCopyWith<$Res>
       String? profileImageURL,
       String? coverImageURL,
       List<String> moderatorIds,
+      List<String?> bannedUserIds,
+      List<ModerationAction> moderationLog,
+      List<String> reportedPosts,
       int memberCount,
       int postCount,
       Map<String, dynamic> customization,
@@ -475,6 +558,9 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
     Object? profileImageURL = freezed,
     Object? coverImageURL = freezed,
     Object? moderatorIds = null,
+    Object? bannedUserIds = null,
+    Object? moderationLog = null,
+    Object? reportedPosts = null,
     Object? memberCount = null,
     Object? postCount = null,
     Object? customization = null,
@@ -525,6 +611,18 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
       moderatorIds: null == moderatorIds
           ? _self._moderatorIds
           : moderatorIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      bannedUserIds: null == bannedUserIds
+          ? _self._bannedUserIds
+          : bannedUserIds // ignore: cast_nullable_to_non_nullable
+              as List<String?>,
+      moderationLog: null == moderationLog
+          ? _self._moderationLog
+          : moderationLog // ignore: cast_nullable_to_non_nullable
+              as List<ModerationAction>,
+      reportedPosts: null == reportedPosts
+          ? _self._reportedPosts
+          : reportedPosts // ignore: cast_nullable_to_non_nullable
               as List<String>,
       memberCount: null == memberCount
           ? _self.memberCount
