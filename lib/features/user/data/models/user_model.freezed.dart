@@ -30,6 +30,8 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   List<String> get followersList;
   List<String> get followingList;
   List<String> get blockedUsers;
+  Map<String, dynamic> get herdAndRole;
+  String? get role; // Role in the user's herd, e.g., 'admin', 'member'
   String? get altUserUID;
   String? get bio;
   String? get profileImageURL;
@@ -44,7 +46,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   bool get isNSFW; // Not Safe For Work flag
   bool get allowNSFW; // Not Safe For Work flag
   bool get blurNSFW; // Blur NSFW content
-  bool get showHerdPostsInAltFeed; // Blur NSFW content
+  bool get showHerdPostsInAltFeed; // Blur NSFW content'
 // Location data
   String? get country;
   String? get city;
@@ -129,6 +131,8 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('followersList', followersList))
       ..add(DiagnosticsProperty('followingList', followingList))
       ..add(DiagnosticsProperty('blockedUsers', blockedUsers))
+      ..add(DiagnosticsProperty('herdAndRole', herdAndRole))
+      ..add(DiagnosticsProperty('role', role))
       ..add(DiagnosticsProperty('altUserUID', altUserUID))
       ..add(DiagnosticsProperty('bio', bio))
       ..add(DiagnosticsProperty('profileImageURL', profileImageURL))
@@ -231,6 +235,9 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
                 .equals(other.followingList, followingList) &&
             const DeepCollectionEquality()
                 .equals(other.blockedUsers, blockedUsers) &&
+            const DeepCollectionEquality()
+                .equals(other.herdAndRole, herdAndRole) &&
+            (identical(other.role, role) || other.role == role) &&
             (identical(other.altUserUID, altUserUID) ||
                 other.altUserUID == altUserUID) &&
             (identical(other.bio, bio) || other.bio == bio) &&
@@ -294,8 +301,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
                 .equals(other.altFollowingList, altFollowingList) &&
             const DeepCollectionEquality()
                 .equals(other.altBlockedUsers, altBlockedUsers) &&
-            (identical(other.altTotalPosts, altTotalPosts) ||
-                other.altTotalPosts == altTotalPosts) &&
+            (identical(other.altTotalPosts, altTotalPosts) || other.altTotalPosts == altTotalPosts) &&
             (identical(other.altTotalComments, altTotalComments) || other.altTotalComments == altTotalComments) &&
             (identical(other.altTotalLikes, altTotalLikes) || other.altTotalLikes == altTotalLikes) &&
             const DeepCollectionEquality().equals(other.altSavedPosts, altSavedPosts) &&
@@ -349,6 +355,8 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(followersList),
         const DeepCollectionEquality().hash(followingList),
         const DeepCollectionEquality().hash(blockedUsers),
+        const DeepCollectionEquality().hash(herdAndRole),
+        role,
         altUserUID,
         bio,
         profileImageURL,
@@ -420,7 +428,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, herdAndRole: $herdAndRole, role: $role, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
   }
 }
 
@@ -445,6 +453,8 @@ abstract mixin class $UserModelCopyWith<$Res> {
       List<String> followersList,
       List<String> followingList,
       List<String> blockedUsers,
+      Map<String, dynamic> herdAndRole,
+      String? role,
       String? altUserUID,
       String? bio,
       String? profileImageURL,
@@ -541,6 +551,8 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? followersList = null,
     Object? followingList = null,
     Object? blockedUsers = null,
+    Object? herdAndRole = null,
+    Object? role = freezed,
     Object? altUserUID = freezed,
     Object? bio = freezed,
     Object? profileImageURL = freezed,
@@ -670,6 +682,14 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.blockedUsers
           : blockedUsers // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      herdAndRole: null == herdAndRole
+          ? _self.herdAndRole
+          : herdAndRole // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      role: freezed == role
+          ? _self.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String?,
       altUserUID: freezed == altUserUID
           ? _self.altUserUID
           : altUserUID // ignore: cast_nullable_to_non_nullable
@@ -961,6 +981,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       final List<String> followersList = const [],
       final List<String> followingList = const [],
       final List<String> blockedUsers = const [],
+      final Map<String, dynamic> herdAndRole = const {},
+      this.role,
       this.altUserUID,
       this.bio,
       this.profileImageURL,
@@ -1032,6 +1054,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         _followersList = followersList,
         _followingList = followingList,
         _blockedUsers = blockedUsers,
+        _herdAndRole = herdAndRole,
         _preferences = preferences,
         _notifications = notifications,
         _savedPosts = savedPosts,
@@ -1118,6 +1141,18 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_blockedUsers);
   }
 
+  final Map<String, dynamic> _herdAndRole;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get herdAndRole {
+    if (_herdAndRole is EqualUnmodifiableMapView) return _herdAndRole;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_herdAndRole);
+  }
+
+  @override
+  final String? role;
+// Role in the user's herd, e.g., 'admin', 'member'
   @override
   final String? altUserUID;
   @override
@@ -1182,7 +1217,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool showHerdPostsInAltFeed;
-// Blur NSFW content
+// Blur NSFW content'
 // Location data
   @override
   final String? country;
@@ -1485,6 +1520,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('followersList', followersList))
       ..add(DiagnosticsProperty('followingList', followingList))
       ..add(DiagnosticsProperty('blockedUsers', blockedUsers))
+      ..add(DiagnosticsProperty('herdAndRole', herdAndRole))
+      ..add(DiagnosticsProperty('role', role))
       ..add(DiagnosticsProperty('altUserUID', altUserUID))
       ..add(DiagnosticsProperty('bio', bio))
       ..add(DiagnosticsProperty('profileImageURL', profileImageURL))
@@ -1587,6 +1624,9 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
                 .equals(other._followingList, _followingList) &&
             const DeepCollectionEquality()
                 .equals(other._blockedUsers, _blockedUsers) &&
+            const DeepCollectionEquality()
+                .equals(other._herdAndRole, _herdAndRole) &&
+            (identical(other.role, role) || other.role == role) &&
             (identical(other.altUserUID, altUserUID) ||
                 other.altUserUID == altUserUID) &&
             (identical(other.bio, bio) || other.bio == bio) &&
@@ -1650,8 +1690,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
                 .equals(other._altFollowingList, _altFollowingList) &&
             const DeepCollectionEquality()
                 .equals(other._altBlockedUsers, _altBlockedUsers) &&
-            (identical(other.altTotalPosts, altTotalPosts) ||
-                other.altTotalPosts == altTotalPosts) &&
+            (identical(other.altTotalPosts, altTotalPosts) || other.altTotalPosts == altTotalPosts) &&
             (identical(other.altTotalComments, altTotalComments) || other.altTotalComments == altTotalComments) &&
             (identical(other.altTotalLikes, altTotalLikes) || other.altTotalLikes == altTotalLikes) &&
             const DeepCollectionEquality().equals(other._altSavedPosts, _altSavedPosts) &&
@@ -1705,6 +1744,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         const DeepCollectionEquality().hash(_followersList),
         const DeepCollectionEquality().hash(_followingList),
         const DeepCollectionEquality().hash(_blockedUsers),
+        const DeepCollectionEquality().hash(_herdAndRole),
+        role,
         altUserUID,
         bio,
         profileImageURL,
@@ -1776,7 +1817,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, herdAndRole: $herdAndRole, role: $role, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
   }
 }
 
@@ -1804,6 +1845,8 @@ abstract mixin class _$UserModelCopyWith<$Res>
       List<String> followersList,
       List<String> followingList,
       List<String> blockedUsers,
+      Map<String, dynamic> herdAndRole,
+      String? role,
       String? altUserUID,
       String? bio,
       String? profileImageURL,
@@ -1900,6 +1943,8 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? followersList = null,
     Object? followingList = null,
     Object? blockedUsers = null,
+    Object? herdAndRole = null,
+    Object? role = freezed,
     Object? altUserUID = freezed,
     Object? bio = freezed,
     Object? profileImageURL = freezed,
@@ -2029,6 +2074,14 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self._blockedUsers
           : blockedUsers // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      herdAndRole: null == herdAndRole
+          ? _self._herdAndRole
+          : herdAndRole // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      role: freezed == role
+          ? _self.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String?,
       altUserUID: freezed == altUserUID
           ? _self.altUserUID
           : altUserUID // ignore: cast_nullable_to_non_nullable
