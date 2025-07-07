@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
+import 'package:herdapp/features/herds/data/models/herd_member_info.dart';
 import 'package:herdapp/features/herds/view/providers/state/herd_feed_state.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
@@ -55,6 +56,13 @@ final herdPostsProvider =
 });
 
 // Provider for herd members
+final herdMembersWithInfoProvider =
+    FutureProvider.family<List<HerdMemberInfo>, String>((ref, herdId) async {
+  final herdRepository = ref.read(herdRepositoryProvider);
+  return await herdRepository.getHerdMembersWithInfo(herdId);
+});
+
+// Provider for herd members - this returns just the user IDs older version
 final herdMembersProvider =
     FutureProvider.family<List<String>, String>((ref, herdId) {
   final herdRepository = ref.watch(herdRepositoryProvider);

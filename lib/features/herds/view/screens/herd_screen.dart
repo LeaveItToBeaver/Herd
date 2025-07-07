@@ -62,8 +62,8 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
     context.pushNamed('editHerd', extra: herd);
   }
 
-  void _navigateToHerdSettings(BuildContext context, String herdId) {
-    context.pushNamed('herdSettings', pathParameters: {'id': herdId});
+  void _navigateToHerdSettings(BuildContext context, HerdModel herd) {
+    context.pushNamed('herdSettings', extra: herd);
   }
 
   @override
@@ -115,8 +115,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                         icon: Icon(
                           isModerator ? Icons.settings : Icons.info_outline,
                         ),
-                        onPressed: () =>
-                            _navigateToHerdSettings(context, herd.id),
+                        onPressed: () => _navigateToHerdSettings(context, herd),
                         tooltip: isModerator ? 'Herd Settings' : 'Herd Info',
                       ),
                     ),
@@ -165,6 +164,10 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                   child: herd.profileImageURL == null
                                       ? const Icon(Icons.group, size: 30)
                                       : null,
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.1),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(

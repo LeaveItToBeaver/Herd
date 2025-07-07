@@ -6,6 +6,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
 import 'package:herdapp/features/auth/view/screens/email_verification_screen.dart';
 import 'package:herdapp/features/customization/view/screens/ui_customization_screen.dart';
+import 'package:herdapp/features/herds/view/screens/herd_settings_screen.dart';
 import 'package:herdapp/features/settings/notifications/view/screens/notification_settings_screen.dart';
 
 import '../../features/auth/view/screens/reset_password_screen.dart';
@@ -171,6 +172,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final herd = state.extra as HerdModel;
           return EditHerdScreen(herd: herd);
+        },
+      ),
+
+      GoRoute(
+        path: '/herdSettings',
+        name: 'herdSettings',
+        builder: (context, state) {
+          final herd = state.extra as HerdModel;
+          return HerdSettingsScreen(herd: herd);
         },
       ),
 
