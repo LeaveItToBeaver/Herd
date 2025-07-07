@@ -62,6 +62,10 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
     context.pushNamed('editHerd', extra: herd);
   }
 
+  void _navigateToHerdSettings(BuildContext context, String herdId) {
+    context.pushNamed('herdSettings', pathParameters: {'id': herdId});
+  }
+
   @override
   Widget build(BuildContext context) {
     final memberAv = ref.watch(isHerdMemberProvider(widget.herdId));
@@ -103,6 +107,19 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                     ),
                   ),
                   actions: [
+                    // Add settings button if user is moderator or member
+                    isCurrentUserModerator.when(
+                      loading: () => Container(),
+                      error: (_, __) => Container(),
+                      data: (isModerator) => IconButton(
+                        icon: Icon(
+                          isModerator ? Icons.settings : Icons.info_outline,
+                        ),
+                        onPressed: () =>
+                            _navigateToHerdSettings(context, herd.id),
+                        tooltip: isModerator ? 'Herd Settings' : 'Herd Info',
+                      ),
+                    ),
                     // Add edit button if user is moderator
                     isCurrentUserModerator.when(
                       loading: () => Container(),
@@ -114,12 +131,6 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                               tooltip: 'Edit Herd',
                             )
                           : Container(),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: () {
-                        // Show herd options
-                      },
                     ),
                   ],
                 ),
