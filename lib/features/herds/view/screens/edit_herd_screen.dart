@@ -26,6 +26,14 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
   final ImagePicker _picker = ImagePicker();
 
   final List<String> availableInterests = [
+    'Comedy',
+    'Drama',
+    'Fantasy',
+    'Horror',
+    'Mystery',
+    'Romance',
+    'Thriller',
+    'NSFW',
     'Technology',
     'Science',
     'Art',
