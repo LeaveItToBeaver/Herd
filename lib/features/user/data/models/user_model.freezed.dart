@@ -31,7 +31,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   List<String> get followingList;
   List<String> get blockedUsers;
   Map<String, dynamic> get herdAndRole;
-  String? get role; // Role in the user's herd, e.g., 'admin', 'member'
+  String? get role; // Role in the application, e.g., 'admin', 'member'
   String? get altUserUID;
   String? get bio;
   String? get profileImageURL;
@@ -1152,7 +1152,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
 
   @override
   final String? role;
-// Role in the user's herd, e.g., 'admin', 'member'
+// Role in the application, e.g., 'admin', 'member'
   @override
   final String? altUserUID;
   @override

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter/foundation.dart';
+import 'package:herdapp/features/moderation/data/models/moderation_action_model.dart';
 
 part 'herd_model.freezed.dart';
 
@@ -20,6 +21,9 @@ abstract class HerdModel with _$HerdModel {
     String? profileImageURL,
     String? coverImageURL,
     @Default([]) List<String> moderatorIds,
+    @Default([]) List<String?> bannedUserIds,
+    @Default([]) List<ModerationAction> moderationLog,
+    @Default([]) List<String> reportedPosts,
     @Default(0) int memberCount,
     @Default(0) int postCount,
     @Default({}) Map<String, dynamic> customization,
@@ -41,6 +45,12 @@ abstract class HerdModel with _$HerdModel {
       profileImageURL: map['profileImageURL'],
       coverImageURL: map['coverImageURL'],
       moderatorIds: List<String>.from(map['moderatorIds'] ?? []),
+      bannedUserIds: List<String>.from(map['bannedUserIds'] ?? []),
+      moderationLog: (map['moderationLog'] as List<dynamic>?)
+              ?.map((e) => ModerationAction.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      reportedPosts: List<String>.from(map['reportedPosts'] ?? []),
       memberCount: map['memberCount'] ?? 0,
       postCount: map['postCount'] ?? 0,
       customization: Map<String, dynamic>.from(map['customization'] ?? {}),
@@ -75,6 +85,9 @@ abstract class HerdModel with _$HerdModel {
       'profileImageURL': profileImageURL,
       'coverImageURL': coverImageURL,
       'moderatorIds': moderatorIds,
+      'bannedUserIds': bannedUserIds,
+      'moderationLog': moderationLog.map((e) => e.toMap()).toList(),
+      'reportedPosts': reportedPosts,
       'memberCount': memberCount,
       'postCount': postCount,
       'customization': customization,
