@@ -25,6 +25,8 @@ abstract class UserModel with _$UserModel {
     @Default([]) List<String> followersList,
     @Default([]) List<String> followingList,
     @Default([]) List<String> blockedUsers,
+    @Default({}) Map<String, dynamic> herdAndRole,
+    String? role, // Role in the user's herd, e.g., 'admin', 'member'
     String? altUserUID,
     String? bio,
     String? profileImageURL,
@@ -39,7 +41,7 @@ abstract class UserModel with _$UserModel {
     @Default(false) bool isNSFW, // Not Safe For Work flag
     @Default(false) bool allowNSFW, // Not Safe For Work flag
     @Default(false) bool blurNSFW, // Blur NSFW content
-    @Default(true) bool showHerdPostsInAltFeed, // Blur NSFW content
+    @Default(true) bool showHerdPostsInAltFeed, // Blur NSFW content'
 
     // Location data
     String? country,
@@ -159,6 +161,8 @@ abstract class UserModel with _$UserModel {
       followersList: _parseStringList(map['followersList']),
       followingList: _parseStringList(map['followingList']),
       blockedUsers: _parseStringList(map['blockedUsers']),
+      herdAndRole: map['herdAndRole'] ?? {},
+      role: map['role'] ?? '',
       altUserUID: map['altUserUID'],
       userPoints: map['userPoints'] ?? 0,
       bio: map['bio'] ?? '',
@@ -282,6 +286,8 @@ abstract class UserModel with _$UserModel {
       'followersList': followersList,
       'followingList': followingList,
       'blockedUsers': blockedUsers,
+      'herdAndRole': herdAndRole,
+      'role': role,
       'altUserUID': altUserUID,
       'userPoints': userPoints,
       'bio': bio,
