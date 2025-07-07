@@ -10,16 +10,13 @@ import '../../../moderation/view/screens/member_management_screen.dart';
 import '../../../moderation/view/screens/moderation_log_screen.dart';
 
 class HerdSettingsScreen extends ConsumerWidget {
-  final String herdId;
+  final HerdModel herd;
 
-  const HerdSettingsScreen({
-    super.key,
-    required this.herdId,
-  });
+  const HerdSettingsScreen({super.key, required this.herd});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final herdAsync = ref.watch(herdProvider(herdId));
+    final herdAsync = ref.watch(herdProvider(herd.id));
     final currentUser = ref.watch(authProvider);
 
     return herdAsync.when(
@@ -234,7 +231,8 @@ class HerdSettingsScreen extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ModerationDashboardScreen(herdId: herdId),
+                      builder: (_) =>
+                          ModerationDashboardScreen(herdId: herd.id),
                     ),
                   );
                 },
@@ -315,7 +313,7 @@ class HerdSettingsScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => MemberManagementScreen(herdId: herdId),
+                  builder: (_) => MemberManagementScreen(herdId: herd.id),
                 ),
               );
             },
@@ -323,44 +321,48 @@ class HerdSettingsScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: ref.watch(herdMembersProvider(herdId)).when(
+          child: ref.watch(herdMembersWithInfoProvider(herd.id)).when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, st) => Center(child: Text('Error: $err')),
-                data: (memberIds) {
-                  if (memberIds.isEmpty) {
+                error: (err, st) =>
+                    Center(child: Text('Error loading members: $err')),
+                data: (membersInfo) {
+                  if (membersInfo.isEmpty) {
                     return const Center(child: Text('No members yet'));
                   }
 
                   return ListView.builder(
-                    itemCount: memberIds.length,
-                    itemBuilder: (context, index) {
-                      final memberId = memberIds[index];
-                      final isMod = herd.moderatorIds.contains(memberId);
-                      final isCreator = herd.creatorId == memberId;
-
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: membersInfo.length,
+                    itemBuilder: (context, idx) {
+                      final member = membersInfo[idx];
                       return ListTile(
                         leading: CircleAvatar(
-                          child: Text(memberId.substring(0, 1).toUpperCase()),
+                          radius: 20,
+                          backgroundImage: member.displayProfileImage != null
+                              ? NetworkImage(member.displayProfileImage!)
+                              : null,
+                          child: member.displayProfileImage == null
+                              ? Text(member.displayUsername
+                                  .substring(0, 1)
+                                  .toUpperCase())
+                              : null,
                         ),
-                        title: Text(
-                            'User: $memberId'), // TODO: Fetch actual user data
-                        subtitle: isCreator
-                            ? const Text('Owner')
-                            : isMod
-                                ? const Text('Moderator')
-                                : null,
-                        trailing: (isOwner && !isCreator)
-                            ? IconButton(
-                                icon: const Icon(Icons.more_vert),
-                                onPressed: () => _showMemberOptions(
-                                  context,
-                                  ref,
-                                  herd,
-                                  memberId,
-                                  isMod,
-                                ),
-                              )
+                        title: Text(member.displayUsername),
+                        subtitle: member.isModerator
+                            ? const Text('Moderator')
+                            : (member.displayBio?.isNotEmpty == true
+                                ? Text(member.displayBio!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis)
+                                : null),
+                        trailing: member.isVerified
+                            ? const Icon(Icons.verified,
+                                color: Colors.blue, size: 16)
                             : null,
+                        onTap: () => context.pushNamed(
+                          'altProfile',
+                          pathParameters: {'id': member.userId},
+                        ),
                       );
                     },
                   );
@@ -387,7 +389,7 @@ class HerdSettingsScreen extends ConsumerWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ModerationLogScreen(herdId: herdId),
+                    builder: (_) => ModerationLogScreen(herdId: herd.id),
                   ),
                 );
               },

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:herdapp/features/herds/data/models/herd_member_info.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
+import 'package:herdapp/features/user/data/models/user_model.dart';
 
 import '../../../../core/utils/hot_algorithm.dart';
 import '../models/herd_model.dart';
@@ -515,6 +517,66 @@ class HerdRepository {
       });
     } catch (e, stackTrace) {
       logError('addPostToHerd', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<List<HerdMemberInfo>> getHerdMembersWithInfo(String herdId,
+      {int limit = 20, String? lastUserId}) async {
+    try {
+      var query = herdMembers(herdId)
+          .orderBy('joinedAt', descending: true)
+          .limit(limit);
+
+      if (lastUserId != null) {
+        final lastDoc = await herdMembers(herdId).doc(lastUserId).get();
+        if (lastDoc.exists) {
+          query = query.startAfterDocument(lastDoc);
+        }
+      }
+
+      final snapshot = await query.get();
+
+      // Get member IDs and their herd-specific data
+      List<HerdMemberInfo> membersInfo = [];
+
+      for (var doc in snapshot.docs) {
+        final memberId = doc.id;
+        final memberData = doc.data();
+
+        try {
+          // Fetch user data from users collection
+          final userDoc =
+              await _firestore.collection('users').doc(memberId).get();
+
+          if (userDoc.exists) {
+            final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
+
+            membersInfo.add(HerdMemberInfo(
+              userId: user.id,
+              username: user.username,
+              altUsername: user.altUsername,
+              profileImageURL: user.profileImageURL,
+              altProfileImageURL: user.altProfileImageURL,
+              isVerified: user.isVerified,
+              joinedAt: _parseDateTime(memberData['joinedAt']),
+              isModerator: memberData['isModerator'] ?? false,
+              userPoints: user.userPoints,
+              altUserPoints: user.altUserPoints,
+              isActive: user.isActive,
+              bio: user.bio,
+              altBio: user.altBio,
+            ));
+          }
+        } catch (e) {
+          // Log error but continue with other members
+          debugPrint('Error fetching user data for member $memberId: $e');
+        }
+      }
+
+      return membersInfo;
+    } catch (e, stackTrace) {
+      logError('getHerdMembersWithInfo', e, stackTrace);
       rethrow;
     }
   }
@@ -1042,5 +1104,15 @@ class HerdRepository {
       throw Exception(
           'A herd with this name already exists. Please choose a different name.');
     }
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 }
