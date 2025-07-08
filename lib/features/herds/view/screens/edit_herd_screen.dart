@@ -304,8 +304,6 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
                                 .surfaceContainerHighest,
                             selectedColor:
                                 Theme.of(context).colorScheme.primaryContainer,
-                            checkmarkColor:
-                                Theme.of(context).colorScheme.primary,
                           );
                         }).toList(),
                       ),

@@ -8,6 +8,8 @@ import '../providers/herd_providers.dart';
 import '../../../moderation/view/screens/moderation_dashboard_screen.dart';
 import '../../../moderation/view/screens/member_management_screen.dart';
 import '../../../moderation/view/screens/moderation_log_screen.dart';
+import 'moderator_management_screen.dart';
+import 'banned_users_screen.dart';
 
 class HerdSettingsScreen extends ConsumerWidget {
   final HerdModel herd;
@@ -172,8 +174,38 @@ class HerdSettingsScreen extends ConsumerWidget {
               subtitle: Text(herd.isPrivate ? 'Private Herd' : 'Public Herd'),
               trailing: Switch(
                 value: herd.isPrivate,
-                onChanged: (value) {
-                  // TODO: Implement privacy toggle
+                onChanged: (value) async {
+                  try {
+                    final currentUser = ref.read(authProvider);
+                    if (currentUser != null) {
+                      final herdRepository = ref.read(herdRepositoryProvider);
+                      await herdRepository.updateHerd(
+                        herd.id,
+                        {'isPrivate': value},
+                        currentUser.uid,
+                      );
+                      ref.invalidate(herdProvider(herd.id));
+                      // Show success message
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(value
+                                ? 'Herd is now private'
+                                : 'Herd is now public'),
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to update privacy: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ),
@@ -185,9 +217,7 @@ class HerdSettingsScreen extends ConsumerWidget {
               title: const Text('Herd Interests'),
               subtitle: Text(herd.interests.join(', ')),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                // TODO: Navigate to interests editor
-              },
+              onTap: () => context.pushNamed('editHerd', extra: herd),
             ),
           ),
           const SizedBox(height: 24),
@@ -258,7 +288,12 @@ class HerdSettingsScreen extends ConsumerWidget {
               subtitle: Text('${herd.bannedUserIds.length} users banned'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // TODO: Navigate to banned users list
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BannedUsersScreen(herdId: herd.id),
+                  ),
+                );
               },
             ),
           ),
@@ -271,7 +306,13 @@ class HerdSettingsScreen extends ConsumerWidget {
                 subtitle: Text('${herd.moderatorIds.length} moderators'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  // TODO: Navigate to moderator management
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ModeratorManagementScreen(herdId: herd.id),
+                    ),
+                  );
                 },
               ),
             ),
@@ -435,49 +476,6 @@ class HerdSettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showMemberOptions(
-    BuildContext context,
-    WidgetRef ref,
-    HerdModel herd,
-    String memberId,
-    bool isMod,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!isMod)
-            ListTile(
-              leading: const Icon(Icons.admin_panel_settings),
-              title: const Text('Make Moderator'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement make moderator
-              },
-            ),
-          if (isMod)
-            ListTile(
-              leading: const Icon(Icons.remove_moderator),
-              title: const Text('Remove Moderator'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implement remove moderator
-              },
-            ),
-          ListTile(
-            leading: const Icon(Icons.block, color: Colors.red),
-            title: const Text('Ban User', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: Implement ban user
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showDeleteConfirmation(
       BuildContext context, WidgetRef ref, HerdModel herd) {
     showDialog(
@@ -493,9 +491,52 @@ class HerdSettingsScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Implement herd deletion
+            onPressed: () async {
               Navigator.pop(context);
+
+              // Show loading dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const AlertDialog(
+                  content: Row(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 16),
+                      Text('Deleting herd...'),
+                    ],
+                  ),
+                ),
+              );
+
+              try {
+                final currentUser = ref.read(authProvider);
+                if (currentUser != null) {
+                  final herdRepository = ref.read(herdRepositoryProvider);
+                  await herdRepository.deleteHerd(herd.id, currentUser.uid);
+
+                  if (context.mounted) {
+                    Navigator.pop(context); // Close loading dialog
+                    Navigator.pop(context); // Go back to previous screen
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Herd deleted successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context); // Close loading dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete herd: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
