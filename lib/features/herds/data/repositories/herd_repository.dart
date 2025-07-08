@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/herds/data/models/herd_member_info.dart';
+import 'package:herdapp/features/herds/data/models/banned_user_info.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/data/models/user_model.dart';
 
@@ -745,20 +746,86 @@ class HerdRepository {
     }
   }
 
-  /// Check if user is banned from a herd
-  Future<bool> isUserBanned(String herdId, String userId) async {
+  /// Unban a user from a herd
+  Future<void> unbanUser(
+      String herdId, String userId, String currentUserId) async {
     try {
-      final doc = await _firestore
+      // Check if current user has permission to unban
+      final isModerator = await isHerdModerator(herdId, currentUserId);
+      if (!isModerator) {
+        throw Exception('You do not have permission to unban users');
+      }
+
+      // Remove user from banned list
+      await _firestore
           .collection('herdBans')
           .doc(herdId)
           .collection('banned')
           .doc(userId)
+          .delete();
+
+      // Update herd's banned users list
+      await _herds.doc(herdId).update({
+        'bannedUserIds': FieldValue.arrayRemove([userId]),
+      });
+    } catch (e, stackTrace) {
+      logError('unbanUser', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Get list of banned users with their info
+  Future<List<BannedUserInfo>> getBannedUsers(String herdId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('herdBans')
+          .doc(herdId)
+          .collection('banned')
           .get();
 
-      return doc.exists;
+      List<BannedUserInfo> bannedUsers = [];
+
+      for (var doc in snapshot.docs) {
+        final userId = doc.id;
+        final banData = doc.data();
+
+        try {
+          // Fetch user data from users collection
+          final userDoc =
+              await _firestore.collection('users').doc(userId).get();
+
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+
+            // Get banned by user info if available
+            String? bannedByUsername;
+            if (banData['bannedBy'] != null) {
+              final bannedByDoc = await _firestore
+                  .collection('users')
+                  .doc(banData['bannedBy'])
+                  .get();
+              if (bannedByDoc.exists) {
+                bannedByUsername = bannedByDoc.data()?['username'];
+              }
+            }
+
+            bannedUsers.add(BannedUserInfo.fromMap(
+              userId: userId,
+              userData: userData,
+              banData: banData,
+              bannedByUsername: bannedByUsername,
+            ));
+          }
+        } catch (e) {
+          // Log error but continue with other banned users
+          debugPrint('Error fetching banned user data for $userId: $e');
+        }
+      }
+
+      return bannedUsers;
     } catch (e, stackTrace) {
-      logError('isUserBanned', e, stackTrace);
-      return false;
+      logError('getBannedUsers', e, stackTrace);
+      rethrow;
     }
   }
 
@@ -771,28 +838,23 @@ class HerdRepository {
 
       final userData = userDoc.data()!;
 
-      // Check points requirement
-      final userPoints = userData['userPoints'] as int? ?? 0;
-      if (userPoints < minUserPoints) return false;
+      // Check if user is active
+      if (userData['isActive'] != true) return false;
 
-      // Check account age
-      final createdAt = userData['createdAt'] as Timestamp?;
-      if (createdAt == null) return false;
+      // Check account status
+      if (userData['accountStatus'] != 'active') return false;
 
-      final accountAge = DateTime.now().difference(createdAt.toDate()).inDays;
-      if (accountAge < minAccountAgeInDays) return false;
-
-      // TODO: Check for moderation marks
-      // This would require a separate collection for moderation actions
+      // Additional eligibility checks can be added here
+      // For example: minimum account age, user points, etc.
 
       return true;
     } catch (e, stackTrace) {
-      logError('checkUserEligibility', e, stackTrace);
+      debugPrint('checkUserEligibility error: $e\nStack: $stackTrace');
       return false;
     }
   }
 
-  /// Create a request to join a private herd
+  /// Create a join request for private herds
   Future<void> _createJoinRequest(String herdId, String userId) async {
     try {
       await _firestore
@@ -802,61 +864,10 @@ class HerdRepository {
           .doc(userId)
           .set({
         'requestedAt': FieldValue.serverTimestamp(),
-        'status': 'pending', // 'pending', 'approved', 'rejected'
+        'status': 'pending',
       });
     } catch (e, stackTrace) {
-      logError('createJoinRequest', e, stackTrace);
-      rethrow;
-    }
-  }
-
-  /// Approve a join request for a private herd
-  Future<void> approveJoinRequest(
-      String herdId, String userId, String currentUserId) async {
-    try {
-      // Check if current user has permission
-      final isModerator = await isHerdModerator(herdId, currentUserId);
-      if (!isModerator) {
-        throw Exception('You do not have permission to approve join requests');
-      }
-
-      // Get the request
-      final requestDoc = await _firestore
-          .collection('herdJoinRequests')
-          .doc(herdId)
-          .collection('requests')
-          .doc(userId)
-          .get();
-
-      if (!requestDoc.exists) {
-        throw Exception('Join request not found');
-      }
-
-      // Update request status
-      await requestDoc.reference.update({
-        'status': 'approved',
-        'approvedAt': FieldValue.serverTimestamp(),
-        'approvedBy': currentUserId,
-      });
-
-      // Add user to herd members
-      await herdMembers(herdId).doc(userId).set({
-        'joinedAt': FieldValue.serverTimestamp(),
-        'isModerator': false,
-      });
-
-      // Add herd to user's following
-      await userHerds(userId).doc(herdId).set({
-        'joinedAt': FieldValue.serverTimestamp(),
-        'isModerator': false,
-      });
-
-      // Increment member count
-      await _herds.doc(herdId).update({
-        'memberCount': FieldValue.increment(1),
-      });
-    } catch (e, stackTrace) {
-      logError('approveJoinRequest', e, stackTrace);
+      debugPrint('_createJoinRequest error: $e\nStack: $stackTrace');
       rethrow;
     }
   }
