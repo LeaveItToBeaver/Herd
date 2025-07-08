@@ -209,7 +209,7 @@ class CreatePostRepostiory {
         final String individualPostId = '$postId-$mediaId';
 
         // Determine media type
-        final extension = path.extension(file.path).toLowerCase();
+        // final extension = path.extension(file.path).toLowerCase();
         String mediaType;
 
         if (ImageHelper.isImage(file)) {
