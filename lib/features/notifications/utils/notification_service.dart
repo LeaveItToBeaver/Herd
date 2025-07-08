@@ -354,6 +354,7 @@ class NotificationService {
       // Mark as read via cloud function (fire and forget)
       _repository.markAsRead(notificationIds: [notificationId]).catchError((e) {
         debugPrint('⚠️ Failed to mark notification as read: $e');
+        return <String, dynamic>{}; // Return empty map to satisfy return type
       });
     } catch (e) {
       debugPrint('❌ Error processing notification tap: $e');

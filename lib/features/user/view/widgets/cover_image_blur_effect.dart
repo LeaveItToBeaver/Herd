@@ -81,8 +81,8 @@ class _CoverImageBlurEffectState extends State<CoverImageBlurEffect> {
                   sigmaY: _discreteBlurLevel,
                 ),
                 child: Container(
-                  color:
-                      widget.dominantColor.withOpacity(0.2 * _scrollProgress),
+                  color: widget.dominantColor
+                      .withValues(alpha: 0.2 * _scrollProgress),
                 ),
               ),
             ),

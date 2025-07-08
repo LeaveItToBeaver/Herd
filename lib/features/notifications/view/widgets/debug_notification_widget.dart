@@ -5,7 +5,7 @@ import 'package:herdapp/features/notifications/data/repositories/notification_re
 import 'package:herdapp/features/notifications/utils/notification_service.dart';
 
 class FCMDebugWidget extends ConsumerWidget {
-  const FCMDebugWidget({Key? key}) : super(key: key);
+  const FCMDebugWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

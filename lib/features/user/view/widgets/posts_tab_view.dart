@@ -46,7 +46,7 @@ class PostsTabView extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.post_add,
-                      size: 64, color: Colors.grey.withOpacity(0.5)),
+                      size: 64, color: Colors.grey.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   Text('No posts yet',
                       style: Theme.of(context).textTheme.titleMedium),

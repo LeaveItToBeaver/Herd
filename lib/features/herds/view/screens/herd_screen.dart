@@ -155,10 +155,10 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withOpacity(0.1),
+                          color:
+                              Theme.of(context).colorScheme.outline.withValues(
+                                    alpha: 0.1,
+                                  ),
                         ),
                       ),
                       child: Padding(
@@ -176,7 +176,9 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
                                       .primary
-                                      .withOpacity(0.1),
+                                      .withValues(
+                                        alpha: 0.1,
+                                      ),
                                   child: herd.profileImageURL == null
                                       ? const Icon(Icons.group, size: 30)
                                       : null,

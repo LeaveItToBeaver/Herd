@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/customization/view/providers/optimistic_slider_provider.dart';
 import 'package:herdapp/features/customization/view/providers/ui_customization_provider.dart';
 

@@ -13,13 +13,13 @@ class NotificationBadge extends ConsumerWidget {
   final double? badgeSize;
 
   const NotificationBadge({
-    Key? key,
+    super.key,
     required this.child,
     this.showDot = false,
     this.badgeColor,
     this.textColor,
     this.badgeSize,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,10 +67,10 @@ class NotificationIconButton extends ConsumerWidget {
   final double? iconSize;
 
   const NotificationIconButton({
-    Key? key,
+    super.key,
     this.iconColor,
     this.iconSize,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -97,11 +97,11 @@ class NotificationTabIcon extends ConsumerWidget {
   final Color? unselectedColor;
 
   const NotificationTabIcon({
-    Key? key,
+    super.key,
     this.isSelected = false,
     this.selectedColor,
     this.unselectedColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -122,11 +122,11 @@ class NotificationFAB extends ConsumerWidget {
   final Color? foregroundColor;
 
   const NotificationFAB({
-    Key? key,
+    super.key,
     this.onPressed,
     this.backgroundColor,
     this.foregroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -148,11 +148,11 @@ class NotificationBanner extends ConsumerStatefulWidget {
   final Color? textColor;
 
   const NotificationBanner({
-    Key? key,
+    super.key,
     this.displayDuration = const Duration(seconds: 4),
     this.backgroundColor,
     this.textColor,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<NotificationBanner> createState() => _NotificationBannerState();
@@ -253,7 +253,7 @@ class _NotificationBannerState extends ConsumerState<NotificationBanner>
                   Theme.of(context).colorScheme.primary,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -317,10 +317,10 @@ class NotificationSummaryCard extends ConsumerWidget {
   final EdgeInsets? margin;
 
   const NotificationSummaryCard({
-    Key? key,
+    super.key,
     this.padding,
     this.margin,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -355,7 +355,7 @@ class NotificationSummaryCard extends ConsumerWidget {
                         color: Theme.of(context)
                             .colorScheme
                             .primary
-                            .withOpacity(0.1),
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -389,7 +389,7 @@ class NotificationSummaryCard extends ConsumerWidget {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.7),
+                                      .withValues(alpha: 0.7),
                                 ),
                           ),
                         ],
@@ -401,7 +401,7 @@ class NotificationSummaryCard extends ConsumerWidget {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.4),
+                          .withValues(alpha: 0.4),
                     ),
                   ],
                 ),

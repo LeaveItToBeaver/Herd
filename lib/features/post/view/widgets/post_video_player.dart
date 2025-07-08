@@ -135,7 +135,7 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
           playedColor: widget.controlsColor,
           handleColor: widget.controlsColor,
           backgroundColor: Colors.grey.shade700,
-          bufferedColor: widget.controlsColor.withOpacity(0.5),
+          bufferedColor: widget.controlsColor.withValues(alpha: 0.5),
         ),
         placeholder: Container(
           color: Colors.black,
@@ -161,7 +161,7 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
                     child: Text(
                       errorMessage,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 12,
                       ),
                       textAlign: TextAlign.center,
@@ -249,7 +249,7 @@ class _PostVideoPlayerState extends State<PostVideoPlayer> with RouteAware {
                       child: Text(
                         _errorMessage!,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 12,
                         ),
                         textAlign: TextAlign.center,
