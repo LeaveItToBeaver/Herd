@@ -13,22 +13,23 @@ abstract class HerdModel with _$HerdModel {
     required String id,
     required String name,
     required String description,
-    @Default([]) List<String> interests,
+    @Default([]) List<String?> interests,
     @Default('') String rules,
     @Default('') String faq,
     DateTime? createdAt,
     required String creatorId,
     String? profileImageURL,
     String? coverImageURL,
-    @Default([]) List<String> moderatorIds,
+    @Default([]) List<String?> moderatorIds,
     @Default([]) List<String?> bannedUserIds,
     @Default([]) List<ModerationAction> moderationLog,
-    @Default([]) List<String> reportedPosts,
+    @Default([]) List<String?> reportedPosts,
     @Default(0) int memberCount,
     @Default(0) int postCount,
     @Default({}) Map<String, dynamic> customization,
     @Default(false) bool isPrivate,
-    @Default([]) List<String> pinnedPosts, // Pinned posts for this herd (max 5)
+    @Default([])
+    List<String?> pinnedPosts, // Pinned posts for this herd (max 5)
   }) = _HerdModel;
 
   // Factory constructor to convert from Firestore snapshot

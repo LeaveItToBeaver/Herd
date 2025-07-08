@@ -99,6 +99,16 @@ class MediaCacheService {
     }
   }
 
+  /// Helper method to ensure media is cached, returns cached path or caches it
+  Future<String?> _ensureMediaCached(String url,
+      {String mediaType = 'image'}) async {
+    final cachedPath = await getCachedMediaPath(url, mediaType: mediaType);
+    if (cachedPath != null) {
+      return cachedPath;
+    }
+    return await cacheMediaFromUrl(url, mediaType: mediaType);
+  }
+
   // 1. Add to MediaCacheService class
   Future<void> prefetchBatchedMediaItems(
       List<PostMediaModel> mediaItems) async {
@@ -120,14 +130,10 @@ class MediaCacheService {
         final thumbnailFutures = <Future>[];
         for (final media in batch) {
           if (media.thumbnailUrl != null && media.thumbnailUrl!.isNotEmpty) {
-            thumbnailFutures.add(getCachedMediaPath(
-                  media.thumbnailUrl!,
-                  mediaType: 'thumbnail',
-                ) ??
-                cacheMediaFromUrl(
-                  media.thumbnailUrl!,
-                  mediaType: 'thumbnail',
-                ));
+            thumbnailFutures.add(_ensureMediaCached(
+              media.thumbnailUrl!,
+              mediaType: 'thumbnail',
+            ));
           }
         }
 
@@ -145,7 +151,7 @@ class MediaCacheService {
                 null;
 
             if (!isCached) {
-              mediaFutures.add(cacheMediaFromUrl(
+              mediaFutures.add(_ensureMediaCached(
                 media.url,
                 mediaType: media.mediaType,
               ));

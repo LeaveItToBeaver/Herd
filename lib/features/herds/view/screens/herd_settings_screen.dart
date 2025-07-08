@@ -276,7 +276,10 @@ class HerdSettingsScreen extends ConsumerWidget {
               subtitle: Text('${herd.pinnedPosts.length}/5 posts pinned'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // TODO: Navigate to pinned posts manager
+                context.pushNamed(
+                  'pinnedPosts',
+                  pathParameters: {'herdId': herd.id},
+                );
               },
             ),
           ),

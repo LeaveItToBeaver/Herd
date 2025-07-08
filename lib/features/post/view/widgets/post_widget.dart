@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
 import 'package:herdapp/features/post/view/providers/pinned_post_provider.dart';
 import 'package:herdapp/features/post/view/widgets/build_post_content.dart';
@@ -462,6 +463,17 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       final controller = ref.read(pinnedPostsControllerProvider);
       await controller.pinToHerd(widget.post.herdId!, widget.post.id, userId);
 
+      // IMPORTANT: Invalidate all related providers
+      ref.invalidate(herdProvider(widget.post.herdId!));
+      ref.invalidate(herdPinnedPostsProvider(widget.post.herdId!));
+      ref.invalidate(herdFeedControllerProvider(widget.post.herdId!));
+
+      // Also invalidate the post-specific pin status
+      ref.invalidate(isPostPinnedToHerdProvider((
+        herdId: widget.post.herdId!,
+        postId: widget.post.id,
+      )));
+
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
         const SnackBar(
@@ -493,11 +505,21 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       await controller.unpinFromHerd(
           widget.post.herdId!, widget.post.id, userId);
 
+      // IMPORTANT: Invalidate all related providers
+      ref.invalidate(herdProvider(widget.post.herdId!));
+      ref.invalidate(herdPinnedPostsProvider(widget.post.herdId!));
+      ref.invalidate(herdFeedControllerProvider(widget.post.herdId!));
+
+      // Also invalidate the post-specific pin status
+      ref.invalidate(isPostPinnedToHerdProvider((
+        herdId: widget.post.herdId!,
+        postId: widget.post.id,
+      )));
+
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
         const SnackBar(
           content: Text('Post unpinned from herd'),
-          //backgroundColor: Colors.orange,
         ),
       );
     } catch (e) {

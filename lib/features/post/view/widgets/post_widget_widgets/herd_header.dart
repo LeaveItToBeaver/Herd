@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/user/view/providers/user_provider.dart';
-import 'package:herdapp/features/user/view/widgets/user_profile_image.dart';
 
 class HerdHeaderWidget extends ConsumerWidget {
   final PostModel post;
