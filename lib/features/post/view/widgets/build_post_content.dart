@@ -62,7 +62,7 @@ class PostContentWidget extends StatelessWidget {
             post.content,
             style: TextStyle(
               fontSize: isCompact ? 14 : 15,
-              color: theme.colorScheme.onSurface.withOpacity(0.9),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
               height: 1.4,
             ),
             maxLines: isExpanded ? null : (isCompact ? 3 : 4),

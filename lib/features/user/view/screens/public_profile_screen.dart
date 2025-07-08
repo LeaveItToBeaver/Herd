@@ -148,7 +148,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                           color: Theme.of(context)
                               .colorScheme
                               .outline
-                              .withOpacity(0.1),
+                              .withValues(alpha: 0.1),
                         ),
                       ),
                       child: Padding(

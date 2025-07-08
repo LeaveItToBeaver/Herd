@@ -15,12 +15,12 @@ class MentionOverlay extends ConsumerStatefulWidget {
   final Widget child;
 
   const MentionOverlay({
-    Key? key,
+    super.key,
     required this.controller,
     required this.focusNode,
     required this.isAlt,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<MentionOverlay> createState() => _MentionOverlayState();

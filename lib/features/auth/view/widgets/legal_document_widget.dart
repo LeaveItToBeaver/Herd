@@ -52,11 +52,11 @@ class LegalDocumentWidget extends ConsumerWidget {
       width: double.infinity, // Full width of parent
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isRequired && !isAccepted
-              ? theme.colorScheme.error.withOpacity(0.5)
+              ? theme.colorScheme.error.withValues(alpha: 0.5)
               : Colors.transparent,
           width: 1.5,
         ),
@@ -191,6 +191,8 @@ class LegalDocumentWidget extends ConsumerWidget {
     final theme = Theme.of(context);
     final acceptance = ref.read(legalAcceptanceProvider);
     final String content = await _loadAsset(assetPath);
+
+    if (!context.mounted) return;
 
     showDialog(
       context: context,
@@ -403,6 +405,8 @@ class LegalDocumentsSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final acceptance = ref.read(legalAcceptanceProvider);
     final String content = await rootBundle.loadString(assetPath);
+
+    if (!context.mounted) return;
 
     showDialog(
       context: context,

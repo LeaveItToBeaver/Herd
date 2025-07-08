@@ -31,7 +31,7 @@ class DynamicHeaderDelegate extends SliverPersistentHeaderDelegate {
           sigmaY: 10.0 * scrollProgress,
         ),
         child: Container(
-          color: backgroundColor.withOpacity(0.8 * scrollProgress),
+          color: backgroundColor.withValues(alpha: 0.8 * scrollProgress),
           child: tabBar,
         ),
       ),

@@ -39,7 +39,7 @@ class PostPrivacyBadges extends StatelessWidget {
           ),
         if (isNSFW)
           Container(
-            color: Colors.red.withOpacity(0.1),
+            color: Colors.red.withValues(alpha: 0.1),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: [

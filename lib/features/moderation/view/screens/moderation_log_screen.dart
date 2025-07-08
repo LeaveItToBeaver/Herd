@@ -46,7 +46,7 @@ class ModerationLogScreen extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: action.actionType.color.withOpacity(0.2),
+          backgroundColor: action.actionType.color.withValues(alpha: 0.2),
           child: Icon(
             action.actionType.icon,
             color: action.actionType.color,

@@ -155,7 +155,7 @@ class NotificationRepository {
             '   - Last notification: ${notificationList.last.id} (${notificationList.last.type})');
       }
 
-      final result_map = {
+      final resultMap = {
         'notifications': notificationList,
         'unreadCount': data['unreadCount'] ?? 0,
         'hasMore': data['hasMore'] ?? false,
@@ -163,10 +163,10 @@ class NotificationRepository {
       };
 
       debugPrint('✅ ========== RETURNING RESULT ==========');
-      debugPrint('   - Result map keys: ${result_map.keys.toList()}');
+      debugPrint('   - Result map keys: ${resultMap.keys.toList()}');
       debugPrint('   - Returning ${notificationList.length} notifications');
 
-      return result_map;
+      return resultMap;
     } catch (e, stackTrace) {
       debugPrint('❌ ========== ERROR IN getNotifications ==========');
       debugPrint('   - Error type: ${e.runtimeType}');
