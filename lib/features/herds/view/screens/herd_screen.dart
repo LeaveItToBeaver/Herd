@@ -22,14 +22,13 @@ class HerdScreen extends ConsumerStatefulWidget {
 
 class _HerdScreenState extends ConsumerState<HerdScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   final Color _dominantColor = Colors.transparent;
   late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _scrollController = ScrollController();
 
     // Use a small delay to ensure widget is fully mounted before setting state
@@ -47,7 +46,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
   @override
   void dispose() {
     _scrollController.dispose();
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -83,6 +82,19 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
         data: (herd) {
           if (herd == null) {
             return const Center(child: Text('Herd not found'));
+          }
+
+          final isModerator = isCurrentUserModerator.maybeWhen(
+            data: (isMod) => isMod,
+            orElse: () => false,
+          );
+          final isOwner = herd.creatorId == ref.read(authProvider)?.uid;
+          final bool showMembersTab = isModerator || isOwner;
+          final int tabCount = showMembersTab ? 3 : 2;
+
+          // Create or update TabController if needed
+          if (_tabController == null || _tabController!.length != tabCount) {
+            _tabController = TabController(length: tabCount, vsync: this);
           }
 
           return NestedScrollView(
@@ -161,13 +173,13 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                                   backgroundImage: herd.profileImageURL != null
                                       ? NetworkImage(herd.profileImageURL!)
                                       : null,
-                                  child: herd.profileImageURL == null
-                                      ? const Icon(Icons.group, size: 30)
-                                      : null,
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
                                       .primary
                                       .withOpacity(0.1),
+                                  child: herd.profileImageURL == null
+                                      ? const Icon(Icons.group, size: 30)
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -274,10 +286,10 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                       controller: _tabController,
                       labelColor: Theme.of(context).primaryColor,
                       unselectedLabelColor: Colors.grey,
-                      tabs: const [
-                        Tab(text: 'Posts'),
-                        Tab(text: 'About'),
-                        Tab(text: 'Members'),
+                      tabs: [
+                        const Tab(text: 'Posts'),
+                        const Tab(text: 'About'),
+                        if (showMembersTab) const Tab(text: 'Members'),
                       ],
                     ),
                   ),
@@ -356,56 +368,58 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
                 ),
 
                 // Members tab
-                ref.watch(herdMembersProvider(widget.herdId)).when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (err, st) =>
-                          Center(child: Text('Error loading members: $err')),
-                      data: (memberIds) {
-                        // remove any accidental duplicates:
-                        final uniqueIds = memberIds.toSet().toList();
+                if (showMembersTab)
+                  ref.watch(herdMembersProvider(widget.herdId)).when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (err, st) =>
+                            Center(child: Text('Error loading members: $err')),
+                        data: (memberIds) {
+                          // remove any accidental duplicates:
+                          final uniqueIds = memberIds.toSet().toList();
 
-                        if (uniqueIds.isEmpty) {
-                          return const Center(child: Text('No members yet'));
-                        }
+                          if (uniqueIds.isEmpty) {
+                            return const Center(child: Text('No members yet'));
+                          }
 
-                        return ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: uniqueIds.length,
-                          itemBuilder: (context, idx) {
-                            final memberId = uniqueIds[idx];
-                            return FutureBuilder(
-                              future: ref
-                                  .read(userRepositoryProvider)
-                                  .getUserById(memberId),
-                              builder: (context, snap) {
-                                if (!snap.hasData) {
-                                  return const ListTile(
-                                    leading: CircleAvatar(),
-                                    title: Text('Loading…'),
+                          return ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: uniqueIds.length,
+                            itemBuilder: (context, idx) {
+                              final memberId = uniqueIds[idx];
+                              return FutureBuilder(
+                                future: ref
+                                    .read(userRepositoryProvider)
+                                    .getUserById(memberId),
+                                builder: (context, snap) {
+                                  if (!snap.hasData) {
+                                    return const ListTile(
+                                      leading: CircleAvatar(),
+                                      title: Text('Loading…'),
+                                    );
+                                  }
+                                  final user = snap.data!;
+                                  return ListTile(
+                                    leading: UserProfileImage(
+                                      radius: 20,
+                                      profileImageUrl: user.altProfileImageURL,
+                                    ),
+                                    title: Text(user.username),
+                                    subtitle:
+                                        herd.moderatorIds.contains(user.id)
+                                            ? const Text('Moderator')
+                                            : null,
+                                    onTap: () => context.pushNamed(
+                                      'altProfile',
+                                      pathParameters: {'id': user.id},
+                                    ),
                                   );
-                                }
-                                final user = snap.data!;
-                                return ListTile(
-                                  leading: UserProfileImage(
-                                    radius: 20,
-                                    profileImageUrl: user.altProfileImageURL,
-                                  ),
-                                  title: Text(user.username ?? 'User'),
-                                  subtitle: herd.moderatorIds.contains(user.id)
-                                      ? const Text('Moderator')
-                                      : null,
-                                  onTap: () => context.pushNamed(
-                                    'altProfile',
-                                    pathParameters: {'id': user.id},
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
               ],
             ),
           );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/herds/data/models/herd_member_info.dart';
+import 'package:herdapp/features/herds/data/models/banned_user_info.dart';
 import 'package:herdapp/features/herds/view/providers/state/herd_feed_state.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
@@ -284,3 +285,10 @@ final herdFeedControllerProvider =
     return HerdFeedController(repository, herdId, ref);
   },
 );
+
+// Provider for banned users
+final bannedUsersProvider =
+    FutureProvider.family<List<BannedUserInfo>, String>((ref, herdId) async {
+  final herdRepository = ref.read(herdRepositoryProvider);
+  return await herdRepository.getBannedUsers(herdId);
+});
