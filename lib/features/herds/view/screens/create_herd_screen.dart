@@ -58,7 +58,7 @@ class _CreateHerdScreenState extends ConsumerState<CreateHerdScreen> {
     'Health'
   ];
 
-  List<String> _selectedInterests = [];
+  final List<String> _selectedInterests = [];
 
   // Add toggle method
   void _toggleInterest(String interest) {

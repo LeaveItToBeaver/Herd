@@ -182,8 +182,9 @@ class _MentionTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: isUnread ? 2 : 1,
-      color:
-          isUnread ? theme.colorScheme.primaryContainer.withOpacity(0.1) : null,
+      color: isUnread
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1)
+          : null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

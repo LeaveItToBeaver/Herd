@@ -25,6 +25,7 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
   bool get hasMorePosts;
   String get currentUserId;
   PostModel? get lastPost;
+  int get pageSize;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -47,7 +48,8 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('currentUserId', currentUserId))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('pageSize', pageSize));
   }
 
   @override
@@ -72,7 +74,9 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
             (identical(other.currentUserId, currentUserId) ||
                 other.currentUserId == currentUserId) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.pageSize, pageSize) ||
+                other.pageSize == pageSize));
   }
 
   @override
@@ -87,11 +91,12 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       isLoading,
       hasMorePosts,
       currentUserId,
-      lastPost);
+      lastPost,
+      pageSize);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost, pageSize: $pageSize)';
   }
 }
 
@@ -111,7 +116,8 @@ abstract mixin class $ProfileStateCopyWith<$Res> {
       bool isLoading,
       bool hasMorePosts,
       String currentUserId,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      int pageSize});
 
   $UserModelCopyWith<$Res>? get user;
   $PostModelCopyWith<$Res>? get lastPost;
@@ -139,6 +145,7 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
     Object? hasMorePosts = null,
     Object? currentUserId = null,
     Object? lastPost = freezed,
+    Object? pageSize = null,
   }) {
     return _then(_self.copyWith(
       user: freezed == user
@@ -181,6 +188,10 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      pageSize: null == pageSize
+          ? _self.pageSize
+          : pageSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 
@@ -226,7 +237,8 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       this.isLoading = false,
       this.hasMorePosts = true,
       this.currentUserId = '',
-      this.lastPost})
+      this.lastPost,
+      this.pageSize = 20})
       : _posts = posts;
 
   @override
@@ -258,6 +270,9 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
   final String currentUserId;
   @override
   final PostModel? lastPost;
+  @override
+  @JsonKey()
+  final int pageSize;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -280,7 +295,8 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('currentUserId', currentUserId))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('pageSize', pageSize));
   }
 
   @override
@@ -305,7 +321,9 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
             (identical(other.currentUserId, currentUserId) ||
                 other.currentUserId == currentUserId) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.pageSize, pageSize) ||
+                other.pageSize == pageSize));
   }
 
   @override
@@ -320,11 +338,12 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       isLoading,
       hasMorePosts,
       currentUserId,
-      lastPost);
+      lastPost,
+      pageSize);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost, pageSize: $pageSize)';
   }
 }
 
@@ -346,7 +365,8 @@ abstract mixin class _$ProfileStateCopyWith<$Res>
       bool isLoading,
       bool hasMorePosts,
       String currentUserId,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      int pageSize});
 
   @override
   $UserModelCopyWith<$Res>? get user;
@@ -377,6 +397,7 @@ class __$ProfileStateCopyWithImpl<$Res>
     Object? hasMorePosts = null,
     Object? currentUserId = null,
     Object? lastPost = freezed,
+    Object? pageSize = null,
   }) {
     return _then(_ProfileState(
       user: freezed == user
@@ -419,6 +440,10 @@ class __$ProfileStateCopyWithImpl<$Res>
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      pageSize: null == pageSize
+          ? _self.pageSize
+          : pageSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 

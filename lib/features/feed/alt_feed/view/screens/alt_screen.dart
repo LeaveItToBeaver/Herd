@@ -280,7 +280,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                                     Icon(
                                       Icons.star_border,
                                       size: 64,
-                                      color: Colors.blue.withOpacity(0.5),
+                                      color: Colors.blue.withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(height: 16),
                                     const Text(
