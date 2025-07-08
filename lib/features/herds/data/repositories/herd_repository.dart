@@ -980,7 +980,7 @@ class HerdRepository {
   }
 
   /// Get pinned posts for a herd
-  Future<List<String>> getHerdPinnedPosts(String herdId) async {
+  Future<List<String?>> getHerdPinnedPosts(String herdId) async {
     try {
       final herd = await getHerd(herdId);
       return herd?.pinnedPosts ?? [];

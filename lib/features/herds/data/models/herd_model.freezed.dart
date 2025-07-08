@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -18,22 +17,22 @@ mixin _$HerdModel implements DiagnosticableTreeMixin {
   String get id;
   String get name;
   String get description;
-  List<String> get interests;
+  List<String?> get interests;
   String get rules;
   String get faq;
   DateTime? get createdAt;
   String get creatorId;
   String? get profileImageURL;
   String? get coverImageURL;
-  List<String> get moderatorIds;
+  List<String?> get moderatorIds;
   List<String?> get bannedUserIds;
   List<ModerationAction> get moderationLog;
-  List<String> get reportedPosts;
+  List<String?> get reportedPosts;
   int get memberCount;
   int get postCount;
   Map<String, dynamic> get customization;
   bool get isPrivate;
-  List<String> get pinnedPosts;
+  List<String?> get pinnedPosts;
 
   /// Create a copy of HerdModel
   /// with the given fields replaced by the non-null parameter values.
@@ -146,22 +145,22 @@ abstract mixin class $HerdModelCopyWith<$Res> {
       {String id,
       String name,
       String description,
-      List<String> interests,
+      List<String?> interests,
       String rules,
       String faq,
       DateTime? createdAt,
       String creatorId,
       String? profileImageURL,
       String? coverImageURL,
-      List<String> moderatorIds,
+      List<String?> moderatorIds,
       List<String?> bannedUserIds,
       List<ModerationAction> moderationLog,
-      List<String> reportedPosts,
+      List<String?> reportedPosts,
       int memberCount,
       int postCount,
       Map<String, dynamic> customization,
       bool isPrivate,
-      List<String> pinnedPosts});
+      List<String?> pinnedPosts});
 }
 
 /// @nodoc
@@ -212,7 +211,7 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
       interests: null == interests
           ? _self.interests
           : interests // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
       rules: null == rules
           ? _self.rules
           : rules // ignore: cast_nullable_to_non_nullable
@@ -240,7 +239,7 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
       moderatorIds: null == moderatorIds
           ? _self.moderatorIds
           : moderatorIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
       bannedUserIds: null == bannedUserIds
           ? _self.bannedUserIds
           : bannedUserIds // ignore: cast_nullable_to_non_nullable
@@ -252,7 +251,7 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
       reportedPosts: null == reportedPosts
           ? _self.reportedPosts
           : reportedPosts // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
       memberCount: null == memberCount
           ? _self.memberCount
           : memberCount // ignore: cast_nullable_to_non_nullable
@@ -272,8 +271,282 @@ class _$HerdModelCopyWithImpl<$Res> implements $HerdModelCopyWith<$Res> {
       pinnedPosts: null == pinnedPosts
           ? _self.pinnedPosts
           : pinnedPosts // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
     ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [HerdModel].
+extension HerdModelPatterns on HerdModel {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_HerdModel value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _HerdModel() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_HerdModel value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _HerdModel():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_HerdModel value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _HerdModel() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String id,
+            String name,
+            String description,
+            List<String?> interests,
+            String rules,
+            String faq,
+            DateTime? createdAt,
+            String creatorId,
+            String? profileImageURL,
+            String? coverImageURL,
+            List<String?> moderatorIds,
+            List<String?> bannedUserIds,
+            List<ModerationAction> moderationLog,
+            List<String?> reportedPosts,
+            int memberCount,
+            int postCount,
+            Map<String, dynamic> customization,
+            bool isPrivate,
+            List<String?> pinnedPosts)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _HerdModel() when $default != null:
+        return $default(
+            _that.id,
+            _that.name,
+            _that.description,
+            _that.interests,
+            _that.rules,
+            _that.faq,
+            _that.createdAt,
+            _that.creatorId,
+            _that.profileImageURL,
+            _that.coverImageURL,
+            _that.moderatorIds,
+            _that.bannedUserIds,
+            _that.moderationLog,
+            _that.reportedPosts,
+            _that.memberCount,
+            _that.postCount,
+            _that.customization,
+            _that.isPrivate,
+            _that.pinnedPosts);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String id,
+            String name,
+            String description,
+            List<String?> interests,
+            String rules,
+            String faq,
+            DateTime? createdAt,
+            String creatorId,
+            String? profileImageURL,
+            String? coverImageURL,
+            List<String?> moderatorIds,
+            List<String?> bannedUserIds,
+            List<ModerationAction> moderationLog,
+            List<String?> reportedPosts,
+            int memberCount,
+            int postCount,
+            Map<String, dynamic> customization,
+            bool isPrivate,
+            List<String?> pinnedPosts)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _HerdModel():
+        return $default(
+            _that.id,
+            _that.name,
+            _that.description,
+            _that.interests,
+            _that.rules,
+            _that.faq,
+            _that.createdAt,
+            _that.creatorId,
+            _that.profileImageURL,
+            _that.coverImageURL,
+            _that.moderatorIds,
+            _that.bannedUserIds,
+            _that.moderationLog,
+            _that.reportedPosts,
+            _that.memberCount,
+            _that.postCount,
+            _that.customization,
+            _that.isPrivate,
+            _that.pinnedPosts);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String id,
+            String name,
+            String description,
+            List<String?> interests,
+            String rules,
+            String faq,
+            DateTime? createdAt,
+            String creatorId,
+            String? profileImageURL,
+            String? coverImageURL,
+            List<String?> moderatorIds,
+            List<String?> bannedUserIds,
+            List<ModerationAction> moderationLog,
+            List<String?> reportedPosts,
+            int memberCount,
+            int postCount,
+            Map<String, dynamic> customization,
+            bool isPrivate,
+            List<String?> pinnedPosts)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _HerdModel() when $default != null:
+        return $default(
+            _that.id,
+            _that.name,
+            _that.description,
+            _that.interests,
+            _that.rules,
+            _that.faq,
+            _that.createdAt,
+            _that.creatorId,
+            _that.profileImageURL,
+            _that.coverImageURL,
+            _that.moderatorIds,
+            _that.bannedUserIds,
+            _that.moderationLog,
+            _that.reportedPosts,
+            _that.memberCount,
+            _that.postCount,
+            _that.customization,
+            _that.isPrivate,
+            _that.pinnedPosts);
+      case _:
+        return null;
+    }
   }
 }
 
@@ -284,22 +557,22 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
       {required this.id,
       required this.name,
       required this.description,
-      final List<String> interests = const [],
+      final List<String?> interests = const [],
       this.rules = '',
       this.faq = '',
       this.createdAt,
       required this.creatorId,
       this.profileImageURL,
       this.coverImageURL,
-      final List<String> moderatorIds = const [],
+      final List<String?> moderatorIds = const [],
       final List<String?> bannedUserIds = const [],
       final List<ModerationAction> moderationLog = const [],
-      final List<String> reportedPosts = const [],
+      final List<String?> reportedPosts = const [],
       this.memberCount = 0,
       this.postCount = 0,
       final Map<String, dynamic> customization = const {},
       this.isPrivate = false,
-      final List<String> pinnedPosts = const []})
+      final List<String?> pinnedPosts = const []})
       : _interests = interests,
         _moderatorIds = moderatorIds,
         _bannedUserIds = bannedUserIds,
@@ -315,10 +588,10 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
   final String name;
   @override
   final String description;
-  final List<String> _interests;
+  final List<String?> _interests;
   @override
   @JsonKey()
-  List<String> get interests {
+  List<String?> get interests {
     if (_interests is EqualUnmodifiableListView) return _interests;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_interests);
@@ -338,10 +611,10 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
   final String? profileImageURL;
   @override
   final String? coverImageURL;
-  final List<String> _moderatorIds;
+  final List<String?> _moderatorIds;
   @override
   @JsonKey()
-  List<String> get moderatorIds {
+  List<String?> get moderatorIds {
     if (_moderatorIds is EqualUnmodifiableListView) return _moderatorIds;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_moderatorIds);
@@ -365,10 +638,10 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_moderationLog);
   }
 
-  final List<String> _reportedPosts;
+  final List<String?> _reportedPosts;
   @override
   @JsonKey()
-  List<String> get reportedPosts {
+  List<String?> get reportedPosts {
     if (_reportedPosts is EqualUnmodifiableListView) return _reportedPosts;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_reportedPosts);
@@ -392,10 +665,10 @@ class _HerdModel extends HerdModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool isPrivate;
-  final List<String> _pinnedPosts;
+  final List<String?> _pinnedPosts;
   @override
   @JsonKey()
-  List<String> get pinnedPosts {
+  List<String?> get pinnedPosts {
     if (_pinnedPosts is EqualUnmodifiableListView) return _pinnedPosts;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_pinnedPosts);
@@ -517,22 +790,22 @@ abstract mixin class _$HerdModelCopyWith<$Res>
       {String id,
       String name,
       String description,
-      List<String> interests,
+      List<String?> interests,
       String rules,
       String faq,
       DateTime? createdAt,
       String creatorId,
       String? profileImageURL,
       String? coverImageURL,
-      List<String> moderatorIds,
+      List<String?> moderatorIds,
       List<String?> bannedUserIds,
       List<ModerationAction> moderationLog,
-      List<String> reportedPosts,
+      List<String?> reportedPosts,
       int memberCount,
       int postCount,
       Map<String, dynamic> customization,
       bool isPrivate,
-      List<String> pinnedPosts});
+      List<String?> pinnedPosts});
 }
 
 /// @nodoc
@@ -583,7 +856,7 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
       interests: null == interests
           ? _self._interests
           : interests // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
       rules: null == rules
           ? _self.rules
           : rules // ignore: cast_nullable_to_non_nullable
@@ -611,7 +884,7 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
       moderatorIds: null == moderatorIds
           ? _self._moderatorIds
           : moderatorIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
       bannedUserIds: null == bannedUserIds
           ? _self._bannedUserIds
           : bannedUserIds // ignore: cast_nullable_to_non_nullable
@@ -623,7 +896,7 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
       reportedPosts: null == reportedPosts
           ? _self._reportedPosts
           : reportedPosts // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
       memberCount: null == memberCount
           ? _self.memberCount
           : memberCount // ignore: cast_nullable_to_non_nullable
@@ -643,7 +916,7 @@ class __$HerdModelCopyWithImpl<$Res> implements _$HerdModelCopyWith<$Res> {
       pinnedPosts: null == pinnedPosts
           ? _self._pinnedPosts
           : pinnedPosts // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+              as List<String?>,
     ));
   }
 }

@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -479,6 +478,394 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
           : isPinnedToHerd // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [PostModel].
+extension PostModelPatterns on PostModel {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_PostModel value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PostModel() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_PostModel value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PostModel():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_PostModel value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PostModel() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String id,
+            String authorId,
+            String? authorName,
+            String? authorUsername,
+            String? authorProfileImageURL,
+            String? title,
+            String content,
+            List<PostMediaModel> mediaItems,
+            String? mediaURL,
+            String? mediaType,
+            String? mediaThumbnailURL,
+            List<String> tags,
+            bool isNSFW,
+            List<String> mentions,
+            int likeCount,
+            int dislikeCount,
+            int commentCount,
+            DateTime? createdAt,
+            DateTime? updatedAt,
+            DateTime? pinnedAt,
+            double? hotScore,
+            String? herdId,
+            String? herdName,
+            String? herdProfileImageURL,
+            bool isPrivateHerd,
+            bool isHerdMember,
+            bool isHerdModerator,
+            bool isHerdBanned,
+            bool isHerdBlocked,
+            bool isAlt,
+            String? feedType,
+            bool isLiked,
+            bool isDisliked,
+            bool isBookmarked,
+            bool isRichText,
+            bool isPinnedToProfile,
+            bool isPinnedToAltProfile,
+            bool isPinnedToHerd)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PostModel() when $default != null:
+        return $default(
+            _that.id,
+            _that.authorId,
+            _that.authorName,
+            _that.authorUsername,
+            _that.authorProfileImageURL,
+            _that.title,
+            _that.content,
+            _that.mediaItems,
+            _that.mediaURL,
+            _that.mediaType,
+            _that.mediaThumbnailURL,
+            _that.tags,
+            _that.isNSFW,
+            _that.mentions,
+            _that.likeCount,
+            _that.dislikeCount,
+            _that.commentCount,
+            _that.createdAt,
+            _that.updatedAt,
+            _that.pinnedAt,
+            _that.hotScore,
+            _that.herdId,
+            _that.herdName,
+            _that.herdProfileImageURL,
+            _that.isPrivateHerd,
+            _that.isHerdMember,
+            _that.isHerdModerator,
+            _that.isHerdBanned,
+            _that.isHerdBlocked,
+            _that.isAlt,
+            _that.feedType,
+            _that.isLiked,
+            _that.isDisliked,
+            _that.isBookmarked,
+            _that.isRichText,
+            _that.isPinnedToProfile,
+            _that.isPinnedToAltProfile,
+            _that.isPinnedToHerd);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String id,
+            String authorId,
+            String? authorName,
+            String? authorUsername,
+            String? authorProfileImageURL,
+            String? title,
+            String content,
+            List<PostMediaModel> mediaItems,
+            String? mediaURL,
+            String? mediaType,
+            String? mediaThumbnailURL,
+            List<String> tags,
+            bool isNSFW,
+            List<String> mentions,
+            int likeCount,
+            int dislikeCount,
+            int commentCount,
+            DateTime? createdAt,
+            DateTime? updatedAt,
+            DateTime? pinnedAt,
+            double? hotScore,
+            String? herdId,
+            String? herdName,
+            String? herdProfileImageURL,
+            bool isPrivateHerd,
+            bool isHerdMember,
+            bool isHerdModerator,
+            bool isHerdBanned,
+            bool isHerdBlocked,
+            bool isAlt,
+            String? feedType,
+            bool isLiked,
+            bool isDisliked,
+            bool isBookmarked,
+            bool isRichText,
+            bool isPinnedToProfile,
+            bool isPinnedToAltProfile,
+            bool isPinnedToHerd)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PostModel():
+        return $default(
+            _that.id,
+            _that.authorId,
+            _that.authorName,
+            _that.authorUsername,
+            _that.authorProfileImageURL,
+            _that.title,
+            _that.content,
+            _that.mediaItems,
+            _that.mediaURL,
+            _that.mediaType,
+            _that.mediaThumbnailURL,
+            _that.tags,
+            _that.isNSFW,
+            _that.mentions,
+            _that.likeCount,
+            _that.dislikeCount,
+            _that.commentCount,
+            _that.createdAt,
+            _that.updatedAt,
+            _that.pinnedAt,
+            _that.hotScore,
+            _that.herdId,
+            _that.herdName,
+            _that.herdProfileImageURL,
+            _that.isPrivateHerd,
+            _that.isHerdMember,
+            _that.isHerdModerator,
+            _that.isHerdBanned,
+            _that.isHerdBlocked,
+            _that.isAlt,
+            _that.feedType,
+            _that.isLiked,
+            _that.isDisliked,
+            _that.isBookmarked,
+            _that.isRichText,
+            _that.isPinnedToProfile,
+            _that.isPinnedToAltProfile,
+            _that.isPinnedToHerd);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String id,
+            String authorId,
+            String? authorName,
+            String? authorUsername,
+            String? authorProfileImageURL,
+            String? title,
+            String content,
+            List<PostMediaModel> mediaItems,
+            String? mediaURL,
+            String? mediaType,
+            String? mediaThumbnailURL,
+            List<String> tags,
+            bool isNSFW,
+            List<String> mentions,
+            int likeCount,
+            int dislikeCount,
+            int commentCount,
+            DateTime? createdAt,
+            DateTime? updatedAt,
+            DateTime? pinnedAt,
+            double? hotScore,
+            String? herdId,
+            String? herdName,
+            String? herdProfileImageURL,
+            bool isPrivateHerd,
+            bool isHerdMember,
+            bool isHerdModerator,
+            bool isHerdBanned,
+            bool isHerdBlocked,
+            bool isAlt,
+            String? feedType,
+            bool isLiked,
+            bool isDisliked,
+            bool isBookmarked,
+            bool isRichText,
+            bool isPinnedToProfile,
+            bool isPinnedToAltProfile,
+            bool isPinnedToHerd)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PostModel() when $default != null:
+        return $default(
+            _that.id,
+            _that.authorId,
+            _that.authorName,
+            _that.authorUsername,
+            _that.authorProfileImageURL,
+            _that.title,
+            _that.content,
+            _that.mediaItems,
+            _that.mediaURL,
+            _that.mediaType,
+            _that.mediaThumbnailURL,
+            _that.tags,
+            _that.isNSFW,
+            _that.mentions,
+            _that.likeCount,
+            _that.dislikeCount,
+            _that.commentCount,
+            _that.createdAt,
+            _that.updatedAt,
+            _that.pinnedAt,
+            _that.hotScore,
+            _that.herdId,
+            _that.herdName,
+            _that.herdProfileImageURL,
+            _that.isPrivateHerd,
+            _that.isHerdMember,
+            _that.isHerdModerator,
+            _that.isHerdBanned,
+            _that.isHerdBlocked,
+            _that.isAlt,
+            _that.feedType,
+            _that.isLiked,
+            _that.isDisliked,
+            _that.isBookmarked,
+            _that.isRichText,
+            _that.isPinnedToProfile,
+            _that.isPinnedToAltProfile,
+            _that.isPinnedToHerd);
+      case _:
+        return null;
+    }
   }
 }
 

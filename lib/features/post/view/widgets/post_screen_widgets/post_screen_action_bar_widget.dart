@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
-import 'package:herdapp/features/post/view/providers/state/post_interaction_state.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 
 class PostActionBar extends ConsumerWidget {

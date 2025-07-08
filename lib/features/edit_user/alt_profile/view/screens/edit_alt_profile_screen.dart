@@ -348,14 +348,14 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                           //TODO: Update setting
                         },
                       ),
-                      const SizedBox(height: 12),
-                      _buildSwitchRow(
-                        'Show Public Profile in Alt Feed',
-                        true, // Default value
-                        (value) {
-                          //TODO: Update setting
-                        },
-                      ),
+                      //const SizedBox(height: 12),
+                      // _buildSwitchRow(
+                      //   'Show Public Profile in Alt Feed',
+                      //   true, // Default value
+                      //   (value) {
+                      //     //TODO: Update setting
+                      //   },
+                      // ),
                     ],
                   ),
                 ),

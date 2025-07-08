@@ -8,7 +8,6 @@ import 'package:herdapp/features/post/view/widgets/pinned_posts/pinned_post_widg
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../post/data/models/post_model.dart';
-import '../../profile_controller.dart';
 import '../providers/state/profile_state.dart';
 
 class PostsTabView extends ConsumerWidget {

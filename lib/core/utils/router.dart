@@ -16,6 +16,7 @@ import '../../features/herds/view/providers/herd_providers.dart';
 import '../../features/herds/view/screens/create_herd_screen.dart';
 import '../../features/herds/view/screens/edit_herd_screen.dart';
 import '../../features/herds/view/screens/herd_screen.dart';
+import '../../features/moderation/view/screens/pinned_post_management_screen.dart';
 import '../../features/post/data/models/post_media_model.dart';
 import '../../features/post/view/screens/edit_post_screen.dart';
 import '../../features/post/view/screens/fullscreen_gallery_screen.dart';
@@ -181,6 +182,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final herd = state.extra as HerdModel;
           return HerdSettingsScreen(herd: herd);
+        },
+      ),
+
+      GoRoute(
+        path: '/pinnedPosts/:herdId',
+        name: 'pinnedPosts',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final herdId = state.pathParameters['herdId']!;
+          return NoTransitionPage(
+            child: PinnedPostsManagementScreen(herdId: herdId),
+          );
         },
       ),
 
