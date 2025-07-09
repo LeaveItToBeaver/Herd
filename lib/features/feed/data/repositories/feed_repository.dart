@@ -33,16 +33,19 @@ class FeedRepository {
     return (post.likeCount) - (post.dislikeCount);
   }
 
-  /// Get public feed posts (user-specific)
+  /// Get public feed posts (user-specific) with sorting
   Future<List<PostModel>> getPublicFeed({
     required String userId,
     int limit = 20,
     double? lastHotScore,
     String? lastPostId,
+    String sortType = 'hot',
+    String timePeriod = 'all',
   }) async {
     try {
       // Log before querying
-      debugPrint('Fetching public feed for user: $userId with limit: $limit');
+      debugPrint(
+          'Fetching public feed for user: $userId with limit: $limit, sort: $sortType');
 
       // Try cloud function first
       try {
@@ -52,6 +55,8 @@ class FeedRepository {
           limit: limit,
           lastHotScore: lastHotScore,
           lastPostId: lastPostId,
+          sortType: sortType,
+          timePeriod: timePeriod,
         );
 
         debugPrint('Retrieved ${posts.length} posts from cloud function');
@@ -153,15 +158,35 @@ class FeedRepository {
     }
   }
 
-  /// Get alt feed posts with proper hot score ordering
+  /// Get alt feed posts with proper hot score ordering and sorting support
   Future<List<PostModel>> getAltFeed({
     required String userId,
     int limit = 15,
     double? lastHotScore,
     String? lastPostId,
     bool includeHerdPosts = true,
+    String sortType = 'hot',
+    String timePeriod = 'all',
   }) async {
     try {
+      // Try cloud function first
+      try {
+        final posts = await getFeedFromFunction(
+          userId: userId,
+          feedType: 'alt',
+          limit: limit,
+          lastHotScore: lastHotScore,
+          lastPostId: lastPostId,
+          sortType: sortType,
+          timePeriod: timePeriod,
+        );
+
+        debugPrint('Retrieved ${posts.length} alt posts from cloud function');
+        return posts;
+      } catch (e) {
+        debugPrint(
+            'Cloud function failed for alt feed, falling back to direct query: $e');
+      }
       // STEP 1: Query the user's feed collection for ordering
       Query<Map<String, dynamic>> feedQuery;
 
@@ -550,7 +575,7 @@ class FeedRepository {
     }
   }
 
-  /// Get feed from the cloud function
+  /// Get feed from the cloud function with sorting support
   Future<List<PostModel>> getFeedFromFunction({
     required String userId,
     required String feedType,
@@ -558,6 +583,8 @@ class FeedRepository {
     double? lastHotScore,
     String? lastPostId,
     bool hybridLoad = true,
+    String sortType = 'hot',
+    String timePeriod = 'all',
   }) async {
     try {
       _isUpdatingFromServer = true;
@@ -567,6 +594,8 @@ class FeedRepository {
         'userId': userId,
         'feedType': feedType,
         'limit': limit,
+        'sortType': sortType,
+        'timePeriod': timePeriod,
       };
 
       if (lastHotScore != null) {
