@@ -8,7 +8,6 @@ import 'package:herdapp/features/post/view/widgets/pinned_posts/pinned_post_widg
 import 'package:herdapp/features/user/view/providers/profile_controller_provider.dart';
 
 import '../../../post/data/models/post_model.dart';
-import '../../profile_controller.dart';
 import '../providers/state/profile_state.dart';
 
 class PostsTabView extends ConsumerWidget {
@@ -46,7 +45,7 @@ class PostsTabView extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.post_add,
-                      size: 64, color: Colors.grey.withOpacity(0.5)),
+                      size: 64, color: Colors.grey.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   Text('No posts yet',
                       style: Theme.of(context).textTheme.titleMedium),

@@ -241,3 +241,77 @@ async function updatePostTypeHotScores(collectionName, herdId, cutoffDate) {
 
     logger.info(`Hot score update completed for ${collectionName}`);
 }
+
+/**
+ * Calculate trending scores for recent posts
+ * Trending posts are those created within the last 2 days with good engagement
+ */
+exports.calculateTrendingScores = onSchedule(
+    "every 15 minutes",
+    async (event) => {
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+        try {
+            // Update trending scores for posts
+            await updateTrendingScores('posts', twoDaysAgo);
+            logger.info('Trending score update completed for posts');
+
+            // Update trending scores for alt posts
+            await updateTrendingScores('altPosts', twoDaysAgo);
+            logger.info('Trending score update completed for alt posts');
+
+            // Update trending scores for herd posts
+            const herdsSnapshot = await firestore.collection('herdPosts').get();
+            for (const herdDoc of herdsSnapshot.docs) {
+                await updateTrendingScores(`herdPosts/${herdDoc.id}/posts`, twoDaysAgo);
+            }
+            logger.info('Trending score update completed for herd posts');
+
+            return null;
+        } catch (error) {
+            logger.error('Error updating trending scores:', error);
+            throw error;
+        }
+    }
+);
+
+/**
+ * Helper function to update trending scores for a collection
+ */
+async function updateTrendingScores(collectionPath, cutoffDate) {
+    const postsQuery = firestore.collection(collectionPath)
+        .where('createdAt', '>', cutoffDate)
+        .where('hotScore', '>', 0)
+        .limit(500);
+
+    const snapshot = await postsQuery.get();
+
+    if (snapshot.empty) {
+        logger.info(`No trending posts found in ${collectionPath}`);
+        return;
+    }
+
+    const batch = firestore.batch();
+    let updateCount = 0;
+
+    snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const netVotes = (data.likeCount || 0) - (data.dislikeCount || 0);
+        const createdAt = data.createdAt;
+
+        // Calculate trending score (same as hot score but only for recent posts)
+        const trendingScore = hotAlgorithm.calculateHotScore(netVotes, createdAt, 1.2); // Slight boost for trending
+
+        batch.update(doc.ref, {
+            trendingScore: trendingScore,
+            topScore: data.likeCount || 0 // Also update top score
+        });
+        updateCount++;
+    });
+
+    if (updateCount > 0) {
+        await batch.commit();
+        logger.info(`Updated trending scores for ${updateCount} posts in ${collectionPath}`);
+    }
+}

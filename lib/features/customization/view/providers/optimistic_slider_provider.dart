@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 
@@ -9,12 +10,18 @@ class OptimisticSliderState<T> {
   final T? optimisticValue;
   final bool isPersisting;
   final String? error;
+  final Duration debounceDuration;
+  final Future<void> Function(T value, Ref ref) persistFunction;
+  final T initialValue;
 
   const OptimisticSliderState({
     required this.persistedValue,
     this.optimisticValue,
     this.isPersisting = false,
     this.error,
+    required this.debounceDuration,
+    required this.persistFunction,
+    required this.initialValue,
   });
 
   // The current value to display (optimistic if available, otherwise persisted)
@@ -25,6 +32,9 @@ class OptimisticSliderState<T> {
     T? optimisticValue,
     bool? isPersisting,
     String? error,
+    Duration? debounceDuration,
+    Future<void> Function(T value, Ref ref)? persistFunction,
+    T? initialValue,
     bool clearOptimistic = false,
     bool clearError = false,
   }) {
@@ -34,6 +44,9 @@ class OptimisticSliderState<T> {
           clearOptimistic ? null : (optimisticValue ?? this.optimisticValue),
       isPersisting: isPersisting ?? this.isPersisting,
       error: clearError ? null : (error ?? this.error),
+      debounceDuration: debounceDuration ?? this.debounceDuration,
+      persistFunction: persistFunction ?? this.persistFunction,
+      initialValue: initialValue ?? this.initialValue,
     );
   }
 }
@@ -42,15 +55,6 @@ class OptimisticSliderState<T> {
 class OptimisticSliderNotifier<T>
     extends AutoDisposeNotifier<OptimisticSliderState<T>> {
   Timer? _debounceTimer;
-  final Duration debounceDuration;
-  final Future<void> Function(T value, Ref ref) persistFunction;
-  final T initialValue;
-
-  OptimisticSliderNotifier({
-    required this.persistFunction,
-    required this.initialValue,
-    this.debounceDuration = const Duration(milliseconds: 300),
-  });
 
   @override
   OptimisticSliderState<T> build() {
@@ -59,7 +63,9 @@ class OptimisticSliderNotifier<T>
       _debounceTimer?.cancel();
     });
 
-    return OptimisticSliderState<T>(persistedValue: initialValue);
+    // This will throw if not initialized properly - override in subclasses
+    throw UnimplementedError(
+        'Use createOptimisticSliderProvider to create instances');
   }
 
   // Update the persisted value (called when the source data changes)
@@ -83,7 +89,7 @@ class OptimisticSliderNotifier<T>
     _debounceTimer?.cancel();
 
     // Debounced persistence
-    _debounceTimer = Timer(debounceDuration, () async {
+    _debounceTimer = Timer(state.debounceDuration, () async {
       await _persistValue(value);
     });
   }
@@ -92,7 +98,7 @@ class OptimisticSliderNotifier<T>
     state = state.copyWith(isPersisting: true);
 
     try {
-      await persistFunction(value, ref);
+      await state.persistFunction(value, ref);
 
       // Success: clear optimistic value and update persisted
       state = state.copyWith(
@@ -119,6 +125,36 @@ class OptimisticSliderNotifier<T>
   }
 }
 
+// Concrete implementation for factory creation
+class _ConcreteOptimisticSliderNotifier<T> extends OptimisticSliderNotifier<T> {
+  final Duration _debounceDuration;
+  final Future<void> Function(T value, Ref ref) _persistFunction;
+  final T _initialValue;
+
+  _ConcreteOptimisticSliderNotifier({
+    required Duration debounceDuration,
+    required Future<void> Function(T value, Ref ref) persistFunction,
+    required T initialValue,
+  })  : _debounceDuration = debounceDuration,
+        _persistFunction = persistFunction,
+        _initialValue = initialValue;
+
+  @override
+  OptimisticSliderState<T> build() {
+    // Cancel timer when provider is disposed
+    ref.onDispose(() {
+      _debounceTimer?.cancel();
+    });
+
+    return OptimisticSliderState<T>(
+      persistedValue: _initialValue,
+      debounceDuration: _debounceDuration,
+      persistFunction: _persistFunction,
+      initialValue: _initialValue,
+    );
+  }
+}
+
 // Provider factory for creating slider providers
 typedef SliderProviderFactory<T> = AutoDisposeNotifierProvider<
     OptimisticSliderNotifier<T>, OptimisticSliderState<T>>;
@@ -131,7 +167,7 @@ SliderProviderFactory<T> createOptimisticSliderProvider<T>({
 }) {
   return NotifierProvider.autoDispose<OptimisticSliderNotifier<T>,
       OptimisticSliderState<T>>(
-    () => OptimisticSliderNotifier<T>(
+    () => _ConcreteOptimisticSliderNotifier<T>(
       persistFunction: persistFunction,
       initialValue: initialValue,
       debounceDuration: debounceDuration,

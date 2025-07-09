@@ -9,11 +9,11 @@ class NotificationListItem extends StatelessWidget {
   final Function(String) onMarkAsRead;
 
   const NotificationListItem({
-    Key? key,
+    super.key,
     required this.notification,
     required this.onTap,
     required this.onMarkAsRead,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +26,10 @@ class NotificationListItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? null
-              : theme.colorScheme.primary.withOpacity(0.08),
+              : theme.colorScheme.primary.withValues(alpha: 0.08),
           border: Border(
             bottom: BorderSide(
-              color: theme.dividerColor.withOpacity(0.3),
+              color: theme.dividerColor.withValues(alpha: 0.3),
               width: 0.5,
             ),
           ),
@@ -49,7 +49,7 @@ class NotificationListItem extends StatelessWidget {
                     timeago.format(notification.timestamp),
                     style: TextStyle(
                       fontSize: 12,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -139,7 +139,7 @@ class NotificationListItem extends StatelessWidget {
     } else {
       return CircleAvatar(
         radius: 20,
-        backgroundColor: iconColor.withOpacity(0.2),
+        backgroundColor: iconColor.withValues(alpha: 0.2),
         child: Icon(
           iconData,
           color: iconColor,
