@@ -39,7 +39,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
     // Load user profile data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.userId.isNotEmpty) {
+      if (widget.userId.isNotEmpty && mounted) {
         ref.read(profileControllerProvider.notifier).loadProfile(
               widget.userId,
               isAltView: true, // Force alt view
@@ -179,7 +179,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                           color: Theme.of(context)
                               .colorScheme
                               .outline
-                              .withOpacity(0.1),
+                              .withValues(alpha: 0.1),
                         ),
                       ),
                       child: Padding(
@@ -406,7 +406,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   child: RefreshIndicator(
                     onRefresh: () async {
                       // Refresh herds data for this specific user
-                      ref.refresh(profileUserHerdsProvider(widget.userId));
+                      ref.invalidate(profileUserHerdsProvider(widget.userId));
                     },
                     child: herds.isEmpty
                         ? ListView(
@@ -596,6 +596,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
   Widget errorWidget(Object error, StackTrace stack) {
     if (kDebugMode) {
       print('Alt Profile Screen Error: $error');
+      print('Stack trace: $stack');
     }
 
     return Center(
@@ -612,7 +613,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
             onPressed: () {
               ref
                   .read(profileControllerProvider.notifier)
-                  .loadProfile(widget.userId);
+                  .loadProfile(widget.userId, isAltView: true);
             },
             child: const Text('Retry'),
           ),

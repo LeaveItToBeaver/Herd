@@ -30,6 +30,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs = ['-Xjvm-default=all']
     }
 
     defaultConfig {
@@ -41,6 +42,7 @@ android {
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled true
     }
     packagingOptions {
         exclude 'META-INF/library_release.kotlin_module'

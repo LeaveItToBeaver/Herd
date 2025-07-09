@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/post/helpers/like_dislike_helper.dart';
 import 'package:herdapp/features/post/view/providers/pinned_post_provider.dart';
 import 'package:herdapp/features/post/view/widgets/build_post_content.dart';
@@ -245,7 +246,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     // This method assumes that PostModel has a 'tags' property (List<String>).
     // もし存在しない、または空の場合は何も表示しません。
     // If the post does not have tags or the tags list is empty, return an empty widget.
-    if (widget.post.tags == null || widget.post.tags!.isEmpty) {
+    if (widget.post.tags == null || widget.post.tags.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -256,7 +257,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       child: Wrap(
         spacing: 8.0, // Chip間の横スペース // Space between Chips
         runSpacing: 4.0, // Chip間の縦スペース // Space between Chips
-        children: widget.post.tags!.map<Widget>((tag) {
+        children: widget.post.tags.map<Widget>((tag) {
           return GestureDetector(
             onTap: () {
               // TODO: ここにタグ検索ページへのナビゲーションを実装
@@ -273,7 +274,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
                 ),
               ),
               backgroundColor:
-                  theme.colorScheme.primaryContainer.withOpacity(0.4),
+                  theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
               side: BorderSide.none,
               padding:
                   const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
@@ -393,29 +394,28 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
     if (userId == null) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final controller = ref.read(pinnedPostsControllerProvider);
       await controller.pinToProfile(userId, widget.post.id, isAlt: isAlt);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isAlt
-                ? 'Post pinned to alt profile'
-                : 'Post pinned to profile'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              isAlt ? 'Post pinned to alt profile' : 'Post pinned to profile'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to pin post: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to pin post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -425,29 +425,29 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
     if (userId == null) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final controller = ref.read(pinnedPostsControllerProvider);
       await controller.unpinFromProfile(userId, widget.post.id, isAlt: isAlt);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isAlt
-                ? 'Post unpinned from alt profile'
-                : 'Post unpinned from profile'),
-            //backgroundColor: Colors.orange,
-          ),
-        );
-      }
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(isAlt
+              ? 'Post unpinned from alt profile'
+              : 'Post unpinned from profile'),
+          //backgroundColor: Colors.orange,
+        ),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to unpin post: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to unpin post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -457,27 +457,38 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
     if (userId == null || widget.post.herdId == null) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final controller = ref.read(pinnedPostsControllerProvider);
       await controller.pinToHerd(widget.post.herdId!, widget.post.id, userId);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post pinned to herd'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      // IMPORTANT: Invalidate all related providers
+      ref.invalidate(herdProvider(widget.post.herdId!));
+      ref.invalidate(herdPinnedPostsProvider(widget.post.herdId!));
+      ref.invalidate(herdFeedControllerProvider(widget.post.herdId!));
+
+      // Also invalidate the post-specific pin status
+      ref.invalidate(isPostPinnedToHerdProvider((
+        herdId: widget.post.herdId!,
+        postId: widget.post.id,
+      )));
+
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Post pinned to herd'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to pin post: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to pin post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -487,28 +498,38 @@ class _PostWidgetState extends ConsumerState<PostWidget>
 
     if (userId == null || widget.post.herdId == null) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final controller = ref.read(pinnedPostsControllerProvider);
       await controller.unpinFromHerd(
           widget.post.herdId!, widget.post.id, userId);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post unpinned from herd'),
-            //backgroundColor: Colors.orange,
-          ),
-        );
-      }
+      // IMPORTANT: Invalidate all related providers
+      ref.invalidate(herdProvider(widget.post.herdId!));
+      ref.invalidate(herdPinnedPostsProvider(widget.post.herdId!));
+      ref.invalidate(herdFeedControllerProvider(widget.post.herdId!));
+
+      // Also invalidate the post-specific pin status
+      ref.invalidate(isPostPinnedToHerdProvider((
+        herdId: widget.post.herdId!,
+        postId: widget.post.id,
+      )));
+
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Post unpinned from herd'),
+        ),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to unpin post: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to unpin post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -554,7 +575,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
             widget.post.content, // Display plain text content
             style: TextStyle(
               fontSize: widget.isCompact ? 14 : 15,
-              color: theme.colorScheme.onSurface.withOpacity(0.9),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
               height: 1.4,
             ),
             maxLines: _isExpanded ? null : (widget.isCompact ? 3 : 4),
@@ -650,7 +671,8 @@ class _PostWidgetState extends ConsumerState<PostWidget>
       padding: const EdgeInsets.symmetric(vertical: 0),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: theme.dividerColor.withOpacity(0.3), width: 1),
+          top: BorderSide(
+              color: theme.dividerColor.withValues(alpha: 0.3), width: 1),
         ),
       ),
       child: Row(

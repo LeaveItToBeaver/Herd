@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
 import 'package:herdapp/features/customization/data/repositories/ui_customization_repository.dart';
-import 'package:herdapp/features/customization/view/providers/ui_customization_provider.dart';
 import 'package:herdapp/features/customization/view/screens/ui_customization_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

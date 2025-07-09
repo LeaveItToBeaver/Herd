@@ -20,7 +20,6 @@ class MockFirebaseApp extends FirebaseAppPlatform {
   @override
   Future<void> setAutomaticDataCollectionEnabled(bool enabled) async {}
 
-  @override
   Future<void> setAutomaticResourceManagement(bool enabled) async {}
 }
 

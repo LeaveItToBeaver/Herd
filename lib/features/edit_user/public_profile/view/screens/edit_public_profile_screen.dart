@@ -156,7 +156,7 @@ class _PublicProfileEditScreenState
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
-                      color: theme.colorScheme.error.withOpacity(0.1),
+                      color: theme.colorScheme.error.withValues(alpha: 0.1),
                       child: Text(
                         state.errorMessage!,
                         style: TextStyle(color: theme.colorScheme.error),
@@ -177,7 +177,7 @@ class _PublicProfileEditScreenState
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -336,11 +336,11 @@ class _PublicProfileEditScreenState
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color:
-                                    theme.colorScheme.outline.withOpacity(0.3),
+                                color: theme.colorScheme.outline
+                                    .withValues(alpha: 0.3),
                               ),
                             ),
                             child: Column(

@@ -85,8 +85,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       final post = PostModel(
         id: postId,
         authorId: user.id,
-        authorUsername: user.username ?? 'Anonymous',
-        authorName: (user.firstName + user.lastName) ?? 'Anonymous',
+        authorUsername: user.username,
+        authorName: (user.firstName + user.lastName),
         authorProfileImageURL: isAlt
             ? (user.altProfileImageURL ?? user.profileImageURL)
             : user.profileImageURL,
