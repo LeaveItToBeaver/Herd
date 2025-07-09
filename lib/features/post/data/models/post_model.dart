@@ -32,6 +32,11 @@ abstract class PostModel with _$PostModel {
     DateTime? pinnedAt, // When the post was pinned
     double? hotScore,
 
+    // Sorting-related fields
+    double?
+        trendingScore, // Score for trending posts (hot score for recent posts)
+    double? topScore, // Score for top posts (like count within time period)
+
     // Herd-related fields
     String? herdId,
     String? herdName,
@@ -72,8 +77,7 @@ abstract class PostModel with _$PostModel {
               // Convert each item to Map<String, dynamic>
               final mediaMap = item is Map<String, dynamic>
                   ? item
-                  : Map<String, dynamic>.fromEntries((item as Map)
-                      .entries
+                  : Map<String, dynamic>.fromEntries(item.entries
                       .map((e) => MapEntry(e.key.toString(), e.value)));
 
               // Create PostMediaModel from the map
@@ -127,6 +131,12 @@ abstract class PostModel with _$PostModel {
       hotScore: (map['hotScore'] is int)
           ? (map['hotScore'] as int).toDouble()
           : (map['hotScore'] as num?)?.toDouble(),
+      trendingScore: (map['trendingScore'] is int)
+          ? (map['trendingScore'] as int).toDouble()
+          : (map['trendingScore'] as num?)?.toDouble(),
+      topScore: (map['topScore'] is int)
+          ? (map['topScore'] as int).toDouble()
+          : (map['topScore'] as num?)?.toDouble(),
       herdId: map['herdId'],
       herdName: map['herdName'],
       herdProfileImageURL: map['herdProfileImageURL'],
@@ -164,6 +174,13 @@ abstract class PostModel with _$PostModel {
       // Handle milliseconds since epoch
       return DateTime.fromMillisecondsSinceEpoch(value);
     } else if (value is Map) {
+      // Handle Cloud Functions timestamp format
+      if (value.containsKey('_isTimestamp') && value.containsKey('value')) {
+        final timestampValue = value['value'];
+        if (timestampValue is int) {
+          return DateTime.fromMillisecondsSinceEpoch(timestampValue);
+        }
+      }
       // Handle Firestore timestamp object that got serialized to JSON
       if (value.containsKey('_seconds') && value.containsKey('_nanoseconds')) {
         final seconds = value['_seconds'] as int;
@@ -204,6 +221,8 @@ abstract class PostModel with _$PostModel {
           : FieldValue.serverTimestamp(),
       'pinnedAt': pinnedAt != null ? Timestamp.fromDate(pinnedAt!) : null,
       'hotScore': hotScore,
+      'trendingScore': trendingScore,
+      'topScore': topScore,
       'herdId': herdId,
       'herdName': herdName,
       'herdProfileImageURL': herdProfileImageURL,
@@ -296,6 +315,41 @@ abstract class PostModel with _$PostModel {
       return 'Alt';
     } else {
       return 'Public';
+    }
+  }
+
+  // Helper methods for sorting
+
+  /// Get the net votes (likes - dislikes) for ranking
+  int get netVotes => likeCount - dislikeCount;
+
+  /// Check if post is trending (recent with good engagement)
+  bool get isTrending {
+    if (createdAt == null) return false;
+    final daysSinceCreation = DateTime.now().difference(createdAt!).inDays;
+    return daysSinceCreation <= 2 && (hotScore ?? 0) > 0;
+  }
+
+  /// Check if post is recent (within last 24 hours)
+  bool get isRecent {
+    if (createdAt == null) return false;
+    final hoursSinceCreation = DateTime.now().difference(createdAt!).inHours;
+    return hoursSinceCreation <= 24;
+  }
+
+  /// Get sort value based on FeedSortType
+  double getSortValue(String sortType) {
+    switch (sortType) {
+      case 'latest':
+        return createdAt?.millisecondsSinceEpoch.toDouble() ?? 0.0;
+      case 'hot':
+        return hotScore ?? 0.0;
+      case 'trending':
+        return trendingScore ?? hotScore ?? 0.0;
+      case 'top':
+        return topScore ?? likeCount.toDouble();
+      default:
+        return hotScore ?? 0.0;
     }
   }
 }
