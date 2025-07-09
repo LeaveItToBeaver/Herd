@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:async' show StreamSubscription, unawaited;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/feed/alt_feed/view/providers/state/alt_feed_states.dart';
+import 'package:herdapp/features/feed/data/models/feed_sort_type.dart';
 
 import '../../../../../core/services/cache_manager.dart';
 import '../../../../post/data/models/post_model.dart';
@@ -67,6 +68,53 @@ class AltFeedController extends StateNotifier<AltFeedState> {
     }
   }
 
+  Future<void> changeSortType(FeedSortType newSortType) async {
+    if (state.sortType == newSortType) return; // No change needed
+
+    try {
+      if (userId == null || _disposed) return;
+
+      state = state.copyWith(
+        sortType: newSortType,
+        isLoading: true,
+        error: null,
+        posts: [], // Clear existing posts
+        hasMorePosts: true,
+        lastPost: null,
+        lastCreatedAt: null,
+      );
+
+      // Load feed with new sort type
+      final posts = await repository.getFeedFromFunction(
+        userId: userId!,
+        feedType: 'alt',
+        limit: pageSize,
+        sortType: newSortType.value,
+        hybridLoad: false, // Don't use cache when changing sort type
+      );
+
+      if (_disposed) return;
+
+      state = state.copyWith(
+        posts: posts,
+        isLoading: false,
+        hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
+        lastCreatedAt: posts.isNotEmpty ? posts.last.createdAt : null,
+      );
+
+      // Initialize interactions for loaded posts
+      await _batchInitializePostInteractions(posts);
+    } catch (e) {
+      if (_disposed) return;
+      state = state.copyWith(
+        isLoading: false,
+        error: e,
+      );
+      debugPrint('Error changing sort type in alt feed: $e');
+    }
+  }
+
   Future<void> _batchInitializePostInteractions(List<PostModel> posts) async {
     if (posts.isEmpty || userId == null) return;
 
@@ -120,9 +168,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       {String? overrideUserId, bool forceRefresh = false}) async {
     try {
       // Don't reload if already loading
-      if (state.isLoading) return;
+      if (state.isLoading || _disposed) return;
 
-      state = state.copyWith(isLoading: true, error: null);
+      _safeUpdateState(state.copyWith(isLoading: true, error: null));
 
       final effectiveUserId = overrideUserId ?? userId ?? '';
       if (effectiveUserId.isEmpty) {
@@ -133,19 +181,42 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         return;
       }
 
-      // Use hybrid loading unless we're forcing a refresh
-      final posts = await repository.getFeedFromFunction(
-        userId: effectiveUserId,
-        feedType: 'alt',
-        limit: pageSize,
-        hybridLoad: !forceRefresh,
-      );
+      List<PostModel> posts = [];
+      try {
+        // Try cloud function first
+        posts = await repository.getFeedFromFunction(
+          userId: effectiveUserId,
+          feedType: 'alt',
+          limit: pageSize,
+          sortType: state.sortType.value,
+          hybridLoad: !forceRefresh &&
+              state.sortType == FeedSortType.hot, // Only use cache for hot
+        );
 
+        debugPrint('Fetched ${posts.length} alt posts from cloud function.');
+
+        // Cache the results (don't await this to avoid delays)
+        unawaited(cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true));
+      } catch (e) {
+        // Fall back to direct Firestore query
+        debugPrint('Falling back to direct Firestore query: $e');
+
+        // Get from user feed collection directly
+        posts = await repository.getAltFeed(
+          userId: effectiveUserId,
+          limit: pageSize,
+          includeHerdPosts: _showHerdPosts,
+        );
+
+        // Cache the results (don't await this)
+        unawaited(cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true));
+      }
+
+      // Final state update with safety check
       _safeUpdateState(state.copyWith(
         posts: posts,
         isLoading: false,
         isRefreshing: false,
-        // Use length check rather than repository value for initial load
         hasMorePosts: posts.length >= pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
         fromCache: !forceRefresh && posts.isNotEmpty,
@@ -160,98 +231,6 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       }
     }
   }
-
-  /// Load initial alt feed posts
-  // Future<void> loadInitialPosts(
-  //     {String? overrideUserId, bool forceRefresh = false}) async {
-  //   try {
-  //     // Don't reload if already loading
-  //     if (state.isLoading) return;
-  //
-  //     state = state.copyWith(isLoading: true, error: null);
-  //
-  //     final effectiveUserId = overrideUserId ?? userId ?? '';
-  //     if (effectiveUserId.isEmpty) {
-  //       state = state.copyWith(
-  //         isLoading: false,
-  //         error: Exception('User ID is required'),
-  //       );
-  //       return;
-  //     }
-  //
-  //     // Try to load from cache if not forcing refresh
-  //     if (!forceRefresh) {
-  //       debugPrint('🔎 Checking cache for alt feed: user=$effectiveUserId');
-  //       final cachedPosts =
-  //           await cacheManager.getFeed(effectiveUserId, isAlt: true);
-  //
-  //       if (cachedPosts.isNotEmpty) {
-  //         debugPrint('✅ Retrieved ${cachedPosts.length} posts from cache');
-  //         state = state.copyWith(
-  //           posts: cachedPosts,
-  //           isLoading: false,
-  //           hasMorePosts: cachedPosts.length >= pageSize,
-  //           lastPost: cachedPosts.isNotEmpty ? cachedPosts.last : null,
-  //           fromCache: true,
-  //         );
-  //         return;
-  //       }
-  //       debugPrint('⚠️ No cached posts found');
-  //     } else {
-  //       debugPrint('🔄 Force refresh requested, skipping cache');
-  //     }
-  //
-  //     // Try cloud function first if no cache or forcing refresh
-  //     try {
-  //       final posts = await repository.getFeedFromFunction(
-  //         userId: effectiveUserId,
-  //         feedType: 'alt',
-  //         limit: pageSize,
-  //       );
-  //
-  //       // Cache the results
-  //       await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
-  //       await cacheManager.getCacheStats();
-  //
-  //       state = state.copyWith(
-  //         posts: posts,
-  //         isLoading: false,
-  //         hasMorePosts: posts.length >= pageSize,
-  //         lastPost: posts.isNotEmpty ? posts.last : null,
-  //         fromCache: false,
-  //       );
-  //       return;
-  //     } catch (e) {
-  //       // Fall back to direct Firestore query
-  //       if (kDebugMode) {
-  //         print('Falling back to direct Firestore query: $e');
-  //       }
-  //     }
-  //
-  //     // Get from user feed collection directly
-  //     final posts = await repository.getAltFeed(
-  //       userId: effectiveUserId,
-  //       limit: pageSize,
-  //       includeHerdPosts: _showHerdPosts,
-  //     );
-  //
-  //     // Cache the results
-  //     await cacheManager.cacheFeed(posts, effectiveUserId, isAlt: true);
-  //
-  //     state = state.copyWith(
-  //       posts: posts,
-  //       isLoading: false,
-  //       hasMorePosts: posts.length >= pageSize,
-  //       lastPost: posts.isNotEmpty ? posts.last : null,
-  //       fromCache: false,
-  //     );
-  //   } catch (e) {
-  //     state = state.copyWith(
-  //       isLoading: false,
-  //       error: e,
-  //     );
-  //   }
-  // }
 
   Future<void> loadMorePosts() async {
     try {
@@ -278,12 +257,34 @@ class AltFeedController extends StateNotifier<AltFeedState> {
       }
 
       try {
+        // Build pagination parameters based on sort type
+        final Map<String, dynamic> extraParams = {};
+
+        switch (state.sortType) {
+          case FeedSortType.latest:
+            extraParams['lastCreatedAt'] =
+                lastPost.createdAt?.millisecondsSinceEpoch;
+            extraParams['lastPostId'] = lastPost.id;
+            break;
+          case FeedSortType.trending:
+          case FeedSortType.hot:
+            extraParams['lastHotScore'] = lastPost.hotScore;
+            extraParams['lastPostId'] = lastPost.id;
+            break;
+          case FeedSortType.top:
+            // For top, we can use the last post's hot score
+            extraParams['lastHotScore'] = lastPost.hotScore;
+            extraParams['lastPostId'] = lastPost.id;
+            break;
+        }
+
         // Get next batch of posts with proper pagination parameters
         final List<PostModel> morePosts = await repository.getFeedFromFunction(
           userId: userId!,
           feedType: 'alt',
           limit: pageSize,
-          lastHotScore: lastPost.hotScore,
+          sortType: state.sortType.value,
+          lastHotScore: _getLastSortValue(),
           lastPostId: lastPost.id,
         );
 
@@ -315,21 +316,20 @@ class AltFeedController extends StateNotifier<AltFeedState> {
         // Add the new unique posts to the existing list
         final allPosts = [...state.posts, ...uniqueNewPosts];
 
-        // *** ADD LOGGING HERE ***
-        final repoHasMore = repository.hasMorePosts; // Read it explicitly
-        debugPrint(
-            'AltFeedController: Updating state. Read repository.hasMorePosts = $repoHasMore');
-
         state = state.copyWith(
           posts: allPosts,
           isLoading: false,
-          hasMorePosts: gotFullPage, // Use the local calculation
+          hasMorePosts: gotFullPage,
           lastPost: uniqueNewPosts.isNotEmpty ? uniqueNewPosts.last : lastPost,
+          lastCreatedAt:
+              state.sortType == FeedSortType.latest && uniqueNewPosts.isNotEmpty
+                  ? uniqueNewPosts.last.createdAt
+                  : state.lastCreatedAt,
         );
         await _batchInitializePostInteractions(allPosts);
 
         debugPrint(
-            'AltFeedController: State updated. New state.hasMorePosts = ${state.hasMorePosts}'); // Log after update
+            'AltFeedController: State updated. New state.hasMorePosts = ${state.hasMorePosts}');
       } catch (e) {
         // Fall back to direct Firestore query
         debugPrint('Falling back to direct Firestore query: $e');
@@ -387,123 +387,22 @@ class AltFeedController extends StateNotifier<AltFeedState> {
     }
   }
 
-  /// Refresh the feed (pull-to-refresh)
-  // Future<void> refreshFeed() async {
-  //   try {
-  //     if (userId == null) return;
-  //
-  //     state = state.copyWith(isRefreshing: true, error: null);
-  //
-  //     // Try cloud function first
-  //     try {
-  //       final posts = await repository.getFeedFromFunction(
-  //         userId: userId!,
-  //         feedType: 'alt',
-  //         limit: pageSize,
-  //       );
-  //
-  //       state = state.copyWith(
-  //         posts: posts,
-  //         isRefreshing: false,
-  //         isLoading: false,
-  //         hasMorePosts: posts.length >= pageSize,
-  //         lastPost: posts.isNotEmpty ? posts.last : null,
-  //       );
-  //       return;
-  //     } catch (e) {
-  //       // Fall back to direct Firestore query
-  //       print('Falling back to direct Firestore query: $e');
-  //     }
-  //
-  //     // Use the global alt feed for refresh
-  //     final posts = await repository.getGlobalAltFeed(
-  //       limit: pageSize,
-  //     );
-  //
-  //     state = state.copyWith(
-  //       posts: posts,
-  //       isRefreshing: false,
-  //       isLoading: false,
-  //       hasMorePosts: posts.length >= pageSize,
-  //       lastPost: posts.isNotEmpty ? posts.last : null,
-  //     );
-  //   } catch (e) {
-  //     state = state.copyWith(
-  //       isRefreshing: false,
-  //       isLoading: false,
-  //       error: e,
-  //     );
-  //   }
-  // }
+  /// Get the last sort value based on current sort type
+  double? _getLastSortValue() {
+    if (state.posts.isEmpty) return null;
 
-  /// Handle post like
-  Future<void> likePost(String postId) async {
-    try {
-      await repository.interactWithPost(postId, 'like');
-
-      // Optimistically update the UI
-      final updatedPosts = state.posts.map((post) {
-        if (post.id == postId) {
-          if (post.isLiked) {
-            // Unlike
-            return post.copyWith(
-              likeCount: post.likeCount - 1,
-              isLiked: false,
-            );
-          } else {
-            // Like
-            return post.copyWith(
-              likeCount: post.likeCount + 1,
-              isLiked: true,
-              // If it was disliked before, remove dislike
-              dislikeCount:
-                  post.isDisliked ? post.dislikeCount - 1 : post.dislikeCount,
-              isDisliked: false,
-            );
-          }
-        }
-        return post;
-      }).toList();
-
-      state = state.copyWith(posts: updatedPosts);
-    } catch (e) {
-      // Refresh on error to ensure UI is in sync
-      refreshFeed();
-    }
-  }
-
-  /// Handle post dislike
-  Future<void> dislikePost(String postId) async {
-    try {
-      await repository.interactWithPost(postId, 'dislike');
-
-      // Optimistically update the UI
-      final updatedPosts = state.posts.map((post) {
-        if (post.id == postId) {
-          if (post.isDisliked) {
-            // Undislike
-            return post.copyWith(
-              dislikeCount: post.dislikeCount - 1,
-              isDisliked: false,
-            );
-          } else {
-            // Dislike
-            return post.copyWith(
-              dislikeCount: post.dislikeCount + 1,
-              isDisliked: true,
-              // If it was liked before, remove like
-              likeCount: post.isLiked ? post.likeCount - 1 : post.likeCount,
-              isLiked: false,
-            );
-          }
-        }
-        return post;
-      }).toList();
-
-      state = state.copyWith(posts: updatedPosts);
-    } catch (e) {
-      // Refresh on error to ensure UI is in sync
-      refreshFeed();
+    final lastPost = state.posts.last;
+    switch (state.sortType) {
+      case FeedSortType.latest:
+        return lastPost.createdAt?.millisecondsSinceEpoch.toDouble();
+      case FeedSortType.top:
+        return lastPost.likeCount.toDouble();
+      case FeedSortType.trending:
+        // For trending, use createdAt since that's the first orderBy field
+        return lastPost.createdAt?.millisecondsSinceEpoch.toDouble();
+      case FeedSortType.hot:
+      default:
+        return lastPost.hotScore;
     }
   }
 }

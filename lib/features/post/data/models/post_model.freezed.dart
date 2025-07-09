@@ -34,7 +34,11 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
   DateTime? get createdAt;
   DateTime? get updatedAt;
   DateTime? get pinnedAt; // When the post was pinned
-  double? get hotScore; // Herd-related fields
+  double? get hotScore; // Sorting-related fields
+  double?
+      get trendingScore; // Score for trending posts (hot score for recent posts)
+  double? get topScore; // Score for top posts (like count within time period)
+// Herd-related fields
   String? get herdId;
   String? get herdName;
   String? get herdProfileImageURL;
@@ -85,6 +89,8 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('updatedAt', updatedAt))
       ..add(DiagnosticsProperty('pinnedAt', pinnedAt))
       ..add(DiagnosticsProperty('hotScore', hotScore))
+      ..add(DiagnosticsProperty('trendingScore', trendingScore))
+      ..add(DiagnosticsProperty('topScore', topScore))
       ..add(DiagnosticsProperty('herdId', herdId))
       ..add(DiagnosticsProperty('herdName', herdName))
       ..add(DiagnosticsProperty('herdProfileImageURL', herdProfileImageURL))
@@ -145,6 +151,10 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
                 other.pinnedAt == pinnedAt) &&
             (identical(other.hotScore, hotScore) ||
                 other.hotScore == hotScore) &&
+            (identical(other.trendingScore, trendingScore) ||
+                other.trendingScore == trendingScore) &&
+            (identical(other.topScore, topScore) ||
+                other.topScore == topScore) &&
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
             (identical(other.herdName, herdName) ||
                 other.herdName == herdName) &&
@@ -202,6 +212,8 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
         updatedAt,
         pinnedAt,
         hotScore,
+        trendingScore,
+        topScore,
         herdId,
         herdName,
         herdProfileImageURL,
@@ -223,7 +235,7 @@ mixin _$PostModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, pinnedAt: $pinnedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText, isPinnedToProfile: $isPinnedToProfile, isPinnedToAltProfile: $isPinnedToAltProfile, isPinnedToHerd: $isPinnedToHerd)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, pinnedAt: $pinnedAt, hotScore: $hotScore, trendingScore: $trendingScore, topScore: $topScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText, isPinnedToProfile: $isPinnedToProfile, isPinnedToAltProfile: $isPinnedToAltProfile, isPinnedToHerd: $isPinnedToHerd)';
   }
 }
 
@@ -254,6 +266,8 @@ abstract mixin class $PostModelCopyWith<$Res> {
       DateTime? updatedAt,
       DateTime? pinnedAt,
       double? hotScore,
+      double? trendingScore,
+      double? topScore,
       String? herdId,
       String? herdName,
       String? herdProfileImageURL,
@@ -306,6 +320,8 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
     Object? updatedAt = freezed,
     Object? pinnedAt = freezed,
     Object? hotScore = freezed,
+    Object? trendingScore = freezed,
+    Object? topScore = freezed,
     Object? herdId = freezed,
     Object? herdName = freezed,
     Object? herdProfileImageURL = freezed,
@@ -408,6 +424,14 @@ class _$PostModelCopyWithImpl<$Res> implements $PostModelCopyWith<$Res> {
       hotScore: freezed == hotScore
           ? _self.hotScore
           : hotScore // ignore: cast_nullable_to_non_nullable
+              as double?,
+      trendingScore: freezed == trendingScore
+          ? _self.trendingScore
+          : trendingScore // ignore: cast_nullable_to_non_nullable
+              as double?,
+      topScore: freezed == topScore
+          ? _self.topScore
+          : topScore // ignore: cast_nullable_to_non_nullable
               as double?,
       herdId: freezed == herdId
           ? _self.herdId
@@ -596,6 +620,8 @@ extension PostModelPatterns on PostModel {
             DateTime? updatedAt,
             DateTime? pinnedAt,
             double? hotScore,
+            double? trendingScore,
+            double? topScore,
             String? herdId,
             String? herdName,
             String? herdProfileImageURL,
@@ -641,6 +667,8 @@ extension PostModelPatterns on PostModel {
             _that.updatedAt,
             _that.pinnedAt,
             _that.hotScore,
+            _that.trendingScore,
+            _that.topScore,
             _that.herdId,
             _that.herdName,
             _that.herdProfileImageURL,
@@ -700,6 +728,8 @@ extension PostModelPatterns on PostModel {
             DateTime? updatedAt,
             DateTime? pinnedAt,
             double? hotScore,
+            double? trendingScore,
+            double? topScore,
             String? herdId,
             String? herdName,
             String? herdProfileImageURL,
@@ -744,6 +774,8 @@ extension PostModelPatterns on PostModel {
             _that.updatedAt,
             _that.pinnedAt,
             _that.hotScore,
+            _that.trendingScore,
+            _that.topScore,
             _that.herdId,
             _that.herdName,
             _that.herdProfileImageURL,
@@ -802,6 +834,8 @@ extension PostModelPatterns on PostModel {
             DateTime? updatedAt,
             DateTime? pinnedAt,
             double? hotScore,
+            double? trendingScore,
+            double? topScore,
             String? herdId,
             String? herdName,
             String? herdProfileImageURL,
@@ -846,6 +880,8 @@ extension PostModelPatterns on PostModel {
             _that.updatedAt,
             _that.pinnedAt,
             _that.hotScore,
+            _that.trendingScore,
+            _that.topScore,
             _that.herdId,
             _that.herdName,
             _that.herdProfileImageURL,
@@ -894,6 +930,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       this.updatedAt,
       this.pinnedAt,
       this.hotScore,
+      this.trendingScore,
+      this.topScore,
       this.herdId,
       this.herdName,
       this.herdProfileImageURL,
@@ -985,6 +1023,13 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
 // When the post was pinned
   @override
   final double? hotScore;
+// Sorting-related fields
+  @override
+  final double? trendingScore;
+// Score for trending posts (hot score for recent posts)
+  @override
+  final double? topScore;
+// Score for top posts (like count within time period)
 // Herd-related fields
   @override
   final String? herdId;
@@ -1071,6 +1116,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('updatedAt', updatedAt))
       ..add(DiagnosticsProperty('pinnedAt', pinnedAt))
       ..add(DiagnosticsProperty('hotScore', hotScore))
+      ..add(DiagnosticsProperty('trendingScore', trendingScore))
+      ..add(DiagnosticsProperty('topScore', topScore))
       ..add(DiagnosticsProperty('herdId', herdId))
       ..add(DiagnosticsProperty('herdName', herdName))
       ..add(DiagnosticsProperty('herdProfileImageURL', herdProfileImageURL))
@@ -1131,6 +1178,10 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
                 other.pinnedAt == pinnedAt) &&
             (identical(other.hotScore, hotScore) ||
                 other.hotScore == hotScore) &&
+            (identical(other.trendingScore, trendingScore) ||
+                other.trendingScore == trendingScore) &&
+            (identical(other.topScore, topScore) ||
+                other.topScore == topScore) &&
             (identical(other.herdId, herdId) || other.herdId == herdId) &&
             (identical(other.herdName, herdName) ||
                 other.herdName == herdName) &&
@@ -1188,6 +1239,8 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
         updatedAt,
         pinnedAt,
         hotScore,
+        trendingScore,
+        topScore,
         herdId,
         herdName,
         herdProfileImageURL,
@@ -1209,7 +1262,7 @@ class _PostModel extends PostModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, pinnedAt: $pinnedAt, hotScore: $hotScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText, isPinnedToProfile: $isPinnedToProfile, isPinnedToAltProfile: $isPinnedToAltProfile, isPinnedToHerd: $isPinnedToHerd)';
+    return 'PostModel(id: $id, authorId: $authorId, authorName: $authorName, authorUsername: $authorUsername, authorProfileImageURL: $authorProfileImageURL, title: $title, content: $content, mediaItems: $mediaItems, mediaURL: $mediaURL, mediaType: $mediaType, mediaThumbnailURL: $mediaThumbnailURL, tags: $tags, isNSFW: $isNSFW, mentions: $mentions, likeCount: $likeCount, dislikeCount: $dislikeCount, commentCount: $commentCount, createdAt: $createdAt, updatedAt: $updatedAt, pinnedAt: $pinnedAt, hotScore: $hotScore, trendingScore: $trendingScore, topScore: $topScore, herdId: $herdId, herdName: $herdName, herdProfileImageURL: $herdProfileImageURL, isPrivateHerd: $isPrivateHerd, isHerdMember: $isHerdMember, isHerdModerator: $isHerdModerator, isHerdBanned: $isHerdBanned, isHerdBlocked: $isHerdBlocked, isAlt: $isAlt, feedType: $feedType, isLiked: $isLiked, isDisliked: $isDisliked, isBookmarked: $isBookmarked, isRichText: $isRichText, isPinnedToProfile: $isPinnedToProfile, isPinnedToAltProfile: $isPinnedToAltProfile, isPinnedToHerd: $isPinnedToHerd)';
   }
 }
 
@@ -1243,6 +1296,8 @@ abstract mixin class _$PostModelCopyWith<$Res>
       DateTime? updatedAt,
       DateTime? pinnedAt,
       double? hotScore,
+      double? trendingScore,
+      double? topScore,
       String? herdId,
       String? herdName,
       String? herdProfileImageURL,
@@ -1295,6 +1350,8 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
     Object? updatedAt = freezed,
     Object? pinnedAt = freezed,
     Object? hotScore = freezed,
+    Object? trendingScore = freezed,
+    Object? topScore = freezed,
     Object? herdId = freezed,
     Object? herdName = freezed,
     Object? herdProfileImageURL = freezed,
@@ -1397,6 +1454,14 @@ class __$PostModelCopyWithImpl<$Res> implements _$PostModelCopyWith<$Res> {
       hotScore: freezed == hotScore
           ? _self.hotScore
           : hotScore // ignore: cast_nullable_to_non_nullable
+              as double?,
+      trendingScore: freezed == trendingScore
+          ? _self.trendingScore
+          : trendingScore // ignore: cast_nullable_to_non_nullable
+              as double?,
+      topScore: freezed == topScore
+          ? _self.topScore
+          : topScore // ignore: cast_nullable_to_non_nullable
               as double?,
       herdId: freezed == herdId
           ? _self.herdId

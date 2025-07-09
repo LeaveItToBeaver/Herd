@@ -21,6 +21,8 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
   bool get isRefreshing;
   PostModel? get lastPost;
   bool get fromCache;
+  FeedSortType get sortType;
+  DateTime? get lastCreatedAt;
 
   /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
@@ -40,7 +42,9 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isRefreshing', isRefreshing))
       ..add(DiagnosticsProperty('lastPost', lastPost))
-      ..add(DiagnosticsProperty('fromCache', fromCache));
+      ..add(DiagnosticsProperty('fromCache', fromCache))
+      ..add(DiagnosticsProperty('sortType', sortType))
+      ..add(DiagnosticsProperty('lastCreatedAt', lastCreatedAt));
   }
 
   @override
@@ -59,7 +63,11 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
             (identical(other.lastPost, lastPost) ||
                 other.lastPost == lastPost) &&
             (identical(other.fromCache, fromCache) ||
-                other.fromCache == fromCache));
+                other.fromCache == fromCache) &&
+            (identical(other.sortType, sortType) ||
+                other.sortType == sortType) &&
+            (identical(other.lastCreatedAt, lastCreatedAt) ||
+                other.lastCreatedAt == lastCreatedAt));
   }
 
   @override
@@ -71,11 +79,13 @@ mixin _$AltFeedState implements DiagnosticableTreeMixin {
       const DeepCollectionEquality().hash(error),
       isRefreshing,
       lastPost,
-      fromCache);
+      fromCache,
+      sortType,
+      lastCreatedAt);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache)';
+    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache, sortType: $sortType, lastCreatedAt: $lastCreatedAt)';
   }
 }
 
@@ -92,7 +102,9 @@ abstract mixin class $AltFeedStateCopyWith<$Res> {
       Object? error,
       bool isRefreshing,
       PostModel? lastPost,
-      bool fromCache});
+      bool fromCache,
+      FeedSortType sortType,
+      DateTime? lastCreatedAt});
 
   $PostModelCopyWith<$Res>? get lastPost;
 }
@@ -116,6 +128,8 @@ class _$AltFeedStateCopyWithImpl<$Res> implements $AltFeedStateCopyWith<$Res> {
     Object? isRefreshing = null,
     Object? lastPost = freezed,
     Object? fromCache = null,
+    Object? sortType = null,
+    Object? lastCreatedAt = freezed,
   }) {
     return _then(_self.copyWith(
       posts: null == posts
@@ -143,6 +157,14 @@ class _$AltFeedStateCopyWithImpl<$Res> implements $AltFeedStateCopyWith<$Res> {
           ? _self.fromCache
           : fromCache // ignore: cast_nullable_to_non_nullable
               as bool,
+      sortType: null == sortType
+          ? _self.sortType
+          : sortType // ignore: cast_nullable_to_non_nullable
+              as FeedSortType,
+      lastCreatedAt: freezed == lastCreatedAt
+          ? _self.lastCreatedAt
+          : lastCreatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 
@@ -261,15 +283,25 @@ extension AltFeedStatePatterns on AltFeedState {
             Object? error,
             bool isRefreshing,
             PostModel? lastPost,
-            bool fromCache)?
+            bool fromCache,
+            FeedSortType sortType,
+            DateTime? lastCreatedAt)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _AltFeedState() when $default != null:
-        return $default(_that.posts, _that.isLoading, _that.hasMorePosts,
-            _that.error, _that.isRefreshing, _that.lastPost, _that.fromCache);
+        return $default(
+            _that.posts,
+            _that.isLoading,
+            _that.hasMorePosts,
+            _that.error,
+            _that.isRefreshing,
+            _that.lastPost,
+            _that.fromCache,
+            _that.sortType,
+            _that.lastCreatedAt);
       case _:
         return orElse();
     }
@@ -297,14 +329,24 @@ extension AltFeedStatePatterns on AltFeedState {
             Object? error,
             bool isRefreshing,
             PostModel? lastPost,
-            bool fromCache)
+            bool fromCache,
+            FeedSortType sortType,
+            DateTime? lastCreatedAt)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _AltFeedState():
-        return $default(_that.posts, _that.isLoading, _that.hasMorePosts,
-            _that.error, _that.isRefreshing, _that.lastPost, _that.fromCache);
+        return $default(
+            _that.posts,
+            _that.isLoading,
+            _that.hasMorePosts,
+            _that.error,
+            _that.isRefreshing,
+            _that.lastPost,
+            _that.fromCache,
+            _that.sortType,
+            _that.lastCreatedAt);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -331,14 +373,24 @@ extension AltFeedStatePatterns on AltFeedState {
             Object? error,
             bool isRefreshing,
             PostModel? lastPost,
-            bool fromCache)?
+            bool fromCache,
+            FeedSortType sortType,
+            DateTime? lastCreatedAt)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _AltFeedState() when $default != null:
-        return $default(_that.posts, _that.isLoading, _that.hasMorePosts,
-            _that.error, _that.isRefreshing, _that.lastPost, _that.fromCache);
+        return $default(
+            _that.posts,
+            _that.isLoading,
+            _that.hasMorePosts,
+            _that.error,
+            _that.isRefreshing,
+            _that.lastPost,
+            _that.fromCache,
+            _that.sortType,
+            _that.lastCreatedAt);
       case _:
         return null;
     }
@@ -355,7 +407,9 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
       this.error,
       this.isRefreshing = false,
       this.lastPost,
-      this.fromCache = false})
+      this.fromCache = false,
+      this.sortType = FeedSortType.hot,
+      this.lastCreatedAt})
       : _posts = posts;
 
   final List<PostModel> _posts;
@@ -382,6 +436,11 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
   @override
   @JsonKey()
   final bool fromCache;
+  @override
+  @JsonKey()
+  final FeedSortType sortType;
+  @override
+  final DateTime? lastCreatedAt;
 
   /// Create a copy of AltFeedState
   /// with the given fields replaced by the non-null parameter values.
@@ -401,7 +460,9 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isRefreshing', isRefreshing))
       ..add(DiagnosticsProperty('lastPost', lastPost))
-      ..add(DiagnosticsProperty('fromCache', fromCache));
+      ..add(DiagnosticsProperty('fromCache', fromCache))
+      ..add(DiagnosticsProperty('sortType', sortType))
+      ..add(DiagnosticsProperty('lastCreatedAt', lastCreatedAt));
   }
 
   @override
@@ -420,7 +481,11 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
             (identical(other.lastPost, lastPost) ||
                 other.lastPost == lastPost) &&
             (identical(other.fromCache, fromCache) ||
-                other.fromCache == fromCache));
+                other.fromCache == fromCache) &&
+            (identical(other.sortType, sortType) ||
+                other.sortType == sortType) &&
+            (identical(other.lastCreatedAt, lastCreatedAt) ||
+                other.lastCreatedAt == lastCreatedAt));
   }
 
   @override
@@ -432,11 +497,13 @@ class _AltFeedState with DiagnosticableTreeMixin implements AltFeedState {
       const DeepCollectionEquality().hash(error),
       isRefreshing,
       lastPost,
-      fromCache);
+      fromCache,
+      sortType,
+      lastCreatedAt);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache)';
+    return 'AltFeedState(posts: $posts, isLoading: $isLoading, hasMorePosts: $hasMorePosts, error: $error, isRefreshing: $isRefreshing, lastPost: $lastPost, fromCache: $fromCache, sortType: $sortType, lastCreatedAt: $lastCreatedAt)';
   }
 }
 
@@ -455,7 +522,9 @@ abstract mixin class _$AltFeedStateCopyWith<$Res>
       Object? error,
       bool isRefreshing,
       PostModel? lastPost,
-      bool fromCache});
+      bool fromCache,
+      FeedSortType sortType,
+      DateTime? lastCreatedAt});
 
   @override
   $PostModelCopyWith<$Res>? get lastPost;
@@ -481,6 +550,8 @@ class __$AltFeedStateCopyWithImpl<$Res>
     Object? isRefreshing = null,
     Object? lastPost = freezed,
     Object? fromCache = null,
+    Object? sortType = null,
+    Object? lastCreatedAt = freezed,
   }) {
     return _then(_AltFeedState(
       posts: null == posts
@@ -508,6 +579,14 @@ class __$AltFeedStateCopyWithImpl<$Res>
           ? _self.fromCache
           : fromCache // ignore: cast_nullable_to_non_nullable
               as bool,
+      sortType: null == sortType
+          ? _self.sortType
+          : sortType // ignore: cast_nullable_to_non_nullable
+              as FeedSortType,
+      lastCreatedAt: freezed == lastCreatedAt
+          ? _self.lastCreatedAt
+          : lastCreatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 
