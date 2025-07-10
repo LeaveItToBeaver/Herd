@@ -132,7 +132,7 @@ class DraftsTabView extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              
+
               // Content preview
               Text(
                 draft.content,
@@ -141,7 +141,7 @@ class DraftsTabView extends ConsumerWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
-              
+
               // Tags and metadata
               Wrap(
                 spacing: 8,
@@ -169,7 +169,7 @@ class DraftsTabView extends ConsumerWidget {
                     ),
                 ],
               ),
-              
+
               // Date and actions
               Row(
                 children: [
@@ -188,7 +188,8 @@ class DraftsTabView extends ConsumerWidget {
                   ),
                   const Spacer(),
                   PopupMenuButton<String>(
-                    onSelected: (value) => _handleMenuAction(context, ref, value, draft),
+                    onSelected: (value) =>
+                        _handleMenuAction(context, ref, value, draft),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'edit',

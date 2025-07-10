@@ -92,7 +92,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         // Initialize tab controller after we know if it's the current user
         // Only initialize if not already initialized with the correct count
         final isCurrentUser = profile.isCurrentUser;
-        final requiredTabCount = isCurrentUser ? 4 : 2; // 4 tabs for current user: Alt Posts, About, Herds, Drafts
+        final requiredTabCount = isCurrentUser
+            ? 4
+            : 2; // 4 tabs for current user: Alt Posts, About, Herds, Drafts
         if (_tabController.length != requiredTabCount) {
           // Dispose the old controller first
           _tabController.dispose();
