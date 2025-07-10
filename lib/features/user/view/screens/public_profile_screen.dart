@@ -10,6 +10,7 @@ import '../../../post/data/models/post_model.dart';
 import '../providers/state/profile_state.dart';
 import '../widgets/cover_image_blur_effect.dart';
 import '../widgets/posts_tab_view.dart';
+import '../widgets/drafts_tab_view.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -32,6 +33,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
   @override
   void initState() {
     super.initState();
+    // Initialize with default 2 tabs, will be updated once we know if user is current user
     _tabController = TabController(length: 2, vsync: this);
     _scrollController = ScrollController();
 
@@ -72,6 +74,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
       data: (profile) {
         if (profile.user == null) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        // Initialize tab controller after we know if it's the current user
+        // Only initialize if not already initialized with the correct count
+        final isCurrentUser = profile.isCurrentUser;
+        final requiredTabCount = isCurrentUser ? 3 : 2;
+        if (_tabController.length != requiredTabCount) {
+          // Dispose the old controller first
+          _tabController.dispose();
+          _tabController = TabController(length: requiredTabCount, vsync: this);
         }
 
         // Get posts filtered for the right view
@@ -256,9 +268,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                       unselectedLabelColor:
                           Theme.of(context).colorScheme.onSurfaceVariant,
                       indicatorColor: Theme.of(context).colorScheme.primary,
-                      tabs: const [
-                        Tab(text: 'Posts'),
-                        Tab(text: 'About'),
+                      tabs: [
+                        const Tab(text: 'Posts'),
+                        const Tab(text: 'About'),
+                        // Only show Drafts tab for current user
+                        if (isCurrentUser) const Tab(text: 'Drafts'),
                       ],
                     ),
                   ),
@@ -275,6 +289,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                 SingleChildScrollView(
                   child: _buildAboutSection(profile),
                 ),
+                // Drafts tab - Only for current user
+                if (isCurrentUser) const DraftsTabView(),
               ],
             ),
           ),
