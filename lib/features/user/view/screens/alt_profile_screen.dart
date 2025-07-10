@@ -12,6 +12,7 @@ import '../../../post/data/models/post_model.dart';
 import '../providers/state/profile_state.dart';
 import '../widgets/cover_image_blur_effect.dart';
 import '../widgets/posts_tab_view.dart';
+import '../widgets/drafts_tab_view.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -91,7 +92,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         // Initialize tab controller after we know if it's the current user
         // Only initialize if not already initialized with the correct count
         final isCurrentUser = profile.isCurrentUser;
-        final requiredTabCount = isCurrentUser ? 3 : 2;
+        final requiredTabCount = isCurrentUser ? 4 : 2; // 4 tabs for current user: Alt Posts, About, Herds, Drafts
         if (_tabController.length != requiredTabCount) {
           // Dispose the old controller first
           _tabController.dispose();
@@ -270,8 +271,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       tabs: [
                         const Tab(text: 'Alt Posts'),
                         const Tab(text: 'About'),
-                        // Only show Herds tab for current user
+                        // Only show Herds and Drafts tabs for current user
                         if (isCurrentUser) const Tab(text: 'Herds'),
+                        if (isCurrentUser) const Tab(text: 'Drafts'),
                       ],
                     ),
                   ),
@@ -292,6 +294,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
                 // Herds tab - Only for current user
                 if (isCurrentUser) _buildHerdsSection(profile),
+                // Drafts tab - Only for current user
+                if (isCurrentUser) const DraftsTabView(),
               ],
             ),
           ),

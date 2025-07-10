@@ -261,6 +261,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
           return GestureDetector(
             onTap: () {
               // TODO: ここにタグ検索ページへのナビゲーションを実装
+              // Implement navigation to the tag search page here
               debugPrint('Tag tapped: $tag');
               // 例: context.push('/search?tag=$tag');
             },
