@@ -12,7 +12,7 @@ import 'package:image_cropper/image_cropper.dart';
 
 import '../providers/reply_providers.dart';
 
-// TODO: Add GIF picker functionality - Eh almost done
+// TODO: Add GIF picker functionality - Eh almost done // Ignore this
 // TODO: Add comment editing functionality - Need to test
 // TODO: Add comment deletion functionality - Need to test
 // TODO: Add comment reporting functionality
