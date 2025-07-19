@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -25,6 +24,7 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
   bool get hasMorePosts;
   String get currentUserId;
   PostModel? get lastPost;
+  int get pageSize;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -47,7 +47,8 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('currentUserId', currentUserId))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('pageSize', pageSize));
   }
 
   @override
@@ -72,7 +73,9 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
             (identical(other.currentUserId, currentUserId) ||
                 other.currentUserId == currentUserId) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.pageSize, pageSize) ||
+                other.pageSize == pageSize));
   }
 
   @override
@@ -87,11 +90,12 @@ mixin _$ProfileState implements DiagnosticableTreeMixin {
       isLoading,
       hasMorePosts,
       currentUserId,
-      lastPost);
+      lastPost,
+      pageSize);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost, pageSize: $pageSize)';
   }
 }
 
@@ -111,7 +115,8 @@ abstract mixin class $ProfileStateCopyWith<$Res> {
       bool isLoading,
       bool hasMorePosts,
       String currentUserId,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      int pageSize});
 
   $UserModelCopyWith<$Res>? get user;
   $PostModelCopyWith<$Res>? get lastPost;
@@ -139,6 +144,7 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
     Object? hasMorePosts = null,
     Object? currentUserId = null,
     Object? lastPost = freezed,
+    Object? pageSize = null,
   }) {
     return _then(_self.copyWith(
       user: freezed == user
@@ -181,6 +187,10 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      pageSize: null == pageSize
+          ? _self.pageSize
+          : pageSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 
@@ -213,6 +223,232 @@ class _$ProfileStateCopyWithImpl<$Res> implements $ProfileStateCopyWith<$Res> {
   }
 }
 
+/// Adds pattern-matching-related methods to [ProfileState].
+extension ProfileStatePatterns on ProfileState {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_ProfileState value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileState() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_ProfileState value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileState():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_ProfileState value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileState() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            UserModel? user,
+            List<PostModel> posts,
+            bool isCurrentUser,
+            bool isFollowing,
+            bool isAltView,
+            bool hasAltProfile,
+            bool isLoading,
+            bool hasMorePosts,
+            String currentUserId,
+            PostModel? lastPost,
+            int pageSize)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileState() when $default != null:
+        return $default(
+            _that.user,
+            _that.posts,
+            _that.isCurrentUser,
+            _that.isFollowing,
+            _that.isAltView,
+            _that.hasAltProfile,
+            _that.isLoading,
+            _that.hasMorePosts,
+            _that.currentUserId,
+            _that.lastPost,
+            _that.pageSize);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            UserModel? user,
+            List<PostModel> posts,
+            bool isCurrentUser,
+            bool isFollowing,
+            bool isAltView,
+            bool hasAltProfile,
+            bool isLoading,
+            bool hasMorePosts,
+            String currentUserId,
+            PostModel? lastPost,
+            int pageSize)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileState():
+        return $default(
+            _that.user,
+            _that.posts,
+            _that.isCurrentUser,
+            _that.isFollowing,
+            _that.isAltView,
+            _that.hasAltProfile,
+            _that.isLoading,
+            _that.hasMorePosts,
+            _that.currentUserId,
+            _that.lastPost,
+            _that.pageSize);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            UserModel? user,
+            List<PostModel> posts,
+            bool isCurrentUser,
+            bool isFollowing,
+            bool isAltView,
+            bool hasAltProfile,
+            bool isLoading,
+            bool hasMorePosts,
+            String currentUserId,
+            PostModel? lastPost,
+            int pageSize)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileState() when $default != null:
+        return $default(
+            _that.user,
+            _that.posts,
+            _that.isCurrentUser,
+            _that.isFollowing,
+            _that.isAltView,
+            _that.hasAltProfile,
+            _that.isLoading,
+            _that.hasMorePosts,
+            _that.currentUserId,
+            _that.lastPost,
+            _that.pageSize);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 
 class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
@@ -226,7 +462,8 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       this.isLoading = false,
       this.hasMorePosts = true,
       this.currentUserId = '',
-      this.lastPost})
+      this.lastPost,
+      this.pageSize = 20})
       : _posts = posts;
 
   @override
@@ -258,6 +495,9 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
   final String currentUserId;
   @override
   final PostModel? lastPost;
+  @override
+  @JsonKey()
+  final int pageSize;
 
   /// Create a copy of ProfileState
   /// with the given fields replaced by the non-null parameter values.
@@ -280,7 +520,8 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('hasMorePosts', hasMorePosts))
       ..add(DiagnosticsProperty('currentUserId', currentUserId))
-      ..add(DiagnosticsProperty('lastPost', lastPost));
+      ..add(DiagnosticsProperty('lastPost', lastPost))
+      ..add(DiagnosticsProperty('pageSize', pageSize));
   }
 
   @override
@@ -305,7 +546,9 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
             (identical(other.currentUserId, currentUserId) ||
                 other.currentUserId == currentUserId) &&
             (identical(other.lastPost, lastPost) ||
-                other.lastPost == lastPost));
+                other.lastPost == lastPost) &&
+            (identical(other.pageSize, pageSize) ||
+                other.pageSize == pageSize));
   }
 
   @override
@@ -320,11 +563,12 @@ class _ProfileState with DiagnosticableTreeMixin implements ProfileState {
       isLoading,
       hasMorePosts,
       currentUserId,
-      lastPost);
+      lastPost,
+      pageSize);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost)';
+    return 'ProfileState(user: $user, posts: $posts, isCurrentUser: $isCurrentUser, isFollowing: $isFollowing, isAltView: $isAltView, hasAltProfile: $hasAltProfile, isLoading: $isLoading, hasMorePosts: $hasMorePosts, currentUserId: $currentUserId, lastPost: $lastPost, pageSize: $pageSize)';
   }
 }
 
@@ -346,7 +590,8 @@ abstract mixin class _$ProfileStateCopyWith<$Res>
       bool isLoading,
       bool hasMorePosts,
       String currentUserId,
-      PostModel? lastPost});
+      PostModel? lastPost,
+      int pageSize});
 
   @override
   $UserModelCopyWith<$Res>? get user;
@@ -377,6 +622,7 @@ class __$ProfileStateCopyWithImpl<$Res>
     Object? hasMorePosts = null,
     Object? currentUserId = null,
     Object? lastPost = freezed,
+    Object? pageSize = null,
   }) {
     return _then(_ProfileState(
       user: freezed == user
@@ -419,6 +665,10 @@ class __$ProfileStateCopyWithImpl<$Res>
           ? _self.lastPost
           : lastPost // ignore: cast_nullable_to_non_nullable
               as PostModel?,
+      pageSize: null == pageSize
+          ? _self.pageSize
+          : pageSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 

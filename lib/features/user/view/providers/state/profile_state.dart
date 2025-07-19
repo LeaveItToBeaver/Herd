@@ -18,6 +18,7 @@ abstract class ProfileState with _$ProfileState {
     @Default(true) bool hasMorePosts,
     @Default('') String currentUserId,
     PostModel? lastPost,
+    @Default(20) int pageSize,
   }) = _ProfileState;
 
   factory ProfileState.initial() => const ProfileState(
@@ -31,5 +32,6 @@ abstract class ProfileState with _$ProfileState {
         hasMorePosts: true,
         currentUserId: '',
         lastPost: null,
+        pageSize: 20,
       );
 }

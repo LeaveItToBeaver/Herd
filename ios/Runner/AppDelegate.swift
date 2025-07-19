@@ -13,4 +13,7 @@ import Firebase
     // FirebaseApp.configure() call intentionally removed
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+    application.applicationIconBadgeNumber = 0;
+  }
 }

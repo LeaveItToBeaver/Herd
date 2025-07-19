@@ -73,6 +73,132 @@ exports.distributePublicPost = onDocumentCreated(
     }
 );
 
+exports.incrementPublicPostCount = onDocumentCreated(
+    "posts/{postId}",
+    async (event) => {
+        const postData = event.data.data();
+        
+        if (!postData || !postData.authorId) {
+            logger.error(`Invalid post data for incrementing count`);
+            return null;
+        }
+
+        try {
+            await firestore.collection('users').doc(postData.authorId).update({
+                totalPosts: admin.firestore.FieldValue.increment(1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            logger.info(`Incremented totalPosts for user ${postData.authorId}`);
+            return null;
+        } catch (error) {
+            logger.error(`Error incrementing totalPosts for user ${postData.authorId}:`, error);
+            throw error;
+        }
+    }
+);
+
+exports.incrementAltPostCount = onDocumentCreated(
+    "altPosts/{postId}",
+    async (event) => {
+        const postData = event.data.data();
+        
+        if (!postData || !postData.authorId) {
+            logger.error(`Invalid alt post data for incrementing count`);
+            return null;
+        }
+
+        try {
+            await firestore.collection('users').doc(postData.authorId).update({
+                altTotalPosts: admin.firestore.FieldValue.increment(1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            logger.info(`Incremented altTotalPosts for user ${postData.authorId}`);
+            return null;
+        } catch (error) {
+            logger.error(`Error incrementing altTotalPosts for user ${postData.authorId}:`, error);
+            throw error;
+        }
+    }
+);
+
+exports.decrementPublicPostCount = onDocumentDeleted(
+    "posts/{postId}",
+    async (event) => {
+        const postData = event.data.data();
+        
+        if (!postData || !postData.authorId) {
+            logger.error(`Invalid deleted post data for decrementing count`);
+            return null;
+        }
+
+        try {
+            await firestore.collection('users').doc(postData.authorId).update({
+                totalPosts: admin.firestore.FieldValue.increment(-1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            logger.info(`Decremented totalPosts for user ${postData.authorId}`);
+            return null;
+        } catch (error) {
+            logger.error(`Error decrementing totalPosts for user ${postData.authorId}:`, error);
+            throw error;
+        }
+    }
+);
+
+exports.decrementAltPostCount = onDocumentDeleted(
+    "altPosts/{postId}",
+    async (event) => {
+        const postData = event.data.data();
+        
+        if (!postData || !postData.authorId) {
+            logger.error(`Invalid deleted alt post data for decrementing count`);
+            return null;
+        }
+
+        try {
+            await firestore.collection('users').doc(postData.authorId).update({
+                altTotalPosts: admin.firestore.FieldValue.increment(-1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            logger.info(`Decremented altTotalPosts for user ${postData.authorId}`);
+            return null;
+        } catch (error) {
+            logger.error(`Error decrementing altTotalPosts for user ${postData.authorId}:`, error);
+            throw error;
+        }
+    }
+);
+
+exports.incrementHerdPostCount = onDocumentCreated(
+    "herdPosts/{herdId}/posts/{postId}",
+    async (event) => {
+        const postData = event.data.data();
+        
+        if (!postData || !postData.authorId) {
+            logger.error(`Invalid herd post data for incrementing count`);
+            return null;
+        }
+
+        try {
+            // Herd posts count as alt posts
+            await firestore.collection('users').doc(postData.authorId).update({
+                altTotalPosts: admin.firestore.FieldValue.increment(1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            
+            logger.info(`Incremented altTotalPosts for herd post by user ${postData.authorId}`);
+            return null;
+        } catch (error) {
+            logger.error(`Error incrementing altTotalPosts for herd post by user ${postData.authorId}:`, error);
+            throw error;
+        }
+    }
+);
+
 /**
  * Remove post from all feeds when the post is deleted
  */
@@ -216,16 +342,15 @@ exports.distributeHerdPost = onDocumentCreated(
                 enhancedPostData.mediaItems = mediaItems;
             }
 
-            // REFACTORED APPROACH: Store complete data only in altPosts
             await firestore.collection('altPosts').doc(postId).set(enhancedPostData);
 
-            // REFACTORED APPROACH: Store only minimal reference data in herdPosts
             const minimalPostData = {
                 id: postId,
                 authorId: postData.authorId,
                 createdAt: postData.createdAt,
                 hotScore: initialHotScore,
-                sourcePostRef: 'altPosts/' + postId  // Reference to the source of truth
+                sourcePostRef: 'altPosts/' + postId,  // Reference to the source of truth
+                herdId: herdId
             };
 
             // Update the herd post document with minimal data

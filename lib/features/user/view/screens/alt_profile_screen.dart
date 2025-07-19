@@ -12,6 +12,7 @@ import '../../../post/data/models/post_model.dart';
 import '../providers/state/profile_state.dart';
 import '../widgets/cover_image_blur_effect.dart';
 import '../widgets/posts_tab_view.dart';
+import '../widgets/drafts_tab_view.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -39,7 +40,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
     // Load user profile data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.userId.isNotEmpty) {
+      if (widget.userId.isNotEmpty && mounted) {
         ref.read(profileControllerProvider.notifier).loadProfile(
               widget.userId,
               isAltView: true, // Force alt view
@@ -91,7 +92,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         // Initialize tab controller after we know if it's the current user
         // Only initialize if not already initialized with the correct count
         final isCurrentUser = profile.isCurrentUser;
-        final requiredTabCount = isCurrentUser ? 3 : 2;
+        final requiredTabCount = isCurrentUser
+            ? 4
+            : 2; // 4 tabs for current user: Alt Posts, About, Herds, Drafts
         if (_tabController.length != requiredTabCount) {
           // Dispose the old controller first
           _tabController.dispose();
@@ -105,7 +108,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         }
 
         // Get alt posts only
-        final altPosts = profile.posts;
+        //final altPosts = profile.posts;
         final filteredPosts =
             profile.posts.where((post) => post.isAlt).toList();
 
@@ -179,7 +182,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                           color: Theme.of(context)
                               .colorScheme
                               .outline
-                              .withOpacity(0.1),
+                              .withValues(alpha: 0.1),
                         ),
                       ),
                       child: Padding(
@@ -225,7 +228,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildStatColumn(
-                                    'Alt Posts', altPosts.length.toString()),
+                                  'Alt Posts',
+                                  profile.user?.altTotalPosts.toString() ?? '0',
+                                ),
                                 _buildStatColumn('Connections',
                                     profile.user?.friends.toString() ?? '0'),
                                 Consumer(
@@ -270,8 +275,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                       tabs: [
                         const Tab(text: 'Alt Posts'),
                         const Tab(text: 'About'),
-                        // Only show Herds tab for current user
+                        // Only show Herds and Drafts tabs for current user
                         if (isCurrentUser) const Tab(text: 'Herds'),
+                        if (isCurrentUser) const Tab(text: 'Drafts'),
                       ],
                     ),
                   ),
@@ -292,6 +298,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
 
                 // Herds tab - Only for current user
                 if (isCurrentUser) _buildHerdsSection(profile),
+                // Drafts tab - Only for current user
+                if (isCurrentUser) const DraftsTabView(),
               ],
             ),
           ),
@@ -406,7 +414,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   child: RefreshIndicator(
                     onRefresh: () async {
                       // Refresh herds data for this specific user
-                      ref.refresh(profileUserHerdsProvider(widget.userId));
+                      ref.invalidate(profileUserHerdsProvider(widget.userId));
                     },
                     child: herds.isEmpty
                         ? ListView(
@@ -525,8 +533,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   ],
                   _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Alt Posts',
-                      '${profile.posts.where((post) => post.isAlt).length}'),
+                  _buildInfoRow(
+                      'Alt Posts', '${profile.user?.altTotalPosts ?? 0}'),
                 ],
               ),
             ),
@@ -596,6 +604,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
   Widget errorWidget(Object error, StackTrace stack) {
     if (kDebugMode) {
       print('Alt Profile Screen Error: $error');
+      print('Stack trace: $stack');
     }
 
     return Center(
@@ -612,7 +621,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
             onPressed: () {
               ref
                   .read(profileControllerProvider.notifier)
-                  .loadProfile(widget.userId);
+                  .loadProfile(widget.userId, isAltView: true);
             },
             child: const Text('Retry'),
           ),

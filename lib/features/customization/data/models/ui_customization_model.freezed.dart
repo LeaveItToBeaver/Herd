@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -218,6 +217,214 @@ class _$UICustomizationModelCopyWithImpl<$Res>
     return $TypographySettingsCopyWith<$Res>(_self.typography, (value) {
       return _then(_self.copyWith(typography: value));
     });
+  }
+}
+
+/// Adds pattern-matching-related methods to [UICustomizationModel].
+extension UICustomizationModelPatterns on UICustomizationModel {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_UICustomizationModel value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _UICustomizationModel() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_UICustomizationModel value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UICustomizationModel():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_UICustomizationModel value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UICustomizationModel() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String userId,
+            @TimestampOrStringDateTimeConverter() DateTime lastUpdated,
+            AppThemeSettings appTheme,
+            ProfileCustomization profileCustomization,
+            ComponentStyles componentStyles,
+            LayoutPreferences layoutPreferences,
+            AnimationSettings animationSettings,
+            TypographySettings typography)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _UICustomizationModel() when $default != null:
+        return $default(
+            _that.userId,
+            _that.lastUpdated,
+            _that.appTheme,
+            _that.profileCustomization,
+            _that.componentStyles,
+            _that.layoutPreferences,
+            _that.animationSettings,
+            _that.typography);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String userId,
+            @TimestampOrStringDateTimeConverter() DateTime lastUpdated,
+            AppThemeSettings appTheme,
+            ProfileCustomization profileCustomization,
+            ComponentStyles componentStyles,
+            LayoutPreferences layoutPreferences,
+            AnimationSettings animationSettings,
+            TypographySettings typography)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UICustomizationModel():
+        return $default(
+            _that.userId,
+            _that.lastUpdated,
+            _that.appTheme,
+            _that.profileCustomization,
+            _that.componentStyles,
+            _that.layoutPreferences,
+            _that.animationSettings,
+            _that.typography);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String userId,
+            @TimestampOrStringDateTimeConverter() DateTime lastUpdated,
+            AppThemeSettings appTheme,
+            ProfileCustomization profileCustomization,
+            ComponentStyles componentStyles,
+            LayoutPreferences layoutPreferences,
+            AnimationSettings animationSettings,
+            TypographySettings typography)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UICustomizationModel() when $default != null:
+        return $default(
+            _that.userId,
+            _that.lastUpdated,
+            _that.appTheme,
+            _that.profileCustomization,
+            _that.componentStyles,
+            _that.layoutPreferences,
+            _that.animationSettings,
+            _that.typography);
+      case _:
+        return null;
+    }
   }
 }
 
@@ -864,6 +1071,364 @@ class _$AppThemeSettingsCopyWithImpl<$Res>
           : shadowIntensity // ignore: cast_nullable_to_non_nullable
               as double,
     ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [AppThemeSettings].
+extension AppThemeSettingsPatterns on AppThemeSettings {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_AppThemeSettings value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _AppThemeSettings() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_AppThemeSettings value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AppThemeSettings():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_AppThemeSettings value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AppThemeSettings() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String primaryColor,
+            String secondaryColor,
+            String backgroundColor,
+            String surfaceColor,
+            String textColor,
+            String secondaryTextColor,
+            String errorColor,
+            String warningColor,
+            String successColor,
+            String onPrimaryColor,
+            String onSecondaryColor,
+            String onBackgroundColor,
+            String onErrorColor,
+            String onSurfaceColor,
+            String primaryContainerColor,
+            String onPrimaryContainerColor,
+            String secondaryContainerColor,
+            String onSecondaryContainerColor,
+            String tertiaryContainerColor,
+            String onTertiaryContainerColor,
+            String tertiaryColor,
+            String outlineColor,
+            String shadowColor,
+            String surfaceVariantColor,
+            String onSurfaceVariantColor,
+            String disabledColor,
+            String hintColor,
+            String themeMode,
+            bool useMaterial3,
+            bool enableGlassmorphism,
+            bool enableGradients,
+            bool enableShadows,
+            double shadowIntensity)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _AppThemeSettings() when $default != null:
+        return $default(
+            _that.primaryColor,
+            _that.secondaryColor,
+            _that.backgroundColor,
+            _that.surfaceColor,
+            _that.textColor,
+            _that.secondaryTextColor,
+            _that.errorColor,
+            _that.warningColor,
+            _that.successColor,
+            _that.onPrimaryColor,
+            _that.onSecondaryColor,
+            _that.onBackgroundColor,
+            _that.onErrorColor,
+            _that.onSurfaceColor,
+            _that.primaryContainerColor,
+            _that.onPrimaryContainerColor,
+            _that.secondaryContainerColor,
+            _that.onSecondaryContainerColor,
+            _that.tertiaryContainerColor,
+            _that.onTertiaryContainerColor,
+            _that.tertiaryColor,
+            _that.outlineColor,
+            _that.shadowColor,
+            _that.surfaceVariantColor,
+            _that.onSurfaceVariantColor,
+            _that.disabledColor,
+            _that.hintColor,
+            _that.themeMode,
+            _that.useMaterial3,
+            _that.enableGlassmorphism,
+            _that.enableGradients,
+            _that.enableShadows,
+            _that.shadowIntensity);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String primaryColor,
+            String secondaryColor,
+            String backgroundColor,
+            String surfaceColor,
+            String textColor,
+            String secondaryTextColor,
+            String errorColor,
+            String warningColor,
+            String successColor,
+            String onPrimaryColor,
+            String onSecondaryColor,
+            String onBackgroundColor,
+            String onErrorColor,
+            String onSurfaceColor,
+            String primaryContainerColor,
+            String onPrimaryContainerColor,
+            String secondaryContainerColor,
+            String onSecondaryContainerColor,
+            String tertiaryContainerColor,
+            String onTertiaryContainerColor,
+            String tertiaryColor,
+            String outlineColor,
+            String shadowColor,
+            String surfaceVariantColor,
+            String onSurfaceVariantColor,
+            String disabledColor,
+            String hintColor,
+            String themeMode,
+            bool useMaterial3,
+            bool enableGlassmorphism,
+            bool enableGradients,
+            bool enableShadows,
+            double shadowIntensity)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AppThemeSettings():
+        return $default(
+            _that.primaryColor,
+            _that.secondaryColor,
+            _that.backgroundColor,
+            _that.surfaceColor,
+            _that.textColor,
+            _that.secondaryTextColor,
+            _that.errorColor,
+            _that.warningColor,
+            _that.successColor,
+            _that.onPrimaryColor,
+            _that.onSecondaryColor,
+            _that.onBackgroundColor,
+            _that.onErrorColor,
+            _that.onSurfaceColor,
+            _that.primaryContainerColor,
+            _that.onPrimaryContainerColor,
+            _that.secondaryContainerColor,
+            _that.onSecondaryContainerColor,
+            _that.tertiaryContainerColor,
+            _that.onTertiaryContainerColor,
+            _that.tertiaryColor,
+            _that.outlineColor,
+            _that.shadowColor,
+            _that.surfaceVariantColor,
+            _that.onSurfaceVariantColor,
+            _that.disabledColor,
+            _that.hintColor,
+            _that.themeMode,
+            _that.useMaterial3,
+            _that.enableGlassmorphism,
+            _that.enableGradients,
+            _that.enableShadows,
+            _that.shadowIntensity);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String primaryColor,
+            String secondaryColor,
+            String backgroundColor,
+            String surfaceColor,
+            String textColor,
+            String secondaryTextColor,
+            String errorColor,
+            String warningColor,
+            String successColor,
+            String onPrimaryColor,
+            String onSecondaryColor,
+            String onBackgroundColor,
+            String onErrorColor,
+            String onSurfaceColor,
+            String primaryContainerColor,
+            String onPrimaryContainerColor,
+            String secondaryContainerColor,
+            String onSecondaryContainerColor,
+            String tertiaryContainerColor,
+            String onTertiaryContainerColor,
+            String tertiaryColor,
+            String outlineColor,
+            String shadowColor,
+            String surfaceVariantColor,
+            String onSurfaceVariantColor,
+            String disabledColor,
+            String hintColor,
+            String themeMode,
+            bool useMaterial3,
+            bool enableGlassmorphism,
+            bool enableGradients,
+            bool enableShadows,
+            double shadowIntensity)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AppThemeSettings() when $default != null:
+        return $default(
+            _that.primaryColor,
+            _that.secondaryColor,
+            _that.backgroundColor,
+            _that.surfaceColor,
+            _that.textColor,
+            _that.secondaryTextColor,
+            _that.errorColor,
+            _that.warningColor,
+            _that.successColor,
+            _that.onPrimaryColor,
+            _that.onSecondaryColor,
+            _that.onBackgroundColor,
+            _that.onErrorColor,
+            _that.onSurfaceColor,
+            _that.primaryContainerColor,
+            _that.onPrimaryContainerColor,
+            _that.secondaryContainerColor,
+            _that.onSecondaryContainerColor,
+            _that.tertiaryContainerColor,
+            _that.onTertiaryContainerColor,
+            _that.tertiaryColor,
+            _that.outlineColor,
+            _that.shadowColor,
+            _that.surfaceVariantColor,
+            _that.onSurfaceVariantColor,
+            _that.disabledColor,
+            _that.hintColor,
+            _that.themeMode,
+            _that.useMaterial3,
+            _that.enableGlassmorphism,
+            _that.enableGradients,
+            _that.enableShadows,
+            _that.shadowIntensity);
+      case _:
+        return null;
+    }
   }
 }
 
@@ -1717,6 +2282,334 @@ class _$ProfileCustomizationCopyWithImpl<$Res>
   }
 }
 
+/// Adds pattern-matching-related methods to [ProfileCustomization].
+extension ProfileCustomizationPatterns on ProfileCustomization {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_ProfileCustomization value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileCustomization() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_ProfileCustomization value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileCustomization():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_ProfileCustomization value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileCustomization() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String? backgroundImageUrl,
+            String? backgroundColor,
+            String backgroundType,
+            List<String> gradientColors,
+            double gradientAngle,
+            String layout,
+            bool showCoverImage,
+            bool showProfileImage,
+            String profileImageShape,
+            double profileImageSize,
+            bool showBio,
+            bool showStats,
+            bool showPosts,
+            bool showAboutSection,
+            bool enableParticles,
+            bool enableAnimatedBackground,
+            bool enableCustomCursor,
+            String? customCursorUrl,
+            String? customCSS,
+            bool enableMusicPlayer,
+            String? musicUrl,
+            bool autoPlayMusic,
+            double musicVolume,
+            double cardBorderRadius,
+            double cardElevation,
+            String? cardBackgroundColor,
+            double cardOpacity,
+            List<CustomWidget> customWidgets)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileCustomization() when $default != null:
+        return $default(
+            _that.backgroundImageUrl,
+            _that.backgroundColor,
+            _that.backgroundType,
+            _that.gradientColors,
+            _that.gradientAngle,
+            _that.layout,
+            _that.showCoverImage,
+            _that.showProfileImage,
+            _that.profileImageShape,
+            _that.profileImageSize,
+            _that.showBio,
+            _that.showStats,
+            _that.showPosts,
+            _that.showAboutSection,
+            _that.enableParticles,
+            _that.enableAnimatedBackground,
+            _that.enableCustomCursor,
+            _that.customCursorUrl,
+            _that.customCSS,
+            _that.enableMusicPlayer,
+            _that.musicUrl,
+            _that.autoPlayMusic,
+            _that.musicVolume,
+            _that.cardBorderRadius,
+            _that.cardElevation,
+            _that.cardBackgroundColor,
+            _that.cardOpacity,
+            _that.customWidgets);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String? backgroundImageUrl,
+            String? backgroundColor,
+            String backgroundType,
+            List<String> gradientColors,
+            double gradientAngle,
+            String layout,
+            bool showCoverImage,
+            bool showProfileImage,
+            String profileImageShape,
+            double profileImageSize,
+            bool showBio,
+            bool showStats,
+            bool showPosts,
+            bool showAboutSection,
+            bool enableParticles,
+            bool enableAnimatedBackground,
+            bool enableCustomCursor,
+            String? customCursorUrl,
+            String? customCSS,
+            bool enableMusicPlayer,
+            String? musicUrl,
+            bool autoPlayMusic,
+            double musicVolume,
+            double cardBorderRadius,
+            double cardElevation,
+            String? cardBackgroundColor,
+            double cardOpacity,
+            List<CustomWidget> customWidgets)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileCustomization():
+        return $default(
+            _that.backgroundImageUrl,
+            _that.backgroundColor,
+            _that.backgroundType,
+            _that.gradientColors,
+            _that.gradientAngle,
+            _that.layout,
+            _that.showCoverImage,
+            _that.showProfileImage,
+            _that.profileImageShape,
+            _that.profileImageSize,
+            _that.showBio,
+            _that.showStats,
+            _that.showPosts,
+            _that.showAboutSection,
+            _that.enableParticles,
+            _that.enableAnimatedBackground,
+            _that.enableCustomCursor,
+            _that.customCursorUrl,
+            _that.customCSS,
+            _that.enableMusicPlayer,
+            _that.musicUrl,
+            _that.autoPlayMusic,
+            _that.musicVolume,
+            _that.cardBorderRadius,
+            _that.cardElevation,
+            _that.cardBackgroundColor,
+            _that.cardOpacity,
+            _that.customWidgets);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String? backgroundImageUrl,
+            String? backgroundColor,
+            String backgroundType,
+            List<String> gradientColors,
+            double gradientAngle,
+            String layout,
+            bool showCoverImage,
+            bool showProfileImage,
+            String profileImageShape,
+            double profileImageSize,
+            bool showBio,
+            bool showStats,
+            bool showPosts,
+            bool showAboutSection,
+            bool enableParticles,
+            bool enableAnimatedBackground,
+            bool enableCustomCursor,
+            String? customCursorUrl,
+            String? customCSS,
+            bool enableMusicPlayer,
+            String? musicUrl,
+            bool autoPlayMusic,
+            double musicVolume,
+            double cardBorderRadius,
+            double cardElevation,
+            String? cardBackgroundColor,
+            double cardOpacity,
+            List<CustomWidget> customWidgets)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ProfileCustomization() when $default != null:
+        return $default(
+            _that.backgroundImageUrl,
+            _that.backgroundColor,
+            _that.backgroundType,
+            _that.gradientColors,
+            _that.gradientAngle,
+            _that.layout,
+            _that.showCoverImage,
+            _that.showProfileImage,
+            _that.profileImageShape,
+            _that.profileImageSize,
+            _that.showBio,
+            _that.showStats,
+            _that.showPosts,
+            _that.showAboutSection,
+            _that.enableParticles,
+            _that.enableAnimatedBackground,
+            _that.enableCustomCursor,
+            _that.customCursorUrl,
+            _that.customCSS,
+            _that.enableMusicPlayer,
+            _that.musicUrl,
+            _that.autoPlayMusic,
+            _that.musicVolume,
+            _that.cardBorderRadius,
+            _that.cardElevation,
+            _that.cardBackgroundColor,
+            _that.cardOpacity,
+            _that.customWidgets);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _ProfileCustomization implements ProfileCustomization {
@@ -2395,6 +3288,238 @@ class _$ComponentStylesCopyWithImpl<$Res>
   }
 }
 
+/// Adds pattern-matching-related methods to [ComponentStyles].
+extension ComponentStylesPatterns on ComponentStyles {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_ComponentStyles value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ComponentStyles() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_ComponentStyles value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ComponentStyles():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_ComponentStyles value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ComponentStyles() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            ButtonStyle primaryButton,
+            ButtonStyle secondaryButton,
+            double buttonBorderRadius,
+            double cardBorderRadius,
+            double cardElevation,
+            bool cardOutline,
+            String cardOutlineColor,
+            InputFieldStyle inputField,
+            NavigationStyle navigation,
+            double dialogBorderRadius,
+            bool dialogBlurBackground,
+            double dialogBlurIntensity)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ComponentStyles() when $default != null:
+        return $default(
+            _that.primaryButton,
+            _that.secondaryButton,
+            _that.buttonBorderRadius,
+            _that.cardBorderRadius,
+            _that.cardElevation,
+            _that.cardOutline,
+            _that.cardOutlineColor,
+            _that.inputField,
+            _that.navigation,
+            _that.dialogBorderRadius,
+            _that.dialogBlurBackground,
+            _that.dialogBlurIntensity);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            ButtonStyle primaryButton,
+            ButtonStyle secondaryButton,
+            double buttonBorderRadius,
+            double cardBorderRadius,
+            double cardElevation,
+            bool cardOutline,
+            String cardOutlineColor,
+            InputFieldStyle inputField,
+            NavigationStyle navigation,
+            double dialogBorderRadius,
+            bool dialogBlurBackground,
+            double dialogBlurIntensity)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ComponentStyles():
+        return $default(
+            _that.primaryButton,
+            _that.secondaryButton,
+            _that.buttonBorderRadius,
+            _that.cardBorderRadius,
+            _that.cardElevation,
+            _that.cardOutline,
+            _that.cardOutlineColor,
+            _that.inputField,
+            _that.navigation,
+            _that.dialogBorderRadius,
+            _that.dialogBlurBackground,
+            _that.dialogBlurIntensity);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            ButtonStyle primaryButton,
+            ButtonStyle secondaryButton,
+            double buttonBorderRadius,
+            double cardBorderRadius,
+            double cardElevation,
+            bool cardOutline,
+            String cardOutlineColor,
+            InputFieldStyle inputField,
+            NavigationStyle navigation,
+            double dialogBorderRadius,
+            bool dialogBlurBackground,
+            double dialogBlurIntensity)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ComponentStyles() when $default != null:
+        return $default(
+            _that.primaryButton,
+            _that.secondaryButton,
+            _that.buttonBorderRadius,
+            _that.cardBorderRadius,
+            _that.cardElevation,
+            _that.cardOutline,
+            _that.cardOutlineColor,
+            _that.inputField,
+            _that.navigation,
+            _that.dialogBorderRadius,
+            _that.dialogBlurBackground,
+            _that.dialogBlurIntensity);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _ComponentStyles implements ComponentStyles {
@@ -2863,6 +3988,244 @@ class _$ButtonStyleCopyWithImpl<$Res> implements $ButtonStyleCopyWith<$Res> {
   }
 }
 
+/// Adds pattern-matching-related methods to [ButtonStyle].
+extension ButtonStylePatterns on ButtonStyle {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_ButtonStyle value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ButtonStyle() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_ButtonStyle value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ButtonStyle():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_ButtonStyle value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ButtonStyle() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            double borderRadius,
+            double horizontalPadding,
+            double verticalPadding,
+            double elevation,
+            bool enableGradient,
+            List<String> gradientColors,
+            String shape,
+            bool enableRipple,
+            String? rippleColor,
+            String fontWeight,
+            double fontSize,
+            bool uppercase,
+            double letterSpacing)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _ButtonStyle() when $default != null:
+        return $default(
+            _that.borderRadius,
+            _that.horizontalPadding,
+            _that.verticalPadding,
+            _that.elevation,
+            _that.enableGradient,
+            _that.gradientColors,
+            _that.shape,
+            _that.enableRipple,
+            _that.rippleColor,
+            _that.fontWeight,
+            _that.fontSize,
+            _that.uppercase,
+            _that.letterSpacing);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            double borderRadius,
+            double horizontalPadding,
+            double verticalPadding,
+            double elevation,
+            bool enableGradient,
+            List<String> gradientColors,
+            String shape,
+            bool enableRipple,
+            String? rippleColor,
+            String fontWeight,
+            double fontSize,
+            bool uppercase,
+            double letterSpacing)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ButtonStyle():
+        return $default(
+            _that.borderRadius,
+            _that.horizontalPadding,
+            _that.verticalPadding,
+            _that.elevation,
+            _that.enableGradient,
+            _that.gradientColors,
+            _that.shape,
+            _that.enableRipple,
+            _that.rippleColor,
+            _that.fontWeight,
+            _that.fontSize,
+            _that.uppercase,
+            _that.letterSpacing);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            double borderRadius,
+            double horizontalPadding,
+            double verticalPadding,
+            double elevation,
+            bool enableGradient,
+            List<String> gradientColors,
+            String shape,
+            bool enableRipple,
+            String? rippleColor,
+            String fontWeight,
+            double fontSize,
+            bool uppercase,
+            double letterSpacing)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _ButtonStyle() when $default != null:
+        return $default(
+            _that.borderRadius,
+            _that.horizontalPadding,
+            _that.verticalPadding,
+            _that.elevation,
+            _that.enableGradient,
+            _that.gradientColors,
+            _that.shape,
+            _that.enableRipple,
+            _that.rippleColor,
+            _that.fontWeight,
+            _that.fontSize,
+            _that.uppercase,
+            _that.letterSpacing);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _ButtonStyle implements ButtonStyle {
@@ -3246,6 +4609,214 @@ class _$InputFieldStyleCopyWithImpl<$Res>
   }
 }
 
+/// Adds pattern-matching-related methods to [InputFieldStyle].
+extension InputFieldStylePatterns on InputFieldStyle {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_InputFieldStyle value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _InputFieldStyle() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_InputFieldStyle value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _InputFieldStyle():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_InputFieldStyle value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _InputFieldStyle() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            double borderRadius,
+            String borderType,
+            double borderWidth,
+            bool filled,
+            String? fillColor,
+            double contentPadding,
+            double fontSize,
+            bool enableFloatingLabel)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _InputFieldStyle() when $default != null:
+        return $default(
+            _that.borderRadius,
+            _that.borderType,
+            _that.borderWidth,
+            _that.filled,
+            _that.fillColor,
+            _that.contentPadding,
+            _that.fontSize,
+            _that.enableFloatingLabel);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            double borderRadius,
+            String borderType,
+            double borderWidth,
+            bool filled,
+            String? fillColor,
+            double contentPadding,
+            double fontSize,
+            bool enableFloatingLabel)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _InputFieldStyle():
+        return $default(
+            _that.borderRadius,
+            _that.borderType,
+            _that.borderWidth,
+            _that.filled,
+            _that.fillColor,
+            _that.contentPadding,
+            _that.fontSize,
+            _that.enableFloatingLabel);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            double borderRadius,
+            String borderType,
+            double borderWidth,
+            bool filled,
+            String? fillColor,
+            double contentPadding,
+            double fontSize,
+            bool enableFloatingLabel)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _InputFieldStyle() when $default != null:
+        return $default(
+            _that.borderRadius,
+            _that.borderType,
+            _that.borderWidth,
+            _that.filled,
+            _that.fillColor,
+            _that.contentPadding,
+            _that.fontSize,
+            _that.enableFloatingLabel);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _InputFieldStyle implements InputFieldStyle {
@@ -3583,6 +5154,232 @@ class _$NavigationStyleCopyWithImpl<$Res>
           : enableActiveIndicator // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [NavigationStyle].
+extension NavigationStylePatterns on NavigationStyle {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_NavigationStyle value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _NavigationStyle() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_NavigationStyle value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _NavigationStyle():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_NavigationStyle value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _NavigationStyle() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String type,
+            bool floating,
+            double borderRadius,
+            double margin,
+            double elevation,
+            bool enableGradient,
+            List<String> gradientColors,
+            double opacity,
+            bool showLabels,
+            double iconSize,
+            bool enableActiveIndicator)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _NavigationStyle() when $default != null:
+        return $default(
+            _that.type,
+            _that.floating,
+            _that.borderRadius,
+            _that.margin,
+            _that.elevation,
+            _that.enableGradient,
+            _that.gradientColors,
+            _that.opacity,
+            _that.showLabels,
+            _that.iconSize,
+            _that.enableActiveIndicator);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String type,
+            bool floating,
+            double borderRadius,
+            double margin,
+            double elevation,
+            bool enableGradient,
+            List<String> gradientColors,
+            double opacity,
+            bool showLabels,
+            double iconSize,
+            bool enableActiveIndicator)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _NavigationStyle():
+        return $default(
+            _that.type,
+            _that.floating,
+            _that.borderRadius,
+            _that.margin,
+            _that.elevation,
+            _that.enableGradient,
+            _that.gradientColors,
+            _that.opacity,
+            _that.showLabels,
+            _that.iconSize,
+            _that.enableActiveIndicator);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String type,
+            bool floating,
+            double borderRadius,
+            double margin,
+            double elevation,
+            bool enableGradient,
+            List<String> gradientColors,
+            double opacity,
+            bool showLabels,
+            double iconSize,
+            bool enableActiveIndicator)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _NavigationStyle() when $default != null:
+        return $default(
+            _that.type,
+            _that.floating,
+            _that.borderRadius,
+            _that.margin,
+            _that.elevation,
+            _that.enableGradient,
+            _that.gradientColors,
+            _that.opacity,
+            _that.showLabels,
+            _that.iconSize,
+            _that.enableActiveIndicator);
+      case _:
+        return null;
+    }
   }
 }
 
@@ -3963,6 +5760,226 @@ class _$LayoutPreferencesCopyWithImpl<$Res>
   }
 }
 
+/// Adds pattern-matching-related methods to [LayoutPreferences].
+extension LayoutPreferencesPatterns on LayoutPreferences {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_LayoutPreferences value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _LayoutPreferences() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_LayoutPreferences value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _LayoutPreferences():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_LayoutPreferences value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _LayoutPreferences() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String density,
+            double defaultSpacing,
+            double defaultPadding,
+            bool useCompactPosts,
+            bool useListLayout,
+            int gridColumns,
+            bool centerContent,
+            double maxContentWidth,
+            bool showFloatingButtons,
+            String floatingButtonPosition)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _LayoutPreferences() when $default != null:
+        return $default(
+            _that.density,
+            _that.defaultSpacing,
+            _that.defaultPadding,
+            _that.useCompactPosts,
+            _that.useListLayout,
+            _that.gridColumns,
+            _that.centerContent,
+            _that.maxContentWidth,
+            _that.showFloatingButtons,
+            _that.floatingButtonPosition);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String density,
+            double defaultSpacing,
+            double defaultPadding,
+            bool useCompactPosts,
+            bool useListLayout,
+            int gridColumns,
+            bool centerContent,
+            double maxContentWidth,
+            bool showFloatingButtons,
+            String floatingButtonPosition)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _LayoutPreferences():
+        return $default(
+            _that.density,
+            _that.defaultSpacing,
+            _that.defaultPadding,
+            _that.useCompactPosts,
+            _that.useListLayout,
+            _that.gridColumns,
+            _that.centerContent,
+            _that.maxContentWidth,
+            _that.showFloatingButtons,
+            _that.floatingButtonPosition);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String density,
+            double defaultSpacing,
+            double defaultPadding,
+            bool useCompactPosts,
+            bool useListLayout,
+            int gridColumns,
+            bool centerContent,
+            double maxContentWidth,
+            bool showFloatingButtons,
+            String floatingButtonPosition)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _LayoutPreferences() when $default != null:
+        return $default(
+            _that.density,
+            _that.defaultSpacing,
+            _that.defaultPadding,
+            _that.useCompactPosts,
+            _that.useListLayout,
+            _that.gridColumns,
+            _that.centerContent,
+            _that.maxContentWidth,
+            _that.showFloatingButtons,
+            _that.floatingButtonPosition);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _LayoutPreferences implements LayoutPreferences {
@@ -4313,6 +6330,220 @@ class _$AnimationSettingsCopyWithImpl<$Res>
   }
 }
 
+/// Adds pattern-matching-related methods to [AnimationSettings].
+extension AnimationSettingsPatterns on AnimationSettings {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_AnimationSettings value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _AnimationSettings() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_AnimationSettings value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AnimationSettings():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_AnimationSettings value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AnimationSettings() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            bool enableAnimations,
+            String speed,
+            bool enablePageTransitions,
+            String pageTransitionType,
+            bool enableHoverEffects,
+            bool enableScrollAnimations,
+            bool enableParallaxEffects,
+            bool enableLoadingAnimations,
+            String defaultCurve)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _AnimationSettings() when $default != null:
+        return $default(
+            _that.enableAnimations,
+            _that.speed,
+            _that.enablePageTransitions,
+            _that.pageTransitionType,
+            _that.enableHoverEffects,
+            _that.enableScrollAnimations,
+            _that.enableParallaxEffects,
+            _that.enableLoadingAnimations,
+            _that.defaultCurve);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            bool enableAnimations,
+            String speed,
+            bool enablePageTransitions,
+            String pageTransitionType,
+            bool enableHoverEffects,
+            bool enableScrollAnimations,
+            bool enableParallaxEffects,
+            bool enableLoadingAnimations,
+            String defaultCurve)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AnimationSettings():
+        return $default(
+            _that.enableAnimations,
+            _that.speed,
+            _that.enablePageTransitions,
+            _that.pageTransitionType,
+            _that.enableHoverEffects,
+            _that.enableScrollAnimations,
+            _that.enableParallaxEffects,
+            _that.enableLoadingAnimations,
+            _that.defaultCurve);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            bool enableAnimations,
+            String speed,
+            bool enablePageTransitions,
+            String pageTransitionType,
+            bool enableHoverEffects,
+            bool enableScrollAnimations,
+            bool enableParallaxEffects,
+            bool enableLoadingAnimations,
+            String defaultCurve)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _AnimationSettings() when $default != null:
+        return $default(
+            _that.enableAnimations,
+            _that.speed,
+            _that.enablePageTransitions,
+            _that.pageTransitionType,
+            _that.enableHoverEffects,
+            _that.enableScrollAnimations,
+            _that.enableParallaxEffects,
+            _that.enableLoadingAnimations,
+            _that.defaultCurve);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _AnimationSettings implements AnimationSettings {
@@ -4641,6 +6872,214 @@ class _$TypographySettingsCopyWithImpl<$Res>
   }
 }
 
+/// Adds pattern-matching-related methods to [TypographySettings].
+extension TypographySettingsPatterns on TypographySettings {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_TypographySettings value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _TypographySettings() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_TypographySettings value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _TypographySettings():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_TypographySettings value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _TypographySettings() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String primaryFont,
+            String secondaryFont,
+            double fontScaleFactor,
+            bool useCustomFonts,
+            Map<String, String> customFontUrls,
+            String renderingStyle,
+            double lineHeightMultiplier,
+            double letterSpacing)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _TypographySettings() when $default != null:
+        return $default(
+            _that.primaryFont,
+            _that.secondaryFont,
+            _that.fontScaleFactor,
+            _that.useCustomFonts,
+            _that.customFontUrls,
+            _that.renderingStyle,
+            _that.lineHeightMultiplier,
+            _that.letterSpacing);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String primaryFont,
+            String secondaryFont,
+            double fontScaleFactor,
+            bool useCustomFonts,
+            Map<String, String> customFontUrls,
+            String renderingStyle,
+            double lineHeightMultiplier,
+            double letterSpacing)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _TypographySettings():
+        return $default(
+            _that.primaryFont,
+            _that.secondaryFont,
+            _that.fontScaleFactor,
+            _that.useCustomFonts,
+            _that.customFontUrls,
+            _that.renderingStyle,
+            _that.lineHeightMultiplier,
+            _that.letterSpacing);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String primaryFont,
+            String secondaryFont,
+            double fontScaleFactor,
+            bool useCustomFonts,
+            Map<String, String> customFontUrls,
+            String renderingStyle,
+            double lineHeightMultiplier,
+            double letterSpacing)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _TypographySettings() when $default != null:
+        return $default(
+            _that.primaryFont,
+            _that.secondaryFont,
+            _that.fontScaleFactor,
+            _that.useCustomFonts,
+            _that.customFontUrls,
+            _that.renderingStyle,
+            _that.lineHeightMultiplier,
+            _that.letterSpacing);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _TypographySettings implements TypographySettings {
@@ -4920,6 +7359,172 @@ class _$CustomWidgetCopyWithImpl<$Res> implements $CustomWidgetCopyWith<$Res> {
           : visible // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [CustomWidget].
+extension CustomWidgetPatterns on CustomWidget {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_CustomWidget value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _CustomWidget() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_CustomWidget value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _CustomWidget():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_CustomWidget value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _CustomWidget() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(String id, String type, Map<String, dynamic> properties,
+            int order, bool visible)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _CustomWidget() when $default != null:
+        return $default(
+            _that.id, _that.type, _that.properties, _that.order, _that.visible);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(String id, String type, Map<String, dynamic> properties,
+            int order, bool visible)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _CustomWidget():
+        return $default(
+            _that.id, _that.type, _that.properties, _that.order, _that.visible);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(String id, String type, Map<String, dynamic> properties,
+            int order, bool visible)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _CustomWidget() when $default != null:
+        return $default(
+            _that.id, _that.type, _that.properties, _that.order, _that.visible);
+      case _:
+        return null;
+    }
   }
 }
 

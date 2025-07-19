@@ -9,7 +9,6 @@ class ProfileController extends AsyncNotifier<ProfileState> {
   late final UserRepository _userRepository;
   late final PostRepository _postRepository;
   late final FeedRepository _feedRepository;
-  final int pageSize = 20;
 
   @override
   Future<ProfileState> build() async {
@@ -21,7 +20,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
 
   Future<void> _batchInitializePostInteractions(
       String userId, List<PostModel> posts) async {
-    if (posts.isEmpty || userId == null) return;
+    if (posts.isEmpty || userId.isEmpty) return;
 
     debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
 
@@ -31,7 +30,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
           .read(postInteractionsWithPrivacyProvider(
                   PostParams(id: post.id, isAlt: post.isAlt))
               .notifier)
-          .initializeState(userId!);
+          .initializeState(userId);
     }
 
     debugPrint('✅ Interactions batch initialization complete');
@@ -44,6 +43,14 @@ class ProfileController extends AsyncNotifier<ProfileState> {
       return;
     }
 
+    // Ensure the controller is properly initialized
+    if (!state.hasValue && !state.hasError) {
+      // Wait for initial build to complete
+      await Future.delayed(Duration.zero);
+    }
+
+    // Get current state before setting to loading, or use initial state
+    final currentState = state.hasValue ? state.value! : ProfileState.initial();
     state = const AsyncValue.loading();
 
     try {
@@ -71,7 +78,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
       posts = await _feedRepository.getUserPosts(
         userId: userId,
         isAlt: useAltView,
-        limit: pageSize,
+        limit: currentState.pageSize,
       );
 
       // Check following status if not viewing own profile
@@ -103,13 +110,14 @@ class ProfileController extends AsyncNotifier<ProfileState> {
         isFollowing: isFollowing,
         isAltView: useAltView,
         hasAltProfile: hasAltProfile,
-        hasMorePosts: posts.length >= pageSize,
+        hasMorePosts: posts.length >= currentState.pageSize,
         lastPost: posts.isNotEmpty ? posts.last : null,
         currentUserId: currentUserId,
       ));
       await _batchInitializePostInteractions(currentUserId, posts);
     } catch (e, stack) {
       debugPrint("DEBUG: Profile loading error: $e");
+      debugPrint("DEBUG: Stack trace: $stack");
       state = AsyncValue.error(e, stack);
     }
   }
@@ -162,7 +170,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
       List<PostModel> morePosts = await _feedRepository.getUserPosts(
         userId: userId,
         isAlt: currentState.isAltView,
-        limit: pageSize,
+        limit: currentState.pageSize,
         lastPost: lastPost,
       );
 
@@ -182,7 +190,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
       state = AsyncValue.data(currentState.copyWith(
         posts: allPosts,
         isLoading: false,
-        hasMorePosts: morePosts.length >= pageSize,
+        hasMorePosts: morePosts.length >= currentState.pageSize,
         lastPost: allPosts.isNotEmpty ? allPosts.last : lastPost,
       ));
 
