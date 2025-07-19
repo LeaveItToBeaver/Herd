@@ -9,12 +9,16 @@ const postTriggers = require('./post_triggers');
 const scoreFunctions = require('./score_functions');
 const userEventHandlers = require('./user_event_handlers');
 
+const debugFunctions = require('./debug_functions');
+
+
 const allFunctions = {
   ...callableHandlers,
   ...postTriggers,
   ...scoreFunctions,
   ...userEventHandlers,
   ...notificationHandlers,
+  ...debugFunctions,
 };
 
 
