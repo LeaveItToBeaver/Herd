@@ -22,8 +22,10 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
       _PublicProfileScreenState();
 }
 
+// THE ONLY CHANGE IS ON THIS LINE 👇
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+  // <-- Changed from SingleTickerProviderStateMixin
   late TabController _tabController;
   late ScrollController _scrollController;
   final Color _dominantColor = Colors.transparent;
@@ -207,7 +209,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                               children: [
                                 _buildStatColumn(
                                     'Posts',
-                                    filteredPosts.length.toString(),
+                                    profile.user?.totalPosts.toString() ?? '0',
                                     profile.isCurrentUser,
                                     'posts'),
                                 _buildStatColumn(

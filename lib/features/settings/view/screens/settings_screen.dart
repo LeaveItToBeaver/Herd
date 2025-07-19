@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/user/data/repositories/user_repository.dart';
 import 'package:herdapp/features/user/view/providers/user_provider.dart';
@@ -422,6 +423,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       onPressed: () => _showLogoutConfirmation(context),
                     ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const AlertDialog(
+                                content: Row(
+                                  children: [
+                                    CircularProgressIndicator(),
+                                    SizedBox(width: 16),
+                                    Text('Recalculating post counts...'),
+                                  ],
+                                ),
+                              ),
+                            );
+
+                            final postRepo = ref.read(postRepositoryProvider);
+                            final result =
+                                await postRepo.recalculateAllUsersInBatches();
+
+                            Navigator.of(context).pop(); // Close loading dialog
+
+                            if (result['success'] == true) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(result['message'])),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Error: ${result['error']}')),
+                              );
+                            }
+                          } catch (e) {
+                            Navigator.of(context).pop(); // Close loading dialog
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        },
+                        child: const Text('Fix All Post Counts (Batch)'),
+                      ),
+                      ElevatedButton(
+                        // 24 * 2 = 48 Herd posts 10 alt posts
+                        onPressed: () async {
+                          try {
+                            final postRepo = ref.read(postRepositoryProvider);
+                            final currentUser = ref.read(currentUserProvider);
+                            final userId = currentUser.value?.id;
+
+                            if (userId == null) return;
+
+                            final result = await postRepo
+                                .recalculateUserPostCounts(userId);
+
+                            if (result['success'] == true) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(result['message'])),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        },
+                        child: const Text('Fix My Post Counts'),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 32),
