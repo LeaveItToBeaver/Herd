@@ -166,7 +166,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       }
     });
 
-    print('検出されたタグ: ${currentTags.join(', ')}');
+    debugPrint('検出されたタグ: ${currentTags.join(', ')}');
 
     // 現在のタグリストと抽出したタグリストを比較し、_postTagsを更新
     // 重複を排除し、新しいタグのみを追加
@@ -185,7 +185,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
         // Always allow pop if submitting to avoid blocking navigation
@@ -833,7 +833,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           Icon(
             Icons.play_circle_fill,
             size: 64,
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ],
       );
@@ -967,8 +967,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
                         label: Text('#$tag'), // # を付けて表示
                         backgroundColor:
-                            Theme.of(context).primaryColor.withOpacity(
-                                  0.1, // 背景色を少し透明にして目立たせる
+                            Theme.of(context).primaryColor.withValues(
+                                  alpha: 0.1, // 背景色を少し透明にして目立たせる
                                 ),
                         labelStyle:
                             TextStyle(color: Theme.of(context).primaryColor),
@@ -1187,7 +1187,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     if (!mounted) return;
 
-    final selectedHerd = await showDialog<String>(
+    //final selectedHerd =
+    await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(

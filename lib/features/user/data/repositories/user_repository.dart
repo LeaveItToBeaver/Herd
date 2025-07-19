@@ -332,18 +332,44 @@ class UserRepository {
 
   // Delete user
   Future<void> deleteUser(String userId) async {
-    // Delete user document
-    await _users.doc(userId).delete();
+    final batch = _firestore.batch();
 
-    // Clean up following/followers
-    await _following.doc(userId).collection('userFollowing').get().then(
-        (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete()));
+    // Delete the user document
+    batch.delete(_users.doc(userId));
 
-    await _following.doc(userId).collection('userFollowing').get().then(
-        (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete()));
+    // Get the list of users that the deleted user was following
+    final followingSnapshot =
+        await _following.doc(userId).collection('userFollowing').get();
+    for (final doc in followingSnapshot.docs) {
+      final followedUserId = doc.id;
+      // Remove the deleted user from the `followers` list of the user they were following
+      batch.delete(_followers
+          .doc(followedUserId)
+          .collection('userFollowers')
+          .doc(userId));
+      // Decrement the followers count for that user
+      batch.update(
+          _users.doc(followedUserId), {'followers': FieldValue.increment(-1)});
+      // Delete the document in the deleted user's `following` subcollection
+      batch.delete(doc.reference);
+    }
 
-    await _followers.doc(userId).collection('userFollowers').get().then(
-        (snapshot) => snapshot.docs.forEach((doc) => doc.reference.delete()));
+    // Get the list of users who were following the deleted user
+    final followersSnapshot =
+        await _followers.doc(userId).collection('userFollowers').get();
+    for (final doc in followersSnapshot.docs) {
+      final followerId = doc.id;
+      // Remove the deleted user from the `following` list of their follower
+      batch.delete(
+          _following.doc(followerId).collection('userFollowing').doc(userId));
+      // Decrement the following count for that user
+      batch.update(
+          _users.doc(followerId), {'following': FieldValue.increment(-1)});
+      // Delete the document in the deleted user's `followers` subcollection
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
   }
 
   // Follow user

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/features/feed/view/widgets/feed_sort_widget.dart';
 import 'package:herdapp/features/post/view/widgets/post_widget.dart';
 import 'package:herdapp/features/user/utils/async_user_value_extension.dart';
 
@@ -53,15 +54,17 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     super.initState();
 
     // Initialize feed on first load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
       ref.read(currentHerdIdProvider.notifier).state = null;
 
       final currentUser = ref.read(authProvider);
-      ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
+      await ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
+
+      // Refresh interactions after posts are loaded
       _refreshVisiblePostInteractions();
     });
   }
@@ -126,38 +129,57 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
           ),
         ],
       ),
-      // Use PostListWidget instead of direct ListView.builder
-      body: altFeedState.isLoading && altFeedState.posts.isEmpty
-          ? _buildLoadingWidget()
-          : altFeedState.error != null
-              ? _buildErrorWidget(context, altFeedState.error!, () {
-                  ref.read(altFeedControllerProvider.notifier).refreshFeed();
-                })
-              : PostListWidget(
-                  scrollController: _scrollController,
-                  posts: altFeedState.posts,
-                  isLoading: altFeedState.isLoading,
-                  hasError: altFeedState.error != null,
-                  errorMessage: altFeedState.error?.toString(),
-                  hasMorePosts: altFeedState.hasMorePosts,
-                  onRefresh: () => ref
-                      .read(altFeedControllerProvider.notifier)
-                      .refreshFeed(),
-                  onLoadMore: () => ref
-                      .read(altFeedControllerProvider.notifier)
-                      .loadMorePosts(),
-                  type: PostListType.feed,
-                  emptyMessage: 'No alt posts yet',
-                  emptyActionLabel: 'Create an alt post',
-                  onEmptyAction: () {
-                    // Navigate to create post screen with isAlt=true context.pushNamed
-                    context.pushNamed(
-                      'create',
-                      queryParameters: {'isAlt': 'true'},
-                    );
-                  },
-                  isRefreshing: altFeedState.isRefreshing,
-                ),
+      // Main body with sort widget and feed content
+      body: Column(
+        children: [
+          // Sort widget at the top
+          FeedSortWidget(
+            currentSort: altFeedState.sortType,
+            onSortChanged: (newSortType) {
+              ref
+                  .read(altFeedControllerProvider.notifier)
+                  .changeSortType(newSortType);
+            },
+            isLoading: altFeedState.isLoading,
+          ),
+          // Main feed content
+          Expanded(
+            child: altFeedState.isLoading && altFeedState.posts.isEmpty
+                ? _buildLoadingWidget()
+                : altFeedState.error != null
+                    ? _buildErrorWidget(context, altFeedState.error!, () {
+                        ref
+                            .read(altFeedControllerProvider.notifier)
+                            .refreshFeed();
+                      })
+                    : PostListWidget(
+                        scrollController: _scrollController,
+                        posts: altFeedState.posts,
+                        isLoading: altFeedState.isLoading,
+                        hasError: altFeedState.error != null,
+                        errorMessage: altFeedState.error?.toString(),
+                        hasMorePosts: altFeedState.hasMorePosts,
+                        onRefresh: () => ref
+                            .read(altFeedControllerProvider.notifier)
+                            .refreshFeed(),
+                        onLoadMore: () => ref
+                            .read(altFeedControllerProvider.notifier)
+                            .loadMorePosts(),
+                        type: PostListType.feed,
+                        emptyMessage: 'No alt posts yet',
+                        emptyActionLabel: 'Create an alt post',
+                        onEmptyAction: () {
+                          // Navigate to create post screen with isAlt=true context.pushNamed
+                          context.pushNamed(
+                            'create',
+                            queryParameters: {'isAlt': 'true'},
+                          );
+                        },
+                        isRefreshing: altFeedState.isRefreshing,
+                      ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -280,7 +302,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                                     Icon(
                                       Icons.star_border,
                                       size: 64,
-                                      color: Colors.blue.withOpacity(0.5),
+                                      color: Colors.blue.withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(height: 16),
                                     const Text(

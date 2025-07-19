@@ -112,10 +112,10 @@ class AppTheme {
   /// Creates a MaterialColor from any Color
   /// Useful for dynamic theming when you need to generate a MaterialColor swatch
   static MaterialColor createMaterialColor(Color color) {
-    final int red = color.red;
-    final int green = color.green;
-    final int blue = color.blue;
-    final int alpha = color.alpha;
+    final int red = (color.r * 255.0).round() & 0xff;
+    final int green = (color.g * 255.0).round() & 0xff;
+    final int blue = (color.b * 255.0).round() & 0xff;
+    final int alpha = (color.a * 255.0).round() & 0xff;
 
     final Map<int, Color> swatch = <int, Color>{
       50: Color.fromARGB(
@@ -154,6 +154,6 @@ class AppTheme {
           (blue * 0.6).round()),
     };
 
-    return MaterialColor(color.value, swatch);
+    return MaterialColor(color.toARGB32(), swatch);
   }
 }

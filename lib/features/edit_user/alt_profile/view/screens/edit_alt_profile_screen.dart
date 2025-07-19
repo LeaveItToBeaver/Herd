@@ -219,7 +219,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -289,7 +289,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                     fillColor: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest
-                        .withOpacity(0.3),
+                        .withValues(alpha: 0.3),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -348,14 +348,14 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                           //TODO: Update setting
                         },
                       ),
-                      const SizedBox(height: 12),
-                      _buildSwitchRow(
-                        'Show Public Profile in Alt Feed',
-                        true, // Default value
-                        (value) {
-                          //TODO: Update setting
-                        },
-                      ),
+                      //const SizedBox(height: 12),
+                      // _buildSwitchRow(
+                      //   'Show Public Profile in Alt Feed',
+                      //   true, // Default value
+                      //   (value) {
+                      //     //TODO: Update setting
+                      //   },
+                      // ),
                     ],
                   ),
                 ),
@@ -373,7 +373,7 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
                         color: Theme.of(context)
                             .colorScheme
                             .outline
-                            .withOpacity(0.5)),
+                            .withValues(alpha: 0.5)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

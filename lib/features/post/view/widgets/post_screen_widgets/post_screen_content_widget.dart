@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/post/data/models/post_media_model.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
 import 'package:herdapp/features/post/view/providers/post_provider.dart';
 import 'package:herdapp/features/post/view/widgets/media_carousel_widget.dart';
 import 'package:herdapp/features/rich_text_editing/view/widgets/quill_viewer_widget.dart';

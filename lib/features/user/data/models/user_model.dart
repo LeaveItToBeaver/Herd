@@ -26,7 +26,7 @@ abstract class UserModel with _$UserModel {
     @Default([]) List<String> followingList,
     @Default([]) List<String> blockedUsers,
     @Default({}) Map<String, dynamic> herdAndRole,
-    String? role, // Role in the user's herd, e.g., 'admin', 'member'
+    String? role, // Role in the application, e.g., 'admin', 'member'
     String? altUserUID,
     String? bio,
     String? profileImageURL,

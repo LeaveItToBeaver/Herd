@@ -83,9 +83,11 @@ class _FullscreenGalleryScreenState
     });
 
     try {
-      await Share.share(
-        'Check out this ${media.mediaType} from Herd: ${media.url}',
-        subject: 'Sharing from Herd',
+      await SharePlus.instance.share(
+        ShareParams(
+          text: 'Check out this ${media.mediaType} from Herd: ${media.url}',
+          subject: 'Sharing from Herd',
+        ),
       );
     } catch (e) {
       if (mounted) {
@@ -254,7 +256,7 @@ class _FullscreenGalleryScreenState
                         shape: BoxShape.circle,
                         color: _currentIndex == index
                             ? Colors.white
-                            : Colors.white.withOpacity(0.5),
+                            : Colors.white.withValues(alpha: 0.5),
                       ),
                     ),
                   ),

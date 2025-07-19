@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/auth/view/providers/auth_provider.dart';
+import 'package:herdapp/features/feed/data/models/feed_sort_type.dart';
 import 'package:herdapp/features/feed/public_feed/view/providers/state/public_feed_state.dart';
 import 'package:herdapp/features/post/data/models/post_model.dart';
 
@@ -53,6 +54,25 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   void _safeUpdateState(PublicFeedState newState) {
     if (_isActive) {
       state = newState;
+    }
+  }
+
+  /// Get the last sort value based on current sort type
+  double? _getLastSortValue() {
+    if (state.posts.isEmpty) return null;
+
+    final lastPost = state.posts.last;
+    switch (state.sortType) {
+      case FeedSortType.latest:
+        return lastPost.createdAt?.millisecondsSinceEpoch.toDouble();
+      case FeedSortType.top:
+        return lastPost.likeCount.toDouble();
+      case FeedSortType.trending:
+        // For trending, use createdAt since that's the first orderBy field
+        return lastPost.createdAt?.millisecondsSinceEpoch.toDouble();
+      case FeedSortType.hot:
+      default:
+        return lastPost.hotScore;
     }
   }
 
@@ -164,8 +184,9 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           userId: userId,
           feedType: 'public',
           limit: pageSize,
-          lastHotScore: lastPost.hotScore,
+          lastHotScore: _getLastSortValue(),
           lastPostId: lastPost.id,
+          sortType: state.sortType.value, // Use current sort type
         );
 
         if (morePosts.isEmpty) {
@@ -176,14 +197,17 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           return;
         }
 
-        // Merge the new posts with existing ones
-        final allPosts = [...state.posts, ...morePosts];
+        // Merge the new posts with existing ones, filtering duplicates
+        final existingIds = state.posts.map((p) => p.id).toSet();
+        final newPosts =
+            morePosts.where((p) => !existingIds.contains(p.id)).toList();
+        final allPosts = [...state.posts, ...newPosts];
 
         _safeUpdateState(state.copyWith(
           posts: allPosts,
           isLoading: false,
-          hasMorePosts: morePosts.length >= pageSize,
-          lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
+          hasMorePosts: newPosts.length >= pageSize, // Use newPosts length
+          lastPost: newPosts.isNotEmpty ? newPosts.last : lastPost,
         ));
         await _batchInitializePostInteractions(allPosts);
 
@@ -196,8 +220,9 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
       final morePosts = await repository.getPublicFeed(
         userId: userId,
         limit: pageSize,
-        lastHotScore: lastPost.hotScore,
+        lastHotScore: _getLastSortValue(),
         lastPostId: lastPost.id,
+        sortType: state.sortType.value,
       );
 
       if (morePosts.isEmpty) {
@@ -239,6 +264,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           userId: userId,
           feedType: 'public',
           limit: pageSize,
+          sortType: state.sortType.value, // Use current sort type
         );
 
         if (!_isActive) return; // Check if still active
@@ -281,6 +307,54 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           error: e,
         ));
       }
+    }
+  }
+
+  /// Change sort type and reload feed
+  Future<void> changeSortType(FeedSortType newSortType) async {
+    if (state.sortType == newSortType) return; // No change needed
+
+    try {
+      if (_disposed) return;
+
+      _safeUpdateState(state.copyWith(
+        sortType: newSortType,
+        isLoading: true,
+        error: null,
+        posts: [], // Clear existing posts
+        hasMorePosts: true,
+        lastPost: null,
+        lastCreatedAt: null,
+      ));
+
+      // Load feed with new sort type
+      final posts = await repository.getFeedFromFunction(
+        userId: userId,
+        feedType: 'public',
+        limit: pageSize,
+        sortType: newSortType.value,
+        hybridLoad: false, // Don't use cache when changing sort type
+      );
+
+      if (!_isActive) return;
+
+      _safeUpdateState(state.copyWith(
+        posts: posts,
+        isLoading: false,
+        hasMorePosts: posts.length >= pageSize,
+        lastPost: posts.isNotEmpty ? posts.last : null,
+        lastCreatedAt: posts.isNotEmpty ? posts.last.createdAt : null,
+      ));
+
+      // Initialize interactions for loaded posts
+      await _batchInitializePostInteractions(posts);
+    } catch (e) {
+      if (!_isActive) return;
+      _safeUpdateState(state.copyWith(
+        isLoading: false,
+        error: e,
+      ));
+      debugPrint('Error changing sort type: $e');
     }
   }
 

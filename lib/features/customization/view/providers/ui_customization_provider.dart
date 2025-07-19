@@ -48,7 +48,7 @@ class UICustomizationNotifier
 
   Future<void> _loadCustomization() async {
     if (_disposed) return;
-    
+
     try {
       if (_userId == null) {
         if (!_disposed) {
@@ -196,12 +196,12 @@ class UICustomizationNotifier
   // Quick color update (for real-time color picker)
   void updateColorInstant(String colorKey, Color color) {
     if (_disposed) return;
-    
+
     final current = state.value;
     if (current == null) return;
 
     // Create a copy with the updated color
-    final hexColor = '#${color.value.toRadixString(16).substring(2)}';
+    final hexColor = '#${color.toARGB32().toRadixString(16).substring(2)}';
     final updatedTheme = current.appTheme.copyWith(
       primaryColor:
           colorKey == 'primary' ? hexColor : current.appTheme.primaryColor,
@@ -223,7 +223,7 @@ class UICustomizationNotifier
   // Commit color changes to Firebase
   Future<void> commitColorChanges() async {
     if (_disposed) return;
-    
+
     final current = state.value;
     if (current == null || _userId == null) return;
 
@@ -232,8 +232,9 @@ class UICustomizationNotifier
 }
 
 // Main provider for UI customization
-final uiCustomizationProvider = StateNotifierProvider<
-    UICustomizationNotifier, AsyncValue<UICustomizationModel?>>((ref) {  // Remove autoDispose
+final uiCustomizationProvider = StateNotifierProvider<UICustomizationNotifier,
+    AsyncValue<UICustomizationModel?>>((ref) {
+  // Remove autoDispose
   final auth = ref.watch(authProvider);
   final repository = ref.watch(uiCustomizationRepositoryProvider);
 
@@ -279,9 +280,10 @@ final currentThemeProvider = Provider<ThemeData>((ref) {
       onError: Colors.white,
       surface: appTheme.getSurfaceColor(),
       onSurface: appTheme.getTextColor(),
-      surfaceContainerHighest: appTheme.getSurfaceColor().withOpacity(0.8),
+      surfaceContainerHighest:
+          appTheme.getSurfaceColor().withValues(alpha: 0.8),
       onSurfaceVariant: appTheme.getSecondaryTextColor(),
-      outline: appTheme.getSecondaryTextColor().withOpacity(0.5),
+      outline: appTheme.getSecondaryTextColor().withValues(alpha: 0.5),
     ),
     scaffoldBackgroundColor: appTheme.getBackgroundColor(),
 
@@ -310,7 +312,8 @@ final currentThemeProvider = Provider<ThemeData>((ref) {
     inputDecorationTheme: _buildInputDecorationTheme(
         customization.componentStyles.inputField, appTheme),
 
-    textTheme: _buildTextTheme(customization.typography, appTheme, baseTextStyle),
+    textTheme:
+        _buildTextTheme(customization.typography, appTheme, baseTextStyle),
 
     appBarTheme: AppBarTheme(
       backgroundColor: appTheme.getSurfaceColor(),
@@ -337,8 +340,8 @@ Color _getOnColor(Color color) {
 }
 
 // Build elevated button theme with consistent TextStyle
-ElevatedButtonThemeData _buildElevatedButtonTheme(
-    ButtonStyle buttonStyle, AppThemeSettings appTheme, TextStyle baseTextStyle) {
+ElevatedButtonThemeData _buildElevatedButtonTheme(ButtonStyle buttonStyle,
+    AppThemeSettings appTheme, TextStyle baseTextStyle) {
   return ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       shape: _getButtonShape(buttonStyle),
@@ -358,8 +361,8 @@ ElevatedButtonThemeData _buildElevatedButtonTheme(
 }
 
 // Build outlined button theme with consistent TextStyle
-OutlinedButtonThemeData _buildOutlinedButtonTheme(
-    ButtonStyle buttonStyle, AppThemeSettings appTheme, TextStyle baseTextStyle) {
+OutlinedButtonThemeData _buildOutlinedButtonTheme(ButtonStyle buttonStyle,
+    AppThemeSettings appTheme, TextStyle baseTextStyle) {
   return OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
       shape: _getButtonShape(buttonStyle),
@@ -471,11 +474,10 @@ InputBorder _getInputBorder(InputFieldStyle inputStyle,
 }
 
 // Build text theme with consistent inherit values
-TextTheme _buildTextTheme(
-    TypographySettings typography, AppThemeSettings appTheme, TextStyle baseTextStyle) {
-  
-    final consistentBaseStyle = baseTextStyle.copyWith(inherit: true);
-  
+TextTheme _buildTextTheme(TypographySettings typography,
+    AppThemeSettings appTheme, TextStyle baseTextStyle) {
+  final consistentBaseStyle = baseTextStyle.copyWith(inherit: true);
+
   final textTheme = TextTheme(
     displayLarge: baseTextStyle.copyWith(
       fontSize: 96 * typography.fontScaleFactor,

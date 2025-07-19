@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:herdapp/features/rich_text_editing/models/user_mention_embed.dart';
+//import 'package:herdapp/features/rich_text_editing/models/user_mention_embed.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../core/services/image_helper.dart';
@@ -209,7 +209,7 @@ class CreatePostRepostiory {
         final String individualPostId = '$postId-$mediaId';
 
         // Determine media type
-        final extension = path.extension(file.path).toLowerCase();
+        // final extension = path.extension(file.path).toLowerCase();
         String mediaType;
 
         if (ImageHelper.isImage(file)) {

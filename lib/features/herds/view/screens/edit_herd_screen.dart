@@ -26,6 +26,14 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
   final ImagePicker _picker = ImagePicker();
 
   final List<String> availableInterests = [
+    'Comedy',
+    'Drama',
+    'Fantasy',
+    'Horror',
+    'Mystery',
+    'Romance',
+    'Thriller',
+    'NSFW',
     'Technology',
     'Science',
     'Art',
@@ -296,8 +304,6 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
                                 .surfaceContainerHighest,
                             selectedColor:
                                 Theme.of(context).colorScheme.primaryContainer,
-                            checkmarkColor:
-                                Theme.of(context).colorScheme.primary,
                           );
                         }).toList(),
                       ),

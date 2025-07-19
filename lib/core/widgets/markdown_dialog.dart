@@ -11,6 +11,8 @@ void showMarkdownDialog(
   final theme = Theme.of(context);
   final String content = await rootBundle.loadString(assetPath);
 
+  if (!context.mounted) return;
+
   showDialog(
     context: context,
     builder: (BuildContext context) {
