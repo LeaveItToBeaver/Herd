@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/navigation/view/widgets/BottomNavPadding.dart';
 
 import '../../../post/data/models/post_model.dart';
+import '../../../post/view/providers/pinned_post_provider.dart';
+import '../../../post/view/widgets/pinned_posts/pinned_post_widget.dart';
 import '../../../post/view/widgets/post_widget.dart';
 import '../providers/herd_providers.dart';
 import '../providers/state/herd_feed_state.dart';
@@ -23,6 +25,7 @@ class PostsTabHerdView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pinnedPostsAsync = ref.watch(herdPinnedPostsProvider(herdId));
     if (posts.isEmpty) {
       // Empty state with a scrollable list for refresh indicator
       return RefreshIndicator(
@@ -41,7 +44,7 @@ class PostsTabHerdView extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.post_add,
-                      size: 64, color: Colors.grey.withOpacity(0.5)),
+                      size: 64, color: Colors.grey.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   Text('No posts yet',
                       style: Theme.of(context).textTheme.titleMedium),
@@ -92,6 +95,31 @@ class PostsTabHerdView extends ConsumerWidget {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              pinnedPostsAsync.when(
+                loading: () => const SliverToBoxAdapter(
+                  child: PinnedPostsLoadingWidget(),
+                ),
+                error: (err, stack) => SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text('Error loading pinned posts: $err'),
+                    ),
+                  ),
+                ),
+                data: (pinnedPosts) {
+                  if (pinnedPosts.isEmpty) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+                  return SliverToBoxAdapter(
+                    child: PinnedPostsWidget(
+                      pinnedPosts: pinnedPosts,
+                      showTitle: true,
+                      emptyMessage: 'No pinned posts in this herd yet.',
+                    ),
+                  );
+                },
+              ),
               SliverList.builder(
                 itemCount: posts.length + (herdFeedState.isLoading ? 1 : 0),
                 itemBuilder: (context, index) {

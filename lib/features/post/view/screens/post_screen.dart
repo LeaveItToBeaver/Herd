@@ -94,7 +94,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
           playedColor: Colors.blue,
           handleColor: Colors.blue,
           backgroundColor: Colors.grey,
-          bufferedColor: Colors.blue.withOpacity(0.5),
+          bufferedColor: Colors.blue.withValues(alpha: 0.5),
         ),
       );
 

@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -31,7 +30,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   List<String> get followingList;
   List<String> get blockedUsers;
   Map<String, dynamic> get herdAndRole;
-  String? get role; // Role in the user's herd, e.g., 'admin', 'member'
+  String? get role; // Role in the application, e.g., 'admin', 'member'
   String? get altUserUID;
   String? get bio;
   String? get profileImageURL;
@@ -962,6 +961,670 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
   }
 }
 
+/// Adds pattern-matching-related methods to [UserModel].
+extension UserModelPatterns on UserModel {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_UserModel value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _UserModel() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_UserModel value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UserModel():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_UserModel value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UserModel() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String id,
+            String firstName,
+            String lastName,
+            String username,
+            String email,
+            DateTime? createdAt,
+            DateTime? updatedAt,
+            int followers,
+            int following,
+            int friends,
+            int userPoints,
+            List<String> friendsList,
+            List<String> followersList,
+            List<String> followingList,
+            List<String> blockedUsers,
+            Map<String, dynamic> herdAndRole,
+            String? role,
+            String? altUserUID,
+            String? bio,
+            String? profileImageURL,
+            String? coverImageURL,
+            bool acceptedLegal,
+            bool isVerified,
+            bool isPrivateAccount,
+            String fcmToken,
+            Map<String, dynamic> preferences,
+            Map<String, dynamic> notifications,
+            List<String> savedPosts,
+            bool isNSFW,
+            bool allowNSFW,
+            bool blurNSFW,
+            bool showHerdPostsInAltFeed,
+            String? country,
+            String? city,
+            String? timezone,
+            int totalPosts,
+            int totalComments,
+            int totalLikes,
+            DateTime? lastActive,
+            String? altUsername,
+            String? altBio,
+            String? altProfileImageURL,
+            String? altCoverImageURL,
+            int altFollowers,
+            int altFollowing,
+            int altFriends,
+            int altUserPoints,
+            List<String> altFriendsList,
+            List<String> altFollowersList,
+            List<String> altFollowingList,
+            List<String> altBlockedUsers,
+            int altTotalPosts,
+            int altTotalComments,
+            int altTotalLikes,
+            List<String> altSavedPosts,
+            DateTime? altCreatedAt,
+            DateTime? altUpdatedAt,
+            DateTime? dateOfBirth,
+            List<String> altConnections,
+            bool altIsPrivateAccount,
+            List<String> groups,
+            List<String> moderatedGroups,
+            List<String> altGroups,
+            List<String> altModeratedGroups,
+            int trustScore,
+            int altTrustScore,
+            int reportCount,
+            int altReportCount,
+            bool isActive,
+            bool altIsActive,
+            String accountStatus,
+            String altAccountStatus,
+            List<String> interests,
+            List<String> altInterests,
+            Map<String, dynamic> contentPreferences,
+            Map<String, dynamic> altContentPreferences,
+            bool twoFactorEnabled,
+            DateTime? lastPasswordChange,
+            List<Map<String, dynamic>> loginHistory,
+            bool isPremium,
+            DateTime? premiumUntil,
+            int walletBalance,
+            List<String> pinnedPosts,
+            List<String> altPinnedPosts)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _UserModel() when $default != null:
+        return $default(
+            _that.id,
+            _that.firstName,
+            _that.lastName,
+            _that.username,
+            _that.email,
+            _that.createdAt,
+            _that.updatedAt,
+            _that.followers,
+            _that.following,
+            _that.friends,
+            _that.userPoints,
+            _that.friendsList,
+            _that.followersList,
+            _that.followingList,
+            _that.blockedUsers,
+            _that.herdAndRole,
+            _that.role,
+            _that.altUserUID,
+            _that.bio,
+            _that.profileImageURL,
+            _that.coverImageURL,
+            _that.acceptedLegal,
+            _that.isVerified,
+            _that.isPrivateAccount,
+            _that.fcmToken,
+            _that.preferences,
+            _that.notifications,
+            _that.savedPosts,
+            _that.isNSFW,
+            _that.allowNSFW,
+            _that.blurNSFW,
+            _that.showHerdPostsInAltFeed,
+            _that.country,
+            _that.city,
+            _that.timezone,
+            _that.totalPosts,
+            _that.totalComments,
+            _that.totalLikes,
+            _that.lastActive,
+            _that.altUsername,
+            _that.altBio,
+            _that.altProfileImageURL,
+            _that.altCoverImageURL,
+            _that.altFollowers,
+            _that.altFollowing,
+            _that.altFriends,
+            _that.altUserPoints,
+            _that.altFriendsList,
+            _that.altFollowersList,
+            _that.altFollowingList,
+            _that.altBlockedUsers,
+            _that.altTotalPosts,
+            _that.altTotalComments,
+            _that.altTotalLikes,
+            _that.altSavedPosts,
+            _that.altCreatedAt,
+            _that.altUpdatedAt,
+            _that.dateOfBirth,
+            _that.altConnections,
+            _that.altIsPrivateAccount,
+            _that.groups,
+            _that.moderatedGroups,
+            _that.altGroups,
+            _that.altModeratedGroups,
+            _that.trustScore,
+            _that.altTrustScore,
+            _that.reportCount,
+            _that.altReportCount,
+            _that.isActive,
+            _that.altIsActive,
+            _that.accountStatus,
+            _that.altAccountStatus,
+            _that.interests,
+            _that.altInterests,
+            _that.contentPreferences,
+            _that.altContentPreferences,
+            _that.twoFactorEnabled,
+            _that.lastPasswordChange,
+            _that.loginHistory,
+            _that.isPremium,
+            _that.premiumUntil,
+            _that.walletBalance,
+            _that.pinnedPosts,
+            _that.altPinnedPosts);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String id,
+            String firstName,
+            String lastName,
+            String username,
+            String email,
+            DateTime? createdAt,
+            DateTime? updatedAt,
+            int followers,
+            int following,
+            int friends,
+            int userPoints,
+            List<String> friendsList,
+            List<String> followersList,
+            List<String> followingList,
+            List<String> blockedUsers,
+            Map<String, dynamic> herdAndRole,
+            String? role,
+            String? altUserUID,
+            String? bio,
+            String? profileImageURL,
+            String? coverImageURL,
+            bool acceptedLegal,
+            bool isVerified,
+            bool isPrivateAccount,
+            String fcmToken,
+            Map<String, dynamic> preferences,
+            Map<String, dynamic> notifications,
+            List<String> savedPosts,
+            bool isNSFW,
+            bool allowNSFW,
+            bool blurNSFW,
+            bool showHerdPostsInAltFeed,
+            String? country,
+            String? city,
+            String? timezone,
+            int totalPosts,
+            int totalComments,
+            int totalLikes,
+            DateTime? lastActive,
+            String? altUsername,
+            String? altBio,
+            String? altProfileImageURL,
+            String? altCoverImageURL,
+            int altFollowers,
+            int altFollowing,
+            int altFriends,
+            int altUserPoints,
+            List<String> altFriendsList,
+            List<String> altFollowersList,
+            List<String> altFollowingList,
+            List<String> altBlockedUsers,
+            int altTotalPosts,
+            int altTotalComments,
+            int altTotalLikes,
+            List<String> altSavedPosts,
+            DateTime? altCreatedAt,
+            DateTime? altUpdatedAt,
+            DateTime? dateOfBirth,
+            List<String> altConnections,
+            bool altIsPrivateAccount,
+            List<String> groups,
+            List<String> moderatedGroups,
+            List<String> altGroups,
+            List<String> altModeratedGroups,
+            int trustScore,
+            int altTrustScore,
+            int reportCount,
+            int altReportCount,
+            bool isActive,
+            bool altIsActive,
+            String accountStatus,
+            String altAccountStatus,
+            List<String> interests,
+            List<String> altInterests,
+            Map<String, dynamic> contentPreferences,
+            Map<String, dynamic> altContentPreferences,
+            bool twoFactorEnabled,
+            DateTime? lastPasswordChange,
+            List<Map<String, dynamic>> loginHistory,
+            bool isPremium,
+            DateTime? premiumUntil,
+            int walletBalance,
+            List<String> pinnedPosts,
+            List<String> altPinnedPosts)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UserModel():
+        return $default(
+            _that.id,
+            _that.firstName,
+            _that.lastName,
+            _that.username,
+            _that.email,
+            _that.createdAt,
+            _that.updatedAt,
+            _that.followers,
+            _that.following,
+            _that.friends,
+            _that.userPoints,
+            _that.friendsList,
+            _that.followersList,
+            _that.followingList,
+            _that.blockedUsers,
+            _that.herdAndRole,
+            _that.role,
+            _that.altUserUID,
+            _that.bio,
+            _that.profileImageURL,
+            _that.coverImageURL,
+            _that.acceptedLegal,
+            _that.isVerified,
+            _that.isPrivateAccount,
+            _that.fcmToken,
+            _that.preferences,
+            _that.notifications,
+            _that.savedPosts,
+            _that.isNSFW,
+            _that.allowNSFW,
+            _that.blurNSFW,
+            _that.showHerdPostsInAltFeed,
+            _that.country,
+            _that.city,
+            _that.timezone,
+            _that.totalPosts,
+            _that.totalComments,
+            _that.totalLikes,
+            _that.lastActive,
+            _that.altUsername,
+            _that.altBio,
+            _that.altProfileImageURL,
+            _that.altCoverImageURL,
+            _that.altFollowers,
+            _that.altFollowing,
+            _that.altFriends,
+            _that.altUserPoints,
+            _that.altFriendsList,
+            _that.altFollowersList,
+            _that.altFollowingList,
+            _that.altBlockedUsers,
+            _that.altTotalPosts,
+            _that.altTotalComments,
+            _that.altTotalLikes,
+            _that.altSavedPosts,
+            _that.altCreatedAt,
+            _that.altUpdatedAt,
+            _that.dateOfBirth,
+            _that.altConnections,
+            _that.altIsPrivateAccount,
+            _that.groups,
+            _that.moderatedGroups,
+            _that.altGroups,
+            _that.altModeratedGroups,
+            _that.trustScore,
+            _that.altTrustScore,
+            _that.reportCount,
+            _that.altReportCount,
+            _that.isActive,
+            _that.altIsActive,
+            _that.accountStatus,
+            _that.altAccountStatus,
+            _that.interests,
+            _that.altInterests,
+            _that.contentPreferences,
+            _that.altContentPreferences,
+            _that.twoFactorEnabled,
+            _that.lastPasswordChange,
+            _that.loginHistory,
+            _that.isPremium,
+            _that.premiumUntil,
+            _that.walletBalance,
+            _that.pinnedPosts,
+            _that.altPinnedPosts);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String id,
+            String firstName,
+            String lastName,
+            String username,
+            String email,
+            DateTime? createdAt,
+            DateTime? updatedAt,
+            int followers,
+            int following,
+            int friends,
+            int userPoints,
+            List<String> friendsList,
+            List<String> followersList,
+            List<String> followingList,
+            List<String> blockedUsers,
+            Map<String, dynamic> herdAndRole,
+            String? role,
+            String? altUserUID,
+            String? bio,
+            String? profileImageURL,
+            String? coverImageURL,
+            bool acceptedLegal,
+            bool isVerified,
+            bool isPrivateAccount,
+            String fcmToken,
+            Map<String, dynamic> preferences,
+            Map<String, dynamic> notifications,
+            List<String> savedPosts,
+            bool isNSFW,
+            bool allowNSFW,
+            bool blurNSFW,
+            bool showHerdPostsInAltFeed,
+            String? country,
+            String? city,
+            String? timezone,
+            int totalPosts,
+            int totalComments,
+            int totalLikes,
+            DateTime? lastActive,
+            String? altUsername,
+            String? altBio,
+            String? altProfileImageURL,
+            String? altCoverImageURL,
+            int altFollowers,
+            int altFollowing,
+            int altFriends,
+            int altUserPoints,
+            List<String> altFriendsList,
+            List<String> altFollowersList,
+            List<String> altFollowingList,
+            List<String> altBlockedUsers,
+            int altTotalPosts,
+            int altTotalComments,
+            int altTotalLikes,
+            List<String> altSavedPosts,
+            DateTime? altCreatedAt,
+            DateTime? altUpdatedAt,
+            DateTime? dateOfBirth,
+            List<String> altConnections,
+            bool altIsPrivateAccount,
+            List<String> groups,
+            List<String> moderatedGroups,
+            List<String> altGroups,
+            List<String> altModeratedGroups,
+            int trustScore,
+            int altTrustScore,
+            int reportCount,
+            int altReportCount,
+            bool isActive,
+            bool altIsActive,
+            String accountStatus,
+            String altAccountStatus,
+            List<String> interests,
+            List<String> altInterests,
+            Map<String, dynamic> contentPreferences,
+            Map<String, dynamic> altContentPreferences,
+            bool twoFactorEnabled,
+            DateTime? lastPasswordChange,
+            List<Map<String, dynamic>> loginHistory,
+            bool isPremium,
+            DateTime? premiumUntil,
+            int walletBalance,
+            List<String> pinnedPosts,
+            List<String> altPinnedPosts)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _UserModel() when $default != null:
+        return $default(
+            _that.id,
+            _that.firstName,
+            _that.lastName,
+            _that.username,
+            _that.email,
+            _that.createdAt,
+            _that.updatedAt,
+            _that.followers,
+            _that.following,
+            _that.friends,
+            _that.userPoints,
+            _that.friendsList,
+            _that.followersList,
+            _that.followingList,
+            _that.blockedUsers,
+            _that.herdAndRole,
+            _that.role,
+            _that.altUserUID,
+            _that.bio,
+            _that.profileImageURL,
+            _that.coverImageURL,
+            _that.acceptedLegal,
+            _that.isVerified,
+            _that.isPrivateAccount,
+            _that.fcmToken,
+            _that.preferences,
+            _that.notifications,
+            _that.savedPosts,
+            _that.isNSFW,
+            _that.allowNSFW,
+            _that.blurNSFW,
+            _that.showHerdPostsInAltFeed,
+            _that.country,
+            _that.city,
+            _that.timezone,
+            _that.totalPosts,
+            _that.totalComments,
+            _that.totalLikes,
+            _that.lastActive,
+            _that.altUsername,
+            _that.altBio,
+            _that.altProfileImageURL,
+            _that.altCoverImageURL,
+            _that.altFollowers,
+            _that.altFollowing,
+            _that.altFriends,
+            _that.altUserPoints,
+            _that.altFriendsList,
+            _that.altFollowersList,
+            _that.altFollowingList,
+            _that.altBlockedUsers,
+            _that.altTotalPosts,
+            _that.altTotalComments,
+            _that.altTotalLikes,
+            _that.altSavedPosts,
+            _that.altCreatedAt,
+            _that.altUpdatedAt,
+            _that.dateOfBirth,
+            _that.altConnections,
+            _that.altIsPrivateAccount,
+            _that.groups,
+            _that.moderatedGroups,
+            _that.altGroups,
+            _that.altModeratedGroups,
+            _that.trustScore,
+            _that.altTrustScore,
+            _that.reportCount,
+            _that.altReportCount,
+            _that.isActive,
+            _that.altIsActive,
+            _that.accountStatus,
+            _that.altAccountStatus,
+            _that.interests,
+            _that.altInterests,
+            _that.contentPreferences,
+            _that.altContentPreferences,
+            _that.twoFactorEnabled,
+            _that.lastPasswordChange,
+            _that.loginHistory,
+            _that.isPremium,
+            _that.premiumUntil,
+            _that.walletBalance,
+            _that.pinnedPosts,
+            _that.altPinnedPosts);
+      case _:
+        return null;
+    }
+  }
+}
+
 /// @nodoc
 @JsonSerializable()
 class _UserModel extends UserModel with DiagnosticableTreeMixin {
@@ -1152,7 +1815,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
 
   @override
   final String? role;
-// Role in the user's herd, e.g., 'admin', 'member'
+// Role in the application, e.g., 'admin', 'member'
   @override
   final String? altUserUID;
   @override

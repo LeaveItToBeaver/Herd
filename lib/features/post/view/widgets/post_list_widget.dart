@@ -457,7 +457,7 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
             Icon(
               icon,
               size: 72,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -469,7 +469,7 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
             Text(
               'Pull to refresh',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

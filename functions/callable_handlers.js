@@ -198,7 +198,7 @@ const handlePostInteraction = onCall({
 
 
 /**
- * Get feed for a user with filtering options
+ * Get feed for a user with filtering options and sorting
  */
 const getFeed = onCall(async (request) => {
     const {
@@ -206,7 +206,9 @@ const getFeed = onCall(async (request) => {
         herdId = null,
         limit = 15,
         lastHotScore = null,
-        lastPostId = null
+        lastPostId = null,
+        sortType = 'hot', // Add sortType parameter
+        timePeriod = 'all' // Add timePeriod for 'top' sorting
     } = request.data;
 
     // Validate required userId
@@ -214,7 +216,7 @@ const getFeed = onCall(async (request) => {
 
     // Add detailed logging
     logger.info(`getFeed called with params: ${JSON.stringify({
-        userId, feedType, herdId, limit, lastHotScore, lastPostId
+        userId, feedType, herdId, limit, lastHotScore, lastPostId, sortType, timePeriod
     })}`);
 
     if (!userId) {
@@ -223,26 +225,26 @@ const getFeed = onCall(async (request) => {
     }
 
     try {
-        // Different query strategy based on feed type
+        // Different query strategy based on feed type and sort type
         let postsResult = {};
 
         if (feedType === 'public') {
-            logger.info(`Getting public feed for user: ${userId}`);
-            postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+            logger.info(`Getting public feed for user: ${userId} with sort: ${sortType}`);
+            postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId, sortType, timePeriod);
             logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
         }
         else if (feedType === 'alt') {
-            logger.info(`Getting alt feed, lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}, for user: ${userId}`);
-            postsResult = await getAltFeed(limit, lastHotScore, lastPostId);
+            logger.info(`Getting alt feed with sort: ${sortType}, lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}, for user: ${userId}`);
+            postsResult = await getAltFeed(limit, lastHotScore, lastPostId, sortType, timePeriod);
             logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
         }
         else if (herdId) {
-            logger.info(`Getting herd feed for herd: ${herdId}`);
-            postsResult = await getHerdFeed(herdId, limit, lastHotScore, lastPostId);
+            logger.info(`Getting herd feed for herd: ${herdId} with sort: ${sortType}`);
+            postsResult = await getHerdFeed(herdId, limit, lastHotScore, lastPostId, sortType, timePeriod);
             logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
         } else {
-            logger.info(`Defaulting to public feed for user: ${userId}`);
-            postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId);
+            logger.info(`Defaulting to public feed for user: ${userId} with sort: ${sortType}`);
+            postsResult = await getPublicFeed(userId, limit, lastHotScore, lastPostId, sortType, timePeriod);
             logger.info(`hasMorePosts: ${postsResult.hasMorePosts}`);
         }
 
@@ -715,22 +717,62 @@ const catchAndLogExceptions = onCall(async (request) => {
 });
 
 // Get public feed (personalized for each user)
-async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
+async function getPublicFeed(userId, limit, lastHotScore, lastPostId, sortType = 'hot', timePeriod = 'all') {
     try {
-        // STEP 1: Query the userFeeds to get the ordered post IDs
+        // Build query based on sort type
         let feedQuery = firestore
             .collection('userFeeds')
             .doc(userId)
             .collection('feed')
-            .where('feedType', '==', 'public')
-            .orderBy('hotScore', 'desc')
-            .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+            .where('feedType', '==', 'public');
 
-        // Apply pagination
+        // Add time filtering for top sorts only
+        // Skip time filtering for trending in user feeds since they should already be properly filtered
+        if (sortType === 'top' && timePeriod !== 'all') {
+            const timeFilter = getTimeFilterDate(timePeriod);
+            if (timeFilter) {
+                feedQuery = feedQuery.where('createdAt', '>', timeFilter);
+            }
+        }
+
+        // Add ordering based on sort type
+        switch (sortType) {
+            case 'latest':
+                feedQuery = feedQuery.orderBy('createdAt', 'desc');
+                break;
+            case 'trending':
+                // For trending, just use hotScore ordering like hot sort
+                feedQuery = feedQuery.orderBy('hotScore', 'desc')
+                    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+                break;
+            case 'top':
+                feedQuery = feedQuery.orderBy('likeCount', 'desc')
+                    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+                break;
+            case 'hot':
+            default:
+                feedQuery = feedQuery.orderBy('hotScore', 'desc')
+                    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+                break;
+        }
+
+        // Apply pagination based on sort type
         if (lastHotScore !== null && lastPostId !== null) {
-            logger.info(`Attempting to paginate public feed with lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
-            // Use startAfter with an array of values to match the orderBy fields
-            feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+            logger.info(`Attempting to paginate public feed with sortType: ${sortType}, lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
+
+            switch (sortType) {
+                case 'latest':
+                    // For latest, we use createdAt timestamp
+                    feedQuery = feedQuery.startAfter(new Date(lastHotScore));
+                    break;
+                case 'trending':
+                case 'top':
+                case 'hot':
+                default:
+                    // For trending, top, and hot, use compound pagination: score + documentId
+                    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+                    break;
+            }
         }
 
         // Apply limit
@@ -744,17 +786,31 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
             return { posts: [], lastHotScore: null, lastPostId: null };
         }
 
-        // Extract post IDs and hot scores from feed entries
+        // Extract post IDs and scores from feed entries based on sort type
         const postIds = [];
-        const hotScoreMap = {};
+        const scoreMap = {}; // Generic score map that can hold different types of scores
 
         feedSnapshot.docs.forEach(doc => {
             postIds.push(doc.id);
             const data = doc.data();
-            hotScoreMap[doc.id] = data.hotScore || 0;
+
+            // Store the relevant score based on sort type
+            switch (sortType) {
+                case 'latest':
+                    scoreMap[doc.id] = data.createdAt ? data.createdAt.toMillis() : 0;
+                    break;
+                case 'top':
+                    scoreMap[doc.id] = data.likeCount || 0;
+                    break;
+                case 'trending':
+                case 'hot':
+                default:
+                    scoreMap[doc.id] = data.hotScore || 0;
+                    break;
+            }
         });
 
-        logger.info(`Found ${postIds.length} public feed entries for user: ${userId}`);
+        logger.info(`Found ${postIds.length} public feed entries for user: ${userId} with sort: ${sortType}`);
 
         // STEP 2: Query the source of truth for complete post data
         // Split into chunks of 10 for whereIn query limitation
@@ -770,17 +826,45 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
             const postsSnapshot = await postsQuery.get();
 
             postsSnapshot.docs.forEach(doc => {
-                chunkedResults.push({
+                const postData = {
                     id: doc.id,
                     ...doc.data(),
-                    // Use hot score from user feed to maintain ordering
-                    hotScore: hotScoreMap[doc.id]
-                });
+                    // Preserve the score from user feed for consistency
+                    hotScore: sortType === 'hot' || sortType === 'trending' ? scoreMap[doc.id] : doc.data().hotScore
+                };
+
+                // Add sorting-specific scores
+                if (sortType === 'trending') {
+                    postData.trendingScore = scoreMap[doc.id];
+                } else if (sortType === 'top') {
+                    postData.topScore = scoreMap[doc.id];
+                }
+
+                chunkedResults.push(postData);
             });
         }
 
-
-        const posts = chunkedResults.sort((a, b) => b.hotScore - a.hotScore);
+        // Sort the results based on sort type
+        let posts;
+        switch (sortType) {
+            case 'latest':
+                posts = chunkedResults.sort((a, b) => {
+                    const aTime = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
+                    const bTime = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
+                    return bTime - aTime;
+                });
+                break;
+            case 'top':
+                posts = chunkedResults.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+                break;
+            case 'trending':
+                posts = chunkedResults.sort((a, b) => (b.trendingScore || b.hotScore || 0) - (a.trendingScore || a.hotScore || 0));
+                break;
+            case 'hot':
+            default:
+                posts = chunkedResults.sort((a, b) => (b.hotScore || 0) - (a.hotScore || 0));
+                break;
+        }
 
         const userInteractions = await getUserInteractionsForPosts(userId, posts.map(post => post.id));
 
@@ -793,12 +877,33 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
             };
         });
 
-        logger.info(`Retrieved ${posts.length} complete posts for public feed`);
+        logger.info(`Retrieved ${posts.length} complete posts for public feed with sort: ${sortType}`);
 
-        // Return the results with pagination info
+        // Return the results with pagination info based on sort type
+        let lastSortValue;
+        if (posts.length > 0) {
+            const lastPost = posts[posts.length - 1];
+            switch (sortType) {
+                case 'latest':
+                    lastSortValue = lastPost.createdAt ?
+                        (lastPost.createdAt.toMillis ? lastPost.createdAt.toMillis() : new Date(lastPost.createdAt).getTime()) : 0;
+                    break;
+                case 'top':
+                    lastSortValue = lastPost.likeCount || 0;
+                    break;
+                case 'trending':
+                    lastSortValue = lastPost.trendingScore || lastPost.hotScore || 0;
+                    break;
+                case 'hot':
+                default:
+                    lastSortValue = lastPost.hotScore || 0;
+                    break;
+            }
+        }
+
         return {
             posts: enrichedPosts,
-            lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+            lastHotScore: lastSortValue || null,
             lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
             hasMorePosts: posts.length >= limit
         };
@@ -809,19 +914,65 @@ async function getPublicFeed(userId, limit, lastHotScore, lastPostId) {
 }
 
 // Get alt feed (global, like Reddit's r/All)
-async function getAltFeed(limit, lastHotScore, lastPostId) {
+async function getAltFeed(limit, lastHotScore, lastPostId, sortType = 'hot', timePeriod = 'all') {
     try {
-        // Query the global alt posts collection
-        let feedQuery = firestore
-            .collection('altPosts')
-            .orderBy('hotScore', 'desc')
-            .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+        // Build query based on sort type
+        let feedQuery = firestore.collection('altPosts');
 
-        // Apply pagination
+        // Add time filtering for trending and top sorts
+        if (sortType === 'trending') {
+            const twoDaysAgo = new Date();
+            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+            feedQuery = feedQuery.where('createdAt', '>', twoDaysAgo);
+        } else if (sortType === 'top' && timePeriod !== 'all') {
+            const timeFilter = getTimeFilterDate(timePeriod);
+            if (timeFilter) {
+                feedQuery = feedQuery.where('createdAt', '>', timeFilter);
+            }
+        }
+
+        // Add ordering based on sort type
+        switch (sortType) {
+            case 'latest':
+                feedQuery = feedQuery.orderBy('createdAt', 'desc');
+                break;
+            case 'trending':
+                // For trending with time filter, order by createdAt first
+                feedQuery = feedQuery.orderBy('createdAt', 'desc')
+                    .orderBy('hotScore', 'desc')
+                    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+                break;
+            case 'top':
+                feedQuery = feedQuery.orderBy('likeCount', 'desc')
+                    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+                break;
+            case 'hot':
+            default:
+                feedQuery = feedQuery.orderBy('hotScore', 'desc')
+                    .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+                break;
+        }
+
+        // Apply pagination based on sort type
         if (lastHotScore !== null && lastPostId !== null) {
-            logger.info(`Attempting to paginate alt feed with lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
-            // Use startAfter with an array of values to match the orderBy fields 
-            feedQuery = feedQuery.startAt(lastHotScore, lastPostId);
+            logger.info(`Attempting to paginate alt feed with sortType: ${sortType}, lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
+
+            switch (sortType) {
+                case 'latest':
+                    feedQuery = feedQuery.startAfter(new Date(lastHotScore));
+                    break;
+                case 'trending':
+                    // For trending, use triple compound pagination: createdAt + hotScore + documentId
+                    // lastHotScore should contain the createdAt timestamp for trending
+                    feedQuery = feedQuery.startAfter(new Date(lastHotScore), null, lastPostId);
+                    break;
+                case 'top':
+                case 'hot':
+                default:
+                    // For top and hot, use compound pagination: score + documentId
+                    feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+                    break;
+            }
         }
 
         // Apply limit
@@ -831,20 +982,51 @@ async function getAltFeed(limit, lastHotScore, lastPostId) {
         const snapshot = await feedQuery.get();
 
         if (snapshot.empty) {
-            logger.info('No alt posts found');
-            return { posts: [], lastHotScore: null, lastPostId: null };
+            logger.info(`No alt posts found for sort: ${sortType}`);
+            return { posts: [], lastHotScore: null, lastPostId: null, hasMorePosts: false };
         }
 
-        const posts = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        const posts = snapshot.docs.map(doc => {
+            const data = {
+                id: doc.id,
+                ...doc.data()
+            };
 
-        logger.info(`Retrieved ${posts.length} alt posts`);
+            // Add sorting-specific scores
+            if (sortType === 'trending') {
+                data.trendingScore = data.hotScore;
+            } else if (sortType === 'top') {
+                data.topScore = data.likeCount;
+            }
+
+            return data;
+        });
+
+        logger.info(`Retrieved ${posts.length} alt posts with sort: ${sortType}`);
+
+        // Calculate last sort value for pagination
+        let lastSortValue;
+        if (posts.length > 0) {
+            const lastPost = posts[posts.length - 1];
+            switch (sortType) {
+                case 'latest':
+                    lastSortValue = lastPost.createdAt ?
+                        (lastPost.createdAt.toMillis ? lastPost.createdAt.toMillis() : new Date(lastPost.createdAt).getTime()) : 0;
+                    break;
+                case 'top':
+                    lastSortValue = lastPost.likeCount || 0;
+                    break;
+                case 'trending':
+                case 'hot':
+                default:
+                    lastSortValue = lastPost.hotScore || 0;
+                    break;
+            }
+        }
 
         return {
             posts,
-            lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+            lastHotScore: lastSortValue || null,
             lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
             hasMorePosts: posts.length >= limit
         };
@@ -855,17 +1037,66 @@ async function getAltFeed(limit, lastHotScore, lastPostId) {
 }
 
 // Get herd-specific feed
-async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
+async function getHerdFeed(herdId, limit, lastHotScore, lastPostId, sortType = 'hot', timePeriod = 'all') {
+    // Build query based on sort type
     let feedQuery = firestore
         .collection('herdPosts')
         .doc(herdId)
-        .collection('posts')
-        .orderBy('hotScore', 'desc')
-        .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+        .collection('posts');
 
-    // Apply pagination
+    // Add time filtering for trending and top sorts
+    if (sortType === 'trending') {
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        feedQuery = feedQuery.where('createdAt', '>', twoDaysAgo);
+    } else if (sortType === 'top' && timePeriod !== 'all') {
+        const timeFilter = getTimeFilterDate(timePeriod);
+        if (timeFilter) {
+            feedQuery = feedQuery.where('createdAt', '>', timeFilter);
+        }
+    }
+
+    // Add ordering based on sort type
+    switch (sortType) {
+        case 'latest':
+            feedQuery = feedQuery.orderBy('createdAt', 'desc');
+            break;
+        case 'trending':
+            // For trending with time filter, order by createdAt first
+            feedQuery = feedQuery.orderBy('createdAt', 'desc')
+                .orderBy('hotScore', 'desc')
+                .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+            break;
+        case 'top':
+            feedQuery = feedQuery.orderBy('likeCount', 'desc')
+                .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+            break;
+        case 'hot':
+        default:
+            feedQuery = feedQuery.orderBy('hotScore', 'desc')
+                .orderBy(admin.firestore.FieldPath.documentId(), 'asc');
+            break;
+    }
+
+    // Apply pagination based on sort type
     if (lastHotScore !== null && lastPostId !== null) {
-        feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+        logger.info(`Attempting to paginate herd feed with sortType: ${sortType}, lastHotScore: ${lastHotScore}, lastPostId: ${lastPostId}`);
+
+        switch (sortType) {
+            case 'latest':
+                feedQuery = feedQuery.startAfter(new Date(lastHotScore));
+                break;
+            case 'trending':
+                // For trending, use triple compound pagination: createdAt + hotScore + documentId
+                feedQuery = feedQuery.startAfter(new Date(lastHotScore), null, lastPostId);
+                break;
+            case 'top':
+            case 'hot':
+            default:
+                // For top and hot, use compound pagination: score + documentId
+                feedQuery = feedQuery.startAfter(lastHotScore, lastPostId);
+                break;
+        }
     }
 
     // Apply limit
@@ -873,14 +1104,45 @@ async function getHerdFeed(herdId, limit, lastHotScore, lastPostId) {
 
     // Execute query
     const snapshot = await feedQuery.get();
-    const posts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    const posts = snapshot.docs.map(doc => {
+        const data = {
+            id: doc.id,
+            ...doc.data()
+        };
+
+        // Add sorting-specific scores
+        if (sortType === 'trending') {
+            data.trendingScore = data.hotScore;
+        } else if (sortType === 'top') {
+            data.topScore = data.likeCount;
+        }
+
+        return data;
+    });
+
+    // Calculate last sort value for pagination
+    let lastSortValue;
+    if (posts.length > 0) {
+        const lastPost = posts[posts.length - 1];
+        switch (sortType) {
+            case 'latest':
+                lastSortValue = lastPost.createdAt ?
+                    (lastPost.createdAt.toMillis ? lastPost.createdAt.toMillis() : new Date(lastPost.createdAt).getTime()) : 0;
+                break;
+            case 'top':
+                lastSortValue = lastPost.likeCount || 0;
+                break;
+            case 'trending':
+            case 'hot':
+            default:
+                lastSortValue = lastPost.hotScore || 0;
+                break;
+        }
+    }
 
     return {
         posts,
-        lastHotScore: posts.length > 0 ? posts[posts.length - 1].hotScore : null,
+        lastHotScore: lastSortValue || null,
         lastPostId: posts.length > 0 ? posts[posts.length - 1].id : null,
         hasMorePosts: posts.length >= limit
     };
@@ -906,6 +1168,30 @@ async function getUserInteractionsForPosts(userId, postIds) {
     });
 
     return result;
+}
+
+// Helper function to get time filter date
+function getTimeFilterDate(timePeriod) {
+    const now = new Date();
+    switch (timePeriod) {
+        case 'hour':
+            now.setHours(now.getHours() - 1);
+            return now;
+        case 'day':
+            now.setDate(now.getDate() - 1);
+            return now;
+        case 'week':
+            now.setDate(now.getDate() - 7);
+            return now;
+        case 'month':
+            now.setMonth(now.getMonth() - 1);
+            return now;
+        case 'year':
+            now.setFullYear(now.getFullYear() - 1);
+            return now;
+        default:
+            return null;
+    }
 }
 
 module.exports = {

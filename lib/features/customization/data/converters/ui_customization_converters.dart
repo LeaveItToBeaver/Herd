@@ -9,7 +9,7 @@ class FontWeightConverter implements JsonConverter<FontWeight, String?> {
   @override
   FontWeight fromJson(String? json) {
     if (json == null) return FontWeight.w400;
-    
+
     switch (json) {
       case 'w100':
         return FontWeight.w100;
@@ -68,7 +68,7 @@ class ThemeModeConverter implements JsonConverter<ThemeMode, String?> {
   @override
   ThemeMode fromJson(String? json) {
     if (json == null) return ThemeMode.system;
-    
+
     switch (json) {
       case 'light':
         return ThemeMode.light;
@@ -101,7 +101,7 @@ class CurvesConverter implements JsonConverter<Curve, String?> {
   @override
   Curve fromJson(String? json) {
     if (json == null) return Curves.easeInOut;
-    
+
     switch (json) {
       case 'linear':
         return Curves.linear;
@@ -196,8 +196,9 @@ class CurvesConverter implements JsonConverter<Curve, String?> {
     // For a complete implementation, you'd need to check all curve types
     if (object == Curves.linear) return 'linear';
     if (object == Curves.decelerate) return 'decelerate';
-    if (object == Curves.fastLinearToSlowEaseIn)
+    if (object == Curves.fastLinearToSlowEaseIn) {
       return 'fastLinearToSlowEaseIn';
+    }
     if (object == Curves.ease) return 'ease';
     if (object == Curves.easeIn) return 'easeIn';
     if (object == Curves.easeInToLinear) return 'easeInToLinear';
@@ -249,7 +250,7 @@ class AlignmentConverter
   @override
   Alignment fromJson(Map<String, dynamic>? json) {
     if (json == null) return Alignment.center;
-    
+
     return Alignment(
       (json['x'] as num?)?.toDouble() ?? 0.0,
       (json['y'] as num?)?.toDouble() ?? 0.0,
@@ -288,7 +289,7 @@ class TimestampOrStringDateTimeConverter
   @override
   DateTime fromJson(Object? json) {
     if (json == null) return DateTime.now();
-    
+
     if (json is String) {
       try {
         return DateTime.parse(json);
@@ -297,11 +298,11 @@ class TimestampOrStringDateTimeConverter
         return DateTime.now();
       }
     }
-    
+
     if (json is Timestamp) {
       return json.toDate();
     }
-    
+
     // Handle numeric timestamps (milliseconds since epoch)
     if (json is num) {
       try {
@@ -310,7 +311,7 @@ class TimestampOrStringDateTimeConverter
         return DateTime.now();
       }
     }
-    
+
     // Handle Map representation of DateTime
     if (json is Map<String, dynamic>) {
       try {
@@ -319,10 +320,9 @@ class TimestampOrStringDateTimeConverter
           final seconds = (json['_seconds'] as num).toInt();
           final nanoseconds = (json['_nanoseconds'] as num).toInt();
           return DateTime.fromMillisecondsSinceEpoch(
-            seconds * 1000 + (nanoseconds / 1000000).round()
-          );
+              seconds * 1000 + (nanoseconds / 1000000).round());
         }
-        
+
         // Check for standard DateTime JSON representation
         if (json.containsKey('year')) {
           return DateTime(
@@ -340,7 +340,7 @@ class TimestampOrStringDateTimeConverter
         return DateTime.now();
       }
     }
-    
+
     // As a fallback, return current time instead of throwing an error
     return DateTime.now();
   }
@@ -360,20 +360,20 @@ class SafeColorConverter implements JsonConverter<Color, String?> {
     if (json == null || json.isEmpty) {
       return Colors.transparent;
     }
-    
+
     try {
       // Remove # if present
       String colorString = json.replaceFirst('#', '');
-      
+
       // Ensure we have a valid hex color
       if (colorString.length == 6) {
         colorString = 'FF$colorString'; // Add alpha if missing
       }
-      
+
       if (colorString.length == 8) {
         return Color(int.parse(colorString, radix: 16));
       }
-      
+
       // If parsing fails, return a default color
       return Colors.transparent;
     } catch (e) {
@@ -384,10 +384,10 @@ class SafeColorConverter implements JsonConverter<Color, String?> {
   @override
   String toJson(Color color) {
     // Convert to hex string without alpha if it's fully opaque
-    if (color.alpha == 255) {
-      return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    if ((color.a * 255.0).round() & 0xff == 255) {
+      return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
     } else {
-      return '#${color.value.toRadixString(16).toUpperCase()}';
+      return '#${color.toARGB32().toRadixString(16).toUpperCase()}';
     }
   }
 }
@@ -399,7 +399,7 @@ class SafeDoubleConverter implements JsonConverter<double, Object?> {
   @override
   double fromJson(Object? json) {
     if (json == null) return 0.0;
-    
+
     if (json is double) return json;
     if (json is int) return json.toDouble();
     if (json is String) {
@@ -409,7 +409,7 @@ class SafeDoubleConverter implements JsonConverter<double, Object?> {
         return 0.0;
       }
     }
-    
+
     return 0.0;
   }
 
@@ -426,7 +426,7 @@ class SafeIntConverter implements JsonConverter<int, Object?> {
   @override
   int fromJson(Object? json) {
     if (json == null) return 0;
-    
+
     if (json is int) return json;
     if (json is double) return json.round();
     if (json is String) {
@@ -440,7 +440,7 @@ class SafeIntConverter implements JsonConverter<int, Object?> {
         }
       }
     }
-    
+
     return 0;
   }
 
@@ -457,7 +457,7 @@ class SafeBoolConverter implements JsonConverter<bool, Object?> {
   @override
   bool fromJson(Object? json) {
     if (json == null) return false;
-    
+
     if (json is bool) return json;
     if (json is String) {
       final lower = json.toLowerCase();
@@ -466,7 +466,7 @@ class SafeBoolConverter implements JsonConverter<bool, Object?> {
     if (json is num) {
       return json != 0;
     }
-    
+
     return false;
   }
 
@@ -483,11 +483,11 @@ class SafeStringListConverter implements JsonConverter<List<String>, Object?> {
   @override
   List<String> fromJson(Object? json) {
     if (json == null) return [];
-    
+
     if (json is List) {
       return json.map((item) => item?.toString() ?? '').toList();
     }
-    
+
     if (json is String) {
       // Handle comma-separated strings
       try {
@@ -496,7 +496,7 @@ class SafeStringListConverter implements JsonConverter<List<String>, Object?> {
         return [json];
       }
     }
-    
+
     return [];
   }
 
@@ -513,11 +513,11 @@ class SafeMapConverter implements JsonConverter<Map<String, dynamic>, Object?> {
   @override
   Map<String, dynamic> fromJson(Object? json) {
     if (json == null) return {};
-    
+
     if (json is Map<String, dynamic>) {
       return json;
     }
-    
+
     if (json is Map) {
       // Convert to Map<String, dynamic>
       final result = <String, dynamic>{};
@@ -526,7 +526,7 @@ class SafeMapConverter implements JsonConverter<Map<String, dynamic>, Object?> {
       });
       return result;
     }
-    
+
     return {};
   }
 
