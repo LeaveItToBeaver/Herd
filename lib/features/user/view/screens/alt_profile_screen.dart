@@ -108,7 +108,7 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
         }
 
         // Get alt posts only
-        final altPosts = profile.posts;
+        //final altPosts = profile.posts;
         final filteredPosts =
             profile.posts.where((post) => post.isAlt).toList();
 
@@ -228,7 +228,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildStatColumn(
-                                    'Alt Posts', altPosts.length.toString()),
+                                  'Alt Posts',
+                                  profile.user?.altTotalPosts.toString() ?? '0',
+                                ),
                                 _buildStatColumn('Connections',
                                     profile.user?.friends.toString() ?? '0'),
                                 Consumer(
@@ -531,8 +533,8 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                   ],
                   _buildInfoRow('Friends', '${profile.user?.friends ?? 0}'),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Alt Posts',
-                      '${profile.posts.where((post) => post.isAlt).length}'),
+                  _buildInfoRow(
+                      'Alt Posts', '${profile.user?.altTotalPosts ?? 0}'),
                 ],
               ),
             ),

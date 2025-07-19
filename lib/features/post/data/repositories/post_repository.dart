@@ -832,4 +832,76 @@ class PostRepository {
     final snapshot = await postDislikeRef.get();
     return snapshot.exists;
   }
+
+  /// DEBUG METHODS - DO NOT USE IN PRODUCTION
+  /// These methods are for debugging purposes only and should not be used in production code.
+  Future<Map<String, dynamic>> recalculateAllUserPostCountsBatch({
+    int batchSize = 10,
+    String? startAfterUserId,
+  }) async {
+    try {
+      final callable =
+          _functions.httpsCallable('recalculateUserPostCountsBatch');
+      final result = await callable.call({
+        'batchSize': batchSize,
+        'startAfterUserId': startAfterUserId,
+      });
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      debugPrint('Error recalculating post counts batch: $e');
+      rethrow;
+    }
+  }
+
+  /// Process all users in batches automatically
+  Future<Map<String, dynamic>> recalculateAllUsersInBatches() async {
+    int totalProcessed = 0;
+    String? lastUserId;
+    bool hasMore = true;
+
+    while (hasMore) {
+      try {
+        final result = await recalculateAllUserPostCountsBatch(
+          batchSize: 10,
+          startAfterUserId: lastUserId,
+        );
+
+        if (result['success'] == true) {
+          totalProcessed += result['processedCount'] as int;
+          lastUserId = result['lastUserId'] as String?;
+          hasMore = result['hasMore'] as bool;
+
+          debugPrint(
+              'Processed batch: ${result['processedCount']} users, total: $totalProcessed');
+
+          // Small delay between batches to avoid overwhelming Firestore
+          if (hasMore) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
+        } else {
+          throw Exception(result['error']);
+        }
+      } catch (e) {
+        debugPrint('Error processing batch: $e');
+        break;
+      }
+    }
+
+    return {
+      'success': true,
+      'totalProcessed': totalProcessed,
+      'message': 'Processed $totalProcessed users in batches'
+    };
+  }
+
+  Future<Map<String, dynamic>> recalculateUserPostCounts(String userId) async {
+    try {
+      final callable = _functions.httpsCallable('recalculateUserPostCounts');
+      final result = await callable.call({'userId': userId});
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      debugPrint('Error recalculating user post counts: $e');
+      rethrow;
+    }
+  }
 }
