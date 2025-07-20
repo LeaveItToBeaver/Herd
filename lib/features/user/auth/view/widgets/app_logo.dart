@@ -13,7 +13,7 @@ class AppLogo extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Center(
-      child: Container(
+      child: SizedBox(
         width: size,
         height: size,
         child: Center(

@@ -38,32 +38,31 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     _hasInitializedInteraction = true;
   }
 
-  void _initializePostInteraction() {
-    // Only initialize once to avoid repeated calls
-    if (!_hasInitializedInteraction && mounted) {
-      final user = ref.read(currentUserProvider);
-      final userId = user.userId;
-      if (userId != null) {
-        // Use a Future to avoid modifying state during build
-        Future.microtask(() {
-          if (mounted) {
-            ref
-                .read(postInteractionsWithPrivacyProvider(PostParams(
-                        id: widget.post.id, isAlt: widget.post.isAlt))
-                    .notifier)
-                .initializeState(userId);
-
-            // Now we can mark it as initialized
-            if (mounted) {
-              setState(() {
-                _hasInitializedInteraction = true;
-              });
-            }
-          }
-        });
-      }
-    }
-  }
+  // void _initializePostInteraction() {
+  //   // Only initialize once to avoid repeated calls
+  //   if (!_hasInitializedInteraction && mounted) {
+  //     final user = ref.read(currentUserProvider);
+  //     final userId = user.userId;
+  //     if (userId != null) {
+  //       // Use a Future to avoid modifying state during build
+  //       Future.microtask(() {
+  //         if (mounted) {
+  //           ref
+  //               .read(postInteractionsWithPrivacyProvider(PostParams(
+  //                       id: widget.post.id, isAlt: widget.post.isAlt))
+  //                   .notifier)
+  //               .initializeState(userId);
+  //           // Now we can mark it as initialized
+  //           if (mounted) {
+  //             setState(() {
+  //               _hasInitializedInteraction = true;
+  //             });
+  //           }
+  //         }
+  //       });
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +232,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     // This method assumes that PostModel has a 'tags' property (List<String>).
     // もし存在しない、または空の場合は何も表示しません。
     // If the post does not have tags or the tags list is empty, return an empty widget.
-    if (widget.post.tags == null || widget.post.tags.isEmpty) {
+    if (widget.post.tags.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -547,48 +546,48 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     );
   }
 
-  Widget _buildContentText(ThemeData theme) {
-    // This method now primarily serves as a fallback for non-rich text
-    // or if rich text rendering failed (though QuillViewerWidget has its own error display)
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isExpanded = !_isExpanded;
-        });
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.post.content, // Display plain text content
-            style: TextStyle(
-              fontSize: widget.isCompact ? 14 : 15,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
-              height: 1.4,
-            ),
-            maxLines: _isExpanded ? null : (widget.isCompact ? 3 : 4),
-            overflow: _isExpanded ? null : TextOverflow.ellipsis,
-          ),
-          if (!_isExpanded &&
-              widget.post.content.length >
-                  (widget.isCompact
-                      ? 100
-                      : 150)) // Adjust length check as needed
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Read more',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildContentText(ThemeData theme) {
+  //   // This method now primarily serves as a fallback for non-rich text
+  //   // or if rich text rendering failed (though QuillViewerWidget has its own error display)
+  //   return GestureDetector(
+  //     onTap: () {
+  //       setState(() {
+  //         _isExpanded = !_isExpanded;
+  //       });
+  //     },
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Text(
+  //           widget.post.content, // Display plain text content
+  //           style: TextStyle(
+  //             fontSize: widget.isCompact ? 14 : 15,
+  //             color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+  //             height: 1.4,
+  //           ),
+  //           maxLines: _isExpanded ? null : (widget.isCompact ? 3 : 4),
+  //           overflow: _isExpanded ? null : TextOverflow.ellipsis,
+  //         ),
+  //         if (!_isExpanded &&
+  //             widget.post.content.length >
+  //                 (widget.isCompact
+  //                     ? 100
+  //                     : 150)) // Adjust length check as needed
+  //           Padding(
+  //             padding: const EdgeInsets.only(top: 4),
+  //             child: Text(
+  //               'Read more',
+  //               style: TextStyle(
+  //                 color: theme.colorScheme.primary,
+  //                 fontWeight: FontWeight.w500,
+  //                 fontSize: 13,
+  //               ),
+  //             ),
+  //           ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   bool _shouldShowMedia() {
     return (widget.post.mediaItems.isNotEmpty) ||
