@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
+import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
 
 void main() {
   group('UICustomizationModel', () {
@@ -21,17 +21,20 @@ void main() {
     test('should serialize and deserialize correctly', () {
       const userId = 'test_user_456';
       final original = UICustomizationModel.defaultForUser(userId);
-      
+
       final json = original.toJson();
       final deserialized = UICustomizationModel.fromJson(json);
 
       expect(deserialized.userId, original.userId);
-      expect(deserialized.appTheme.primaryColor, original.appTheme.primaryColor);
-      expect(deserialized.profileCustomization.layout, original.profileCustomization.layout);
+      expect(
+          deserialized.appTheme.primaryColor, original.appTheme.primaryColor);
+      expect(deserialized.profileCustomization.layout,
+          original.profileCustomization.layout);
     });
 
     test('should validate customization data correctly', () {
-      final validCustomization = UICustomizationModel.defaultForUser('valid_user');
+      final validCustomization =
+          UICustomizationModel.defaultForUser('valid_user');
       expect(validCustomization.isValid(), true);
 
       final invalidCustomization = UICustomizationModel.defaultForUser('');
@@ -42,7 +45,7 @@ void main() {
   group('AppThemeSettings', () {
     test('should parse colors correctly', () {
       const appTheme = AppThemeSettings();
-      
+
       expect(appTheme.getPrimaryColor(), const Color(0xFF3D5AFE));
       expect(appTheme.getSecondaryColor(), const Color(0xFF00C853));
       expect(appTheme.getBackgroundColor(), const Color(0xFFFFFFFF));
@@ -53,7 +56,7 @@ void main() {
         primaryColor: 'invalid_color',
         secondaryColor: '#invalid',
       );
-      
+
       expect(appTheme.getPrimaryColor(), Colors.blue); // fallback
       expect(appTheme.getSecondaryColor(), Colors.green); // fallback
     });
@@ -72,7 +75,7 @@ void main() {
   group('ProfileCustomization', () {
     test('should create with default values', () {
       const profile = ProfileCustomization();
-      
+
       expect(profile.layout, 'classic');
       expect(profile.showCoverImage, true);
       expect(profile.showProfileImage, true);
@@ -99,7 +102,7 @@ void main() {
   group('ComponentStyles', () {
     test('should create with default button styles', () {
       const components = ComponentStyles();
-      
+
       expect(components.buttonBorderRadius, 8.0);
       expect(components.cardBorderRadius, 8.0);
       expect(components.cardElevation, 1.0);
@@ -111,7 +114,7 @@ void main() {
   group('LayoutPreferences', () {
     test('should create with default layout settings', () {
       const layout = LayoutPreferences();
-      
+
       expect(layout.density, 'comfortable');
       expect(layout.useCompactPosts, false);
       expect(layout.useListLayout, false);
@@ -124,7 +127,7 @@ void main() {
   group('AnimationSettings', () {
     test('should create with default animation settings', () {
       const animations = AnimationSettings();
-      
+
       expect(animations.enableAnimations, true);
       expect(animations.speed, 'normal');
       expect(animations.enablePageTransitions, true);
@@ -135,7 +138,7 @@ void main() {
   group('TypographySettings', () {
     test('should create with default typography', () {
       const typography = TypographySettings();
-      
+
       expect(typography.primaryFont, 'Roboto');
       expect(typography.secondaryFont, 'Roboto');
       expect(typography.fontScaleFactor, 1.0);
@@ -147,7 +150,7 @@ void main() {
   group('UICustomizationHelpers', () {
     test('should get correct font weight', () {
       final customization = UICustomizationModel.defaultForUser('test');
-      
+
       expect(customization.getFontWeight('w100'), FontWeight.w100);
       expect(customization.getFontWeight('w400'), FontWeight.w400);
       expect(customization.getFontWeight('w700'), FontWeight.w700);
@@ -171,7 +174,7 @@ void main() {
     // ✅ Remove the getAnimationCurve test since the method doesn't exist
     test('should handle animation curve preferences', () {
       final customization = UICustomizationModel.defaultForUser('test');
-      
+
       // Test that animation settings exist
       expect(customization.animationSettings.enableAnimations, true);
       expect(customization.animationSettings.speed, 'normal');
