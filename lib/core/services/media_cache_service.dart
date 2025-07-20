@@ -7,7 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/utils/get_signed_url.dart';
-import 'package:herdapp/features/post/data/models/post_media_model.dart';
+import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
