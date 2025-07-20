@@ -5,9 +5,8 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/media_cache_service.dart';
+import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 import 'package:video_player/video_player.dart';
-
-import '../../features/post/data/models/post_media_model.dart';
 
 /// A video player widget with caching capabilities
 /// This player will:

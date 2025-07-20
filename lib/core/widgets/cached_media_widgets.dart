@@ -5,8 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/media_cache_service.dart';
-
-import '../../features/post/data/models/post_media_model.dart';
+import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 
 /// A widget that displays an image from a URL with integrated caching.
 /// This improves upon CachedNetworkImage by:

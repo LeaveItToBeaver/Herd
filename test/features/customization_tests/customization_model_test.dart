@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
+import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
 
 void main() {
   group('UICustomizationModel', () {
