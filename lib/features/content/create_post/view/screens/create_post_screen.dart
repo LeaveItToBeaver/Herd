@@ -7,18 +7,14 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/core/services/image_helper.dart';
-import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
-import 'package:herdapp/features/social/mentions/view/widgets/mention_overlay_widget.dart';
+import 'package:herdapp/features/content/create_post/create_post_controller.dart';
 import 'package:herdapp/features/content/rich_text_editing/utils/mention_embed_builder.dart';
 import 'package:herdapp/features/content/rich_text_editing/utils/mention_extractor.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 import 'package:image_cropper/image_cropper.dart';
-
-import '../../../drafts/view/widgets/save_draft_dialog.dart';
-import '../../../../ui/navigation/view/widgets/BottomNavPadding.dart';
-import '../../../../user/user_profile/view/providers/current_user_provider.dart';
-import '../../create_post_controller.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
   final bool isAlt;
@@ -107,13 +103,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     super.deactivate();
   }
 
-  bool get _canPerformUIOperations =>
-      mounted && context.mounted && !_isSubmitting;
+  // bool get _canPerformUIOperations =>
+  //     mounted && context.mounted && !_isSubmitting;
 
-  bool _validateForm() {
-    if (!_canPerformUIOperations) return false;
-    return _formKey.currentState?.validate() ?? false;
-  }
+  // bool _validateForm() {
+  //   if (!_canPerformUIOperations) return false;
+  //   return _formKey.currentState?.validate() ?? false;
+  // }
 
   void _safeSetState(VoidCallback fn) {
     if (mounted) {
@@ -1164,23 +1160,23 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
 // Add this method to handle cleanup when needed
-  void _resetFormState() {
-    if (!mounted) return;
+  // void _resetFormState() {
+  //   if (!mounted) return;
 
-    setState(() {
-      _title = '';
-      _content = '';
-      _mediaFiles.clear();
-      _postMedia = null;
-      _hasMedia = false;
-      _isNSFW = false;
-      _selectedHerdId = null;
-      _selectedHerdName = null;
-      _isSubmitting = false;
-    });
+  //   setState(() {
+  //     _title = '';
+  //     _content = '';
+  //     _mediaFiles.clear();
+  //     _postMedia = null;
+  //     _hasMedia = false;
+  //     _isNSFW = false;
+  //     _selectedHerdId = null;
+  //     _selectedHerdName = null;
+  //     _isSubmitting = false;
+  //   });
 
-    _contentController.clear();
-  }
+  //   _contentController.clear();
+  // }
 
   Future<void> _showHerdSelectionDialog() async {
     final userHerds = await ref.read(userHerdsProvider.future);

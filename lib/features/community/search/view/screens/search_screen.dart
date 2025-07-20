@@ -414,7 +414,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     }
     // For alt profiles
     else {
-      final String displayName = user.username ?? 'Anonymous';
+      final String displayName = user.username;
       final String? imageUrl = user.altProfileImageURL;
       final bool isPrivate = user.altIsPrivateAccount;
       final hasProfileImage = imageUrl != null && imageUrl.isNotEmpty;
