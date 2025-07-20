@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/services/media_cache_service.dart';
 import 'package:herdapp/core/utils/router.dart';
-import 'package:herdapp/features/notifications/utils/notification_service.dart';
-import 'package:herdapp/features/notifications/data/models/notification_model.dart';
+import 'package:herdapp/features/social/notifications/utils/notification_service.dart';
+import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Bootstrap class for initializing app dependencies

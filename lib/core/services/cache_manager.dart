@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/services/media_cache_service.dart';
-import 'package:herdapp/features/post/data/models/post_media_model.dart';
-import 'package:herdapp/features/post/data/models/post_model.dart';
+import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
+import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data_cache_service.dart';
@@ -138,11 +138,11 @@ class CacheManager {
     }
   }
 
-  void _logCacheOperation(String operation, String postId,
-      {bool success = true}) {
-    final status = success ? '✅' : '❌';
-    debugPrint('$status Cache $operation: $postId');
-  }
+  // void _logCacheOperation(String operation, String postId,
+  //     {bool success = true}) {
+  //   final status = success ? '✅' : '❌';
+  //   debugPrint('$status Cache $operation: $postId');
+  // }
 
   Future<void> cachePost(PostModel post) async {
     if (!enableDataCache) return; // Skip if data cache is disabled
