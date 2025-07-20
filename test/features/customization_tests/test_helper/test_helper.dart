@@ -1,4 +1,4 @@
-import 'package:herdapp/features/customization/data/models/ui_customization_model.dart';
+import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
 
 class CustomizationTestHelpers {
   static UICustomizationModel createTestCustomization({
