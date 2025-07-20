@@ -61,7 +61,7 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
   late String _rules;
   late String _faq;
   late bool _isPrivate;
-  late List<String> _selectedInterests;
+  late List<String?> _selectedInterests;
   bool _isSubmitting = false;
 
   @override
@@ -75,7 +75,7 @@ class _EditHerdScreenState extends ConsumerState<EditHerdScreen> {
     _isPrivate = widget.herd.isPrivate;
 
     // Initialize interests from herd
-    _selectedInterests = List<String>.from(widget.herd.interests ?? []);
+    _selectedInterests = List<String?>.from(widget.herd.interests);
   }
 
   void _toggleInterest(String interest) {

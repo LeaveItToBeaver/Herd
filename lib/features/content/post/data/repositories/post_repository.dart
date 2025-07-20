@@ -19,8 +19,8 @@ class PostRepository {
       _firestore.collection('posts');
   CollectionReference<Map<String, dynamic>> get _globalAltPosts =>
       _firestore.collection('altPosts');
-  CollectionReference<Map<String, dynamic>> get _comments =>
-      _firestore.collection('comments');
+  // CollectionReference<Map<String, dynamic>> get _comments =>
+  //     _firestore.collection('comments');
   CollectionReference<Map<String, dynamic>> get _likes =>
       _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes =>
@@ -641,8 +641,16 @@ class PostRepository {
       // Call the Cloud Function with the parameters
       await _functions.httpsCallable('handlePostInteraction').call(params);
     } catch (e) {
-      debugPrint('Error liking post: $e');
-      rethrow;
+      debugPrint('Error liking post with cloud function: $e');
+      debugPrint('Falling back to direct like method...');
+
+      try {
+        // Fallback to direct method if cloud function fails
+        await _directLikePost(postId: postId, userId: userId);
+      } catch (fallbackError) {
+        debugPrint('Error with direct like fallback: $fallbackError');
+        rethrow;
+      }
     }
   }
 
@@ -672,8 +680,16 @@ class PostRepository {
       // Call the Cloud Function with the parameters
       await _functions.httpsCallable('handlePostInteraction').call(params);
     } catch (e) {
-      debugPrint('Error disliking post: $e');
-      rethrow;
+      debugPrint('Error disliking post with cloud function: $e');
+      debugPrint('Falling back to direct dislike method...');
+
+      try {
+        // Fallback to direct method if cloud function fails
+        await _directDislikePost(postId: postId, userId: userId);
+      } catch (fallbackError) {
+        debugPrint('Error with direct dislike fallback: $fallbackError');
+        rethrow;
+      }
     }
   }
 
