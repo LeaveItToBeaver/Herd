@@ -1,3 +1,4 @@
+// ignore: file_names
 import 'package:flutter/material.dart';
 
 /// A widget that adds padding at the bottom of scrollable content to prevent
