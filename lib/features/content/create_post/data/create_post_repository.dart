@@ -44,12 +44,6 @@ class CreatePostRepository {
       List<PostMediaModel> mediaItems = [];
       debugPrint("🔍 Initialized empty mediaItems array");
 
-      // // Upload multiple media files if provided (existing code)
-      // if (mediaFiles != null && mediaFiles.isNotEmpty) {
-      //   // ... existing media upload code ...
-      // }
-
-      // Set the feedType alt/public/herd
       final feedType =
           post.isAlt ? 'alt' : (post.herdId != null ? 'herd' : 'public');
 
