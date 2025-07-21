@@ -1,1 +1,48 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"herdapp-54e26","appId":"1:756626341076:android:c99d77cd05e082a1008f41","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"herdapp-54e26","configurations":{"android":"1:756626341076:android:c99d77cd05e082a1008f41","ios":"1:756626341076:ios:210c584e514c5658008f41","web":"1:756626341076:web:d690d481fdfaaeda008f41","windows":"1:756626341076:web:5b0ead5f8080eaa0008f41"}}},"ios":{"default":{"projectId":"herdapp-54e26","appId":"1:756626341076:ios:210c584e514c5658008f41","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}}}},"functions":[{"source":"functions","codebase":"default","ignore":["node_modules",".git","firebase-debug.log","firebase-debug.*.log","*.local"]}]}
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "herdapp-54e26",
+                    "appId": "1:756626341076:android:c99d77cd05e082a1008f41",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "herdapp-54e26",
+                    "configurations": {
+                        "android": "1:756626341076:android:c99d77cd05e082a1008f41",
+                        "ios": "1:756626341076:ios:210c584e514c5658008f41",
+                        "web": "1:756626341076:web:d690d481fdfaaeda008f41",
+                        "windows": "1:756626341076:web:5b0ead5f8080eaa0008f41"
+                    }
+                }
+            },
+            "ios": {
+                "default": {
+                    "projectId": "herdapp-54e26",
+                    "appId": "1:756626341076:ios:210c584e514c5658008f41",
+                    "uploadDebugSymbols": false,
+                    "fileOutput": "ios/Runner/GoogleService-Info.plist"
+                }
+            }
+        }
+    },
+    "firestore": {
+        "indexes": "firestore.indexes.json"
+    },
+    "functions": [
+        {
+            "source": "functions",
+            "codebase": "default",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log",
+                "*.local"
+            ]
+        }
+    ]
+}

@@ -38,11 +38,9 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     try {
       state = const AsyncValue.loading();
 
-      // 1. Validate user first
       final user = await _userRepository.getUserById(userId);
       if (user == null) throw Exception("User not found");
 
-      // 2. Generate post ID
       postId = _createPostRepository.generatePostId();
 
       if (mediaFiles != null && mediaFiles.isNotEmpty) {
@@ -62,7 +60,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
                 "Media item: id=${item.id}, url=${item.url}, type=${item.mediaType}");
           }
         } catch (e) {
-          // Log error but continue with post creation
           debugPrint('Warning: Failed to upload media: $e');
         }
       }
@@ -78,7 +75,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         mediaType = mediaItems[0].mediaType;
       }
 
-      // 4. Create post model with all fields including mentions
       final post = PostModel(
         id: postId,
         authorId: user.id,
@@ -105,10 +101,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         isNSFW: isNSFW,
         isRichText: true,
         tags: tags ?? [],
-        mentions: mentions ?? [], // Add mentions to the post model
+        mentions: mentions ?? [],
       );
-
-      // 5. Save post to Firestore (repository will handle mentions collection)
       await _createPostRepository.createPost(
         post,
         mentions: mentions,
@@ -123,7 +117,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       await _postRepository.likePost(
           postId: postId, userId: userId, isAlt: isAlt);
 
-      // 6. Update state with success
       state = AsyncValue.data(CreatePostState(
         user: user,
         post: post,
@@ -132,7 +125,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
       return postId;
     } catch (e, stackTrace) {
-      // Update state with error
       state = AsyncValue.error(e, stackTrace);
 
       // Log error for debugging

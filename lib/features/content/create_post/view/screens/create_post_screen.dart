@@ -1093,7 +1093,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       final deltaJson = _contentController.document.toDelta().toJson();
       final richTextContent = jsonEncode(deltaJson);
 
-      // Extract mentions from the document
       final mentionIds =
           MentionExtractor.extractMentionIds(_contentController.document);
 
@@ -1102,7 +1101,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       final processedMedia = await _processMediaFiles();
 
-      ref.read(postControllerProvider.notifier).reset(); // Reset the state
+      ref.read(postControllerProvider.notifier).reset();
 
       final postId = await ref.read(postControllerProvider.notifier).createPost(
             title: _title,
@@ -1115,26 +1114,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             herdId: _selectedHerdId ?? '',
             herdName: _selectedHerdName ?? '',
             herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
-            mentions: mentionIds, // Pass the extracted mentions
+            mentions: mentionIds,
             tags: _postTags,
           );
 
-      // SUCCESS: Immediately navigate without any UI operations
       if (mounted && context.mounted) {
-        // Use context.go for cleaner navigation
         context.go('/post/$postId?isAlt=${_isAlt.toString()}');
-        return; // Exit immediately after navigation
+        return;
       }
     } catch (e) {
       debugPrint("Error in _submitForm: $e");
 
-      // Only handle errors if widget is still mounted
       if (mounted && context.mounted) {
         setState(() {
           _isSubmitting = false;
         });
 
-        // Show error without any complex operations
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

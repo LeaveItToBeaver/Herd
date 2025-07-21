@@ -27,7 +27,6 @@ const hotAlgorithm = {
             const magnitude = Math.log10(Math.max(1, Math.abs(sanitizedNetVotes)));
             const timeDecay = Math.pow(timeSinceCreation, -0.7) * sanitizedDecayFactor;
 
-            // ENHANCED: Much stronger boost for fresh posts
             const newBoostFactor =
                 hoursOld <= 1 ? 10.0 :   // First hour: 10x boost (increased from 5x)
                     hoursOld <= 3 ? 8.0 :    // Hours 1-3: 8x boost (increased from 4x)
@@ -36,7 +35,6 @@ const hotAlgorithm = {
                                 hoursOld <= 24 ? 2.0 :   // Hours 12-24: 2x boost (new tier)
                                     1.0;
 
-            // ENHANCED: Stronger age penalty for older posts
             const agePenalty =
                 hoursOld > 24 ? Math.pow(24 / hoursOld, 3.0) : // Cubic penalty (increased from square)
                     1.0;

@@ -4,105 +4,55 @@ const { logger } = require("firebase-functions");
 const { admin, firestore } = require('./admin_init'); // Assuming admin_init.js
 const { hotAlgorithm, findPostMediaItems } = require('./utils');
 
-// 1. Trigger for public posts
-exports.distributePublicPost = onDocumentCreated(
-    "posts/{postId}",
-    async (event) => {
-        const postId = event.params.postId;
-        const postData = event.data.data();
+exports.onPublicPostCreated = onDocumentCreated("posts/{postId}", async (event) => {
+    const postId = event.params.postId;
+    const postData = event.data.data();
 
-        // Validate post data
-        if (!postData || !postData.authorId) {
-            logger.error(`Invalid post data for ID: ${postId}`);
-            return null;
-        }
+    if (!postData || !postData.authorId) {
+        logger.error(`Invalid post data for ID: ${postId}`);
+        return null;
+    }
 
-        // Calculate initial hot score
-        const initialHotScore = hotAlgorithm.calculateHotScore(
-            0, // New posts start with 0 net votes
-            postData.createdAt ? postData.createdAt.toDate() : new Date()
-        );
+    logger.info(`Processing new public post ${postId}`);
+    try {
+        const incrementPromise = firestore.collection('users').doc(postData.authorId).update({
+            totalPosts: admin.firestore.FieldValue.increment(1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
 
-        // Add feedType and hotScore
-        //    const enhancedPostData = {
-        //      ...postData,
-        //      hotScore: initialHotScore,
-        //      feedType: 'public'
-        //    };
-
-        try {
-            let enhancedPostData = {
-                ...postData,
-                id: postId,
-                hotScore: initialHotScore,
-                feedType: 'public'
-            };
-
+        const distributionPromise = (async () => {
+            const initialHotScore = hotAlgorithm.calculateHotScore(0, postData.createdAt ? postData.createdAt.toDate() : new Date());
+            let enhancedPostData = { ...postData, id: postId, hotScore: initialHotScore, feedType: 'public' };
             const mediaItems = await findPostMediaItems(postId, postData.authorId, false);
 
             if (mediaItems && mediaItems.length > 0) {
-                logger.info(`Found ${mediaItems.length} media items for post ${postId}`);
                 enhancedPostData.mediaItems = mediaItems;
-                // Update the source post with media items
                 await event.data.ref.update({ mediaItems });
             }
 
-            // Get followers
-            const followersSnapshot = await firestore
-                .collection("followers")
-                .doc(postData.authorId)
-                .collection("userFollowers")
-                .get();
-
+            const followersSnapshot = await firestore.collection("followers").doc(postData.authorId).collection("userFollowers").get();
             const targetUserIds = followersSnapshot.docs.map(doc => doc.id);
-
-            // Add author to recipient list (they see their own posts)
             if (!targetUserIds.includes(postData.authorId)) {
                 targetUserIds.push(postData.authorId);
             }
-
-            // Fan out to followers' feeds
             await fanOutToUserFeeds(postId, enhancedPostData, targetUserIds);
-            logger.info(`Distributed public post ${postId} to ${targetUserIds.length} users`);
+        })();
 
-            return null;
-        } catch (error) {
-            logger.error(`Error distributing public post ${postId}:`, error);
-            rethrow;
-        }
+        // Run both tasks in parallel for max efficiency
+        await Promise.all([incrementPromise, distributionPromise]);
+        logger.info(`Successfully processed and distributed public post ${postId}`);
+
+    } catch (error) {
+        logger.error(`Error processing new public post ${postId}:`, error);
+        throw error;
     }
-);
-
-exports.incrementPublicPostCount = onDocumentCreated(
-    "posts/{postId}",
-    async (event) => {
-        const postData = event.data.data();
-        
-        if (!postData || !postData.authorId) {
-            logger.error(`Invalid post data for incrementing count`);
-            return null;
-        }
-
-        try {
-            await firestore.collection('users').doc(postData.authorId).update({
-                totalPosts: admin.firestore.FieldValue.increment(1),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            
-            logger.info(`Incremented totalPosts for user ${postData.authorId}`);
-            return null;
-        } catch (error) {
-            logger.error(`Error incrementing totalPosts for user ${postData.authorId}:`, error);
-            throw error;
-        }
-    }
-);
+});
 
 exports.incrementAltPostCount = onDocumentCreated(
     "altPosts/{postId}",
     async (event) => {
         const postData = event.data.data();
-        
+
         if (!postData || !postData.authorId) {
             logger.error(`Invalid alt post data for incrementing count`);
             return null;
@@ -113,7 +63,7 @@ exports.incrementAltPostCount = onDocumentCreated(
                 altTotalPosts: admin.firestore.FieldValue.increment(1),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            
+
             logger.info(`Incremented altTotalPosts for user ${postData.authorId}`);
             return null;
         } catch (error) {
@@ -127,7 +77,7 @@ exports.decrementPublicPostCount = onDocumentDeleted(
     "posts/{postId}",
     async (event) => {
         const postData = event.data.data();
-        
+
         if (!postData || !postData.authorId) {
             logger.error(`Invalid deleted post data for decrementing count`);
             return null;
@@ -138,7 +88,7 @@ exports.decrementPublicPostCount = onDocumentDeleted(
                 totalPosts: admin.firestore.FieldValue.increment(-1),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            
+
             logger.info(`Decremented totalPosts for user ${postData.authorId}`);
             return null;
         } catch (error) {
@@ -152,7 +102,7 @@ exports.decrementAltPostCount = onDocumentDeleted(
     "altPosts/{postId}",
     async (event) => {
         const postData = event.data.data();
-        
+
         if (!postData || !postData.authorId) {
             logger.error(`Invalid deleted alt post data for decrementing count`);
             return null;
@@ -163,7 +113,7 @@ exports.decrementAltPostCount = onDocumentDeleted(
                 altTotalPosts: admin.firestore.FieldValue.increment(-1),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            
+
             logger.info(`Decremented altTotalPosts for user ${postData.authorId}`);
             return null;
         } catch (error) {
@@ -177,7 +127,7 @@ exports.incrementHerdPostCount = onDocumentCreated(
     "herdPosts/{herdId}/posts/{postId}",
     async (event) => {
         const postData = event.data.data();
-        
+
         if (!postData || !postData.authorId) {
             logger.error(`Invalid herd post data for incrementing count`);
             return null;
@@ -189,7 +139,7 @@ exports.incrementHerdPostCount = onDocumentCreated(
                 altTotalPosts: admin.firestore.FieldValue.increment(1),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            
+
             logger.info(`Incremented altTotalPosts for herd post by user ${postData.authorId}`);
             return null;
         } catch (error) {
@@ -253,7 +203,248 @@ exports.removeDeletedPost = onDocumentDeleted(
     }
 );
 
-// 2. Trigger for alt posts
+
+exports.onPublicPostDeleted = onDocumentDeleted(
+    "posts/{postId}",
+    async (event) => {
+        const postId = event.params.postId;
+        const postData = event.data.data();
+
+        if (!postData || !postData.authorId) {
+            logger.error(`Invalid public post data for ID: ${postId}. Cannot clean up.`);
+            return null;
+        }
+
+        logger.info(`Starting cleanup for public post ${postId}`);
+        try {
+            const decrementPromise = firestore.collection('users').doc(postData.authorId).update({
+                totalPosts: admin.firestore.FieldValue.increment(-1),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            await Promise.all([
+                decrementPromise,
+                removePostFromAllFeeds(postId),
+                cleanupPostInteractions(postId),
+                cleanupPostComments(postId),
+            ]);
+
+            logger.info(`Successfully cleaned up public post ${postId}`);
+            return null;
+        } catch (error) {
+            logger.error(`Error cleaning up public post ${postId}:`, error);
+            throw error;
+        }
+    }
+);
+
+/**
+ * Handles all cleanup when an ALT post is deleted.
+ * Note: A herd post's data is also stored in 'altPosts', so this function
+ * will run when a herd post is deleted via its 'altPosts' entry.
+ */
+exports.onAltPostDeleted = onDocumentDeleted("altPosts/{postId}", async (event) => {
+    const postId = event.params.postId;
+    const postData = event.data.data();
+
+    if (!postData || !postData.authorId) {
+        logger.error(`Invalid altPost data for ID: ${postId}. Cannot clean up.`);
+        return null;
+    }
+
+    logger.info(`Starting cleanup for alt post ${postId}`);
+    try {
+        // This will decrement 'altTotalPosts' for both regular alt posts AND herd posts
+        const decrementPromise = firestore.collection('users').doc(postData.authorId).update({
+            altTotalPosts: admin.firestore.FieldValue.increment(-1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        await Promise.all([
+            decrementPromise,
+            removePostFromAllFeeds(postId),
+            cleanupPostInteractions(postId),
+            cleanupPostComments(postId),
+            // If it was a herd post, this will remove the original reference in the herdPosts subcollection
+            cleanupHerdPostReference(postId, postData.herdId),
+        ]);
+
+        logger.info(`Successfully cleaned up alt post ${postId}`);
+        return null;
+    } catch (error) {
+        logger.error(`Error cleaning up alt post ${postId}:`, error);
+        throw error;
+    }
+});
+
+/**
+ * Handles cleanup specific to when a HERD post reference is deleted.
+ * This function is crucial for keeping counts accurate.
+ */
+exports.onHerdPostDeleted = onDocumentDeleted("herdPosts/{herdId}/posts/{postId}", async (event) => {
+    const herdId = event.params.herdId;
+    const postId = event.params.postId;
+    const postData = event.data.data();
+
+    if (!postData) {
+        logger.error(`Invalid herd post data for ID: ${postId}. Cannot clean up.`);
+        return null;
+    }
+
+    logger.info(`Starting cleanup for herd post ${postId} in herd ${herdId}`);
+    try {
+        await Promise.all([
+            // Delete the main post data from the 'altPosts' collection.
+            // This will trigger the onAltPostDeleted function to handle the rest of the cleanup.
+            firestore.collection('altPosts').doc(postId).delete(),
+
+            // Decrement the herd's specific post counter.
+            firestore.collection('herds').doc(herdId).update({
+                postCount: admin.firestore.FieldValue.increment(-1)
+            })
+        ]);
+
+        logger.info(`Successfully cleaned up herd post ${postId} from herd ${herdId}`);
+        return null;
+    } catch (error) {
+        logger.error(`Error cleaning up herd post ${postId}:`, error);
+        throw error;
+    }
+});
+
+// Helper function to remove post from all user feeds
+async function removePostFromAllFeeds(postId) {
+    try {
+        // Use collectionGroup to find all instances across all user feeds
+        const feedEntriesQuery = firestore
+            .collectionGroup("feed")
+            .where("id", "==", postId);
+
+        const feedEntriesSnapshot = await feedEntriesQuery.get();
+
+        if (feedEntriesSnapshot.empty) {
+            logger.info(`No feed entries found for post ${postId}`);
+            return;
+        }
+
+        logger.info(`Removing post ${postId} from ${feedEntriesSnapshot.size} feeds`);
+
+        // Batch delete for efficiency
+        const MAX_BATCH_SIZE = 500;
+        let batch = firestore.batch();
+        let operationCount = 0;
+
+        for (const doc of feedEntriesSnapshot.docs) {
+            batch.delete(doc.ref);
+            operationCount++;
+
+            if (operationCount >= MAX_BATCH_SIZE) {
+                await batch.commit();
+                batch = firestore.batch();
+                operationCount = 0;
+            }
+        }
+
+        if (operationCount > 0) {
+            await batch.commit();
+        }
+
+        logger.info(`Successfully removed post ${postId} from all feeds`);
+    } catch (error) {
+        logger.error(`Error removing post ${postId} from feeds:`, error);
+        throw error;
+    }
+}
+
+// Helper function to clean up all interactions (likes/dislikes)
+async function cleanupPostInteractions(postId) {
+    try {
+        const batch = firestore.batch();
+
+        // Delete all likes
+        const likesSnapshot = await firestore
+            .collection('likes')
+            .doc(postId)
+            .collection('userInteractions')
+            .get();
+
+        likesSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Delete all dislikes
+        const dislikesSnapshot = await firestore
+            .collection('dislikes')
+            .doc(postId)
+            .collection('userInteractions')
+            .get();
+
+        dislikesSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Delete the parent documents
+        batch.delete(firestore.collection('likes').doc(postId));
+        batch.delete(firestore.collection('dislikes').doc(postId));
+
+        await batch.commit();
+        logger.info(`Cleaned up interactions for post ${postId}`);
+    } catch (error) {
+        logger.error(`Error cleaning up interactions for post ${postId}:`, error);
+        throw error;
+    }
+}
+
+// Helper function to clean up all comments
+async function cleanupPostComments(postId) {
+    try {
+        const commentsSnapshot = await firestore
+            .collection('comments')
+            .doc(postId)
+            .collection('postComments')
+            .get();
+
+        if (commentsSnapshot.empty) {
+            return;
+        }
+
+        const batch = firestore.batch();
+
+        // Delete all comment documents
+        commentsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Delete the parent document
+        batch.delete(firestore.collection('comments').doc(postId));
+
+        await batch.commit();
+        logger.info(`Cleaned up ${commentsSnapshot.size} comments for post ${postId}`);
+    } catch (error) {
+        logger.error(`Error cleaning up comments for post ${postId}:`, error);
+        throw error;
+    }
+}
+
+// Helper function to clean up herd post reference when alt post is deleted
+async function cleanupHerdPostReference(postId, herdId) {
+    if (!herdId) return;
+
+    try {
+        await firestore
+            .collection('herdPosts')
+            .doc(herdId)
+            .collection('posts')
+            .doc(postId)
+            .delete();
+
+        logger.info(`Cleaned up herd post reference for ${postId} in herd ${herdId}`);
+    } catch (error) {
+        logger.error(`Error cleaning up herd post reference:`, error);
+        // Don't throw - this is optional cleanup
+    }
+}
+
 exports.distributeAltPost = onDocumentCreated(
     "altPosts/{postId}",
     async (event) => {
@@ -300,7 +491,6 @@ exports.distributeAltPost = onDocumentCreated(
     }
 );
 
-// 3. Trigger for herd posts
 exports.distributeHerdPost = onDocumentCreated(
     "herdPosts/{herdId}/posts/{postId}",
     async (event) => {
@@ -544,7 +734,8 @@ exports.populateHerdPostMediaItems = onDocumentCreated(
             logger.error(`Error populating media items for herd post ${herdId}/${postId}:`, error);
             return { success: false, error: error.message };
         }
-    });
+    }
+);
 
 // Helper function for fan-out operations with minimal data
 async function fanOutToUserFeeds(postId, postDataToFanOut, userIds) {
