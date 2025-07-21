@@ -111,11 +111,17 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       if (herdId.isNotEmpty) {
         final herdRepository = HerdRepository(FirebaseFirestore.instance);
         await herdRepository.addPostToHerd(herdId, post, userId);
+
+        await _waitForAltPostCreation(postId);
       }
 
-      // Automatically like the post
       await _postRepository.likePost(
-          postId: postId, userId: userId, isAlt: isAlt);
+        postId: postId,
+        userId: userId,
+        isAlt: isAlt,
+        feedType: herdId.isNotEmpty ? 'herd' : (isAlt ? 'alt' : 'public'),
+        herdId: herdId.isNotEmpty ? herdId : null,
+      );
 
       state = AsyncValue.data(CreatePostState(
         user: user,
@@ -142,6 +148,36 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
       rethrow;
     }
+  }
+
+  Future<void> _waitForAltPostCreation(String postId) async {
+    const maxAttempts = 20; // Maximum 10 seconds (20 * 500ms)
+    const retryInterval = Duration(milliseconds: 500);
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final altPostDoc = await FirebaseFirestore.instance
+            .collection('altPosts')
+            .doc(postId)
+            .get();
+
+        if (altPostDoc.exists) {
+          debugPrint('altPosts document created after ${attempt * 500}ms');
+          return;
+        }
+
+        if (attempt < maxAttempts - 1) {
+          await Future.delayed(retryInterval);
+        }
+      } catch (e) {
+        debugPrint('Error checking altPosts document: $e');
+        if (attempt < maxAttempts - 1) {
+          await Future.delayed(retryInterval);
+        }
+      }
+    }
+
+    throw Exception('Timeout waiting for altPosts document to be created');
   }
 
   Future<void> _cleanupFailedPost(
