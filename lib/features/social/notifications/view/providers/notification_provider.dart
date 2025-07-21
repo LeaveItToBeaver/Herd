@@ -1,15 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_model.dart'; // For stream
 import 'package:herdapp/features/social/notifications/data/models/notification_settings_model.dart';
-import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
-// import 'package:herdapp/features/notifications/utils/notification_service.dart'; // Keep if you still use it
-import 'package:herdapp/features/social/notifications/view/providers/state/notification_filter_state.dart';
-import 'package:herdapp/features/social/notifications/view/providers/state/notification_state.dart';
-
-// Import your actual Notifier classes
-import '../notifiers/notification_notifier.dart';
-import 'notification_settings_notifier.dart';
-// import 'notification_filter_notifier.dart';
+import 'package:herdapp/features/social/notifications/view/notifiers/notification_notifier.dart';
 
 // final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 //   return NotificationRepository();
@@ -45,5 +38,5 @@ final unreadNotificationCountProvider =
     FutureProvider.family<int, String>((ref, userId) async {
   final repository = ref.watch(notificationRepositoryProvider);
   final count = await repository.getUnreadCount();
-  return count ?? 0; // Provide a default value if null
+  return count; // Provide a default value if null
 });

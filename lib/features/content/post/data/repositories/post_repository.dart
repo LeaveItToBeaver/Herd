@@ -19,8 +19,8 @@ class PostRepository {
       _firestore.collection('posts');
   CollectionReference<Map<String, dynamic>> get _globalAltPosts =>
       _firestore.collection('altPosts');
-  CollectionReference<Map<String, dynamic>> get _comments =>
-      _firestore.collection('comments');
+  // CollectionReference<Map<String, dynamic>> get _comments =>
+  //     _firestore.collection('comments');
   CollectionReference<Map<String, dynamic>> get _likes =>
       _firestore.collection('likes');
   CollectionReference<Map<String, dynamic>> get _dislikes =>
@@ -365,19 +365,7 @@ class PostRepository {
       // Delete associated media files from storage
       await _deletePostMedia(postId, userId, isAlt);
 
-      // Delete associated documents (comments, likes, dislikes)
-      await _deleteSubCollection(_firestore
-          .collection('comments')
-          .doc(postId)
-          .collection('postComments'));
-      await _deleteSubCollection(_firestore
-          .collection('likes')
-          .doc(postId)
-          .collection('userInteractions'));
-      await _deleteSubCollection(_firestore
-          .collection('dislikes')
-          .doc(postId)
-          .collection('userInteractions'));
+      await _deleteUserOwnInteractions(postId, userId);
 
       // Delete the post document itself
       await postRef.delete();
@@ -460,12 +448,43 @@ class PostRepository {
     }
   }
 
-  // Utility: Delete all documents in a subcollection
-  Future<void> _deleteSubCollection(
-      CollectionReference<Map<String, dynamic>> collection) async {
-    final snapshot = await collection.get();
-    for (final doc in snapshot.docs) {
-      await doc.reference.delete();
+  Future<void> _deleteUserOwnInteractions(String postId, String userId) async {
+    try {
+      final likeRef = _firestore
+          .collection("likes")
+          .doc(postId)
+          .collection("userInteractions")
+          .doc(userId);
+
+      final likeDoc = await likeRef.get();
+      if (likeDoc.exists) {
+        await likeRef.delete();
+      }
+
+      final dislikeRef = _firestore
+          .collection("dislikes")
+          .doc(postId)
+          .collection("userInteractions")
+          .doc(userId);
+      final dislikeDoc = await dislikeRef.get();
+      if (dislikeDoc.exists) {
+        await dislikeRef.delete();
+      }
+
+      // Note: Comments by other users should remain until cleaned up by Cloud Functions
+      // Only delete the user's own comments if needed
+      // final commentsQuery = await _firestore
+      //     .collection('comments')
+      //     .doc(postId)
+      //     .collection('postComments')
+      //     .where('authorId', isEqualTo: userId)
+      //     .get();
+
+      // for (final doc in commentsQuery.docs) {
+      //   await doc.reference.delete();
+      // }
+    } catch (e) {
+      debugPrint('Error deleting user interactions: $e');
     }
   }
 
@@ -641,8 +660,16 @@ class PostRepository {
       // Call the Cloud Function with the parameters
       await _functions.httpsCallable('handlePostInteraction').call(params);
     } catch (e) {
-      debugPrint('Error liking post: $e');
-      rethrow;
+      debugPrint('Error liking post with cloud function: $e');
+      debugPrint('Falling back to direct like method...');
+
+      try {
+        // Fallback to direct method if cloud function fails
+        await _directLikePost(postId: postId, userId: userId);
+      } catch (fallbackError) {
+        debugPrint('Error with direct like fallback: $fallbackError');
+        rethrow;
+      }
     }
   }
 
@@ -672,8 +699,16 @@ class PostRepository {
       // Call the Cloud Function with the parameters
       await _functions.httpsCallable('handlePostInteraction').call(params);
     } catch (e) {
-      debugPrint('Error disliking post: $e');
-      rethrow;
+      debugPrint('Error disliking post with cloud function: $e');
+      debugPrint('Falling back to direct dislike method...');
+
+      try {
+        // Fallback to direct method if cloud function fails
+        await _directDislikePost(postId: postId, userId: userId);
+      } catch (fallbackError) {
+        debugPrint('Error with direct dislike fallback: $fallbackError');
+        rethrow;
+      }
     }
   }
 

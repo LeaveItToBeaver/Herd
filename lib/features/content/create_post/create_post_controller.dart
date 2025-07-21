@@ -38,11 +38,9 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     try {
       state = const AsyncValue.loading();
 
-      // 1. Validate user first
       final user = await _userRepository.getUserById(userId);
       if (user == null) throw Exception("User not found");
 
-      // 2. Generate post ID
       postId = _createPostRepository.generatePostId();
 
       if (mediaFiles != null && mediaFiles.isNotEmpty) {
@@ -62,7 +60,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
                 "Media item: id=${item.id}, url=${item.url}, type=${item.mediaType}");
           }
         } catch (e) {
-          // Log error but continue with post creation
           debugPrint('Warning: Failed to upload media: $e');
         }
       }
@@ -78,7 +75,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         mediaType = mediaItems[0].mediaType;
       }
 
-      // 4. Create post model with all fields including mentions
       final post = PostModel(
         id: postId,
         authorId: user.id,
@@ -105,10 +101,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         isNSFW: isNSFW,
         isRichText: true,
         tags: tags ?? [],
-        mentions: mentions ?? [], // Add mentions to the post model
+        mentions: mentions ?? [],
       );
-
-      // 5. Save post to Firestore (repository will handle mentions collection)
       await _createPostRepository.createPost(
         post,
         mentions: mentions,
@@ -117,13 +111,18 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
       if (herdId.isNotEmpty) {
         final herdRepository = HerdRepository(FirebaseFirestore.instance);
         await herdRepository.addPostToHerd(herdId, post, userId);
+
+        await _waitForAltPostCreation(postId);
       }
 
-      // Automatically like the post
       await _postRepository.likePost(
-          postId: postId, userId: userId, isAlt: isAlt);
+        postId: postId,
+        userId: userId,
+        isAlt: isAlt,
+        feedType: herdId.isNotEmpty ? 'herd' : (isAlt ? 'alt' : 'public'),
+        herdId: herdId.isNotEmpty ? herdId : null,
+      );
 
-      // 6. Update state with success
       state = AsyncValue.data(CreatePostState(
         user: user,
         post: post,
@@ -132,7 +131,6 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
       return postId;
     } catch (e, stackTrace) {
-      // Update state with error
       state = AsyncValue.error(e, stackTrace);
 
       // Log error for debugging
@@ -150,6 +148,36 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
       rethrow;
     }
+  }
+
+  Future<void> _waitForAltPostCreation(String postId) async {
+    const maxAttempts = 20; // Maximum 10 seconds (20 * 500ms)
+    const retryInterval = Duration(milliseconds: 500);
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final altPostDoc = await FirebaseFirestore.instance
+            .collection('altPosts')
+            .doc(postId)
+            .get();
+
+        if (altPostDoc.exists) {
+          debugPrint('altPosts document created after ${attempt * 500}ms');
+          return;
+        }
+
+        if (attempt < maxAttempts - 1) {
+          await Future.delayed(retryInterval);
+        }
+      } catch (e) {
+        debugPrint('Error checking altPosts document: $e');
+        if (attempt < maxAttempts - 1) {
+          await Future.delayed(retryInterval);
+        }
+      }
+    }
+
+    throw Exception('Timeout waiting for altPosts document to be created');
   }
 
   Future<void> _cleanupFailedPost(

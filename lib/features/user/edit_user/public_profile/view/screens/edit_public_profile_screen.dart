@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/core/services/image_helper.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../../../../core/services/image_helper.dart';
-import '../providers/edit_public_profile_notifier.dart';
 
 class PublicProfileEditScreen extends ConsumerStatefulWidget {
   final UserModel user;
@@ -38,8 +37,8 @@ class _PublicProfileEditScreenState
   @override
   void initState() {
     super.initState();
-    _firstNameController.text = widget.user.firstName ?? '';
-    _lastNameController.text = widget.user.lastName ?? '';
+    _firstNameController.text = widget.user.firstName;
+    _lastNameController.text = widget.user.lastName;
     _bioController.text = widget.user.bio ?? '';
   }
 
