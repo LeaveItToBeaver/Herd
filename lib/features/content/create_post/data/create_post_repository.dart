@@ -44,10 +44,10 @@ class CreatePostRepository {
       List<PostMediaModel> mediaItems = [];
       debugPrint("🔍 Initialized empty mediaItems array");
 
-      // Upload multiple media files if provided (existing code)
-      if (mediaFiles != null && mediaFiles.isNotEmpty) {
-        // ... existing media upload code ...
-      }
+      // // Upload multiple media files if provided (existing code)
+      // if (mediaFiles != null && mediaFiles.isNotEmpty) {
+      //   // ... existing media upload code ...
+      // }
 
       // Set the feedType alt/public/herd
       final feedType =
@@ -55,11 +55,7 @@ class CreatePostRepository {
 
       // Create a map to update Firestore
       final Map<String, dynamic> postData = post.toMap();
-
-      // Ensure mentions are included in postData
       postData['mentions'] = mentions ?? [];
-
-      // Important: Make sure mediaItems is explicitly set in the map
       postData['mediaItems'] = mediaItems.map((item) => item.toMap()).toList();
 
       // For backward compatibility, set the first image URL as the mediaURL
@@ -102,7 +98,6 @@ class CreatePostRepository {
 
       // Create mention documents if there are any mentions
       if (mentions != null && mentions.isNotEmpty) {
-        // Create mentions in a subcollection under the post
         for (final mentionedUserId in mentions) {
           final mentionRef = _firestore
               .collection('mentions')
