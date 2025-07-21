@@ -457,6 +457,12 @@ exports.distributeAltPost = onDocumentCreated(
             return null;
         }
 
+        if (postData.herdId) {
+            logger.info(`Skipping distributeAltPost for herd post ${postId} - handled by distributeHerdPost`);
+            return null;
+        }
+
+
         // Calculate initial hot score
         const initialHotScore = hotAlgorithm.calculateHotScore(
             0,
