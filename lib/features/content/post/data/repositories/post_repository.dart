@@ -365,19 +365,7 @@ class PostRepository {
       // Delete associated media files from storage
       await _deletePostMedia(postId, userId, isAlt);
 
-      // Delete associated documents (comments, likes, dislikes)
-      await _deleteSubCollection(_firestore
-          .collection('comments')
-          .doc(postId)
-          .collection('postComments'));
-      await _deleteSubCollection(_firestore
-          .collection('likes')
-          .doc(postId)
-          .collection('userInteractions'));
-      await _deleteSubCollection(_firestore
-          .collection('dislikes')
-          .doc(postId)
-          .collection('userInteractions'));
+      await _deleteUserOwnInteractions(postId, userId);
 
       // Delete the post document itself
       await postRef.delete();
@@ -460,12 +448,43 @@ class PostRepository {
     }
   }
 
-  // Utility: Delete all documents in a subcollection
-  Future<void> _deleteSubCollection(
-      CollectionReference<Map<String, dynamic>> collection) async {
-    final snapshot = await collection.get();
-    for (final doc in snapshot.docs) {
-      await doc.reference.delete();
+  Future<void> _deleteUserOwnInteractions(String postId, String userId) async {
+    try {
+      final likeRef = _firestore
+          .collection("likes")
+          .doc(postId)
+          .collection("userInteractions")
+          .doc(userId);
+
+      final likeDoc = await likeRef.get();
+      if (likeDoc.exists) {
+        await likeRef.delete();
+      }
+
+      final dislikeRef = _firestore
+          .collection("dislikes")
+          .doc(postId)
+          .collection("userInteractions")
+          .doc(userId);
+      final dislikeDoc = await dislikeRef.get();
+      if (dislikeDoc.exists) {
+        await dislikeRef.delete();
+      }
+
+      // Note: Comments by other users should remain until cleaned up by Cloud Functions
+      // Only delete the user's own comments if needed
+      // final commentsQuery = await _firestore
+      //     .collection('comments')
+      //     .doc(postId)
+      //     .collection('postComments')
+      //     .where('authorId', isEqualTo: userId)
+      //     .get();
+
+      // for (final doc in commentsQuery.docs) {
+      //   await doc.reference.delete();
+      // }
+    } catch (e) {
+      debugPrint('Error deleting user interactions: $e');
     }
   }
 
