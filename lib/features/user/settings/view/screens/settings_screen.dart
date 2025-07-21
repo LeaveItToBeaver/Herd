@@ -17,16 +17,16 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String _appVersion = '';
   Timer? _debounceTimer;
-  bool _isUpdatingPreference = false;
+  final bool _isUpdatingPreference = false;
 
   // User preferences
-  bool _allowNSFWContent = false;
-  bool _blurNSFWContent = true;
-  bool _showHerdsInAltFeed = true;
-  bool _isOver18 = false;
+  final bool _allowNSFWContent = false;
+  final bool _blurNSFWContent = true;
+  final bool _showHerdsInAltFeed = true;
+  final bool _isOver18 = false;
 
   @override
   void dispose() {
@@ -47,122 +47,108 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
-  Future<void> _debouncedSavePreference(String key, dynamic value) async {
-    // Cancel any previous timer
-    _debounceTimer?.cancel();
+  // Future<void> _debouncedSavePreference(String key, dynamic value) async {
+  //   // Cancel any previous timer
+  //   _debounceTimer?.cancel();
+  //   // Don't start a new timer if we're already updating
+  //   if (_isUpdatingPreference) return;
+  //   // Start a new timer
+  //   _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+  //     if (mounted) {
+  //       setState(() => _isUpdatingPreference = true);
+  //       try {
+  //         await _savePreference(key, value);
+  //       } finally {
+  //         if (mounted) {
+  //           setState(() => _isUpdatingPreference = false);
+  //         }
+  //       }
+  //     }
+  //   });
+  // }
 
-    // Don't start a new timer if we're already updating
-    if (_isUpdatingPreference) return;
+  // Future<void> _loadUserPreferences() async {
+  //   final currentUser = ref.read(authProvider);
+  //   if (currentUser == null) return;
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final userModel = await ref.read(userProvider(currentUser.uid).future);
+  //     if (userModel != null) {
+  //       // Load preferences from user model
+  //       setState(() {
+  //         _allowNSFWContent =
+  //             userModel.preferences['allowNSFWContent'] ?? false;
+  //         _blurNSFWContent = userModel.preferences['blurNSFWContent'] ?? true;
+  //         _showHerdsInAltFeed =
+  //             userModel.preferences['showHerdsInAltFeed'] ?? true;
+  //         _isOver18 = userModel.preferences['isOver18'] ?? false;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     // Handle error
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
-    // Start a new timer
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
-      if (mounted) {
-        setState(() => _isUpdatingPreference = true);
+  // Future<void> _savePreference(String key, dynamic value) async {
+  //   final currentUser = ref.read(authProvider);
+  //   if (currentUser == null) return;
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final userRepository = ref.read(userRepositoryProvider);
+  //     final userModel = await ref.read(userProvider(currentUser.uid).future);
+  //     if (userModel != null) {
+  //       // Update the preferences map
+  //       final updatedPreferences = {...userModel.preferences};
+  //       updatedPreferences[key] = value;
+  //       // Save to user model
+  //       await userRepository.updateUser(currentUser.uid, {
+  //         'preferences': updatedPreferences,
+  //       });
+  //       // Show success message
+  //       if (mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(content: Text('Preference saved')),
+  //         );
+  //       }
+  //     }
+  //   } catch (e) {
+  //     // Show error message
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error saving preference: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
-        try {
-          await _savePreference(key, value);
-        } finally {
-          if (mounted) {
-            setState(() => _isUpdatingPreference = false);
-          }
-        }
-      }
-    });
-  }
-
-  Future<void> _loadUserPreferences() async {
-    final currentUser = ref.read(authProvider);
-    if (currentUser == null) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final userModel = await ref.read(userProvider(currentUser.uid).future);
-
-      if (userModel != null) {
-        // Load preferences from user model
-        setState(() {
-          _allowNSFWContent =
-              userModel.preferences['allowNSFWContent'] ?? false;
-          _blurNSFWContent = userModel.preferences['blurNSFWContent'] ?? true;
-          _showHerdsInAltFeed =
-              userModel.preferences['showHerdsInAltFeed'] ?? true;
-          _isOver18 = userModel.preferences['isOver18'] ?? false;
-        });
-      }
-    } catch (e) {
-      // Handle error
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _savePreference(String key, dynamic value) async {
-    final currentUser = ref.read(authProvider);
-    if (currentUser == null) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final userRepository = ref.read(userRepositoryProvider);
-      final userModel = await ref.read(userProvider(currentUser.uid).future);
-
-      if (userModel != null) {
-        // Update the preferences map
-        final updatedPreferences = {...userModel.preferences};
-        updatedPreferences[key] = value;
-
-        // Save to user model
-        await userRepository.updateUser(currentUser.uid, {
-          'preferences': updatedPreferences,
-        });
-
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Preference saved')),
-          );
-        }
-      }
-    } catch (e) {
-      // Show error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving preference: $e')),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _updateUserModelNSFWSettings(bool allowNSFW) async {
-    final currentUser = ref.read(authProvider);
-    if (currentUser == null) return;
-
-    try {
-      // Get user repository from provider
-      final userRepository = ref.read(userRepositoryProvider);
-
-      // Update user model with the new NSFW settings
-      await userRepository.updateUser(currentUser.uid, {
-        'allowNSFW': allowNSFW,
-        // We're updating the user's preference to allow NSFW content,
-        // not marking the user profile itself as NSFW
-      });
-
-      if (mounted) {
-        // Update was successful
-        debugPrint('User NSFW settings updated: allowNSFW=$allowNSFW');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating NSFW settings: $e')),
-        );
-      }
-    }
-  }
+  // Future<void> _updateUserModelNSFWSettings(bool allowNSFW) async {
+  //   final currentUser = ref.read(authProvider);
+  //   if (currentUser == null) return;
+  //   try {
+  //     // Get user repository from provider
+  //     final userRepository = ref.read(userRepositoryProvider);
+  //     // Update user model with the new NSFW settings
+  //     await userRepository.updateUser(currentUser.uid, {
+  //       'allowNSFW': allowNSFW,
+  //       // We're updating the user's preference to allow NSFW content,
+  //       // not marking the user profile itself as NSFW
+  //     });
+  //     if (mounted) {
+  //       // Update was successful
+  //       debugPrint('User NSFW settings updated: allowNSFW=$allowNSFW');
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error updating NSFW settings: $e')),
+  //       );
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -446,6 +432,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final result =
                                 await postRepo.recalculateAllUsersInBatches();
 
+                            if (!context.mounted) return;
                             Navigator.of(context).pop(); // Close loading dialog
 
                             if (result['success'] == true) {
@@ -479,6 +466,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                             final result = await postRepo
                                 .recalculateUserPostCounts(userId);
+
+                            if (!context.mounted) return;
 
                             if (result['success'] == true) {
                               ScaffoldMessenger.of(context).showSnackBar(

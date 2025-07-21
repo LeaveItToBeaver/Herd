@@ -58,7 +58,6 @@ class _ShareButton extends StatelessWidget {
   final VoidCallback? onShareTap;
 
   const _ShareButton({
-    super.key,
     required this.isAlt,
     this.onShareTap,
   });
@@ -101,7 +100,6 @@ class _CommentButton extends ConsumerWidget {
   final VoidCallback? onCommentTap;
 
   const _CommentButton({
-    super.key,
     required this.postId,
     required this.isAlt,
     this.onCommentTap,
@@ -144,7 +142,6 @@ class _LikeDislikeButtons extends ConsumerWidget {
   final PostParams params;
 
   const _LikeDislikeButtons({
-    super.key,
     required this.params,
   });
 
