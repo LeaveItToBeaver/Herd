@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart' hide SideBubblesOverlay;
-import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart'
-    show SideBubblesOverlay;
+import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
 
-class GlobalOverlayManager extends StatelessWidget {
+class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
   final bool showBottomNav;
   final bool showSideBubbles;
@@ -25,11 +25,16 @@ class GlobalOverlayManager extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bool showAnyButtons =
         showProfileBtn || showSearchBtn || showNotificationsBtn;
-    const double sideBarWidth = 60.0;
-    final double contentRightPadding = showSideBubbles ? sideBarWidth : 0;
+    const double sideBarWidth = 70.0; // Increased from 60 to match the overlay
+
+    // Watch the drag state to determine if we should offset content
+    final isDragging = ref.watch(isDraggingProvider);
+
+    // Only offset content when NOT dragging
+    final double contentRightPadding = 70;
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Container(
@@ -39,41 +44,48 @@ class GlobalOverlayManager extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Positioned.fill(
+            Container(
+              width: 70,
+              color: backgroundColor,
+            ),
+            // Main content with animated padding
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              top: 0,
               right: contentRightPadding,
+              bottom: 0,
               child: child,
             ),
 
-            // Side Bubbles - positioned to extend full height within safe area
-            // This overlay will handle screen-wide dragging for enhanced bubbles
+            // Side Bubbles - always full height, expands on drag
             if (showSideBubbles)
               Positioned(
                 right: 0,
                 top: 0,
-                bottom:
-                    20, // Match the bottom nav's bottom position for alignment
-                width: sideBarWidth,
-                child: Container(
-                  color: backgroundColor,
-                  child: SafeArea(
-                    top: true,
-                    left: false,
-                    right: false,
-                    bottom:
-                        false, // Don't apply safe area to bottom for precise alignment
-                    child: SideBubblesOverlay(
-                      showProfileBtn: showProfileBtn,
-                      showSearchBtn: showSearchBtn,
-                      showNotificationsBtn: showNotificationsBtn,
-                    ),
+                bottom: 0,
+                child: SafeArea(
+                  top: true,
+                  left: false,
+                  right: false,
+                  bottom: false,
+                  child: SideBubblesOverlay(
+                    showProfileBtn: showProfileBtn,
+                    showSearchBtn: showSearchBtn,
+                    showNotificationsBtn: showNotificationsBtn,
                   ),
                 ),
               ),
 
+            // Bottom Navigation
             if (showBottomNav)
-              Positioned(
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
                 left: 10,
-                right: showSideBubbles ? (sideBarWidth + 10) : 10,
+                right:
+                    showSideBubbles && !isDragging ? (sideBarWidth + 10) : 10,
                 bottom: 20,
                 child: SafeArea(
                   top: false,
