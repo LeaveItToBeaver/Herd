@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/core/barrels/widgets.dart' hide SideBubblesOverlay;
+import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart'
+    show SideBubblesOverlay;
 
 class GlobalOverlayManager extends StatelessWidget {
   final Widget child;
@@ -24,18 +26,11 @@ class GlobalOverlayManager extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine if we have any buttons to show
     final bool showAnyButtons =
         showProfileBtn || showSearchBtn || showNotificationsBtn;
-
-    // Simple logic: if any side button is enabled, offset the navbar
-    final double navBarRightPadding = showAnyButtons ? 70 : 0;
-
-    // Content padding for side bubbles only
-    final double contentRightPadding = showSideBubbles ? 70 : 0;
-
-    // Key change: No bottom padding for content - let content extend under the nav bar
-    // We'll stack the navigation on top of content instead
+    const double sideBarWidth = 60.0;
+    final double contentRightPadding = showSideBubbles ? sideBarWidth : 0;
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Container(
       color: Theme.of(context).colorScheme.primary,
@@ -44,44 +39,60 @@ class GlobalOverlayManager extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Main content takes full height but respects side bubble width
             Positioned.fill(
               right: contentRightPadding,
               child: child,
             ),
 
-            // Side Bubbles - only when enabled
+            // Side Bubbles - positioned to extend full height within safe area
+            // This overlay will handle screen-wide dragging for enhanced bubbles
             if (showSideBubbles)
               Positioned(
                 right: 0,
                 top: 0,
-                bottom: 0,
-                width: 70,
-                child: SideBubblesOverlay(
-                  showProfileBtn: showProfileBtn,
-                  showSearchBtn: showSearchBtn,
-                  showNotificationsBtn: showNotificationsBtn,
+                bottom:
+                    20, // Match the bottom nav's bottom position for alignment
+                width: sideBarWidth,
+                child: Container(
+                  color: backgroundColor,
+                  child: SafeArea(
+                    top: true,
+                    left: false,
+                    right: false,
+                    bottom:
+                        false, // Don't apply safe area to bottom for precise alignment
+                    child: SideBubblesOverlay(
+                      showProfileBtn: showProfileBtn,
+                      showSearchBtn: showSearchBtn,
+                      showNotificationsBtn: showNotificationsBtn,
+                    ),
+                  ),
                 ),
               ),
 
-            // Bottom Navigation Bar - stacked on top of content
             if (showBottomNav)
               Positioned(
-                left: 0,
-                right: navBarRightPadding,
-                bottom: 20, // Small margin from bottom edge
-                child: BottomNavOverlay(currentFeedType: currentFeedType),
+                left: 10,
+                right: showSideBubbles ? (sideBarWidth + 10) : 10,
+                bottom: 20,
+                child: SafeArea(
+                  top: false,
+                  child: BottomNavOverlay(currentFeedType: currentFeedType),
+                ),
               ),
 
-            // Floating Buttons - stacked in bottom right
+            // Floating Buttons - when side bubbles are disabled
             if (!showSideBubbles && showAnyButtons)
               Positioned(
                 right: 8,
                 bottom: 20,
-                child: FloatingButtonsColumn(
-                  showProfileBtn: showProfileBtn,
-                  showSearchBtn: showSearchBtn,
-                  showNotificationsBtn: showNotificationsBtn,
+                child: SafeArea(
+                  top: false,
+                  child: FloatingButtonsColumn(
+                    showProfileBtn: showProfileBtn,
+                    showSearchBtn: showSearchBtn,
+                    showNotificationsBtn: showNotificationsBtn,
+                  ),
                 ),
               ),
           ],

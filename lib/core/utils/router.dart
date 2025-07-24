@@ -622,7 +622,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: GlobalOverlayManager(
                 showBottomNav: true,
-                showSideBubbles: false,
+                showSideBubbles: true,
                 showProfileBtn: true,
                 showSearchBtn: true,
                 showNotificationsBtn: true,
@@ -786,7 +786,7 @@ class _TabScaffold extends ConsumerWidget {
     return Scaffold(
       body: GlobalOverlayManager(
         showBottomNav: true,
-        showSideBubbles: false,
+        showSideBubbles: true,
         showProfileBtn: true,
         showSearchBtn: true,
         showNotificationsBtn: false,
