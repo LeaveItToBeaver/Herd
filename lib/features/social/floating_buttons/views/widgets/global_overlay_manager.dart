@@ -28,13 +28,10 @@ class GlobalOverlayManager extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bool showAnyButtons =
         showProfileBtn || showSearchBtn || showNotificationsBtn;
-    const double sideBarWidth = 70.0; // Increased from 60 to match the overlay
 
     // Watch the drag state to determine if we should offset content
     final isDragging = ref.watch(isDraggingProvider);
 
-    // Only offset content when NOT dragging
-    final double contentRightPadding = 70;
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Container(
@@ -44,48 +41,27 @@ class GlobalOverlayManager extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              width: 70,
-              color: backgroundColor,
-            ),
-            // Main content with animated padding
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              left: 0,
-              top: 0,
-              right: contentRightPadding,
-              bottom: 0,
-              child: child,
-            ),
+            // Main content - no padding needed when side bubbles are screen-specific
+            child,
 
-            // Side Bubbles - always full height, expands on drag
+            // Side Bubbles - only shown if explicitly enabled
             if (showSideBubbles)
               Positioned(
                 right: 0,
                 top: 0,
                 bottom: 0,
-                child: SafeArea(
-                  top: true,
-                  left: false,
-                  right: false,
-                  bottom: false,
-                  child: SideBubblesOverlay(
-                    showProfileBtn: showProfileBtn,
-                    showSearchBtn: showSearchBtn,
-                    showNotificationsBtn: showNotificationsBtn,
-                  ),
+                child: SideBubblesOverlay(
+                  showProfileBtn: showProfileBtn,
+                  showSearchBtn: showSearchBtn,
+                  showNotificationsBtn: showNotificationsBtn,
                 ),
               ),
 
             // Bottom Navigation
             if (showBottomNav)
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
+              Positioned(
                 left: 10,
-                right:
-                    showSideBubbles && !isDragging ? (sideBarWidth + 10) : 10,
+                right: 10,
                 bottom: 20,
                 child: SafeArea(
                   top: false,

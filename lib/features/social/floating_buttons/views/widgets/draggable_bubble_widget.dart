@@ -35,7 +35,10 @@ class DraggableBubble extends StatelessWidget {
       padding: config.padding,
       child: GestureDetector(
         onPanStart: config.isDraggable
-            ? (details) => onDragStart(details.globalPosition)
+            ? (details) {
+                onDragStart(
+                    details.globalPosition); // Pass original global position
+              }
             : null,
         onPanUpdate: config.isDraggable
             ? (details) => onDragUpdate(details.delta)
@@ -46,7 +49,7 @@ class DraggableBubble extends StatelessWidget {
             config.isDraggable ? () => HapticFeedback.mediumImpact() : null,
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
-          opacity: isBeingDragged ? 0.3 : 1.0,
+          opacity: 1.0,
           child: Container(
             width: config.effectiveSize,
             height: config.effectiveSize,
@@ -58,7 +61,10 @@ class DraggableBubble extends StatelessWidget {
                       color: foregroundColor.withValues(alpha: 0.2),
                       width: 1.5,
                     )
-                  : null,
+                  : Border.all(
+                      color: foregroundColor.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
               boxShadow: [
                 BoxShadow(
                   color: backgroundColor.withValues(alpha: 0.3),

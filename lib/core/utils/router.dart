@@ -786,11 +786,11 @@ class _TabScaffold extends ConsumerWidget {
     return Scaffold(
       body: GlobalOverlayManager(
         showBottomNav: true,
-        showSideBubbles: true,
+        showSideBubbles: false,
         showProfileBtn: true,
         showSearchBtn: true,
         showNotificationsBtn: false,
-        currentFeedType: feedType, // Pass feed type to highlight correct tab
+        currentFeedType: feedType,
         child: child,
       ),
     );
