@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
@@ -124,53 +125,80 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
         ],
       ),
       // Main body with sort widget and feed content
-      body: Column(
+      body: Stack(
         children: [
-          // Sort widget at the top
-          FeedSortWidget(
-            currentSort: altFeedState.sortType,
-            onSortChanged: (newSortType) {
-              ref
-                  .read(altFeedControllerProvider.notifier)
-                  .changeSortType(newSortType);
-            },
-            isLoading: altFeedState.isLoading,
+          // Main content shifted to accommodate bubbles
+          Positioned(
+            left: 0,
+            top: 0,
+            right: 70, // Space for bubbles
+            bottom: 0,
+            child: Column(
+              children: [
+                // Sort widget at the top
+                FeedSortWidget(
+                  currentSort: altFeedState.sortType,
+                  onSortChanged: (newSortType) {
+                    ref
+                        .read(altFeedControllerProvider.notifier)
+                        .changeSortType(newSortType);
+                  },
+                  isLoading: altFeedState.isLoading,
+                ),
+                // Main feed content
+                Expanded(
+                  child: altFeedState.isLoading && altFeedState.posts.isEmpty
+                      ? _buildLoadingWidget()
+                      : altFeedState.error != null
+                          ? _buildErrorWidget(context, altFeedState.error!, () {
+                              ref
+                                  .read(altFeedControllerProvider.notifier)
+                                  .refreshFeed();
+                            })
+                          : PostListWidget(
+                              scrollController: _scrollController,
+                              posts: altFeedState.posts,
+                              isLoading: altFeedState.isLoading,
+                              hasError: altFeedState.error != null,
+                              errorMessage: altFeedState.error?.toString(),
+                              hasMorePosts: altFeedState.hasMorePosts,
+                              onRefresh: () => ref
+                                  .read(altFeedControllerProvider.notifier)
+                                  .refreshFeed(),
+                              onLoadMore: () => ref
+                                  .read(altFeedControllerProvider.notifier)
+                                  .loadMorePosts(),
+                              type: PostListType.feed,
+                              emptyMessage: 'No alt posts yet',
+                              emptyActionLabel: 'Create an alt post',
+                              onEmptyAction: () {
+                                // Navigate to create post screen with isAlt=true context.pushNamed
+                                context.pushNamed(
+                                  'create',
+                                  queryParameters: {'isAlt': 'true'},
+                                );
+                              },
+                              isRefreshing: altFeedState.isRefreshing,
+                            ),
+                ),
+              ],
+            ),
           ),
-          // Main feed content
-          Expanded(
-            child: altFeedState.isLoading && altFeedState.posts.isEmpty
-                ? _buildLoadingWidget()
-                : altFeedState.error != null
-                    ? _buildErrorWidget(context, altFeedState.error!, () {
-                        ref
-                            .read(altFeedControllerProvider.notifier)
-                            .refreshFeed();
-                      })
-                    : PostListWidget(
-                        scrollController: _scrollController,
-                        posts: altFeedState.posts,
-                        isLoading: altFeedState.isLoading,
-                        hasError: altFeedState.error != null,
-                        errorMessage: altFeedState.error?.toString(),
-                        hasMorePosts: altFeedState.hasMorePosts,
-                        onRefresh: () => ref
-                            .read(altFeedControllerProvider.notifier)
-                            .refreshFeed(),
-                        onLoadMore: () => ref
-                            .read(altFeedControllerProvider.notifier)
-                            .loadMorePosts(),
-                        type: PostListType.feed,
-                        emptyMessage: 'No alt posts yet',
-                        emptyActionLabel: 'Create an alt post',
-                        onEmptyAction: () {
-                          // Navigate to create post screen with isAlt=true context.pushNamed
-                          context.pushNamed(
-                            'create',
-                            queryParameters: {'isAlt': 'true'},
-                          );
-                        },
-                        isRefreshing: altFeedState.isRefreshing,
-                      ),
+          // Side bubbles overlay
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: SideBubblesOverlay(
+                showProfileBtn: false, // Profile already in floating buttons
+                showSearchBtn: false, // Search already in floating buttons
+                showNotificationsBtn: false, // Not needed here
+                showHerdBubbles: true, // Show herd bubbles for alt feed
+              ),
+            ),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
 
 class PublicFeedScreen extends ConsumerStatefulWidget {
   const PublicFeedScreen({super.key});
@@ -73,24 +74,24 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       appBar: AppBar(
         title: const Text('Public Feed'),
         actions: [
-          // Refresh button
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               ref.read(publicFeedControllerProvider.notifier).refreshFeed();
             },
           ),
-          // Optional trending button
           IconButton(
             icon: const Icon(Icons.trending_up),
             onPressed: () => _showTrendingPosts(context, ref),
           ),
         ],
       ),
-      // Main body with sort widget and feed content
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Sort widget at the top
+          // Sort widget takes full width - stays above bubbles
           FeedSortWidget(
             currentSort: publicFeedState.sortType,
             onSortChanged: (newSortType) {
@@ -100,38 +101,67 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             },
             isLoading: publicFeedState.isLoading,
           ),
-          // Main feed content
+
+          // Single Expanded widget with Stack
           Expanded(
-            child: publicFeedState.isLoading && publicFeedState.posts.isEmpty
-                ? _buildLoadingWidget()
-                : publicFeedState.error != null
-                    ? _buildErrorWidget(context, publicFeedState.error!, () {
-                        ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .refreshFeed();
-                      })
-                    : PostListWidget(
-                        scrollController: _scrollController,
-                        posts: publicFeedState.posts,
-                        isLoading: publicFeedState.isLoading &&
-                            publicFeedState.posts.isEmpty,
-                        hasError: publicFeedState.error != null,
-                        errorMessage: publicFeedState.error?.toString(),
-                        hasMorePosts: publicFeedState.hasMorePosts,
-                        onRefresh: () => ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .refreshFeed(),
-                        onLoadMore: () => ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .loadMorePosts(),
-                        type: PostListType.feed,
-                        emptyMessage: 'No posts in your public feed yet',
-                        emptyActionLabel: 'Find users to follow',
-                        onEmptyAction: () {
-                          context.pushNamed('search');
-                        },
-                        isRefreshing: publicFeedState.isRefreshing,
-                      ),
+            child: Stack(
+              children: [
+                // Main content with padding for bubbles
+                Padding(
+                  padding: const EdgeInsets.only(right: 70),
+                  child: publicFeedState.isLoading &&
+                          publicFeedState.posts.isEmpty
+                      ? _buildLoadingWidget()
+                      : publicFeedState.error != null
+                          ? _buildErrorWidget(context, publicFeedState.error!,
+                              () {
+                              ref
+                                  .read(publicFeedControllerProvider.notifier)
+                                  .refreshFeed();
+                            })
+                          : PostListWidget(
+                              scrollController: _scrollController,
+                              posts: publicFeedState.posts,
+                              isLoading: publicFeedState.isLoading &&
+                                  publicFeedState.posts.isEmpty,
+                              hasError: publicFeedState.error != null,
+                              errorMessage: publicFeedState.error?.toString(),
+                              hasMorePosts: publicFeedState.hasMorePosts,
+                              onRefresh: () => ref
+                                  .read(publicFeedControllerProvider.notifier)
+                                  .refreshFeed(),
+                              onLoadMore: () => ref
+                                  .read(publicFeedControllerProvider.notifier)
+                                  .loadMorePosts(),
+                              type: PostListType.feed,
+                              emptyMessage: 'No posts in your public feed yet',
+                              emptyActionLabel: 'Find users to follow',
+                              onEmptyAction: () {
+                                context.pushNamed('search');
+                              },
+                              isRefreshing: publicFeedState.isRefreshing,
+                            ),
+                ),
+
+                // Side bubbles overlay
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: true,
+                    left: false,
+                    right: false,
+                    bottom: true,
+                    child: SideBubblesOverlay(
+                      showProfileBtn: true,
+                      showSearchBtn: true,
+                      showNotificationsBtn: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

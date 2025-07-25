@@ -22,9 +22,7 @@ class SuperStretchyTrailPainter extends CustomPainter {
     final distance = (currentPosition - originalPosition).distance;
     if (distance < 10) return;
 
-    final paint = Paint()
-      ..color = trailColor.withValues(alpha: 0.8)
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
     // Create tension effect - wide at ends, thin in middle
     final maxThickness = bubbleSize * 0.8; // Maximum thickness at drag point
@@ -43,7 +41,7 @@ class SuperStretchyTrailPainter extends CustomPainter {
         canvas, paint, maxThickness, minThickness, tensionFactor);
 
     // Add subtle energy particles along the trail
-    _drawTensionParticles(canvas, paint, tensionFactor);
+    //_drawTensionParticles(canvas, paint, tensionFactor);
   }
 
   // Draw a rubber band using smooth bezier curves
@@ -156,7 +154,7 @@ class SuperStretchyTrailPainter extends CustomPainter {
 
     // Add gradient effect based on tension
     final alpha = (0.9 - tensionFactor * 0.3).clamp(0.2, 0.9);
-    canvas.drawPath(path, paint..color = trailColor.withValues(alpha: alpha));
+    canvas.drawPath(path, paint..color = trailColor);
 
     // Draw connection points for seamless look
     _drawConnectionPoints(
@@ -214,7 +212,7 @@ class SuperStretchyTrailPainter extends CustomPainter {
     canvas.drawCircle(
       originalPosition,
       bubbleRadius,
-      paint..color = trailColor.withValues(alpha: 0.8),
+      paint..color = trailColor, //.withValues(alpha: 0.9),
     );
 
     // Drag point (wider connection at current position)
@@ -222,7 +220,7 @@ class SuperStretchyTrailPainter extends CustomPainter {
     canvas.drawCircle(
       currentPosition,
       dragPointRadius,
-      paint..color = trailColor.withValues(alpha: 0.9),
+      paint..color = trailColor, //.withValues(alpha: 0.9),
     );
 
     // Add subtle glow effect for high tension
@@ -231,45 +229,45 @@ class SuperStretchyTrailPainter extends CustomPainter {
       canvas.drawCircle(
         currentPosition,
         dragPointRadius * 1.5,
-        paint..color = trailColor.withValues(alpha: tension * 0.2),
+        paint..color = trailColor, //.withValues(alpha: tension * 0.2),
       );
 
       // Glow at bubble
       canvas.drawCircle(
         originalPosition,
         bubbleRadius * 1.3,
-        paint..color = trailColor.withValues(alpha: tension * 0.15),
+        paint..color = trailColor, //.withValues(alpha: tension * 0.15),
       );
     }
   }
 
-  // Draw subtle tension particles along the trail
-  void _drawTensionParticles(Canvas canvas, Paint paint, double tension) {
-    if (tension < 0.3) return; // Only show when there's significant tension
+  // // Draw subtle tension particles along the trail
+  // void _drawTensionParticles(Canvas canvas, Paint paint, double tension) {
+  //   if (tension < 0.3) return; // Only show when there's significant tension
 
-    final distance = (currentPosition - originalPosition).distance;
-    final particleCount = (tension * 8).floor().clamp(0, 12);
+  //   final distance = (currentPosition - originalPosition).distance;
+  //   final particleCount = (tension * 8).floor().clamp(0, 12);
 
-    for (int i = 0; i < particleCount; i++) {
-      final t = (i + 1) / (particleCount + 1);
-      final particlePos = Offset.lerp(originalPosition, currentPosition, t)!;
+  //   for (int i = 0; i < particleCount; i++) {
+  //     final t = (i + 1) / (particleCount + 1);
+  //     final particlePos = Offset.lerp(originalPosition, currentPosition, t)!;
 
-      // Add slight randomness for organic feel
-      final time = DateTime.now().millisecondsSinceEpoch / 1000.0;
-      final offset = math.sin(time * 3 + i) * 2.0;
-      final direction = (currentPosition - originalPosition).normalize();
-      final perpendicular = Offset(-direction.dy, direction.dx);
-      final adjustedPos = particlePos + perpendicular * offset;
+  //     // Add slight randomness for organic feel
+  //     final time = DateTime.now().millisecondsSinceEpoch / 1000.0;
+  //     final offset = math.sin(time * 3 + i) * 2.0;
+  //     final direction = (currentPosition - originalPosition).normalize();
+  //     final perpendicular = Offset(-direction.dy, direction.dx);
+  //     final adjustedPos = particlePos + perpendicular * offset;
 
-      // Small energy particles
-      final particleSize = bubbleSize * 0.02 * tension * (1.0 - t * 0.5);
-      canvas.drawCircle(
-        adjustedPos,
-        particleSize,
-        paint..color = trailColor.withValues(alpha: tension * 0.8 * (1.0 - t)),
-      );
-    }
-  }
+  //     // Small energy particles
+  //     final particleSize = bubbleSize * 0.02 * tension * (1.0 - t * 0.5);
+  //     canvas.drawCircle(
+  //       adjustedPos,
+  //       particleSize,
+  //       paint..color = trailColor.withValues(alpha: tension * 0.8 * (1.0 - t)),
+  //     );
+  //   }
+  // }
 
   @override
   bool shouldRepaint(SuperStretchyTrailPainter oldDelegate) {
