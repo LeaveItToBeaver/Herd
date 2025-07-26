@@ -61,7 +61,7 @@ class GlobalOverlayManager extends ConsumerWidget {
             if (showBottomNav)
               Positioned(
                 left: 10,
-                right: 10,
+                right: 75,
                 bottom: 20,
                 child: SafeArea(
                   top: false,
