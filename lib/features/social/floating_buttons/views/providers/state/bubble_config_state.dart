@@ -16,7 +16,7 @@ abstract class BubbleConfigState with _$BubbleConfigState {
 
     // Visual properties
     double? size,
-    @Default(EdgeInsets.fromLTRB(0, 4, 4, 4)) EdgeInsets padding,
+    @Default(EdgeInsets.all(4)) EdgeInsets padding,
     Color? backgroundColor,
     Color? foregroundColor,
     @Default(false) bool isLarge,
@@ -50,7 +50,7 @@ abstract class BubbleConfigState with _$BubbleConfigState {
   // Helper methods
   bool get shouldShow => isVisible && (visibilityCondition?.call() ?? true);
 
-  double get effectiveSize => size ?? (isLarge ? 58.0 : 54.0);
+  double get effectiveSize => size ?? 54.0;
 
   // Check if this bubble needs spacing after it
   bool needsSpacingAfter(BubbleConfigState? nextBubble) {

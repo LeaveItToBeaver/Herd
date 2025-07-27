@@ -41,7 +41,6 @@ class GlobalOverlayManager extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Main content - no padding needed when side bubbles are screen-specific
             child,
 
             // Side Bubbles - only shown if explicitly enabled
@@ -61,7 +60,7 @@ class GlobalOverlayManager extends ConsumerWidget {
             if (showBottomNav)
               Positioned(
                 left: 10,
-                right: 75,
+                right: 80,
                 bottom: 20,
                 child: SafeArea(
                   top: false,

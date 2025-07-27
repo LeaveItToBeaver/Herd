@@ -22,6 +22,7 @@ mixin _$DragState {
   Size get bubbleSize;
   Offset get bubbleCenterOffset; // Center point of the bubble
   GlobalKey get bubbleKey;
+  Offset? get fixedTrailStartPosition;
 
   /// Create a copy of DragState
   /// with the given fields replaced by the non-null parameter values.
@@ -50,7 +51,10 @@ mixin _$DragState {
             (identical(other.bubbleCenterOffset, bubbleCenterOffset) ||
                 other.bubbleCenterOffset == bubbleCenterOffset) &&
             (identical(other.bubbleKey, bubbleKey) ||
-                other.bubbleKey == bubbleKey));
+                other.bubbleKey == bubbleKey) &&
+            (identical(
+                    other.fixedTrailStartPosition, fixedTrailStartPosition) ||
+                other.fixedTrailStartPosition == fixedTrailStartPosition));
   }
 
   @override
@@ -63,11 +67,12 @@ mixin _$DragState {
       touchOffset,
       bubbleSize,
       bubbleCenterOffset,
-      bubbleKey);
+      bubbleKey,
+      fixedTrailStartPosition);
 
   @override
   String toString() {
-    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey)';
+    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey, fixedTrailStartPosition: $fixedTrailStartPosition)';
   }
 }
 
@@ -84,7 +89,8 @@ abstract mixin class $DragStateCopyWith<$Res> {
       Offset touchOffset,
       Size bubbleSize,
       Offset bubbleCenterOffset,
-      GlobalKey bubbleKey});
+      GlobalKey bubbleKey,
+      Offset? fixedTrailStartPosition});
 
   $BubbleConfigStateCopyWith<$Res> get bubbleConfig;
 }
@@ -109,6 +115,7 @@ class _$DragStateCopyWithImpl<$Res> implements $DragStateCopyWith<$Res> {
     Object? bubbleSize = null,
     Object? bubbleCenterOffset = null,
     Object? bubbleKey = null,
+    Object? fixedTrailStartPosition = freezed,
   }) {
     return _then(_self.copyWith(
       bubbleId: null == bubbleId
@@ -143,6 +150,10 @@ class _$DragStateCopyWithImpl<$Res> implements $DragStateCopyWith<$Res> {
           ? _self.bubbleKey
           : bubbleKey // ignore: cast_nullable_to_non_nullable
               as GlobalKey,
+      fixedTrailStartPosition: freezed == fixedTrailStartPosition
+          ? _self.fixedTrailStartPosition
+          : fixedTrailStartPosition // ignore: cast_nullable_to_non_nullable
+              as Offset?,
     ));
   }
 
@@ -258,7 +269,8 @@ extension DragStatePatterns on DragState {
             Offset touchOffset,
             Size bubbleSize,
             Offset bubbleCenterOffset,
-            GlobalKey bubbleKey)?
+            GlobalKey bubbleKey,
+            Offset? fixedTrailStartPosition)?
         $default, {
     required TResult orElse(),
   }) {
@@ -273,7 +285,8 @@ extension DragStatePatterns on DragState {
             _that.touchOffset,
             _that.bubbleSize,
             _that.bubbleCenterOffset,
-            _that.bubbleKey);
+            _that.bubbleKey,
+            _that.fixedTrailStartPosition);
       case _:
         return orElse();
     }
@@ -302,7 +315,8 @@ extension DragStatePatterns on DragState {
             Offset touchOffset,
             Size bubbleSize,
             Offset bubbleCenterOffset,
-            GlobalKey bubbleKey)
+            GlobalKey bubbleKey,
+            Offset? fixedTrailStartPosition)
         $default,
   ) {
     final _that = this;
@@ -316,7 +330,8 @@ extension DragStatePatterns on DragState {
             _that.touchOffset,
             _that.bubbleSize,
             _that.bubbleCenterOffset,
-            _that.bubbleKey);
+            _that.bubbleKey,
+            _that.fixedTrailStartPosition);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -344,7 +359,8 @@ extension DragStatePatterns on DragState {
             Offset touchOffset,
             Size bubbleSize,
             Offset bubbleCenterOffset,
-            GlobalKey bubbleKey)?
+            GlobalKey bubbleKey,
+            Offset? fixedTrailStartPosition)?
         $default,
   ) {
     final _that = this;
@@ -358,7 +374,8 @@ extension DragStatePatterns on DragState {
             _that.touchOffset,
             _that.bubbleSize,
             _that.bubbleCenterOffset,
-            _that.bubbleKey);
+            _that.bubbleKey,
+            _that.fixedTrailStartPosition);
       case _:
         return null;
     }
@@ -376,7 +393,8 @@ class _DragState extends DragState {
       required this.touchOffset,
       required this.bubbleSize,
       required this.bubbleCenterOffset,
-      required this.bubbleKey})
+      required this.bubbleKey,
+      this.fixedTrailStartPosition})
       : super._();
 
   @override
@@ -396,6 +414,8 @@ class _DragState extends DragState {
 // Center point of the bubble
   @override
   final GlobalKey bubbleKey;
+  @override
+  final Offset? fixedTrailStartPosition;
 
   /// Create a copy of DragState
   /// with the given fields replaced by the non-null parameter values.
@@ -425,7 +445,10 @@ class _DragState extends DragState {
             (identical(other.bubbleCenterOffset, bubbleCenterOffset) ||
                 other.bubbleCenterOffset == bubbleCenterOffset) &&
             (identical(other.bubbleKey, bubbleKey) ||
-                other.bubbleKey == bubbleKey));
+                other.bubbleKey == bubbleKey) &&
+            (identical(
+                    other.fixedTrailStartPosition, fixedTrailStartPosition) ||
+                other.fixedTrailStartPosition == fixedTrailStartPosition));
   }
 
   @override
@@ -438,11 +461,12 @@ class _DragState extends DragState {
       touchOffset,
       bubbleSize,
       bubbleCenterOffset,
-      bubbleKey);
+      bubbleKey,
+      fixedTrailStartPosition);
 
   @override
   String toString() {
-    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey)';
+    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey, fixedTrailStartPosition: $fixedTrailStartPosition)';
   }
 }
 
@@ -462,7 +486,8 @@ abstract mixin class _$DragStateCopyWith<$Res>
       Offset touchOffset,
       Size bubbleSize,
       Offset bubbleCenterOffset,
-      GlobalKey bubbleKey});
+      GlobalKey bubbleKey,
+      Offset? fixedTrailStartPosition});
 
   @override
   $BubbleConfigStateCopyWith<$Res> get bubbleConfig;
@@ -488,6 +513,7 @@ class __$DragStateCopyWithImpl<$Res> implements _$DragStateCopyWith<$Res> {
     Object? bubbleSize = null,
     Object? bubbleCenterOffset = null,
     Object? bubbleKey = null,
+    Object? fixedTrailStartPosition = freezed,
   }) {
     return _then(_DragState(
       bubbleId: null == bubbleId
@@ -522,6 +548,10 @@ class __$DragStateCopyWithImpl<$Res> implements _$DragStateCopyWith<$Res> {
           ? _self.bubbleKey
           : bubbleKey // ignore: cast_nullable_to_non_nullable
               as GlobalKey,
+      fixedTrailStartPosition: freezed == fixedTrailStartPosition
+          ? _self.fixedTrailStartPosition
+          : fixedTrailStartPosition // ignore: cast_nullable_to_non_nullable
+              as Offset?,
     ));
   }
 
