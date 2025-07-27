@@ -40,9 +40,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   DragState? _dragState;
   final Map<String, GlobalKey> _bubbleKeys = {};
 
-  // Animation for column width
-  late AnimationController _widthAnimationController;
-  late Animation<double> _widthAnimation;
+  // Simple state variable for width instead of animation
+  double _overlayWidth = 70.0;
 
   // Snap back animation
   AnimationController? _snapBackController;
@@ -56,20 +55,6 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-
-    _widthAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    _widthAnimation = Tween<double>(
-      begin: 70.0,
-      end: 70.0,
-    ).animate(CurvedAnimation(
-      parent: _widthAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-
     _hapticController = HapticDragController();
     //_haptics = AdvancedHaptics();
   }
@@ -77,7 +62,6 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   @override
   void dispose() {
     _scrollController.dispose();
-    _widthAnimationController.dispose();
     _snapBackController?.dispose();
     _hapticController.dispose();
     super.dispose();
@@ -96,31 +80,51 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         context, ref, ref.watch(currentFeedProvider), null);
     final bubbleConfig = bubbleConfigs.firstWhere((c) => c.id == bubbleId);
 
-    // Get bubble's screen position
-    final bubbleGlobalPos = renderBox.localToGlobal(Offset.zero);
-    final bubbleSize = renderBox.size;
+    // Get the PADDED container's screen position
+    final paddedContainerGlobalPos = renderBox.localToGlobal(Offset.zero);
+    final paddedContainerSize = renderBox.size;
 
     // Get the container's screen position
     final containerRenderBox = context.findRenderObject() as RenderBox?;
     if (containerRenderBox == null) return;
 
     final containerGlobalPos = containerRenderBox.localToGlobal(Offset.zero);
-    final relativePosition = bubbleGlobalPos - containerGlobalPos;
+    final paddedContainerRelativePos =
+        paddedContainerGlobalPos - containerGlobalPos;
 
-    // Calculate center offset
-    final centerOffset = Offset(bubbleSize.width / 2, bubbleSize.height / 2);
-
-    // IMPORTANT: Account for the width animation that will happen
-    // The bubble will need to maintain its position relative to the RIGHT edge
-    // as the container expands from 70px to full width
-    final screenWidth = MediaQuery.of(context).size.width;
-    final rightEdgeOffset =
-        70.0 - relativePosition.dx; // Distance from right edge
-    final adjustedStartPosition = Offset(
-      screenWidth -
-          rightEdgeOffset, // Position relative to full-width container
-      relativePosition.dy,
+    final padding = bubbleConfig.padding;
+    final actualBubbleSize = Size(
+      bubbleConfig.effectiveSize,
+      bubbleConfig.effectiveSize,
     );
+
+    final bubbleCenterInPaddedContainer = Offset(
+      (padding.left + padding.right) +
+          (actualBubbleSize.width / 2), // Assumes padding is equal
+      padding.top + (actualBubbleSize.height / 2),
+    );
+
+    // Get the actual bubble's center position relative to our main container
+    final bubbleCenterRelativePos =
+        paddedContainerRelativePos + bubbleCenterInPaddedContainer;
+
+    // Since we're expanding instantly, calculate the position directly
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // The bubble is currently positioned relative to the right edge (in the 70px container)
+    // When we expand to full width, we need to maintain that right-edge relationship
+    final rightEdgeOffset = 70.0 - bubbleCenterRelativePos.dx;
+
+    // Calculate where the bubble should be positioned in the expanded container
+    final adjustedStartPosition = Offset(
+      screenWidth - rightEdgeOffset - (actualBubbleSize.width / 2),
+      bubbleCenterRelativePos.dy - (actualBubbleSize.height / 2),
+    );
+
+    // Calculate touch offset relative to the bubble's center
+    final bubbleCenterGlobalPos =
+        paddedContainerGlobalPos + bubbleCenterInPaddedContainer;
+    final touchOffset = globalTouchPosition - bubbleCenterGlobalPos;
 
     // Create drag state
     setState(() {
@@ -129,27 +133,20 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         bubbleConfig: bubbleConfig,
         startPosition: adjustedStartPosition,
         currentPosition: adjustedStartPosition,
-        touchOffset: globalTouchPosition - bubbleGlobalPos,
-        bubbleSize: bubbleSize,
-        bubbleCenterOffset: centerOffset,
+        touchOffset: touchOffset,
+        bubbleSize: actualBubbleSize,
+        bubbleCenterOffset: Offset(
+          actualBubbleSize.width / 2,
+          actualBubbleSize.height / 2,
+        ),
         bubbleKey: key,
       );
+
+      // Instantly expand the overlay width
+      _overlayWidth = screenWidth;
     });
 
-    // Update provider
     ref.read(isDraggingProvider.notifier).state = true;
-
-    // Animate width expansion
-    _widthAnimation = Tween<double>(
-      begin: 70.0,
-      end: screenWidth,
-    ).animate(CurvedAnimation(
-      parent: _widthAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    _widthAnimationController.forward();
-
     HapticFeedback.mediumImpact();
   }
 
@@ -191,7 +188,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       maxDistance: maxDistance,
     );
 
-    // Create snap back animation - snap back to original bubble position
+    // Create snap back animation
     _snapBackController?.dispose();
     _snapBackController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -200,8 +197,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _snapBackAnimation = Tween<Offset>(
       begin: _dragState!.currentPosition,
-      end: _dragState!.startPosition +
-          Offset(0, 6), // Slight offset for visual feedback
+      end: _dragState!.startPosition,
     ).animate(CurvedAnimation(
       parent: _snapBackController!,
       curve: Curves.elasticOut,
@@ -221,21 +217,12 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       if (status == AnimationStatus.completed) {
         setState(() {
           _dragState = null;
+          // Instantly collapse the overlay width
+          _overlayWidth = 70.0;
         });
 
         // Update provider
         ref.read(isDraggingProvider.notifier).state = false;
-
-        // Animate width back
-        _widthAnimation = Tween<double>(
-          begin: _widthAnimation.value,
-          end: 70.0,
-        ).animate(CurvedAnimation(
-          parent: _widthAnimationController,
-          curve: Curves.easeOutCubic,
-        ));
-
-        _widthAnimationController.forward(from: 0);
       }
     });
 
@@ -254,102 +241,95 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final bubbleConfigs =
         _createBubbleConfigs(context, ref, feedType, appTheme);
 
-    return AnimatedBuilder(
-      animation: _widthAnimation,
-      builder: (context, child) {
-        return Container(
-          width: _widthAnimation.value,
-          color: Colors.transparent,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 70,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            reverse: true,
-                            controller: _scrollController,
-                            padding: const EdgeInsets.only(
-                                top: 8, left: 8, right: 8),
-                            itemCount: bubbleConfigs.length,
-                            itemBuilder: (context, index) {
-                              final config = bubbleConfigs[index];
-                              final isBeingDragged =
-                                  _dragState?.bubbleId == config.id;
+    return Container(
+      width: _overlayWidth,
+      color: Colors.transparent,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 70,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        reverse: true,
+                        controller: _scrollController,
+                        itemCount: bubbleConfigs.length,
+                        itemBuilder: (context, index) {
+                          final config = bubbleConfigs[index];
+                          final isBeingDragged =
+                              _dragState?.bubbleId == config.id;
 
-                              final bubble = DraggableBubble(
-                                key: ValueKey(config.id),
-                                config: config,
-                                appTheme: appTheme,
-                                globalKey: _bubbleKeys.putIfAbsent(
-                                    config.id, () => GlobalKey()),
-                                onDragStart: (globalPos) => _startDrag(
-                                    config.id,
-                                    globalPos,
-                                    constraints // Pass layout constraints
-                                    ),
-                                onDragUpdate: _updateDrag,
-                                onDragEnd: _endDrag,
-                                isBeingDragged: isBeingDragged,
-                              );
+                          final bubble = DraggableBubble(
+                            key: ValueKey(config.id),
+                            config: config,
+                            appTheme: appTheme,
+                            globalKey: _bubbleKeys.putIfAbsent(
+                                config.id, () => GlobalKey()),
+                            onDragStart: (globalPos) => _startDrag(
+                                config.id,
+                                globalPos,
+                                constraints // Pass layout constraints
+                                ),
+                            onDragUpdate: _updateDrag,
+                            onDragEnd: _endDrag,
+                            isBeingDragged: isBeingDragged,
+                          );
 
-                              if (index == 0) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 20.0),
-                                  child: bubble,
-                                );
-                              }
-                              return bubble;
-                            },
-                          ),
-                        ),
-                      ],
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 20.0),
+                              child: bubble,
+                            );
+                          }
+                          return bubble;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Simplified drag overlay with trail
+              if (_dragState != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: SuperStretchyTrailPainter(
+                        originalPosition: _dragState!.trailStartPosition,
+                        currentPosition: _dragState!.trailCurrentPosition,
+                        trailColor: _dragState!.trailColor,
+                        bubbleSize: _dragState!.bubbleSizeValue,
+                        screenSize: constraints.biggest,
+                      ),
                     ),
                   ),
+                ),
 
-                  // Simplified drag overlay with trail
-                  if (_dragState != null)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: CustomPaint(
-                          painter: SuperStretchyTrailPainter(
-                            originalPosition: _dragState!.trailStartPosition,
-                            currentPosition: _dragState!.trailCurrentPosition,
-                            trailColor: _dragState!.trailColor,
-                            bubbleSize: _dragState!.bubbleSizeValue,
-                            screenSize: constraints.biggest,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  if (_dragState != null)
-                    Positioned(
-                      left: _dragState!.currentPosition.dx,
-                      top: _dragState!.currentPosition.dy,
-                      child: IgnorePointer(
-                        child: _buildDraggedBubble(_dragState!.bubbleConfig),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        );
-      },
+              if (_dragState != null)
+                Positioned(
+                  left: _dragState!.currentPosition.dx,
+                  top: _dragState!.currentPosition.dy,
+                  child: IgnorePointer(
+                    child: _buildDraggedBubble(_dragState!.bubbleConfig),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget _buildDraggedBubble(BubbleConfigState config) {
     return Container(
-      width: config.effectiveSize, // Use dynamic size instead of hardcoded 50
+      width: config.effectiveSize,
       height: config.effectiveSize,
       decoration: BoxDecoration(
         color: config.backgroundColor ?? Colors.blue,
@@ -374,10 +354,13 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           ),
         ],
       ),
-      child: Icon(
-        config.icon ?? Icons.circle,
-        color: config.foregroundColor ?? Colors.white,
-        size: config.effectiveSize * 0.4, // Scale icon with bubble size
+      child: Center(
+        // Use Center instead of Padding
+        child: Icon(
+          config.icon ?? Icons.circle,
+          color: config.foregroundColor ?? Colors.white,
+          size: config.effectiveSize * 0.4, // Scale icon with bubble size
+        ),
       ),
     );
   }
@@ -393,7 +376,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
             Theme.of(context).colorScheme.surface,
         foregroundColor:
             appTheme?.getTextColor() ?? Theme.of(context).colorScheme.onSurface,
-        padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
+        padding: const EdgeInsets.all(4),
         order: 10,
       ));
     }
@@ -417,7 +400,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                 Theme.of(context).colorScheme.onSurface),
         errorColor:
             appTheme?.getErrorColor() ?? Theme.of(context).colorScheme.error,
-        padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         order: 20,
       ));
     }
@@ -437,7 +420,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                 Theme.of(context).colorScheme.secondary)
             : (appTheme?.getPrimaryColor() ??
                 Theme.of(context).colorScheme.primary),
-        padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         order: 30,
         customOnTap: () {
           HapticFeedback.lightImpact();
@@ -469,7 +452,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
               Theme.of(context).colorScheme.secondary)
           : (appTheme?.getPrimaryColor() ??
               Theme.of(context).colorScheme.primary),
-      padding: const EdgeInsets.fromLTRB(0, 16, 4, 4), // Extra top padding
+      padding: const EdgeInsets.fromLTRB(4, 16, 4, 4), // Extra top padding
       order: 100,
       onToggle: () {
         HapticFeedback.mediumImpact();
@@ -497,10 +480,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
               Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
           foregroundColor: appTheme?.getTextColor() ??
               Theme.of(context).colorScheme.onSurface,
-          padding: i == 0
-              ? const EdgeInsets.fromLTRB(
-                  0, 16, 4, 4) // Extra spacing for first
-              : const EdgeInsets.fromLTRB(0, 4, 4, 4),
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           order: 500 + i,
           customOnTap: () {
             HapticFeedback.lightImpact();
@@ -528,9 +508,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
             Theme.of(context).colorScheme.surface,
         foregroundColor:
             appTheme?.getTextColor() ?? Theme.of(context).colorScheme.onSurface,
-        padding: i == 0 && !widget.showHerdBubbles
-            ? const EdgeInsets.fromLTRB(0, 16, 4, 4) // Extra spacing for first
-            : const EdgeInsets.fromLTRB(0, 4, 4, 4),
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         order: chatStartOrder + i,
         customOnTap: () {
           HapticFeedback.lightImpact();

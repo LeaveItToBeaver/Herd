@@ -18,7 +18,7 @@ mixin _$BubbleConfigState {
   BubbleType get type;
   BubbleContentType get contentType; // Visual properties
   double? get size;
-  EdgeInsets get padding; // Remove left padding by default
+  EdgeInsets get padding;
   Color? get backgroundColor;
   Color? get foregroundColor;
   bool get isLarge; // Content properties
@@ -616,7 +616,7 @@ class _BubbleConfig extends BubbleConfigState {
       this.type = BubbleType.custom,
       this.contentType = BubbleContentType.icon,
       this.size,
-      this.padding = const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      this.padding = const EdgeInsets.all(4),
       this.backgroundColor,
       this.foregroundColor,
       this.isLarge = false,
@@ -654,7 +654,6 @@ class _BubbleConfig extends BubbleConfigState {
   @override
   @JsonKey()
   final EdgeInsets padding;
-// Remove left padding by default
   @override
   final Color? backgroundColor;
   @override

@@ -22,7 +22,7 @@ class BubbleFactory {
       order: order,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -46,7 +46,7 @@ class BubbleFactory {
           ? (errorColor?.withValues(alpha: 0.2) ?? backgroundColor)
           : backgroundColor,
       foregroundColor: hasNotifications ? errorColor : foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -75,7 +75,7 @@ class BubbleFactory {
       order: order,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -97,7 +97,7 @@ class BubbleFactory {
       isLarge: true,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -126,7 +126,7 @@ class BubbleFactory {
       order: order,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -154,7 +154,7 @@ class BubbleFactory {
       isLarge: isLarge,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -189,7 +189,7 @@ class BubbleFactory {
       isOnline: isOnline,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -216,7 +216,7 @@ class BubbleFactory {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       order: order,
-      padding: padding,
+      padding: padding ?? const EdgeInsets.all(4),
       customOnTap: customOnTap,
     ).copyWith(
       type: BubbleType.draggable,

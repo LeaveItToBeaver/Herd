@@ -17,10 +17,13 @@ abstract class DragState with _$DragState {
     required Size bubbleSize,
     required Offset bubbleCenterOffset, // Center point of the bubble
     required GlobalKey bubbleKey,
+    Offset? fixedTrailStartPosition,
   }) = _DragState;
 
   // Computed properties for trail painting
-  Offset get trailStartPosition => Offset(
+  Offset get trailStartPosition =>
+      fixedTrailStartPosition ??
+      Offset(
         startPosition.dx + bubbleCenterOffset.dx,
         startPosition.dy + bubbleCenterOffset.dy,
       );
