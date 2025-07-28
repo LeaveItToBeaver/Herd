@@ -17,7 +17,14 @@ abstract class DragState with _$DragState {
     required Size bubbleSize,
     required Offset bubbleCenterOffset, // Center point of the bubble
     required GlobalKey bubbleKey,
+    required Size screenSize, // Screen size for threshold calculations
     Offset? fixedTrailStartPosition,
+    @Default(false)
+    bool hasTriggeredChatThreshold, // Track if threshold was crossed
+    @Default(false) bool isAnimatingToChat, // Track chat opening animation
+    @Default(false)
+    bool isChatMorphComplete, // Track if bubble has morphed into chat
+    Offset? chatTargetPosition, // Where the bubble should animate to for chat
   }) = _DragState;
 
   // Computed properties for trail painting
@@ -36,4 +43,13 @@ abstract class DragState with _$DragState {
   Color get trailColor => bubbleConfig.backgroundColor ?? Colors.blue;
 
   double get bubbleSizeValue => bubbleConfig.effectiveSize;
+
+  // Chat threshold properties
+  double get chatThresholdX =>
+      screenSize.width * (2 / 3); // 1/3 from right side
+
+  bool get isInChatZone => currentPosition.dx < chatThresholdX;
+
+  bool get shouldTriggerChatThreshold =>
+      isInChatZone && !hasTriggeredChatThreshold;
 }

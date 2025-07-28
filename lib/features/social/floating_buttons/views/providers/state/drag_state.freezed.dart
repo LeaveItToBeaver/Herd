@@ -22,7 +22,12 @@ mixin _$DragState {
   Size get bubbleSize;
   Offset get bubbleCenterOffset; // Center point of the bubble
   GlobalKey get bubbleKey;
+  Size get screenSize; // Screen size for threshold calculations
   Offset? get fixedTrailStartPosition;
+  bool get hasTriggeredChatThreshold; // Track if threshold was crossed
+  bool get isAnimatingToChat; // Track chat opening animation
+  bool get isChatMorphComplete; // Track if bubble has morphed into chat
+  Offset? get chatTargetPosition;
 
   /// Create a copy of DragState
   /// with the given fields replaced by the non-null parameter values.
@@ -52,9 +57,20 @@ mixin _$DragState {
                 other.bubbleCenterOffset == bubbleCenterOffset) &&
             (identical(other.bubbleKey, bubbleKey) ||
                 other.bubbleKey == bubbleKey) &&
+            (identical(other.screenSize, screenSize) ||
+                other.screenSize == screenSize) &&
             (identical(
                     other.fixedTrailStartPosition, fixedTrailStartPosition) ||
-                other.fixedTrailStartPosition == fixedTrailStartPosition));
+                other.fixedTrailStartPosition == fixedTrailStartPosition) &&
+            (identical(other.hasTriggeredChatThreshold,
+                    hasTriggeredChatThreshold) ||
+                other.hasTriggeredChatThreshold == hasTriggeredChatThreshold) &&
+            (identical(other.isAnimatingToChat, isAnimatingToChat) ||
+                other.isAnimatingToChat == isAnimatingToChat) &&
+            (identical(other.isChatMorphComplete, isChatMorphComplete) ||
+                other.isChatMorphComplete == isChatMorphComplete) &&
+            (identical(other.chatTargetPosition, chatTargetPosition) ||
+                other.chatTargetPosition == chatTargetPosition));
   }
 
   @override
@@ -68,11 +84,16 @@ mixin _$DragState {
       bubbleSize,
       bubbleCenterOffset,
       bubbleKey,
-      fixedTrailStartPosition);
+      screenSize,
+      fixedTrailStartPosition,
+      hasTriggeredChatThreshold,
+      isAnimatingToChat,
+      isChatMorphComplete,
+      chatTargetPosition);
 
   @override
   String toString() {
-    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey, fixedTrailStartPosition: $fixedTrailStartPosition)';
+    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey, screenSize: $screenSize, fixedTrailStartPosition: $fixedTrailStartPosition, hasTriggeredChatThreshold: $hasTriggeredChatThreshold, isAnimatingToChat: $isAnimatingToChat, isChatMorphComplete: $isChatMorphComplete, chatTargetPosition: $chatTargetPosition)';
   }
 }
 
@@ -90,7 +111,12 @@ abstract mixin class $DragStateCopyWith<$Res> {
       Size bubbleSize,
       Offset bubbleCenterOffset,
       GlobalKey bubbleKey,
-      Offset? fixedTrailStartPosition});
+      Size screenSize,
+      Offset? fixedTrailStartPosition,
+      bool hasTriggeredChatThreshold,
+      bool isAnimatingToChat,
+      bool isChatMorphComplete,
+      Offset? chatTargetPosition});
 
   $BubbleConfigStateCopyWith<$Res> get bubbleConfig;
 }
@@ -115,7 +141,12 @@ class _$DragStateCopyWithImpl<$Res> implements $DragStateCopyWith<$Res> {
     Object? bubbleSize = null,
     Object? bubbleCenterOffset = null,
     Object? bubbleKey = null,
+    Object? screenSize = null,
     Object? fixedTrailStartPosition = freezed,
+    Object? hasTriggeredChatThreshold = null,
+    Object? isAnimatingToChat = null,
+    Object? isChatMorphComplete = null,
+    Object? chatTargetPosition = freezed,
   }) {
     return _then(_self.copyWith(
       bubbleId: null == bubbleId
@@ -150,9 +181,29 @@ class _$DragStateCopyWithImpl<$Res> implements $DragStateCopyWith<$Res> {
           ? _self.bubbleKey
           : bubbleKey // ignore: cast_nullable_to_non_nullable
               as GlobalKey,
+      screenSize: null == screenSize
+          ? _self.screenSize
+          : screenSize // ignore: cast_nullable_to_non_nullable
+              as Size,
       fixedTrailStartPosition: freezed == fixedTrailStartPosition
           ? _self.fixedTrailStartPosition
           : fixedTrailStartPosition // ignore: cast_nullable_to_non_nullable
+              as Offset?,
+      hasTriggeredChatThreshold: null == hasTriggeredChatThreshold
+          ? _self.hasTriggeredChatThreshold
+          : hasTriggeredChatThreshold // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isAnimatingToChat: null == isAnimatingToChat
+          ? _self.isAnimatingToChat
+          : isAnimatingToChat // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isChatMorphComplete: null == isChatMorphComplete
+          ? _self.isChatMorphComplete
+          : isChatMorphComplete // ignore: cast_nullable_to_non_nullable
+              as bool,
+      chatTargetPosition: freezed == chatTargetPosition
+          ? _self.chatTargetPosition
+          : chatTargetPosition // ignore: cast_nullable_to_non_nullable
               as Offset?,
     ));
   }
@@ -270,7 +321,12 @@ extension DragStatePatterns on DragState {
             Size bubbleSize,
             Offset bubbleCenterOffset,
             GlobalKey bubbleKey,
-            Offset? fixedTrailStartPosition)?
+            Size screenSize,
+            Offset? fixedTrailStartPosition,
+            bool hasTriggeredChatThreshold,
+            bool isAnimatingToChat,
+            bool isChatMorphComplete,
+            Offset? chatTargetPosition)?
         $default, {
     required TResult orElse(),
   }) {
@@ -286,7 +342,12 @@ extension DragStatePatterns on DragState {
             _that.bubbleSize,
             _that.bubbleCenterOffset,
             _that.bubbleKey,
-            _that.fixedTrailStartPosition);
+            _that.screenSize,
+            _that.fixedTrailStartPosition,
+            _that.hasTriggeredChatThreshold,
+            _that.isAnimatingToChat,
+            _that.isChatMorphComplete,
+            _that.chatTargetPosition);
       case _:
         return orElse();
     }
@@ -316,7 +377,12 @@ extension DragStatePatterns on DragState {
             Size bubbleSize,
             Offset bubbleCenterOffset,
             GlobalKey bubbleKey,
-            Offset? fixedTrailStartPosition)
+            Size screenSize,
+            Offset? fixedTrailStartPosition,
+            bool hasTriggeredChatThreshold,
+            bool isAnimatingToChat,
+            bool isChatMorphComplete,
+            Offset? chatTargetPosition)
         $default,
   ) {
     final _that = this;
@@ -331,7 +397,12 @@ extension DragStatePatterns on DragState {
             _that.bubbleSize,
             _that.bubbleCenterOffset,
             _that.bubbleKey,
-            _that.fixedTrailStartPosition);
+            _that.screenSize,
+            _that.fixedTrailStartPosition,
+            _that.hasTriggeredChatThreshold,
+            _that.isAnimatingToChat,
+            _that.isChatMorphComplete,
+            _that.chatTargetPosition);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -360,7 +431,12 @@ extension DragStatePatterns on DragState {
             Size bubbleSize,
             Offset bubbleCenterOffset,
             GlobalKey bubbleKey,
-            Offset? fixedTrailStartPosition)?
+            Size screenSize,
+            Offset? fixedTrailStartPosition,
+            bool hasTriggeredChatThreshold,
+            bool isAnimatingToChat,
+            bool isChatMorphComplete,
+            Offset? chatTargetPosition)?
         $default,
   ) {
     final _that = this;
@@ -375,7 +451,12 @@ extension DragStatePatterns on DragState {
             _that.bubbleSize,
             _that.bubbleCenterOffset,
             _that.bubbleKey,
-            _that.fixedTrailStartPosition);
+            _that.screenSize,
+            _that.fixedTrailStartPosition,
+            _that.hasTriggeredChatThreshold,
+            _that.isAnimatingToChat,
+            _that.isChatMorphComplete,
+            _that.chatTargetPosition);
       case _:
         return null;
     }
@@ -394,7 +475,12 @@ class _DragState extends DragState {
       required this.bubbleSize,
       required this.bubbleCenterOffset,
       required this.bubbleKey,
-      this.fixedTrailStartPosition})
+      required this.screenSize,
+      this.fixedTrailStartPosition,
+      this.hasTriggeredChatThreshold = false,
+      this.isAnimatingToChat = false,
+      this.isChatMorphComplete = false,
+      this.chatTargetPosition})
       : super._();
 
   @override
@@ -415,7 +501,24 @@ class _DragState extends DragState {
   @override
   final GlobalKey bubbleKey;
   @override
+  final Size screenSize;
+// Screen size for threshold calculations
+  @override
   final Offset? fixedTrailStartPosition;
+  @override
+  @JsonKey()
+  final bool hasTriggeredChatThreshold;
+// Track if threshold was crossed
+  @override
+  @JsonKey()
+  final bool isAnimatingToChat;
+// Track chat opening animation
+  @override
+  @JsonKey()
+  final bool isChatMorphComplete;
+// Track if bubble has morphed into chat
+  @override
+  final Offset? chatTargetPosition;
 
   /// Create a copy of DragState
   /// with the given fields replaced by the non-null parameter values.
@@ -446,9 +549,20 @@ class _DragState extends DragState {
                 other.bubbleCenterOffset == bubbleCenterOffset) &&
             (identical(other.bubbleKey, bubbleKey) ||
                 other.bubbleKey == bubbleKey) &&
+            (identical(other.screenSize, screenSize) ||
+                other.screenSize == screenSize) &&
             (identical(
                     other.fixedTrailStartPosition, fixedTrailStartPosition) ||
-                other.fixedTrailStartPosition == fixedTrailStartPosition));
+                other.fixedTrailStartPosition == fixedTrailStartPosition) &&
+            (identical(other.hasTriggeredChatThreshold,
+                    hasTriggeredChatThreshold) ||
+                other.hasTriggeredChatThreshold == hasTriggeredChatThreshold) &&
+            (identical(other.isAnimatingToChat, isAnimatingToChat) ||
+                other.isAnimatingToChat == isAnimatingToChat) &&
+            (identical(other.isChatMorphComplete, isChatMorphComplete) ||
+                other.isChatMorphComplete == isChatMorphComplete) &&
+            (identical(other.chatTargetPosition, chatTargetPosition) ||
+                other.chatTargetPosition == chatTargetPosition));
   }
 
   @override
@@ -462,11 +576,16 @@ class _DragState extends DragState {
       bubbleSize,
       bubbleCenterOffset,
       bubbleKey,
-      fixedTrailStartPosition);
+      screenSize,
+      fixedTrailStartPosition,
+      hasTriggeredChatThreshold,
+      isAnimatingToChat,
+      isChatMorphComplete,
+      chatTargetPosition);
 
   @override
   String toString() {
-    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey, fixedTrailStartPosition: $fixedTrailStartPosition)';
+    return 'DragState(bubbleId: $bubbleId, bubbleConfig: $bubbleConfig, startPosition: $startPosition, currentPosition: $currentPosition, touchOffset: $touchOffset, bubbleSize: $bubbleSize, bubbleCenterOffset: $bubbleCenterOffset, bubbleKey: $bubbleKey, screenSize: $screenSize, fixedTrailStartPosition: $fixedTrailStartPosition, hasTriggeredChatThreshold: $hasTriggeredChatThreshold, isAnimatingToChat: $isAnimatingToChat, isChatMorphComplete: $isChatMorphComplete, chatTargetPosition: $chatTargetPosition)';
   }
 }
 
@@ -487,7 +606,12 @@ abstract mixin class _$DragStateCopyWith<$Res>
       Size bubbleSize,
       Offset bubbleCenterOffset,
       GlobalKey bubbleKey,
-      Offset? fixedTrailStartPosition});
+      Size screenSize,
+      Offset? fixedTrailStartPosition,
+      bool hasTriggeredChatThreshold,
+      bool isAnimatingToChat,
+      bool isChatMorphComplete,
+      Offset? chatTargetPosition});
 
   @override
   $BubbleConfigStateCopyWith<$Res> get bubbleConfig;
@@ -513,7 +637,12 @@ class __$DragStateCopyWithImpl<$Res> implements _$DragStateCopyWith<$Res> {
     Object? bubbleSize = null,
     Object? bubbleCenterOffset = null,
     Object? bubbleKey = null,
+    Object? screenSize = null,
     Object? fixedTrailStartPosition = freezed,
+    Object? hasTriggeredChatThreshold = null,
+    Object? isAnimatingToChat = null,
+    Object? isChatMorphComplete = null,
+    Object? chatTargetPosition = freezed,
   }) {
     return _then(_DragState(
       bubbleId: null == bubbleId
@@ -548,9 +677,29 @@ class __$DragStateCopyWithImpl<$Res> implements _$DragStateCopyWith<$Res> {
           ? _self.bubbleKey
           : bubbleKey // ignore: cast_nullable_to_non_nullable
               as GlobalKey,
+      screenSize: null == screenSize
+          ? _self.screenSize
+          : screenSize // ignore: cast_nullable_to_non_nullable
+              as Size,
       fixedTrailStartPosition: freezed == fixedTrailStartPosition
           ? _self.fixedTrailStartPosition
           : fixedTrailStartPosition // ignore: cast_nullable_to_non_nullable
+              as Offset?,
+      hasTriggeredChatThreshold: null == hasTriggeredChatThreshold
+          ? _self.hasTriggeredChatThreshold
+          : hasTriggeredChatThreshold // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isAnimatingToChat: null == isAnimatingToChat
+          ? _self.isAnimatingToChat
+          : isAnimatingToChat // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isChatMorphComplete: null == isChatMorphComplete
+          ? _self.isChatMorphComplete
+          : isChatMorphComplete // ignore: cast_nullable_to_non_nullable
+              as bool,
+      chatTargetPosition: freezed == chatTargetPosition
+          ? _self.chatTargetPosition
+          : chatTargetPosition // ignore: cast_nullable_to_non_nullable
               as Offset?,
     ));
   }
