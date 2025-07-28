@@ -161,6 +161,8 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                         showProfileBtn: true,
                         showSearchBtn: true,
                         showNotificationsBtn: true,
+                        showHerdBubbles:
+                            false, // Public feed doesn't show herd bubbles
                       ),
                     ),
                   ),
