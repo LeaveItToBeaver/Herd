@@ -70,102 +70,109 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Public Feed'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(publicFeedControllerProvider.notifier).refreshFeed();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.trending_up),
-            onPressed: () => _showTrendingPosts(context, ref),
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          // Sort widget takes full width - stays above bubbles
-          FeedSortWidget(
-            currentSort: publicFeedState.sortType,
-            onSortChanged: (newSortType) {
-              ref
-                  .read(publicFeedControllerProvider.notifier)
-                  .changeSortType(newSortType);
-            },
-            isLoading: publicFeedState.isLoading,
-          ),
+    return PopScope(
+      canPop: false, // Disable swipe to close
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Public Feed'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                ref.read(publicFeedControllerProvider.notifier).refreshFeed();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.trending_up),
+              onPressed: () => _showTrendingPosts(context, ref),
+            ),
+          ],
+          automaticallyImplyLeading: false,
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // Sort widget takes full width - stays above bubbles
+            FeedSortWidget(
+              currentSort: publicFeedState.sortType,
+              onSortChanged: (newSortType) {
+                ref
+                    .read(publicFeedControllerProvider.notifier)
+                    .changeSortType(newSortType);
+              },
+              isLoading: publicFeedState.isLoading,
+            ),
 
-          // Single Expanded widget with Stack
-          Expanded(
-            child: Stack(
-              children: [
-                // Main content with padding for bubbles
-                Padding(
-                  padding: const EdgeInsets.only(right: 70),
-                  child: publicFeedState.isLoading &&
-                          publicFeedState.posts.isEmpty
-                      ? _buildLoadingWidget()
-                      : publicFeedState.error != null
-                          ? _buildErrorWidget(context, publicFeedState.error!,
-                              () {
-                              ref
-                                  .read(publicFeedControllerProvider.notifier)
-                                  .refreshFeed();
-                            })
-                          : PostListWidget(
-                              scrollController: _scrollController,
-                              posts: publicFeedState.posts,
-                              isLoading: publicFeedState.isLoading &&
-                                  publicFeedState.posts.isEmpty,
-                              hasError: publicFeedState.error != null,
-                              errorMessage: publicFeedState.error?.toString(),
-                              hasMorePosts: publicFeedState.hasMorePosts,
-                              onRefresh: () => ref
-                                  .read(publicFeedControllerProvider.notifier)
-                                  .refreshFeed(),
-                              onLoadMore: () => ref
-                                  .read(publicFeedControllerProvider.notifier)
-                                  .loadMorePosts(),
-                              type: PostListType.feed,
-                              emptyMessage: 'No posts in your public feed yet',
-                              emptyActionLabel: 'Find users to follow',
-                              onEmptyAction: () {
-                                context.pushNamed('search');
-                              },
-                              isRefreshing: publicFeedState.isRefreshing,
-                            ),
-                ),
+            // Single Expanded widget with Stack
+            Expanded(
+              child: Stack(
+                children: [
+                  // Main content with padding for bubbles
+                  Padding(
+                    padding: const EdgeInsets.only(right: 70),
+                    child: publicFeedState.isLoading &&
+                            publicFeedState.posts.isEmpty
+                        ? _buildLoadingWidget()
+                        : publicFeedState.error != null
+                            ? _buildErrorWidget(context, publicFeedState.error!,
+                                () {
+                                ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .refreshFeed();
+                              })
+                            : PostListWidget(
+                                scrollController: _scrollController,
+                                posts: publicFeedState.posts,
+                                isLoading: publicFeedState.isLoading &&
+                                    publicFeedState.posts.isEmpty,
+                                hasError: publicFeedState.error != null,
+                                errorMessage: publicFeedState.error?.toString(),
+                                hasMorePosts: publicFeedState.hasMorePosts,
+                                onRefresh: () => ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .refreshFeed(),
+                                onLoadMore: () => ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .loadMorePosts(),
+                                type: PostListType.feed,
+                                emptyMessage:
+                                    'No posts in your public feed yet',
+                                emptyActionLabel: 'Find users to follow',
+                                onEmptyAction: () {
+                                  context.pushNamed('search');
+                                },
+                                isRefreshing: publicFeedState.isRefreshing,
+                              ),
+                  ),
 
-                // Side bubbles overlay
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: SafeArea(
-                    top: true,
-                    left: false,
-                    right: false,
-                    bottom: true,
-                    child: SideBubblesOverlay(
-                      showProfileBtn: true,
-                      showSearchBtn: true,
-                      showNotificationsBtn: true,
+                  // Side bubbles overlay
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: SafeArea(
+                      top: true,
+                      left: false,
+                      right: false,
+                      bottom: true,
+                      child: SideBubblesOverlay(
+                        showProfileBtn: true,
+                        showSearchBtn: true,
+                        showNotificationsBtn: true,
+                        showHerdBubbles:
+                            false, // Public feed doesn't show herd bubbles
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      ), // Close Scaffold
+    ); // Close PopScope
   }
 
 // Add a loading widget that's scrollable

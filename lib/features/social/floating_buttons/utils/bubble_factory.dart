@@ -22,7 +22,7 @@ class BubbleFactory {
       order: order,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -46,7 +46,7 @@ class BubbleFactory {
           ? (errorColor?.withValues(alpha: 0.2) ?? backgroundColor)
           : backgroundColor,
       foregroundColor: hasNotifications ? errorColor : foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -75,31 +75,31 @@ class BubbleFactory {
       order: order,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
-  static BubbleConfigState feedToggleBubble({
-    required bool isAltFeed,
-    required VoidCallback onToggle,
-    Color? backgroundColor,
-    Color? foregroundColor,
-    int order = 100,
-    EdgeInsets? padding,
-  }) {
-    return BubbleConfigState(
-      id: 'feedToggle',
-      type: BubbleType.custom,
-      contentType: BubbleContentType.icon,
-      icon: isAltFeed ? Icons.public : Icons.groups_2,
-      onTap: onToggle,
-      order: order,
-      isLarge: true,
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
-    );
-  }
+  // static BubbleConfigState feedToggleBubble({
+  //   required bool isAltFeed,
+  //   required VoidCallback onToggle,
+  //   Color? backgroundColor,
+  //   Color? foregroundColor,
+  //   int order = 100,
+  //   EdgeInsets? padding,
+  // }) {
+  //   return BubbleConfigState(
+  //     id: 'feedToggle',
+  //     type: BubbleType.custom,
+  //     contentType: BubbleContentType.icon,
+  //     icon: isAltFeed ? Icons.public : Icons.groups_2,
+  //     onTap: onToggle,
+  //     order: order,
+  //     isLarge: true,
+  //     backgroundColor: backgroundColor,
+  //     foregroundColor: foregroundColor,
+  //     padding: padding ?? const EdgeInsets.all(4),
+  //   );
+  // }
 
   // Custom bubbles (order 200-499)
   static BubbleConfigState herdBubble({
@@ -126,7 +126,7 @@ class BubbleFactory {
       order: order,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -154,7 +154,7 @@ class BubbleFactory {
       isLarge: isLarge,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -189,7 +189,7 @@ class BubbleFactory {
       isOnline: isOnline,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      padding: padding ?? const EdgeInsets.fromLTRB(0, 4, 4, 4),
+      padding: padding ?? const EdgeInsets.all(4),
     );
   }
 
@@ -216,7 +216,7 @@ class BubbleFactory {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       order: order,
-      padding: padding,
+      padding: padding ?? const EdgeInsets.all(4),
       customOnTap: customOnTap,
     ).copyWith(
       type: BubbleType.draggable,

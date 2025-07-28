@@ -56,22 +56,11 @@ class DraggableBubble extends StatelessWidget {
             decoration: BoxDecoration(
               color: backgroundColor,
               shape: BoxShape.circle,
-              border: config.isDraggable
-                  ? Border.all(
-                      color: foregroundColor.withValues(alpha: 0.2),
-                      width: 1.5,
-                    )
-                  : Border.all(
-                      color: foregroundColor.withValues(alpha: 0.1),
-                      width: 1.5,
-                    ),
-              boxShadow: [
-                BoxShadow(
-                  color: backgroundColor.withValues(alpha: 0.3),
-                  blurRadius: config.isDraggable ? 10 : 8,
-                  spreadRadius: config.isDraggable ? 3 : 2,
-                ),
-              ],
+              border: Border.all(
+                color: foregroundColor.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+              // Clean design - no special styling for draggable vs non-draggable
             ),
             child: Center(
               child: _buildContent(foregroundColor),
