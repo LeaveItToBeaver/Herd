@@ -3,17 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
 class FloatingButtonsColumn extends ConsumerWidget {
   final bool showProfileBtn;
   final bool showSearchBtn;
   final bool showNotificationsBtn;
+  final bool showChatToggle;
 
   const FloatingButtonsColumn({
     super.key,
     required this.showProfileBtn,
     required this.showSearchBtn,
     required this.showNotificationsBtn,
+    this.showChatToggle = false,
   });
 
   @override
@@ -22,6 +25,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
     final currentFeed = ref.watch(currentFeedProvider);
     final notifications =
         ref.watch(notificationStreamProvider(ref.read(authProvider)!.uid));
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
     final bool bothButtonsVisible = showProfileBtn && showSearchBtn;
 
@@ -95,18 +99,44 @@ class FloatingButtonsColumn extends ConsumerWidget {
 
         // Search button
         if (showSearchBtn)
+          Padding(
+            padding: EdgeInsets.only(bottom: showChatToggle ? 8.0 : 0.0),
+            child: FloatingActionButton(
+              heroTag: "floatingSearchBtn",
+              backgroundColor: Colors.black,
+              elevation: 0,
+              mini: false,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.0),
+              ),
+              child: const Icon(Icons.search, color: Colors.white),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.pushNamed('search');
+              },
+            ),
+          ),
+
+        // Chat Toggle button
+        if (showChatToggle)
           FloatingActionButton(
-            heroTag: "floatingSearchBtn",
+            heroTag: "floatingChatToggleBtn",
             backgroundColor: Colors.black,
             elevation: 0,
             mini: false,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30.0),
             ),
-            child: const Icon(Icons.search, color: Colors.white),
+            child: Icon(
+              isChatEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
+              color: isChatEnabled
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white,
+            ),
             onPressed: () {
               HapticFeedback.mediumImpact();
-              context.pushNamed('search');
+              ref.read(chatBubblesEnabledProvider.notifier).state =
+                  !isChatEnabled;
             },
           ),
       ],

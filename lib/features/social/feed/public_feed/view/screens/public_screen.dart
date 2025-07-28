@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
 
 class PublicFeedScreen extends ConsumerStatefulWidget {
@@ -69,6 +70,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   @override
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
     return PopScope(
       canPop: false, // Disable swipe to close
@@ -109,9 +111,14 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // Main content with padding for bubbles
-                  Padding(
-                    padding: const EdgeInsets.only(right: 70),
+                  // Main content with animated padding
+                  AnimatedPadding(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    padding: EdgeInsets.only(
+                        right: isChatEnabled
+                            ? 70
+                            : 0), // Animate to 0 when disabled
                     child: publicFeedState.isLoading &&
                             publicFeedState.posts.isEmpty
                         ? _buildLoadingWidget()
@@ -147,22 +154,43 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                               ),
                   ),
 
-                  // Side bubbles overlay
+                  // Side bubbles overlay - only show if chat is enabled
+                  if (isChatEnabled)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom:
+                          0, // Full height - overlay will manage its own layout
+                      child: SafeArea(
+                        top: true,
+                        left: false,
+                        right: false,
+                        bottom:
+                            false, // Don't apply SafeArea to bottom since we're handling it
+                        child: SideBubblesOverlay(
+                          showProfileBtn:
+                              false, // We'll use floating buttons instead
+                          showSearchBtn:
+                              false, // We'll use floating buttons instead
+                          showNotificationsBtn:
+                              false, // We'll use floating buttons instead
+                          showHerdBubbles:
+                              false, // Public feed doesn't show herd bubbles
+                        ),
+                      ),
+                    ),
+
+                  // Floating Buttons - always visible in bottom right
                   Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
+                    right: 8,
+                    bottom: 20,
                     child: SafeArea(
-                      top: true,
-                      left: false,
-                      right: false,
-                      bottom: true,
-                      child: SideBubblesOverlay(
+                      top: false,
+                      child: FloatingButtonsColumn(
                         showProfileBtn: true,
                         showSearchBtn: true,
-                        showNotificationsBtn: true,
-                        showHerdBubbles:
-                            false, // Public feed doesn't show herd bubbles
+                        showNotificationsBtn: false, // Removed as requested
+                        showChatToggle: true, // Add chat toggle
                       ),
                     ),
                   ),
