@@ -787,8 +787,8 @@ class _TabScaffold extends ConsumerWidget {
       body: GlobalOverlayManager(
         showBottomNav: true,
         showSideBubbles: false,
-        showProfileBtn: true,
-        showSearchBtn: true,
+        showProfileBtn: false,
+        showSearchBtn: false,
         showNotificationsBtn: false,
         currentFeedType: feedType,
         child: child,
