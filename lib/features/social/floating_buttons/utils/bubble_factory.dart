@@ -79,27 +79,27 @@ class BubbleFactory {
     );
   }
 
-  // static BubbleConfigState feedToggleBubble({
-  //   required bool isAltFeed,
-  //   required VoidCallback onToggle,
-  //   Color? backgroundColor,
-  //   Color? foregroundColor,
-  //   int order = 100,
-  //   EdgeInsets? padding,
-  // }) {
-  //   return BubbleConfigState(
-  //     id: 'feedToggle',
-  //     type: BubbleType.custom,
-  //     contentType: BubbleContentType.icon,
-  //     icon: isAltFeed ? Icons.public : Icons.groups_2,
-  //     onTap: onToggle,
-  //     order: order,
-  //     isLarge: true,
-  //     backgroundColor: backgroundColor,
-  //     foregroundColor: foregroundColor,
-  //     padding: padding ?? const EdgeInsets.all(4),
-  //   );
-  // }
+  static BubbleConfigState chatToggleBubble({
+    required bool isChatEnabled,
+    required VoidCallback onToggle,
+    Color? backgroundColor,
+    Color? foregroundColor,
+    int order = 100,
+    EdgeInsets? padding,
+  }) {
+    return BubbleConfigState(
+      id: 'chatToggle',
+      type: BubbleType.custom,
+      contentType: BubbleContentType.icon,
+      icon: isChatEnabled ? Icons.chat_bubble : Icons.chat_bubble_outline,
+      onTap: onToggle,
+      order: order,
+      isLarge: true,
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      padding: padding ?? const EdgeInsets.all(4),
+    );
+  }
 
   // Custom bubbles (order 200-499)
   static BubbleConfigState herdBubble({

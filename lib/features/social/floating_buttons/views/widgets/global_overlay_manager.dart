@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart' hide SideBubblesOverlay;
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
@@ -37,6 +38,7 @@ class GlobalOverlayManager extends ConsumerWidget {
     final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
     final chatTriggeredByBubble = ref.watch(chatTriggeredByBubbleProvider);
     final explosionReveal = ref.watch(explosionRevealProvider);
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
@@ -49,8 +51,8 @@ class GlobalOverlayManager extends ConsumerWidget {
           children: [
             child,
 
-            // Side Bubbles - only shown if explicitly enabled
-            if (showSideBubbles)
+            // Side Bubbles - only shown if explicitly enabled and chat bubbles are enabled
+            if (showSideBubbles && isChatEnabled)
               Positioned(
                 right: 0,
                 top: 0,
