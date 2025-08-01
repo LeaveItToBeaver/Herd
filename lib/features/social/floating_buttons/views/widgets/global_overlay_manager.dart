@@ -5,6 +5,7 @@ import 'package:herdapp/core/barrels/widgets.dart' hide SideBubblesOverlay;
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
@@ -65,7 +66,19 @@ class GlobalOverlayManager extends ConsumerWidget {
                 ),
               ),
 
-            // Chat Overlay - takes up left side of screen when triggered
+            // Bottom Navigation
+            if (showBottomNav)
+              Positioned(
+                left: 10,
+                right: 80,
+                bottom: 20,
+                child: SafeArea(
+                  top: false,
+                  child: BottomNavOverlay(currentFeedType: currentFeedType),
+                ),
+              ),
+
+            // Chat Overlay - positioned above bottom nav
             if (isChatOverlayOpen && chatTriggeredByBubble != null)
               Positioned(
                 left: 0,
@@ -76,7 +89,7 @@ class GlobalOverlayManager extends ConsumerWidget {
                     ? _ChatOverlayWithReveal(
                         explosionReveal: explosionReveal,
                         backgroundColor: backgroundColor,
-                        child: _ChatOverlayPlaceholder(
+                        child: ChatOverlayWidget(
                           bubbleId: chatTriggeredByBubble,
                           onClose: () {
                             // Try animation first, fallback to direct close
@@ -100,7 +113,7 @@ class GlobalOverlayManager extends ConsumerWidget {
                           },
                         ),
                       )
-                    : _ChatOverlayPlaceholder(
+                    : ChatOverlayWidget(
                         bubbleId: chatTriggeredByBubble,
                         onClose: () {
                           // Try animation first, fallback to direct close
@@ -125,18 +138,6 @@ class GlobalOverlayManager extends ConsumerWidget {
                       ),
               ),
 
-            // Bottom Navigation
-            if (showBottomNav)
-              Positioned(
-                left: 10,
-                right: 80,
-                bottom: 20,
-                child: SafeArea(
-                  top: false,
-                  child: BottomNavOverlay(currentFeedType: currentFeedType),
-                ),
-              ),
-
             // Floating Buttons - when side bubbles are disabled
             if (!showSideBubbles && showAnyButtons)
               Positioned(
@@ -148,114 +149,12 @@ class GlobalOverlayManager extends ConsumerWidget {
                     showProfileBtn: showProfileBtn,
                     showSearchBtn: showSearchBtn,
                     showNotificationsBtn: showNotificationsBtn,
+                    showChatToggle: isChatEnabled,
                   ),
                 ),
               ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// Placeholder chat overlay widget - will be replaced with actual chat implementation
-class _ChatOverlayPlaceholder extends StatelessWidget {
-  final String bubbleId;
-  final VoidCallback onClose;
-
-  const _ChatOverlayPlaceholder({
-    required this.bubbleId,
-    required this.onClose,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.surface,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Chat - $bubbleId',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: onClose,
-                ),
-              ],
-            ),
-          ),
-
-          // Chat content placeholder
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 64,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Chat Window Placeholder',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Triggered by bubble: $bubbleId',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.color
-                              ?.withValues(alpha: 0.6),
-                        ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: onClose,
-                    child: const Text('Close Chat'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
