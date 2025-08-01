@@ -12,3 +12,6 @@ export 'enums/call_status.dart';
 export 'enums/call_type.dart';
 export 'enums/status_type.dart';
 export 'enums/status_privacy.dart';
+
+// Repositories
+export 'repositories/chat_repository.dart';

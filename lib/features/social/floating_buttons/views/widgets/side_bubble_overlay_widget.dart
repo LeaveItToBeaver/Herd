@@ -619,43 +619,68 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                       Positioned(
                         right: 0,
                         top: 0,
-                        bottom: 0,
+                        bottom: 185,
                         width: 70,
                         child: Column(
                           children: [
                             Expanded(
-                              child: ListView.builder(
-                                reverse: true,
-                                controller: _scrollController,
-                                padding: const EdgeInsets.only(bottom: 200),
-                                itemCount: bubbleConfigs.length,
-                                itemBuilder: (context, index) {
-                                  final config = bubbleConfigs[index];
-                                  final isBeingDragged =
-                                      _dragState?.bubbleId == config.id;
-
-                                  final bubble = DraggableBubble(
-                                    key: ValueKey(config.id),
-                                    config: config,
-                                    appTheme: appTheme,
-                                    globalKey: _bubbleKeys.putIfAbsent(
-                                        config.id, () => GlobalKey()),
-                                    onDragStart: (globalPos) => _startDrag(
-                                        config.id, globalPos, constraints),
-                                    onDragUpdate: _updateDrag,
-                                    onDragEnd: _endDrag,
-                                    isBeingDragged: isBeingDragged,
-                                  );
-
-                                  if (index == 0) {
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 20.0),
-                                      child: bubble,
-                                    );
-                                  }
-                                  return bubble;
+                              child: ShaderMask(
+                                shaderCallback: (Rect bounds) {
+                                  return LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: const [
+                                      Colors.white,
+                                      Colors.white,
+                                      Colors.white,
+                                      Colors.white,
+                                      Colors.white,
+                                      Colors.transparent,
+                                    ],
+                                    stops: const [
+                                      0.0,
+                                      0.80,
+                                      0.85,
+                                      0.88,
+                                      0.90,
+                                      1.0
+                                    ], // Sharp wall effect: solid until 75%, then razor-sharp fade
+                                  ).createShader(bounds);
                                 },
+                                blendMode: BlendMode.dstIn,
+                                child: ListView.builder(
+                                  reverse: true,
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.only(bottom: 15),
+                                  itemCount: bubbleConfigs.length,
+                                  itemBuilder: (context, index) {
+                                    final config = bubbleConfigs[index];
+                                    final isBeingDragged =
+                                        _dragState?.bubbleId == config.id;
+
+                                    final bubble = DraggableBubble(
+                                      key: ValueKey(config.id),
+                                      config: config,
+                                      appTheme: appTheme,
+                                      globalKey: _bubbleKeys.putIfAbsent(
+                                          config.id, () => GlobalKey()),
+                                      onDragStart: (globalPos) => _startDrag(
+                                          config.id, globalPos, constraints),
+                                      onDragUpdate: _updateDrag,
+                                      onDragEnd: _endDrag,
+                                      isBeingDragged: isBeingDragged,
+                                    );
+
+                                    if (index == 0) {
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 20.0),
+                                        child: bubble,
+                                      );
+                                    }
+                                    return bubble;
+                                  },
+                                ),
                               ),
                             ),
                           ],
