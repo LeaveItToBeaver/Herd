@@ -98,20 +98,19 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         queryParameters: {'isAlt': widget.post.isAlt.toString()},
       ),
       child: Container(
-        margin: EdgeInsets.fromLTRB(
-            widget.isCompact ? 4 : 8, 8, widget.isCompact ? 4 : 8, 0),
+        margin: EdgeInsets.fromLTRB(8, 8, 1, 0),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(
-                alpha: 0.3,
-              ),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          // boxShadow: [
+          //   BoxShadow(
+          //     color: theme.colorScheme.shadow.withValues(
+          //       alpha: 0.3,
+          //     ),
+          //     blurRadius: 8,
+          //     offset: const Offset(0, 2),
+          //   ),
+          // ],
           border: widget.post.isAlt
               ? Border.all(
                   color: theme.colorScheme.primary.withValues(

@@ -840,7 +840,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
             Theme.of(context).colorScheme.surface,
         foregroundColor:
             appTheme?.getTextColor() ?? Theme.of(context).colorScheme.onSurface,
-        padding: const EdgeInsets.all(4),
+        //padding: const EdgeInsets.all(4),
         order: 10,
       ));
     }
@@ -860,7 +860,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                 Theme.of(context).colorScheme.secondary)
             : (appTheme?.getPrimaryColor() ??
                 Theme.of(context).colorScheme.primary),
-        padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+        //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
         order: 30,
         customOnTap: () {
           HapticFeedback.lightImpact();
@@ -913,7 +913,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
               Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
           foregroundColor: appTheme?.getTextColor() ??
               Theme.of(context).colorScheme.onSurface,
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+          //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           order: 500 + i,
           customOnTap: () {
             HapticFeedback.lightImpact();
@@ -942,7 +942,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
               Theme.of(context).colorScheme.surface,
           foregroundColor: appTheme?.getTextColor() ??
               Theme.of(context).colorScheme.onSurface,
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+          //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           order: chatStartOrder + i,
           customOnTap: () {
             HapticFeedback.lightImpact();
