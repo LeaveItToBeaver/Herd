@@ -44,6 +44,9 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   DragState? _dragState;
   final Map<String, GlobalKey> _bubbleKeys = {};
 
+  // Store the original drag state when chat opens to prevent loss during rebuilds
+  DragState? _preservedDragState;
+
   double _overlayWidth = 70.0;
 
   AnimationController? _snapBackController;
@@ -298,6 +301,9 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
   void _animateToChat() {
     if (_dragState == null) return;
+
+    // Preserve the drag state to prevent loss during rebuilds
+    _preservedDragState = _dragState;
 
     ref.read(chatOverlayOpenProvider.notifier).state = true;
     ref.read(chatTriggeredByBubbleProvider.notifier).state =
@@ -568,7 +574,16 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   }
 
   void _animateFromChat() {
+    // Restore preserved drag state if we don't have current drag state
+    if (_dragState == null && _preservedDragState != null) {
+      setState(() {
+        _dragState = _preservedDragState;
+        _preservedDragState = null;
+      });
+    }
+
     if (_dragState == null) {
+      // No drag state to animate from, just close directly
       ref.read(chatOverlayOpenProvider.notifier).state = false;
       ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
       ref.read(explosionRevealProvider.notifier).state = null;
@@ -651,42 +666,45 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                                   ).createShader(bounds);
                                 },
                                 blendMode: BlendMode.dstIn,
-                                child: ListView.builder(
-                                  reverse: true,
-                                  controller:
-                                      _scrollController, // Always use controller for gesture detection
-                                  physics: isChatOverlayOpen
-                                      ? const NeverScrollableScrollPhysics() // Prevent actual scrolling
-                                      : const AlwaysScrollableScrollPhysics(), // Allow normal scrolling
-                                  padding: const EdgeInsets.only(bottom: 15),
-                                  itemCount: bubbleConfigs.length,
-                                  itemBuilder: (context, index) {
-                                    final config = bubbleConfigs[index];
-                                    final isBeingDragged =
-                                        _dragState?.bubbleId == config.id;
+                                child: AbsorbPointer(
+                                  absorbing:
+                                      isChatOverlayOpen, // Completely disable touch when chat is open
+                                  child: ListView.builder(
+                                    reverse: true,
+                                    controller: _scrollController,
+                                    physics: isChatOverlayOpen
+                                        ? const NeverScrollableScrollPhysics()
+                                        : const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.only(bottom: 15),
+                                    itemCount: bubbleConfigs.length,
+                                    itemBuilder: (context, index) {
+                                      final config = bubbleConfigs[index];
+                                      final isBeingDragged =
+                                          _dragState?.bubbleId == config.id;
 
-                                    final bubble = DraggableBubble(
-                                      key: ValueKey(config.id),
-                                      config: config,
-                                      appTheme: appTheme,
-                                      globalKey: _bubbleKeys.putIfAbsent(
-                                          config.id, () => GlobalKey()),
-                                      onDragStart: (globalPos) => _startDrag(
-                                          config.id, globalPos, constraints),
-                                      onDragUpdate: _updateDrag,
-                                      onDragEnd: _endDrag,
-                                      isBeingDragged: isBeingDragged,
-                                    );
-
-                                    if (index == 0) {
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 20.0),
-                                        child: bubble,
+                                      final bubble = DraggableBubble(
+                                        key: ValueKey(config.id),
+                                        config: config,
+                                        appTheme: appTheme,
+                                        globalKey: _bubbleKeys.putIfAbsent(
+                                            config.id, () => GlobalKey()),
+                                        onDragStart: (globalPos) => _startDrag(
+                                            config.id, globalPos, constraints),
+                                        onDragUpdate: _updateDrag,
+                                        onDragEnd: _endDrag,
+                                        isBeingDragged: isBeingDragged,
                                       );
-                                    }
-                                    return bubble;
-                                  },
+
+                                      if (index == 0) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 20.0),
+                                          child: bubble,
+                                        );
+                                      }
+                                      return bubble;
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
