@@ -10,6 +10,7 @@ import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay
 class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
   final bool showBottomNav;
+  final bool showChatToggle;
   final bool showSideBubbles;
   final bool showProfileBtn;
   final bool showSearchBtn;
@@ -21,6 +22,7 @@ class GlobalOverlayManager extends ConsumerWidget {
     super.key,
     required this.child,
     this.showBottomNav = true,
+    this.showChatToggle = true,
     this.showSideBubbles = true,
     this.showProfileBtn = true,
     this.showSearchBtn = true,
@@ -31,17 +33,21 @@ class GlobalOverlayManager extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool showAnyButtons =
-        showProfileBtn || showSearchBtn || showNotificationsBtn;
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
+
+    final bool showAnyButtons = showProfileBtn ||
+        showSearchBtn ||
+        showNotificationsBtn ||
+        showChatToggle; // Chat toggle should be shown regardless of enabled state
 
     // Watch the drag state to determine if we should offset content
     final isDragging = ref.watch(isDraggingProvider);
     final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
     final chatTriggeredByBubble = ref.watch(chatTriggeredByBubbleProvider);
     final explosionReveal = ref.watch(explosionRevealProvider);
-    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    double navBarPositionRight = 10;
 
     return Container(
       color: Theme.of(context).colorScheme.primary,
@@ -66,11 +72,11 @@ class GlobalOverlayManager extends ConsumerWidget {
                 ),
               ),
 
-            // Bottom Navigation
+            // Bottom Navigation - positioned before chat overlay so chat appears on top
             if (showBottomNav)
               Positioned(
                 left: 10,
-                right: 80,
+                right: showAnyButtons ? 70 : 10,
                 bottom: 20,
                 child: SafeArea(
                   top: false,
@@ -78,12 +84,12 @@ class GlobalOverlayManager extends ConsumerWidget {
                 ),
               ),
 
-            // Chat Overlay - positioned above bottom nav
+            // Chat Overlay - positioned after bottom nav to be on top of it
             if (isChatOverlayOpen && chatTriggeredByBubble != null)
               Positioned(
                 left: 0,
                 top: 0,
-                bottom: 0,
+                bottom: 0, // Full height, will render on top of bottom nav
                 right: 70, // Leave space for side bubbles
                 child: explosionReveal != null && explosionReveal.isActive
                     ? _ChatOverlayWithReveal(
@@ -149,7 +155,8 @@ class GlobalOverlayManager extends ConsumerWidget {
                     showProfileBtn: showProfileBtn,
                     showSearchBtn: showSearchBtn,
                     showNotificationsBtn: showNotificationsBtn,
-                    showChatToggle: isChatEnabled,
+                    showChatToggle:
+                        showChatToggle, // Pass the parameter directly
                   ),
                 ),
               ),

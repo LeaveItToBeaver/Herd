@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/views/providers/chat_overlay_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/bubble_factory.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/bubble_explosion_painter.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/controllers/advanced_haptics_controller.dart';
@@ -584,6 +585,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final appTheme = customization?.appTheme;
     final backgroundColor = appTheme?.getBackgroundColor() ??
         Theme.of(context).scaffoldBackgroundColor;
+    final isChatOverlayOpen =
+        ref.watch(chatOverlayOpenProvider); // Watch chat overlay state
 
     // Listen for chat closing animation requests
     final chatClosingBubbleId = ref.watch(chatClosingAnimationProvider);
@@ -650,7 +653,11 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                                 blendMode: BlendMode.dstIn,
                                 child: ListView.builder(
                                   reverse: true,
-                                  controller: _scrollController,
+                                  controller:
+                                      _scrollController, // Always use controller for gesture detection
+                                  physics: isChatOverlayOpen
+                                      ? const NeverScrollableScrollPhysics() // Prevent actual scrolling
+                                      : const AlwaysScrollableScrollPhysics(), // Allow normal scrolling
                                   padding: const EdgeInsets.only(bottom: 15),
                                   itemCount: bubbleConfigs.length,
                                   itemBuilder: (context, index) {
@@ -856,25 +863,25 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     // Chat Toggle Bubble (order 100) - NOT DRAGGABLE
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
-    configs.add(BubbleFactory.chatToggleBubble(
-      isChatEnabled: isChatEnabled,
-      backgroundColor: isChatEnabled
-          ? (appTheme?.getPrimaryColor().withValues(alpha: 0.3) ??
-              Theme.of(context).colorScheme.primaryContainer)
-          : (appTheme?.getSurfaceColor().withValues(alpha: 0.3) ??
-              Theme.of(context).colorScheme.surfaceContainerHighest),
-      foregroundColor: isChatEnabled
-          ? (appTheme?.getPrimaryColor() ??
-              Theme.of(context).colorScheme.primary)
-          : (appTheme?.getTextColor().withValues(alpha: 0.6) ??
-              Theme.of(context).colorScheme.onSurfaceVariant),
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 4), // Extra top padding
-      order: 100,
-      onToggle: () {
-        HapticFeedback.mediumImpact();
-        ref.read(chatBubblesEnabledProvider.notifier).state = !isChatEnabled;
-      },
-    ));
+    // configs.add(BubbleFactory.chatToggleBubble(
+    //   isChatEnabled: isChatEnabled,
+    //   backgroundColor: isChatEnabled
+    //       ? (appTheme?.getPrimaryColor().withValues(alpha: 0.3) ??
+    //           Theme.of(context).colorScheme.primaryContainer)
+    //       : (appTheme?.getSurfaceColor().withValues(alpha: 0.3) ??
+    //           Theme.of(context).colorScheme.surfaceContainerHighest),
+    //   foregroundColor: isChatEnabled
+    //       ? (appTheme?.getPrimaryColor() ??
+    //           Theme.of(context).colorScheme.primary)
+    //       : (appTheme?.getTextColor().withValues(alpha: 0.6) ??
+    //           Theme.of(context).colorScheme.onSurfaceVariant),
+    //   padding: const EdgeInsets.fromLTRB(4, 16, 4, 4), // Extra top padding
+    //   order: 100,
+    //   onToggle: () {
+    //     HapticFeedback.mediumImpact();
+    //     ref.read(chatBubblesEnabledProvider.notifier).state = !isChatEnabled;
+    //   },
+    // ));
 
     // Community/Chat bubbles (order 500+) - DRAGGABLE - only show if chat is enabled
     if (widget.showHerdBubbles && isChatEnabled) {

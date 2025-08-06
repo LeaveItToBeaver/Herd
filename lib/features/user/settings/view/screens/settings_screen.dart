@@ -503,6 +503,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(
           title,
           style: const TextStyle(
+            inherit: true,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -622,7 +623,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               const Text(
                 'Manage users and herds you\'ve blocked',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  inherit: true,
+                ),
               ),
               const SizedBox(height: 16),
               const Text('Blocked Users'),
@@ -635,7 +639,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 16),
               const Text(
                 'When you block someone, they won\'t be able to see your posts or contact you. Blocking a herd will prevent its content from appearing in your feeds.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  inherit: true,
+                ),
               ),
             ],
           ),
@@ -703,7 +711,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             SizedBox(height: 16),
             Text(
               'Data will be provided in a downloadable format. This process may take up to 48 hours.',
-              style: TextStyle(fontStyle: FontStyle.italic),
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                inherit: true,
+              ),
             ),
           ],
         ),

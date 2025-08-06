@@ -127,6 +127,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               showProfileBtn: true,
               showSearchBtn: false,
               showNotificationsBtn: false,
+              showChatToggle: false,
               child: SearchScreen(),
             ),
           ),
@@ -148,6 +149,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showSideBubbles: false,
                 showProfileBtn: true,
                 showSearchBtn: true,
+                showChatToggle: false,
                 child: HerdScreen(herdId: herdId),
               ),
             ),
@@ -221,6 +223,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               showProfileBtn: true,
               showSearchBtn: true,
               showNotificationsBtn: false,
+              showChatToggle: false,
               child: NotificationScreen(),
             ),
           ),
@@ -243,6 +246,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return SettingsScreen();
         },
       ),
+
       GoRoute(
         path: '/customization',
         name: 'customization',
@@ -380,6 +384,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               showProfileBtn: true,
               showSearchBtn: false,
               showNotificationsBtn: false,
+              showChatToggle: false,
               child: CreatePostScreen(
                 isAlt: isAlt,
                 herdId: herdId,
@@ -466,6 +471,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showProfileBtn: false,
                 showSearchBtn: true,
                 showNotificationsBtn: true,
+                showChatToggle: false,
                 child: Stack(children: [
                   PublicProfileScreen(userId: userId),
                 ]),
@@ -509,6 +515,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showProfileBtn: false,
                 showSearchBtn: true,
                 showNotificationsBtn: true,
+                showChatToggle: false,
                 child: Stack(children: [
                   AltProfileScreen(userId: userId),
                 ]),
@@ -550,6 +557,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 showProfileBtn: false,
                 showSearchBtn: false,
                 showNotificationsBtn: false,
+                showChatToggle: false,
                 child: Scaffold(
                   body: SafeArea(
                     child: isPublic
@@ -621,11 +629,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             child: Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: GlobalOverlayManager(
-                showBottomNav: true,
-                showSideBubbles: true,
-                showProfileBtn: true,
-                showSearchBtn: true,
-                showNotificationsBtn: true,
+                showBottomNav: false,
+                showSideBubbles: false,
+                showProfileBtn: false,
+                showSearchBtn: false,
+                showNotificationsBtn: false,
                 child: PostScreen(
                   postId: postId,
                   isAlt: isAlt,
@@ -787,9 +795,12 @@ class _TabScaffold extends ConsumerWidget {
       body: GlobalOverlayManager(
         showBottomNav: true,
         showSideBubbles: false,
-        showProfileBtn: false,
-        showSearchBtn: false,
-        showNotificationsBtn: false,
+        showProfileBtn: true, // Enable profile button
+        showSearchBtn: true, // Enable search button
+        showNotificationsBtn: false, // Enable notifications button
+        showChatToggle: true,
+        showHerdBubbles:
+            feedType == FeedType.alt, // Show herd bubbles on alt feed
         currentFeedType: feedType,
         child: child,
       ),
