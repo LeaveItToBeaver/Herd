@@ -3,19 +3,33 @@ import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_mod
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/state/chat_state.dart';
+import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 
 // Provider for current chat based on bubble ID
 final currentChatProvider =
     FutureProvider.family<ChatModel?, String>((ref, bubbleId) async {
   final repository = ref.watch(chatRepositoryProvider);
-  return await repository.getChatByBubbleId(bubbleId);
+  final currentUser = ref.watch(currentUserProvider);
+
+  if (currentUser == null) {
+    throw Exception('User not authenticated');
+  }
+
+  return await repository.getChatByBubbleId(bubbleId, currentUser.userId);
 });
 
-// Provider for messages in a chat
 final messagesProvider =
     StreamProvider.family<List<MessageModel>, String>((ref, chatId) {
   final repository = ref.watch(chatRepositoryProvider);
-  return repository.getMockMessages(chatId); // Using mock messages for MVP
+  return repository.getChatMessages(chatId);
+});
+
+// Provider for getting an individual message by ID
+final messageProvider =
+    StreamProvider.family<MessageModel?, String>((ref, messageId) {
+  final repository = ref.watch(chatRepositoryProvider);
+  return repository.getMessageById(messageId);
 });
 
 // Provider for chat state

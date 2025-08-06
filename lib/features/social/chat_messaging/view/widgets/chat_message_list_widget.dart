@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/views/widgets/draggable_bubble_widget.dart';
-import 'package:herdapp/features/social/floating_buttons/views/providers/state/bubble_config_state.dart';
-import 'package:herdapp/features/social/floating_buttons/utils/enums/bubble_content_type.dart';
-import 'package:herdapp/features/social/floating_buttons/utils/enums/bubble_type.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/empty_chat_state_widget.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/message_bubble_widget.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/swipable_message_widget.dart';
+import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 
 class ChatMessageListWidget extends ConsumerStatefulWidget {
   final String chatId;
+  final String bubbleId;
+  final VoidCallback? onCloseRequested;
 
   const ChatMessageListWidget({
     super.key,
     required this.chatId,
+    required this.bubbleId,
+    this.onCloseRequested,
   });
 
   @override
@@ -21,11 +25,33 @@ class ChatMessageListWidget extends ConsumerStatefulWidget {
 
 class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
   final ScrollController _scrollController = ScrollController();
+  bool _isAtBottom = true;
+  double _dragOffset = 0.0;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      final isAtBottom = _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 50;
+      if (isAtBottom != _isAtBottom) {
+        setState(() {
+          _isAtBottom = isAtBottom;
+        });
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -38,7 +64,7 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
     }
   }
 
-  String _formatMessageTime(DateTime timestamp) {
+  String formatMessageTime(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
 
@@ -53,241 +79,121 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
     }
   }
 
+  void _handleReply(String messageId, String messageContent) {
+    ref
+        .read(messageInputProvider(widget.chatId).notifier)
+        .setReplyTo(messageId);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(messagesProvider(widget.chatId));
+    final messages = ref.watch(messagesProvider(widget.chatId));
+    final currentUser = ref.watch(currentUserProvider);
+    final currentChat = ref.watch(currentChatProvider(widget.chatId));
 
-    return messagesAsync.when(
-      data: (messages) {
-        if (messages.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No messages yet',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Start the conversation!',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
+    return messages.when(
+      data: (messageList) {
+        if (messageList.isEmpty) {
+          return EmptyChatStateWidget(
+            chatName: currentChat.value?.otherUserName ?? 'this user',
+            onSendFirstMessage: () {
+              // Focus the input field
+              // You might want to pass a callback to focus the input
+            },
           );
         }
 
+        // Sort messages by timestamp (oldest first for correct display order)
+        final sortedMessages = [...messageList]
+          ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
         // Scroll to bottom when new messages arrive
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToBottom();
+          if (_isAtBottom) {
+            _scrollToBottom();
+          }
         });
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: ListView.builder(
-            controller: _scrollController,
-            reverse: false, // Since messages are already sorted newest first
-            itemCount: messages.length,
-            itemBuilder: (context, index) {
-              final message = messages[index];
-              final isCurrentUser = message.senderId == 'current_user';
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            // Handle overscroll for swipe-to-close
+            if (_isAtBottom && notification is OverscrollNotification) {
+              if (notification.overscroll > 0) {
+                setState(() {
+                  _isDragging = true;
+                  _dragOffset += notification.overscroll;
+                });
 
-              // Check if we should show date separator
-              bool showDateSeparator = false;
-              if (index == 0) {
-                showDateSeparator = true;
-              } else {
-                final previousMessage = messages[index - 1];
-                final currentDate = DateTime(
-                  message.timestamp.year,
-                  message.timestamp.month,
-                  message.timestamp.day,
-                );
-                final previousDate = DateTime(
-                  previousMessage.timestamp.year,
-                  previousMessage.timestamp.month,
-                  previousMessage.timestamp.day,
-                );
-                showDateSeparator = !currentDate.isAtSameMomentAs(previousDate);
+                if (_dragOffset > 100 && widget.onCloseRequested != null) {
+                  widget.onCloseRequested!();
+                }
               }
+            } else if (notification is ScrollEndNotification) {
+              setState(() {
+                _isDragging = false;
+                _dragOffset = 0.0;
+              });
+            }
+            return false;
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            transform: Matrix4.translationValues(
+                0, _isDragging ? _dragOffset * 0.3 : 0, 0),
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: sortedMessages.length,
+              itemBuilder: (context, index) {
+                final message = sortedMessages[index];
+                final isCurrentUser = message.senderId == 'current_user';
 
-              return Column(
-                children: [
-                  // Date separator
-                  if (showDateSeparator) ...[
-                    const SizedBox(height: 16),
-                    _DateSeparator(date: message.timestamp),
-                    const SizedBox(height: 16),
+                // Check if we should show date separator
+                bool showDateSeparator = false;
+                if (index == 0) {
+                  showDateSeparator = true;
+                } else {
+                  final previousMessage = sortedMessages[index - 1];
+                  final currentDate = DateTime(
+                    message.timestamp.year,
+                    message.timestamp.month,
+                    message.timestamp.day,
+                  );
+                  final previousDate = DateTime(
+                    previousMessage.timestamp.year,
+                    previousMessage.timestamp.month,
+                    previousMessage.timestamp.day,
+                  );
+                  showDateSeparator =
+                      !currentDate.isAtSameMomentAs(previousDate);
+                }
+
+                return Column(
+                  children: [
+                    // Date separator
+                    if (showDateSeparator) ...[
+                      const SizedBox(height: 16),
+                      _DateSeparator(date: message.timestamp),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Swipeable message
+                    SwipeableMessage(
+                      message: message,
+                      isCurrentUser: isCurrentUser,
+                      onReply: () =>
+                          _handleReply(message.id, message.content ?? ''),
+                      child: MessageBubble(
+                        message: message,
+                        isCurrentUser: isCurrentUser,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
                   ],
-
-                  // Message bubble using draggable bubble component
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: isCurrentUser ? 50.0 : 0.0,
-                      right: isCurrentUser ? 0.0 : 50.0,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: isCurrentUser
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Avatar for other users (left side)
-                        if (!isCurrentUser) ...[
-                          DraggableBubble(
-                            config: BubbleConfigState(
-                              id: 'avatar_${message.senderId}',
-                              type: BubbleType.custom,
-                              contentType: message.senderProfileImage != null
-                                  ? BubbleContentType.profileImage
-                                  : BubbleContentType.icon,
-                              icon: Icons.person,
-                              imageUrl: message.senderProfileImage,
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              size: 32,
-                              padding: EdgeInsets.zero,
-                            ),
-                            globalKey: GlobalKey(),
-                            onDragStart: (_) {},
-                            onDragUpdate: (_) {},
-                            onDragEnd: () {},
-                            isBeingDragged: false,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-
-                        // Message content
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: isCurrentUser
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              // Sender name (only for other users)
-                              if (!isCurrentUser && message.senderName != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: Text(
-                                    message.senderName!,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                  ),
-                                ),
-
-                              // Message bubble
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isCurrentUser
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(16),
-                                    topRight: const Radius.circular(16),
-                                    bottomLeft:
-                                        Radius.circular(isCurrentUser ? 16 : 4),
-                                    bottomRight:
-                                        Radius.circular(isCurrentUser ? 4 : 16),
-                                  ),
-                                ),
-                                child: Text(
-                                  message.content ?? '',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        color: isCurrentUser
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                      ),
-                                ),
-                              ),
-
-                              // Timestamp
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  _formatMessageTime(message.timestamp),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                        fontSize: 11,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Avatar for current user (right side)
-                        if (isCurrentUser) ...[
-                          const SizedBox(width: 8),
-                          DraggableBubble(
-                            config: BubbleConfigState(
-                              id: 'avatar_current_user',
-                              type: BubbleType.custom,
-                              contentType: BubbleContentType
-                                  .icon, // TODO: Use current user's profile image
-                              icon: Icons.person,
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.primary,
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.onPrimary,
-                              size: 32,
-                              padding: EdgeInsets.zero,
-                            ),
-                            globalKey: GlobalKey(),
-                            onDragStart: (_) {},
-                            onDragUpdate: (_) {},
-                            onDragEnd: () {},
-                            isBeingDragged: false,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
         );
       },
@@ -317,7 +223,7 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                ref.invalidate(messagesProvider(widget.chatId));
+                ref.invalidate(messageProvider(widget.chatId));
               },
               child: const Text('Retry'),
             ),

@@ -22,6 +22,7 @@ class ChatHeaderWidget extends ConsumerWidget {
         color: Theme.of(context).colorScheme.primary,
         borderRadius: const BorderRadius.only(
           topRight: Radius.circular(16),
+          topLeft: Radius.circular(16),
         ),
       ),
       child: Row(

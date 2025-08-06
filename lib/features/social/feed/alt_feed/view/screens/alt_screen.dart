@@ -209,9 +209,9 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                             false, // Don't apply SafeArea to bottom since we're handling it
                         child: SideBubblesOverlay(
                           showProfileBtn:
-                              false, // Profile already in floating buttons
+                              false, // Profile handled by shell's GlobalOverlayManager
                           showSearchBtn:
-                              false, // Search already in floating buttons
+                              false, // Search handled by shell's GlobalOverlayManager
                           showNotificationsBtn: false, // Not needed here
                           showHerdBubbles:
                               true, // Show herd bubbles for alt feed
@@ -219,20 +219,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                       ),
                     ),
 
-                  // Floating Buttons - always visible in bottom right
-                  Positioned(
-                    right: 8,
-                    bottom: 20,
-                    child: SafeArea(
-                      top: false,
-                      child: FloatingButtonsColumn(
-                        showProfileBtn: true,
-                        showSearchBtn: true,
-                        showNotificationsBtn: false, // Removed as requested
-                        showChatToggle: true, // Add chat toggle
-                      ),
-                    ),
-                  ),
+                  // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
+                  // This prevents double-rendering of buttons
                 ],
               ),
             ),

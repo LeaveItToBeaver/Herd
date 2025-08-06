@@ -169,31 +169,19 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                             false, // Don't apply SafeArea to bottom since we're handling it
                         child: SideBubblesOverlay(
                           showProfileBtn:
-                              false, // We'll use floating buttons instead
+                              false, // We'll use floating buttons from shell instead
                           showSearchBtn:
-                              false, // We'll use floating buttons instead
+                              false, // We'll use floating buttons from shell instead
                           showNotificationsBtn:
-                              false, // We'll use floating buttons instead
+                              false, // We'll use floating buttons from shell instead
                           showHerdBubbles:
                               false, // Public feed doesn't show herd bubbles
                         ),
                       ),
                     ),
 
-                  // Floating Buttons - always visible in bottom right
-                  Positioned(
-                    right: 8,
-                    bottom: 20,
-                    child: SafeArea(
-                      top: false,
-                      child: FloatingButtonsColumn(
-                        showProfileBtn: true,
-                        showSearchBtn: true,
-                        showNotificationsBtn: false, // Removed as requested
-                        showChatToggle: true, // Add chat toggle
-                      ),
-                    ),
-                  ),
+                  // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
+                  // This prevents double-rendering of buttons
                 ],
               ),
             ),

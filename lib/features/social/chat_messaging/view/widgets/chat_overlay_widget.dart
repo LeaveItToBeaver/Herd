@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_header_widget.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_message_list_widget.dart';
@@ -25,11 +26,11 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Track keyboard visibility
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final newKeyboardVisible = bottomInset > 0;
-    
+
     if (newKeyboardVisible != _isKeyboardVisible) {
       setState(() {
         _isKeyboardVisible = newKeyboardVisible;
@@ -43,6 +44,13 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final statusBarHeight = MediaQuery.of(context).padding.top;
     final bottomNavHeight = 94.0; // Bottom nav height + padding
+
+    // Get the draggable painter color from customization
+    // The trail color matches bubbleConfig.backgroundColor, which is typically the surface color
+    final customization = ref.watch(uiCustomizationProvider).value;
+    final appTheme = customization?.appTheme;
+    final painterColor =
+        appTheme?.getSurfaceColor() ?? Theme.of(context).colorScheme.surface;
 
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -62,16 +70,10 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
             bottomRight: Radius.circular(16),
           ),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-            width: 1,
+            color: painterColor,
+            width: 2.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(2, 0),
-            ),
-          ],
+          // Removed boxShadow to eliminate drop shadow
         ),
         child: Column(
           children: [
@@ -81,11 +83,14 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
               height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 4),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Header
             ChatHeaderWidget(
               bubbleId: widget.bubbleId,
@@ -96,7 +101,10 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
             Expanded(
               child: currentChat.when(
                 data: (chat) => chat != null
-                    ? ChatMessageListWidget(chatId: chat.id)
+                    ? ChatMessageListWidget(
+                        chatId: chat.id,
+                        bubbleId: widget.bubbleId,
+                      )
                     : const Center(
                         child: Text('Chat not found'),
                       ),
@@ -135,8 +143,8 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
                   ? AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: EdgeInsets.only(
-                        bottom: keyboardHeight > 0 
-                            ? keyboardHeight 
+                        bottom: keyboardHeight > 0
+                            ? keyboardHeight
                             : bottomNavHeight, // Keep above bottom nav when keyboard is hidden
                       ),
                       child: ChatInputWidget(
