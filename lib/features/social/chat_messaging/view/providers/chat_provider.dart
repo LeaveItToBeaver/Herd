@@ -3,6 +3,7 @@ import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_mod
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/state/chat_state.dart';
+import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 
@@ -123,12 +124,28 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     try {
       final repository = _ref.read(chatRepositoryProvider);
 
-      // In a real app, you'd get the current user from auth provider
+      // Get current authenticated user
+      final authUser = _ref.read(authProvider);
+      final currentUser = _ref.read(currentUserProvider);
+
+      if (authUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      if (currentUser == null) {
+        throw Exception('User profile not found');
+      }
+
+      // Send message with complete user data
       await repository.sendMessage(
         chatId: _chatId,
-        senderId: 'current_user',
+        senderId: authUser.uid, // Use actual authenticated user ID
         content: content,
-        senderName: 'You',
+        senderName: '${currentUser.firstName} ${currentUser.lastName}'.trim(),
+        replyToMessageId: state.replyToMessageId,
+        // Additional message data could include:
+        // type: MessageType.text, // Default type
+        // mediaData: null, // For future media messages
       );
 
       state = state.copyWith(
@@ -146,5 +163,70 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
 
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  /// Toggle a reaction on a message
+  Future<void> toggleReaction({
+    required String messageId,
+    required String emoji,
+  }) async {
+    try {
+      final repository = _ref.read(chatRepositoryProvider);
+      final authUser = _ref.read(authProvider);
+
+      if (authUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      await repository.toggleMessageReaction(
+        messageId: messageId,
+        userId: authUser.uid,
+        emoji: emoji,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
+  }
+
+  /// Edit a message
+  Future<void> editMessage({
+    required String messageId,
+    required String newContent,
+  }) async {
+    try {
+      final repository = _ref.read(chatRepositoryProvider);
+      final authUser = _ref.read(authProvider);
+
+      if (authUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      await repository.editMessage(
+        messageId: messageId,
+        newContent: newContent,
+        userId: authUser.uid,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
+  }
+
+  /// Delete a message
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      final repository = _ref.read(chatRepositoryProvider);
+      final authUser = _ref.read(authProvider);
+
+      if (authUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      await repository.deleteMessage(
+        messageId: messageId,
+        userId: authUser.uid,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
   }
 }

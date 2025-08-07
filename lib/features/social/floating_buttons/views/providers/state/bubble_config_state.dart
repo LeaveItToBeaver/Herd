@@ -57,14 +57,18 @@ abstract class BubbleConfigState with _$BubbleConfigState {
     if (nextBubble == null) return false;
 
     // Add spacing between different bubble groups
-    if (order < 100 && nextBubble.order >= 100)
+    if (order < 100 && nextBubble.order >= 100) {
       return true; // After system bubbles
-    if (order < 200 && nextBubble.order >= 200)
+    }
+    if (order < 200 && nextBubble.order >= 200) {
       return true; // After feed toggle
-    if (order < 500 && nextBubble.order >= 500)
+    }
+    if (order < 500 && nextBubble.order >= 500) {
       return true; // After custom bubbles
-    if (order < 1000 && nextBubble.order >= 1000)
+    }
+    if (order < 1000 && nextBubble.order >= 1000) {
       return true; // After chat bubbles
+    }
 
     return false;
   }

@@ -62,7 +62,8 @@ class ChatRevealOverlay extends CustomPainter {
 
     canvas.drawPath(maskPath, paint);
 
-    print("🎨 Drew mask path with ${revealPath.getBounds()} reveal bounds");
+    debugPrint(
+        "🎨 Drew mask path with ${revealPath.getBounds()} reveal bounds");
 
     // Add subtle glow around the reveal edges
     if (animationProgress > 0.3) {

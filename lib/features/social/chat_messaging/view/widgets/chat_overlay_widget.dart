@@ -143,9 +143,8 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
                   ? AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: EdgeInsets.only(
-                        bottom: keyboardHeight > 0
-                            ? keyboardHeight
-                            : bottomNavHeight, // Keep above bottom nav when keyboard is hidden
+                        bottom:
+                            keyboardHeight, // Keep above bottom nav when keyboard is hidden
                       ),
                       child: ChatInputWidget(
                         chatId: chat.id,

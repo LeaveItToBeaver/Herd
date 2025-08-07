@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/core/barrels/widgets.dart' hide SideBubblesOverlay;
+import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
