@@ -75,8 +75,18 @@ export 'package:herdapp/features/social/mentions/view/widgets/mentions_badge_wid
 //Feed Widgets
 export 'package:herdapp/features/social/feed/view/widgets/feed_sort_widget.dart';
 
+//Chat Messaging Widgets
+export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_header_widget.dart';
+export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_input_widget.dart';
+export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_message_list_widget.dart';
+export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
+export 'package:herdapp/features/social/chat_messaging/view/widgets/empty_chat_state_widget.dart';
+export 'package:herdapp/features/social/chat_messaging/view/widgets/message_bubble_widget.dart';
+export 'package:herdapp/features/social/chat_messaging/view/widgets/swipable_message_widget.dart';
+
 //Floating Buttons and Navigation Widgets
 export 'package:herdapp/features/social/floating_buttons/views/widgets/bottom_nav_overlay_widget.dart';
+export 'package:herdapp/features/social/floating_buttons/views/widgets/draggable_bubble_widget.dart';
 export 'package:herdapp/features/social/floating_buttons/views/widgets/floating_buttons_column_widget.dart';
 export 'package:herdapp/features/social/floating_buttons/views/widgets/global_overlay_manager.dart';
 export 'package:herdapp/features/social/floating_buttons/views/widgets/side_bubble_overlay_widget.dart';

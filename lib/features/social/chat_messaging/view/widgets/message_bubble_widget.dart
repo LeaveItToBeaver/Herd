@@ -53,7 +53,8 @@ class MessageBubble extends StatelessWidget {
                     : BubbleContentType.icon,
                 icon: Icons.person,
                 imageUrl: message.senderProfileImage,
-                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
                 foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 32,
                 padding: EdgeInsets.zero,
@@ -83,7 +84,7 @@ class MessageBubble extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isCurrentUser
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceVariant,
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(20),
                       topRight: const Radius.circular(20),
@@ -110,7 +111,7 @@ class MessageBubble extends StatelessWidget {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurfaceVariant
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                           fontSize: 11,
                         ),
                   ),

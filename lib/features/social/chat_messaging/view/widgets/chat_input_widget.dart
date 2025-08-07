@@ -122,7 +122,7 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
 
             // Input area
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -172,6 +172,13 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
                               controller: _textController,
                               focusNode: _focusNode,
                               decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 hintText: inputState.replyToMessageId != null
                                     ? 'Reply...'
                                     : 'Message...',
@@ -180,12 +187,6 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
                                       .colorScheme
                                       .onSurfaceVariant
                                       .withValues(alpha: 0.6),
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.only(
-                                  top: 12,
-                                  bottom: 12,
-                                  right: 12,
                                 ),
                               ),
                               style: Theme.of(context).textTheme.bodyMedium,
@@ -223,8 +224,6 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
                       ),
                     ),
                   ),
-
-                  const SizedBox(width: 8),
 
                   // Send/Voice button
                   AnimatedContainer(

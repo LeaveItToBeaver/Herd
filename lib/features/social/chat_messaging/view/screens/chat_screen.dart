@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 
 class ChatScreen extends ConsumerWidget {
   final String? chatId;

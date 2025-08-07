@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/chat_overlay_provider.dart';
@@ -17,7 +19,6 @@ import 'package:herdapp/features/social/floating_buttons/utils/enums/bubble_cont
 import 'package:herdapp/features/social/floating_buttons/utils/super_stretchy_painter.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/bubble_config_state.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/drag_state.dart';
-import 'package:herdapp/features/social/floating_buttons/views/widgets/draggable_bubble_widget.dart';
 
 class SideBubblesOverlay extends ConsumerStatefulWidget {
   final bool showProfileBtn;
@@ -87,17 +88,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     ));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
-        final newState = Map<String, VoidCallback>.from(state);
-        for (int i = 0; i < 10; i++) {
-          newState['chat_$i'] = _animateFromChat;
-        }
-        // Register for herd bubbles too if needed
-        for (int i = 0; i < 5; i++) {
-          newState['herd_$i'] = _animateFromChat;
-        }
-        return newState;
-      });
+      _updateAnimationCallbacks();
     });
   }
 
@@ -114,7 +105,38 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         } else {
           _chatVisibilityController?.reverse();
         }
+
+        // Update animation callbacks whenever dependencies change
+        _updateAnimationCallbacks();
       }
+    });
+  }
+
+  void _updateAnimationCallbacks() {
+    ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
+      final newState = Map<String, VoidCallback>.from(state);
+
+      // Register callbacks for actual chat bubble IDs based on active chats
+      final activeChats = ref.read(activeChatBubblesProvider);
+      debugPrint(
+          'Registering animation callbacks for ${activeChats.length} active chats');
+      for (final chat in activeChats) {
+        debugPrint('Registering callback for chat ID: ${chat.id}');
+        newState[chat.id] = _animateFromChat;
+      }
+
+      // Also register for herd bubbles with their actual IDs
+      for (int i = 0; i < 5; i++) {
+        newState['herd_$i'] = _animateFromChat;
+      }
+
+      // Keep legacy chat_ format for backward compatibility
+      for (int i = 0; i < 10; i++) {
+        newState['chat_$i'] = _animateFromChat;
+      }
+
+      debugPrint('Total animation callbacks registered: ${newState.length}');
+      return newState;
     });
   }
 
@@ -603,15 +625,34 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final isChatOverlayOpen =
         ref.watch(chatOverlayOpenProvider); // Watch chat overlay state
 
+    // Watch active chats and update animation callbacks when they change
+    final activeChats = ref.watch(activeChatBubblesProvider);
+    ref.listen(activeChatBubblesProvider, (previous, next) {
+      if (previous != next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _updateAnimationCallbacks();
+          }
+        });
+      }
+    });
+
     // Listen for chat closing animation requests
     final chatClosingBubbleId = ref.watch(chatClosingAnimationProvider);
     if (chatClosingBubbleId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        debugPrint(
+            'Chat closing animation requested for bubble ID: $chatClosingBubbleId');
         ref.read(chatClosingAnimationProvider.notifier).state = null;
         final callbacks = ref.read(bubbleAnimationCallbackProvider);
         final callback = callbacks[chatClosingBubbleId];
         if (callback != null) {
+          debugPrint(
+              'Found callback for bubble ID: $chatClosingBubbleId, executing...');
           callback();
+        } else {
+          debugPrint('No callback found for bubble ID: $chatClosingBubbleId');
+          debugPrint('Available callback IDs: ${callbacks.keys.toList()}');
         }
       });
     }
@@ -932,29 +973,45 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     // Chat bubbles for both feeds - only show if chat is enabled
     if (isChatEnabled) {
+      final activeChats = ref.watch(activeChatBubblesProvider);
+
       final chatStartOrder = widget.showHerdBubbles ? 600 : 500;
-      for (int i = 0; i < 10; i++) {
-        // ALL chat bubbles are draggable
+      for (int i = 0; i < activeChats.length; i++) {
+        final chat = activeChats[i];
+
+        // Debug: Print chat information to help troubleshoot
+        debugPrint(
+            'Creating chat bubble - ID: ${chat.id}, Name: ${chat.otherUserName}, User ID: ${chat.otherUserId}');
+
         configs.add(BubbleFactory.chatBubble(
-          chatId: 'chat_$i',
-          name: 'Chat ${i + 1}',
+          chatId: chat.id,
+          name: chat.otherUserName ?? "Unknown",
+          imageUrl: chat.otherUserProfileImage,
+          lastMessage: chat.lastMessage,
+          unreadCount: chat.unreadCount > 0 ? chat.unreadCount : null,
+          isOnline: false, // You can add online status logic later
           backgroundColor: appTheme?.getSurfaceColor() ??
               Theme.of(context).colorScheme.surface,
           foregroundColor: appTheme?.getTextColor() ??
               Theme.of(context).colorScheme.onSurface,
-          //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           order: chatStartOrder + i,
           customOnTap: () {
             HapticFeedback.lightImpact();
-            // TODO: Navigate to chat
+            // TODO: Open chat directly or handle chat tap
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Chat ${i + 1} tapped')),
+              SnackBar(
+                  content: Text(
+                      'Chat with ${chat.otherUserName ?? "Unknown"} tapped')),
             );
           },
         ).copyWith(
           isDraggable: true, // Make chat bubbles draggable
-          icon: Icons.chat_bubble_outline, // Add chat icon
-          contentType: BubbleContentType.icon, // Show icon instead of text
+          icon: chat.otherUserProfileImage == null
+              ? Icons.chat_bubble_outline
+              : null,
+          contentType: chat.otherUserProfileImage != null
+              ? BubbleContentType.profileImage
+              : BubbleContentType.icon,
         ));
       }
     }

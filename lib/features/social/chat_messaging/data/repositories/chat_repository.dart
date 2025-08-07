@@ -178,11 +178,39 @@ class ChatRepository {
       }
 
       final data = snapshot.data()!;
+
+      // Parse reactions and readReceipts from Firestore format
+      final reactions = <String, String>{};
+      if (data['reactions'] is Map) {
+        final reactionsData = data['reactions'] as Map<String, dynamic>;
+        reactionsData.forEach((key, value) {
+          reactions[key] = value.toString();
+        });
+      }
+
+      final readReceipts = <String, DateTime>{};
+      if (data['readReceipts'] is Map) {
+        final receiptsData = data['readReceipts'] as Map<String, dynamic>;
+        receiptsData.forEach((key, value) {
+          if (value is Timestamp) {
+            readReceipts[key] = value.toDate();
+          }
+        });
+      }
+
       return MessageModel.fromJson({
         'id': snapshot.id,
         ...data,
         'timestamp':
             (data['timestamp'] as Timestamp?)?.toDate().toIso8601String(),
+        'editedAt':
+            (data['editedAt'] as Timestamp?)?.toDate().toIso8601String(),
+        'selfDestructTime': (data['selfDestructTime'] as Timestamp?)
+            ?.toDate()
+            .toIso8601String(),
+        'reactions': reactions,
+        'readReceipts': readReceipts
+            .map((key, value) => MapEntry(key, value.toIso8601String())),
       });
     });
   }
@@ -205,11 +233,39 @@ class ChatRepository {
     return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
+
+        // Parse reactions and readReceipts from Firestore format
+        final reactions = <String, String>{};
+        if (data['reactions'] is Map) {
+          final reactionsData = data['reactions'] as Map<String, dynamic>;
+          reactionsData.forEach((key, value) {
+            reactions[key] = value.toString();
+          });
+        }
+
+        final readReceipts = <String, DateTime>{};
+        if (data['readReceipts'] is Map) {
+          final receiptsData = data['readReceipts'] as Map<String, dynamic>;
+          receiptsData.forEach((key, value) {
+            if (value is Timestamp) {
+              readReceipts[key] = value.toDate();
+            }
+          });
+        }
+
         return MessageModel.fromJson({
           'id': doc.id,
           ...data,
           'timestamp':
               (data['timestamp'] as Timestamp?)?.toDate().toIso8601String(),
+          'editedAt':
+              (data['editedAt'] as Timestamp?)?.toDate().toIso8601String(),
+          'selfDestructTime': (data['selfDestructTime'] as Timestamp?)
+              ?.toDate()
+              .toIso8601String(),
+          'reactions': reactions,
+          'readReceipts': readReceipts
+              .map((key, value) => MapEntry(key, value.toIso8601String())),
         });
       }).toList();
     });
@@ -238,14 +294,42 @@ class ChatRepository {
         'id': messageRef.id,
         'chatId': chatId,
         'senderId': senderId,
-        'senderName': '${sender.firstName} ${sender.lastName}'.trim(),
+        'senderName':
+            senderName ?? '${sender.firstName} ${sender.lastName}'.trim(),
         'senderProfileImage': sender.profileImageURL,
         'content': content,
         'type': type.toString().split('.').last,
         'timestamp': FieldValue.serverTimestamp(),
+        'editedAt': null,
         'isEdited': false,
         'isDeleted': false,
-        'reactions': {},
+        'isPinned': false,
+        'isStarred': false,
+        'isForwarded': false,
+        'isSelfDestructing': false,
+        'selfDestructTime': null,
+        'reactions': <String, dynamic>{},
+        'readReceipts': <String, dynamic>{},
+        // Reply fields
+        'replyToMessageId': replyToMessageId,
+        'quotedMessageId': null,
+        'quotedMessageContent': null,
+        // Media fields (for future use)
+        'mediaUrl': null,
+        'thumbnailUrl': null,
+        'fileName': null,
+        'fileSize': null,
+        // Location fields (for future use)
+        'latitude': null,
+        'longitude': null,
+        'locationName': null,
+        // Contact fields (for future use)
+        'contactName': null,
+        'contactPhone': null,
+        'contactEmail': null,
+        // Forward fields
+        'forwardedFromUserId': null,
+        'forwardedFromChatId': null,
       };
 
       if (replyToMessageId != null) {
@@ -255,10 +339,13 @@ class ChatRepository {
           final replyData = replyDoc.data()!;
           messageData['replyTo'] = {
             'messageId': replyToMessageId,
-            'text': replyData['content'],
+            'content': replyData['content'],
             'senderId': replyData['senderId'],
             'senderName': replyData['senderName'],
+            'type': replyData['type'],
           };
+          messageData['quotedMessageContent'] = replyData['content'];
+          messageData['quotedMessageId'] = replyToMessageId;
         }
       }
 
@@ -313,17 +400,54 @@ class ChatRepository {
 
       await batch.commit();
 
+      // Get quoted message content if replying
+      String? quotedContent;
+      if (replyToMessageId != null) {
+        final replyDoc = await _messages.doc(replyToMessageId).get();
+        quotedContent = replyDoc.data()?['content'];
+      }
+
       // Return the message model for optimistic UI
       return MessageModel(
         id: messageRef.id,
         chatId: chatId,
         senderId: senderId,
-        senderName: '${sender.firstName} ${sender.lastName}'.trim(),
+        senderName:
+            senderName ?? '${sender.firstName} ${sender.lastName}'.trim(),
         senderProfileImage: sender.profileImageURL,
         content: content,
         type: type,
         timestamp: timestamp,
+        editedAt: null,
+        isEdited: false,
+        isDeleted: false,
+        isPinned: false,
+        isStarred: false,
+        isForwarded: false,
+        isSelfDestructing: false,
+        selfDestructTime: null,
         replyToMessageId: replyToMessageId,
+        quotedMessageId: replyToMessageId,
+        quotedMessageContent: quotedContent,
+        // Initialize empty maps for reactions and read receipts
+        reactions: const <String, String>{},
+        readReceipts: const <String, DateTime>{},
+        // Media fields (for future use)
+        mediaUrl: mediaData?['mediaUrl'],
+        thumbnailUrl: mediaData?['thumbnailUrl'],
+        fileName: mediaData?['fileName'],
+        fileSize: mediaData?['fileSize'],
+        // Location fields (for future use)
+        latitude: mediaData?['latitude'],
+        longitude: mediaData?['longitude'],
+        locationName: mediaData?['locationName'],
+        // Contact fields (for future use)
+        contactName: mediaData?['contactName'],
+        contactPhone: mediaData?['contactPhone'],
+        contactEmail: mediaData?['contactEmail'],
+        // Forward fields
+        forwardedFromUserId: null,
+        forwardedFromChatId: null,
       );
     } catch (e) {
       throw Exception('Failed to send message: $e');
@@ -543,6 +667,96 @@ class ChatRepository {
       }
     } catch (e) {
       throw Exception('Failed to get chat by bubble ID: $e');
+    }
+  }
+
+  /// Add or remove a reaction to a message
+  Future<void> toggleMessageReaction({
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) async {
+    try {
+      final messageRef = _messages.doc(messageId);
+      final messageDoc = await messageRef.get();
+
+      if (!messageDoc.exists) {
+        throw Exception('Message not found');
+      }
+
+      final data = messageDoc.data()!;
+      final reactions = Map<String, dynamic>.from(data['reactions'] ?? {});
+
+      // Toggle reaction
+      if (reactions[userId] == emoji) {
+        // Remove reaction if same emoji
+        reactions.remove(userId);
+      } else {
+        // Add or update reaction
+        reactions[userId] = emoji;
+      }
+
+      await messageRef.update({
+        'reactions': reactions,
+      });
+    } catch (e) {
+      throw Exception('Failed to toggle reaction: $e');
+    }
+  }
+
+  /// Edit a message
+  Future<void> editMessage({
+    required String messageId,
+    required String newContent,
+    required String userId,
+  }) async {
+    try {
+      final messageRef = _messages.doc(messageId);
+      final messageDoc = await messageRef.get();
+
+      if (!messageDoc.exists) {
+        throw Exception('Message not found');
+      }
+
+      final data = messageDoc.data()!;
+      if (data['senderId'] != userId) {
+        throw Exception('Only message sender can edit');
+      }
+
+      await messageRef.update({
+        'content': newContent,
+        'isEdited': true,
+        'editedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to edit message: $e');
+    }
+  }
+
+  /// Delete a message
+  Future<void> deleteMessage({
+    required String messageId,
+    required String userId,
+  }) async {
+    try {
+      final messageRef = _messages.doc(messageId);
+      final messageDoc = await messageRef.get();
+
+      if (!messageDoc.exists) {
+        throw Exception('Message not found');
+      }
+
+      final data = messageDoc.data()!;
+      if (data['senderId'] != userId) {
+        throw Exception('Only message sender can delete');
+      }
+
+      await messageRef.update({
+        'isDeleted': true,
+        'content': null, // Clear content for privacy
+      });
+    } catch (e) {
+      throw Exception('Failed to delete message: $e');
     }
   }
 }
