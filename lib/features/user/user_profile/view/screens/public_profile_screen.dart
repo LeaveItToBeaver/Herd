@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
-import 'package:herdapp/features/social/chat_messaging/data/chat_messaging_data.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat_provider.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
@@ -20,7 +20,6 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
     with TickerProviderStateMixin {
-  // <-- Changed from SingleTickerProviderStateMixin
   late TabController _tabController;
   late ScrollController _scrollController;
   final Color _dominantColor = Colors.transparent;
