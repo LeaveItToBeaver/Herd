@@ -101,3 +101,6 @@ export 'package:herdapp/features/ui/customization/data/repositories/ui_customiza
 // Drag State Providers
 export 'package:herdapp/features/social/floating_buttons/views/providers/drag_state_provider.dart';
 export 'package:herdapp/features/social/floating_buttons/views/providers/chat_overlay_provider.dart';
+
+// E2EE Chat Providers
+export 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat_provider.dart';

@@ -629,11 +629,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             child: Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: GlobalOverlayManager(
-                showBottomNav: false,
+                showBottomNav: true,
                 showSideBubbles: false,
                 showProfileBtn: false,
                 showSearchBtn: false,
                 showNotificationsBtn: false,
+                showChatToggle: false,
                 child: PostScreen(
                   postId: postId,
                   isAlt: isAlt,
@@ -790,6 +791,9 @@ class _TabScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Get current feed type to highlight the active tab
     final feedType = ref.watch(currentFeedProvider);
+
+    // Initialize E2EE for authenticated users (non-blocking)
+    ref.watch(e2eeStatusProvider);
 
     return Scaffold(
       body: GlobalOverlayManager(
