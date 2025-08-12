@@ -183,3 +183,4 @@ dart format .
 No right to copy, modify, merge, publish, distribute, sublicense, or sell any part of this codebase without explicit written permission.
 
 > If you need to reference this repo publicly, keep it as **public‑read, no‑license** or switch to **private**. For clarity, consider adding a `LICENSE.txt` with the proprietary terms above and a `NOTICE` naming Jason Beaver as the copyright holder.
+

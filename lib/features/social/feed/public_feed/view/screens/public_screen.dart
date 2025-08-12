@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
 class PublicFeedScreen extends ConsumerStatefulWidget {
   const PublicFeedScreen({super.key});
@@ -68,74 +69,125 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   @override
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Public Feed'),
-        actions: [
-          // Refresh button
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(publicFeedControllerProvider.notifier).refreshFeed();
-            },
-          ),
-          // Optional trending button
-          IconButton(
-            icon: const Icon(Icons.trending_up),
-            onPressed: () => _showTrendingPosts(context, ref),
-          ),
-        ],
-      ),
-      // Main body with sort widget and feed content
-      body: Column(
-        children: [
-          // Sort widget at the top
-          FeedSortWidget(
-            currentSort: publicFeedState.sortType,
-            onSortChanged: (newSortType) {
-              ref
-                  .read(publicFeedControllerProvider.notifier)
-                  .changeSortType(newSortType);
-            },
-            isLoading: publicFeedState.isLoading,
-          ),
-          // Main feed content
-          Expanded(
-            child: publicFeedState.isLoading && publicFeedState.posts.isEmpty
-                ? _buildLoadingWidget()
-                : publicFeedState.error != null
-                    ? _buildErrorWidget(context, publicFeedState.error!, () {
-                        ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .refreshFeed();
-                      })
-                    : PostListWidget(
-                        scrollController: _scrollController,
-                        posts: publicFeedState.posts,
-                        isLoading: publicFeedState.isLoading &&
-                            publicFeedState.posts.isEmpty,
-                        hasError: publicFeedState.error != null,
-                        errorMessage: publicFeedState.error?.toString(),
-                        hasMorePosts: publicFeedState.hasMorePosts,
-                        onRefresh: () => ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .refreshFeed(),
-                        onLoadMore: () => ref
-                            .read(publicFeedControllerProvider.notifier)
-                            .loadMorePosts(),
-                        type: PostListType.feed,
-                        emptyMessage: 'No posts in your public feed yet',
-                        emptyActionLabel: 'Find users to follow',
-                        onEmptyAction: () {
-                          context.pushNamed('search');
-                        },
-                        isRefreshing: publicFeedState.isRefreshing,
+    return PopScope(
+      canPop: false, // Disable swipe to close
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Public Feed'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                ref.read(publicFeedControllerProvider.notifier).refreshFeed();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.trending_up),
+              onPressed: () => _showTrendingPosts(context, ref),
+            ),
+          ],
+          automaticallyImplyLeading: false,
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // Sort widget takes full width - stays above bubbles
+            FeedSortWidget(
+              currentSort: publicFeedState.sortType,
+              onSortChanged: (newSortType) {
+                ref
+                    .read(publicFeedControllerProvider.notifier)
+                    .changeSortType(newSortType);
+              },
+              isLoading: publicFeedState.isLoading,
+            ),
+
+            // Single Expanded widget with Stack
+            Expanded(
+              child: Stack(
+                children: [
+                  // Main content with animated padding
+                  AnimatedPadding(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    padding: EdgeInsets.only(
+                        right: isChatEnabled
+                            ? 70
+                            : 0), // Animate to 0 when disabled
+                    child: publicFeedState.isLoading &&
+                            publicFeedState.posts.isEmpty
+                        ? _buildLoadingWidget()
+                        : publicFeedState.error != null
+                            ? _buildErrorWidget(context, publicFeedState.error!,
+                                () {
+                                ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .refreshFeed();
+                              })
+                            : PostListWidget(
+                                scrollController: _scrollController,
+                                posts: publicFeedState.posts,
+                                isLoading: publicFeedState.isLoading &&
+                                    publicFeedState.posts.isEmpty,
+                                hasError: publicFeedState.error != null,
+                                errorMessage: publicFeedState.error?.toString(),
+                                hasMorePosts: publicFeedState.hasMorePosts,
+                                onRefresh: () => ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .refreshFeed(),
+                                onLoadMore: () => ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .loadMorePosts(),
+                                type: PostListType.feed,
+                                emptyMessage:
+                                    'No posts in your public feed yet',
+                                emptyActionLabel: 'Find users to follow',
+                                onEmptyAction: () {
+                                  context.pushNamed('search');
+                                },
+                                isRefreshing: publicFeedState.isRefreshing,
+                              ),
+                  ),
+
+                  // Side bubbles overlay - only show if chat is enabled
+                  if (isChatEnabled)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom:
+                          0, // Full height - overlay will manage its own layout
+                      child: SafeArea(
+                        top: true,
+                        left: false,
+                        right: false,
+                        bottom:
+                            false, // Don't apply SafeArea to bottom since we're handling it
+                        child: SideBubblesOverlay(
+                          showProfileBtn:
+                              false, // We'll use floating buttons from shell instead
+                          showSearchBtn:
+                              false, // We'll use floating buttons from shell instead
+                          showNotificationsBtn:
+                              false, // We'll use floating buttons from shell instead
+                          showHerdBubbles:
+                              false, // Public feed doesn't show herd bubbles
+                        ),
                       ),
-          ),
-        ],
-      ),
-    );
+                    ),
+
+                  // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
+                  // This prevents double-rendering of buttons
+                ],
+              ),
+            ),
+          ],
+        ),
+      ), // Close Scaffold
+    ); // Close PopScope
   }
 
 // Add a loading widget that's scrollable

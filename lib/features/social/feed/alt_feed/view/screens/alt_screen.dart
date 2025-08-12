@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
@@ -75,106 +76,157 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     final altFeedState = ref.watch(altFeedControllerProvider);
     final showHerdPosts =
         ref.watch(altFeedControllerProvider.notifier).showHerdPosts;
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Alt Feed'),
-        actions: [
-          // Refresh button
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(altFeedControllerProvider.notifier).refreshFeed();
-            },
-          ),
-          // Optional highlighted posts button
-          IconButton(
-            icon: const Icon(Icons.star),
-            onPressed: () => _showHighlightedPosts(context),
-          ),
+    return PopScope(
+      canPop: false, // Disable swipe to close
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Alt Feed'),
+          actions: [
+            // Refresh button
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                ref.read(altFeedControllerProvider.notifier).refreshFeed();
+              },
+            ),
+            // Optional highlighted posts button
+            IconButton(
+              icon: const Icon(Icons.star),
+              onPressed: () => _showHighlightedPosts(context),
+            ),
 
-          // Filter menu
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            onOpened: null,
-            itemBuilder: (context) => [
-              PopupMenuItem<String>(
-                value: 'all',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.check,
-                      color: showHerdPosts
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Show Herd Posts'),
-                  ],
-                ),
-                onTap: () {
-                  final controller =
-                      ref.read(altFeedControllerProvider.notifier);
-                  controller.toggleHerdPostsFilter(!showHerdPosts);
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-      // Main body with sort widget and feed content
-      body: Column(
-        children: [
-          // Sort widget at the top
-          FeedSortWidget(
-            currentSort: altFeedState.sortType,
-            onSortChanged: (newSortType) {
-              ref
-                  .read(altFeedControllerProvider.notifier)
-                  .changeSortType(newSortType);
-            },
-            isLoading: altFeedState.isLoading,
-          ),
-          // Main feed content
-          Expanded(
-            child: altFeedState.isLoading && altFeedState.posts.isEmpty
-                ? _buildLoadingWidget()
-                : altFeedState.error != null
-                    ? _buildErrorWidget(context, altFeedState.error!, () {
-                        ref
-                            .read(altFeedControllerProvider.notifier)
-                            .refreshFeed();
-                      })
-                    : PostListWidget(
-                        scrollController: _scrollController,
-                        posts: altFeedState.posts,
-                        isLoading: altFeedState.isLoading,
-                        hasError: altFeedState.error != null,
-                        errorMessage: altFeedState.error?.toString(),
-                        hasMorePosts: altFeedState.hasMorePosts,
-                        onRefresh: () => ref
-                            .read(altFeedControllerProvider.notifier)
-                            .refreshFeed(),
-                        onLoadMore: () => ref
-                            .read(altFeedControllerProvider.notifier)
-                            .loadMorePosts(),
-                        type: PostListType.feed,
-                        emptyMessage: 'No alt posts yet',
-                        emptyActionLabel: 'Create an alt post',
-                        onEmptyAction: () {
-                          // Navigate to create post screen with isAlt=true context.pushNamed
-                          context.pushNamed(
-                            'create',
-                            queryParameters: {'isAlt': 'true'},
-                          );
-                        },
-                        isRefreshing: altFeedState.isRefreshing,
+            // Filter menu
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.filter_list),
+              onOpened: null,
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'all',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check,
+                        color: showHerdPosts
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                        size: 18,
                       ),
-          ),
-        ],
-      ),
-    );
+                      const SizedBox(width: 8),
+                      const Text('Show Herd Posts'),
+                    ],
+                  ),
+                  onTap: () {
+                    final controller =
+                        ref.read(altFeedControllerProvider.notifier);
+                    controller.toggleHerdPostsFilter(!showHerdPosts);
+                  },
+                ),
+              ],
+            ),
+          ],
+          automaticallyImplyLeading: false,
+        ),
+        // Main body with sort widget and feed content
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // Sort widget takes full width - stays above bubbles
+            FeedSortWidget(
+              currentSort: altFeedState.sortType,
+              onSortChanged: (newSortType) {
+                ref
+                    .read(altFeedControllerProvider.notifier)
+                    .changeSortType(newSortType);
+              },
+              isLoading: altFeedState.isLoading,
+            ),
+
+            // Single Expanded widget with Stack
+            Expanded(
+              child: Stack(
+                children: [
+                  // Main content with animated padding
+                  AnimatedPadding(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    padding: EdgeInsets.only(
+                        right: isChatEnabled
+                            ? 70
+                            : 0), // Animate to 0 when disabled
+                    child: altFeedState.isLoading && altFeedState.posts.isEmpty
+                        ? _buildLoadingWidget()
+                        : altFeedState.error != null
+                            ? _buildErrorWidget(context, altFeedState.error!,
+                                () {
+                                ref
+                                    .read(altFeedControllerProvider.notifier)
+                                    .refreshFeed();
+                              })
+                            : PostListWidget(
+                                scrollController: _scrollController,
+                                posts: altFeedState.posts,
+                                isLoading: altFeedState.isLoading,
+                                hasError: altFeedState.error != null,
+                                errorMessage: altFeedState.error?.toString(),
+                                hasMorePosts: altFeedState.hasMorePosts,
+                                onRefresh: () => ref
+                                    .read(altFeedControllerProvider.notifier)
+                                    .refreshFeed(),
+                                onLoadMore: () => ref
+                                    .read(altFeedControllerProvider.notifier)
+                                    .loadMorePosts(),
+                                type: PostListType.feed,
+                                emptyMessage: 'No alt posts yet',
+                                emptyActionLabel: 'Create an alt post',
+                                onEmptyAction: () {
+                                  // Navigate to create post screen with isAlt=true context.pushNamed
+                                  context.pushNamed(
+                                    'create',
+                                    queryParameters: {'isAlt': 'true'},
+                                  );
+                                },
+                                isRefreshing: altFeedState.isRefreshing,
+                              ),
+                  ),
+
+                  // Side bubbles overlay - only show if chat is enabled
+                  if (isChatEnabled)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom:
+                          0, // Full height - overlay will manage its own layout
+                      child: SafeArea(
+                        top: true,
+                        left: false,
+                        right: false,
+                        bottom:
+                            false, // Don't apply SafeArea to bottom since we're handling it
+                        child: SideBubblesOverlay(
+                          showProfileBtn:
+                              false, // Profile handled by shell's GlobalOverlayManager
+                          showSearchBtn:
+                              false, // Search handled by shell's GlobalOverlayManager
+                          showNotificationsBtn: false, // Not needed here
+                          showHerdBubbles:
+                              true, // Show herd bubbles for alt feed
+                        ),
+                      ),
+                    ),
+
+                  // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
+                  // This prevents double-rendering of buttons
+                ],
+              ),
+            ),
+          ],
+        ),
+      ), // Close Scaffold
+    ); // Close PopScope
   }
 
   Widget _buildLoadingWidget() {

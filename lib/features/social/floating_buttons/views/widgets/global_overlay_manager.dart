@@ -1,41 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
-class GlobalOverlayManager extends StatelessWidget {
+class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
   final bool showBottomNav;
+  final bool showChatToggle;
   final bool showSideBubbles;
   final bool showProfileBtn;
   final bool showSearchBtn;
   final bool showNotificationsBtn;
+  final bool showHerdBubbles;
   final FeedType? currentFeedType;
 
   const GlobalOverlayManager({
     super.key,
     required this.child,
     this.showBottomNav = true,
+    this.showChatToggle = true,
     this.showSideBubbles = true,
     this.showProfileBtn = true,
     this.showSearchBtn = true,
     this.showNotificationsBtn = true,
+    this.showHerdBubbles = false,
     this.currentFeedType,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Determine if we have any buttons to show
-    final bool showAnyButtons =
-        showProfileBtn || showSearchBtn || showNotificationsBtn;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
-    // Simple logic: if any side button is enabled, offset the navbar
-    final double navBarRightPadding = showAnyButtons ? 70 : 0;
+    final bool showAnyButtons = showProfileBtn ||
+        showSearchBtn ||
+        showNotificationsBtn ||
+        showChatToggle; // Chat toggle should be shown regardless of enabled state
 
-    // Content padding for side bubbles only
-    final double contentRightPadding = showSideBubbles ? 70 : 0;
+    // Watch the drag state to determine if we should offset content
+    final isDragging = ref.watch(isDraggingProvider);
+    final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
+    final chatTriggeredByBubble = ref.watch(chatTriggeredByBubbleProvider);
+    final explosionReveal = ref.watch(explosionRevealProvider);
 
-    // Key change: No bottom padding for content - let content extend under the nav bar
-    // We'll stack the navigation on top of content instead
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    double navBarPositionRight = 10;
 
     return Container(
       color: Theme.of(context).colorScheme.primary,
@@ -44,49 +54,176 @@ class GlobalOverlayManager extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Main content takes full height but respects side bubble width
-            Positioned.fill(
-              right: contentRightPadding,
-              child: child,
-            ),
+            child,
 
-            // Side Bubbles - only when enabled
-            if (showSideBubbles)
+            // Side Bubbles - only shown if explicitly enabled and chat bubbles are enabled
+            if (showSideBubbles && isChatEnabled)
               Positioned(
                 right: 0,
                 top: 0,
                 bottom: 0,
-                width: 70,
                 child: SideBubblesOverlay(
                   showProfileBtn: showProfileBtn,
                   showSearchBtn: showSearchBtn,
                   showNotificationsBtn: showNotificationsBtn,
+                  showHerdBubbles: showHerdBubbles,
                 ),
               ),
 
-            // Bottom Navigation Bar - stacked on top of content
+            // Bottom Navigation - positioned before chat overlay so chat appears on top
             if (showBottomNav)
               Positioned(
-                left: 0,
-                right: navBarRightPadding,
-                bottom: 20, // Small margin from bottom edge
-                child: BottomNavOverlay(currentFeedType: currentFeedType),
+                left: 10,
+                right: showAnyButtons ? 70 : 10,
+                bottom: 20,
+                child: SafeArea(
+                  top: false,
+                  child: BottomNavOverlay(currentFeedType: currentFeedType),
+                ),
               ),
 
-            // Floating Buttons - stacked in bottom right
+            // Chat Overlay - positioned after bottom nav to be on top of it
+            if (isChatOverlayOpen && chatTriggeredByBubble != null)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0, // Full height, will render on top of bottom nav
+                right: 70, // Leave space for side bubbles
+                child: explosionReveal != null && explosionReveal.isActive
+                    ? _ChatOverlayWithReveal(
+                        explosionReveal: explosionReveal,
+                        backgroundColor: backgroundColor,
+                        child: ChatOverlayWidget(
+                          bubbleId: chatTriggeredByBubble,
+                          onClose: () {
+                            // Try animation first, fallback to direct close
+                            final callbacks =
+                                ref.read(bubbleAnimationCallbackProvider);
+                            final callback = callbacks[chatTriggeredByBubble];
+
+                            if (callback != null) {
+                              // Trigger reverse animation
+                              ref
+                                  .read(chatClosingAnimationProvider.notifier)
+                                  .state = chatTriggeredByBubble;
+                            } else {
+                              // Fallback: close directly
+                              ref.read(chatOverlayOpenProvider.notifier).state =
+                                  false;
+                              ref
+                                  .read(chatTriggeredByBubbleProvider.notifier)
+                                  .state = null;
+                            }
+                          },
+                        ),
+                      )
+                    : ChatOverlayWidget(
+                        bubbleId: chatTriggeredByBubble,
+                        onClose: () {
+                          // Try animation first, fallback to direct close
+                          final callbacks =
+                              ref.read(bubbleAnimationCallbackProvider);
+                          final callback = callbacks[chatTriggeredByBubble];
+
+                          if (callback != null) {
+                            // Trigger reverse animation
+                            ref
+                                .read(chatClosingAnimationProvider.notifier)
+                                .state = chatTriggeredByBubble;
+                          } else {
+                            // Fallback: close directly
+                            ref.read(chatOverlayOpenProvider.notifier).state =
+                                false;
+                            ref
+                                .read(chatTriggeredByBubbleProvider.notifier)
+                                .state = null;
+                          }
+                        },
+                      ),
+              ),
+
+            // Floating Buttons - when side bubbles are disabled
             if (!showSideBubbles && showAnyButtons)
               Positioned(
                 right: 8,
                 bottom: 20,
-                child: FloatingButtonsColumn(
-                  showProfileBtn: showProfileBtn,
-                  showSearchBtn: showSearchBtn,
-                  showNotificationsBtn: showNotificationsBtn,
+                child: SafeArea(
+                  top: false,
+                  child: FloatingButtonsColumn(
+                    showProfileBtn: showProfileBtn,
+                    showSearchBtn: showSearchBtn,
+                    showNotificationsBtn: showNotificationsBtn,
+                    showChatToggle:
+                        showChatToggle, // Pass the parameter directly
+                  ),
                 ),
               ),
           ],
         ),
       ),
     );
+  }
+}
+
+// Widget that wraps chat overlay with explosion reveal effect
+class _ChatOverlayWithReveal extends StatelessWidget {
+  final ({
+    bool isActive,
+    Offset center,
+    double progress,
+    String bubbleId,
+  }) explosionReveal;
+  final Color backgroundColor;
+  final Widget child;
+
+  const _ChatOverlayWithReveal({
+    required this.explosionReveal,
+    required this.backgroundColor,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Create a circular reveal path
+    final revealRadius = explosionReveal.progress * 500.0; // Max reveal radius
+
+    return ClipPath(
+      clipper: _CircularRevealClipper(
+        center: explosionReveal.center,
+        radius: revealRadius,
+      ),
+      child: child,
+    );
+  }
+}
+
+// Custom clipper for circular reveal effect
+class _CircularRevealClipper extends CustomClipper<Path> {
+  final Offset center;
+  final double radius;
+
+  _CircularRevealClipper({
+    required this.center,
+    required this.radius,
+  });
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+
+    // Create a circular path at the explosion center
+    path.addOval(
+      Rect.fromCircle(
+        center: center,
+        radius: radius,
+      ),
+    );
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant _CircularRevealClipper oldClipper) {
+    return oldClipper.center != center || oldClipper.radius != radius;
   }
 }

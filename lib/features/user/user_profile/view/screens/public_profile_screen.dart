@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat_provider.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -18,7 +20,6 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
     with TickerProviderStateMixin {
-  // <-- Changed from SingleTickerProviderStateMixin
   late TabController _tabController;
   late ScrollController _scrollController;
   final Color _dominantColor = Colors.transparent;
@@ -247,6 +248,35 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                       : 'Follow'),
                                 ),
                               ),
+                            if (!profile.isCurrentUser)
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.message),
+                                  label: const Text('Message'),
+                                  onPressed: () async {
+                                    final chatRepo =
+                                        ref.read(chatRepositoryProvider);
+                                    final currentUserId =
+                                        ref.read(authProvider)?.uid;
+
+                                    if (currentUserId != null) {
+                                      final chat =
+                                          await chatRepo.getOrCreateDirectChat(
+                                              currentUserId: currentUserId,
+                                              otherUserId: profile.user!.id);
+
+                                      // Add the chat bubble to active chats
+                                      if (chat != null) {
+                                        ref
+                                            .read(activeChatBubblesProvider
+                                                .notifier)
+                                            .addChatBubble(chat);
+                                      }
+                                    }
+                                  },
+                                ),
+                              )
                           ],
                         ),
                       ),

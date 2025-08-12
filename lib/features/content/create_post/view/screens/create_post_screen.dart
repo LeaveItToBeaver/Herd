@@ -410,6 +410,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         onChanged: (value) {
                           setState(() {
                             _hasMedia = value;
+                            // Clear selected media when disabling media
+                            if (!value) {
+                              _mediaFiles.clear();
+                              _postMedia = null;
+                              _currentMediaIndex = 0;
+                            }
                           });
                         },
                       ),
@@ -748,24 +754,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                         }
                       : null,
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    setState(() {
-                      _mediaFiles.removeAt(_currentMediaIndex);
-                      if (_mediaFiles.isEmpty) {
-                        _currentMediaIndex = 0;
-                        _postMedia = null;
-                      } else if (_currentMediaIndex >= _mediaFiles.length) {
-                        _currentMediaIndex = _mediaFiles.length - 1;
-                        _postMedia = _mediaFiles[_currentMediaIndex];
-                      } else {
-                        _postMedia = _mediaFiles[_currentMediaIndex];
-                      }
-                    });
-                  },
-                ),
               ],
             ),
           ),
@@ -826,6 +814,41 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
             ),
           ),
+          // Remove button positioned in bottom right
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _mediaFiles.removeAt(_currentMediaIndex);
+                  if (_mediaFiles.isEmpty) {
+                    _currentMediaIndex = 0;
+                    _postMedia = null;
+                    _hasMedia =
+                        false; // Also disable media toggle if no files left
+                  } else if (_currentMediaIndex >= _mediaFiles.length) {
+                    _currentMediaIndex = _mediaFiles.length - 1;
+                    _postMedia = _mediaFiles[_currentMediaIndex];
+                  } else {
+                    _postMedia = _mediaFiles[_currentMediaIndex];
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.8),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
           Icon(
             Icons.play_circle_fill,
             size: 64,
@@ -846,20 +869,70 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             height: double.infinity,
           ),
         ),
-        if (canEdit)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              onPressed: () => _cropImage(currentFile),
-              tooltip: 'Edit Image',
-            ),
+        // Bottom right controls
+        Positioned(
+          bottom: 8,
+          right: 8,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Remove button
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _mediaFiles.removeAt(_currentMediaIndex);
+                    if (_mediaFiles.isEmpty) {
+                      _currentMediaIndex = 0;
+                      _postMedia = null;
+                      _hasMedia =
+                          false; // Also disable media toggle if no files left
+                    } else if (_currentMediaIndex >= _mediaFiles.length) {
+                      _currentMediaIndex = _mediaFiles.length - 1;
+                      _postMedia = _mediaFiles[_currentMediaIndex];
+                    } else {
+                      _postMedia = _mediaFiles[_currentMediaIndex];
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+              if (canEdit) ...[
+                const SizedBox(width: 8),
+                // Edit button
+                GestureDetector(
+                  onTap: () => _cropImage(currentFile),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
+        ),
         if (isGif)
           Positioned(
             bottom: 8,
-            right: 8,
+            left: 8,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
