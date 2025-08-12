@@ -1,0 +1,33 @@
+Proprietary License
+Copyright (c) 2025 Jason Beaver. All rights reserved.
+
+This software and associated documentation files (the "Software") are
+the confidential and proprietary information of Jason Beaver. You may not
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, in whole or in part, without express prior written
+permission from Jason Beaver.
+
+--- Permitted Use (Evaluation Only) ---
+You are granted a limited, non-transferable, revocable license to
+clone, build, and run the Software solely for the purposes of personal
+evaluation, portfolio review, and recruiting/hiring evaluation.
+No production use is permitted. Any other use is prohibited.
+
+--- Restrictions ---
+You may NOT:
+  * redistribute the Software or any derivative works;
+  * remove or alter any proprietary notices;
+  * host, offer, or make available any online service that uses the Software;
+  * reverse engineer any compiled artifacts except as required by applicable law.
+
+--- No Warranty ---
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+--- Contact ---
+For licensing inquiries, contact Jason Beaver.
