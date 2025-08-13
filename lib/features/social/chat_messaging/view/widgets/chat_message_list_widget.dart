@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/empty_chat_state_widget.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/swipable_message_widget.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
-import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
-import 'package:herdapp/features/user/user_profile/view/widgets/user_profile_image.dart';
 
 class ChatMessageListWidget extends ConsumerStatefulWidget {
   final String chatId;

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
-import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 
 /// Automatically initializes E2EE identity keys when user is authenticated
 final e2eeInitProvider = FutureProvider<void>((ref) async {
