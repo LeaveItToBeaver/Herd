@@ -201,7 +201,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                       bottom:
                           0, // Full height - overlay will manage its own layout
                       child: SafeArea(
-                        top: true,
+                        top: false,
                         left: false,
                         right: false,
                         bottom:
@@ -212,6 +212,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                           showSearchBtn:
                               false, // Search handled by shell's GlobalOverlayManager
                           showNotificationsBtn: false, // Not needed here
+                          showChatToggle:
+                              false, // Chat toggle handled by shell's GlobalOverlayManager
                           showHerdBubbles:
                               true, // Show herd bubbles for alt feed
                         ),

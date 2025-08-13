@@ -173,6 +173,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                               false, // We'll use floating buttons from shell instead
                           showNotificationsBtn:
                               false, // We'll use floating buttons from shell instead
+                          showChatToggle: false, // Chat toggle handled by shell's GlobalOverlayManager
                           showHerdBubbles:
                               false, // Public feed doesn't show herd bubbles
                         ),

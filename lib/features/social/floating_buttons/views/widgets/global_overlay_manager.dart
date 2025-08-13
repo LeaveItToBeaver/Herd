@@ -56,17 +56,30 @@ class GlobalOverlayManager extends ConsumerWidget {
           children: [
             child,
 
-            // Side Bubbles - only shown if explicitly enabled and chat bubbles are enabled
-            if (showSideBubbles && isChatEnabled)
+            // Side Bubbles - only shown if explicitly enabled
+            if (showSideBubbles)
               Positioned(
                 right: 0,
                 top: 0,
                 bottom: 0,
-                child: SideBubblesOverlay(
-                  showProfileBtn: showProfileBtn,
-                  showSearchBtn: showSearchBtn,
-                  showNotificationsBtn: showNotificationsBtn,
-                  showHerdBubbles: showHerdBubbles,
+                child: Builder(
+                  builder: (context) {
+                    // Create completely keyboard-independent MediaQuery
+                    final originalMediaQuery = MediaQuery.of(context);
+                    final keyboardFreeMediaQuery = originalMediaQuery.copyWith(
+                      viewInsets: EdgeInsets.zero,
+                    );
+                    
+                    return MediaQuery(
+                      data: keyboardFreeMediaQuery,
+                      child: SideBubblesOverlay(
+                        showProfileBtn: showProfileBtn,
+                        showSearchBtn: showSearchBtn,
+                        showNotificationsBtn: showNotificationsBtn,
+                        showHerdBubbles: showHerdBubbles,
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -76,9 +89,13 @@ class GlobalOverlayManager extends ConsumerWidget {
                 left: 10,
                 right: showAnyButtons ? 70 : 10,
                 bottom: 20,
-                child: SafeArea(
-                  top: false,
-                  child: BottomNavOverlay(currentFeedType: currentFeedType),
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeBottom: true, // Ignore keyboard padding
+                  child: SafeArea(
+                    top: false,
+                    child: BottomNavOverlay(currentFeedType: currentFeedType),
+                  ),
                 ),
               ),
 
@@ -147,14 +164,18 @@ class GlobalOverlayManager extends ConsumerWidget {
               Positioned(
                 right: 8,
                 bottom: 20,
-                child: SafeArea(
-                  top: false,
-                  child: FloatingButtonsColumn(
-                    showProfileBtn: showProfileBtn,
-                    showSearchBtn: showSearchBtn,
-                    showNotificationsBtn: showNotificationsBtn,
-                    showChatToggle:
-                        showChatToggle, // Pass the parameter directly
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeBottom: true, // Ignore keyboard padding
+                  child: SafeArea(
+                    top: false,
+                    child: FloatingButtonsColumn(
+                      showProfileBtn: showProfileBtn,
+                      showSearchBtn: showSearchBtn,
+                      showNotificationsBtn: showNotificationsBtn,
+                      showChatToggle:
+                          showChatToggle, // Pass the parameter directly
+                    ),
                   ),
                 ),
               ),

@@ -23,6 +23,7 @@ class SideBubblesOverlay extends ConsumerStatefulWidget {
   final bool showSearchBtn;
   final bool showNotificationsBtn;
   final bool showHerdBubbles; // New parameter
+  final bool showChatToggle; // New parameter to control chat toggle
 
   const SideBubblesOverlay({
     super.key,
@@ -30,6 +31,7 @@ class SideBubblesOverlay extends ConsumerStatefulWidget {
     this.showSearchBtn = true,
     this.showNotificationsBtn = true,
     this.showHerdBubbles = false, // Default to false (public feed)
+    this.showChatToggle = true, // Default to true
   });
 
   @override
@@ -38,6 +40,55 @@ class SideBubblesOverlay extends ConsumerStatefulWidget {
 
 class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     with TickerProviderStateMixin {
+  /// Calculate height of FloatingButtonsColumn rendered by GlobalOverlayManager
+  /// Mirrors the exact logic from floating_buttons_column_widget.dart
+  static double calculateFloatingButtonsHeight({
+    required bool showProfileBtn,
+    required bool showSearchBtn,
+    required bool showNotificationsBtn,
+    required bool showChatToggle,
+  }) {
+    const double fabSize =
+        56.0; // Standard FloatingActionButton size (mini: false)
+    const double buttonSpacing = 8.0; // Padding between buttons
+
+    double totalHeight = 0;
+    bool hasPreviousButton = false;
+
+    // Profile button - mirrors FloatingButtonsColumn logic
+    if (showProfileBtn) {
+      totalHeight += fabSize;
+      final bothButtonsVisible = showProfileBtn && showSearchBtn;
+      if (bothButtonsVisible) {
+        totalHeight += buttonSpacing; // padding: EdgeInsets.only(bottom: 8.0)
+      }
+      hasPreviousButton = true;
+    }
+
+    // Notifications button
+    if (showNotificationsBtn) {
+      totalHeight += fabSize;
+      totalHeight += buttonSpacing; // padding: EdgeInsets.only(bottom: 8.0)
+      hasPreviousButton = true;
+    }
+
+    // Search button
+    if (showSearchBtn) {
+      totalHeight += fabSize;
+      if (showChatToggle) {
+        totalHeight += buttonSpacing; // padding: EdgeInsets.only(bottom: 8.0)
+      }
+      hasPreviousButton = true;
+    }
+
+    // Chat toggle button (no bottom padding)
+    if (showChatToggle) {
+      totalHeight += fabSize;
+    }
+
+    return totalHeight;
+  }
+
   late ScrollController _scrollController;
 
   DragState? _dragState;
@@ -157,9 +208,10 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final renderBox = key!.currentContext!.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
-    final bubbleConfigs = _createBubbleConfigs(
+    final configs = _createBubbleConfigs(
         context, ref, ref.watch(currentFeedProvider), null);
-    final bubbleConfig = bubbleConfigs.firstWhere((c) => c.id == bubbleId);
+    final allBubbleConfigs = [...configs.stationary, ...configs.draggable];
+    final bubbleConfig = allBubbleConfigs.firstWhere((c) => c.id == bubbleId);
 
     final paddedContainerGlobalPos = renderBox.localToGlobal(Offset.zero);
     final paddedContainerSize = renderBox.size;
@@ -655,8 +707,9 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       });
     }
 
-    final bubbleConfigs =
-        _createBubbleConfigs(context, ref, feedType, appTheme);
+    final configs = _createBubbleConfigs(context, ref, feedType, appTheme);
+    final stationaryConfigs = configs.stationary;
+    final draggableConfigs = configs.draggable;
 
     return AnimatedBuilder(
       animation: _chatVisibilityAnimation!,
@@ -673,82 +726,14 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 185,
-                        width: 70,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ShaderMask(
-                                shaderCallback: (Rect bounds) {
-                                  return LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: const [
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.transparent,
-                                    ],
-                                    stops: const [
-                                      0.0,
-                                      0.80,
-                                      0.85,
-                                      0.88,
-                                      0.90,
-                                      1.0
-                                    ], // Sharp wall effect: solid until 75%, then razor-sharp fade
-                                  ).createShader(bounds);
-                                },
-                                blendMode: BlendMode.dstIn,
-                                child: AbsorbPointer(
-                                  absorbing:
-                                      isChatOverlayOpen, // Completely disable touch when chat is open
-                                  child: ListView.builder(
-                                    reverse: true,
-                                    controller: _scrollController,
-                                    physics: isChatOverlayOpen
-                                        ? const NeverScrollableScrollPhysics()
-                                        : const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.only(bottom: 15),
-                                    itemCount: bubbleConfigs.length,
-                                    itemBuilder: (context, index) {
-                                      final config = bubbleConfigs[index];
-                                      final isBeingDragged =
-                                          _dragState?.bubbleId == config.id;
-
-                                      final bubble = DraggableBubble(
-                                        key: ValueKey(config.id),
-                                        config: config,
-                                        appTheme: appTheme,
-                                        globalKey: _bubbleKeys.putIfAbsent(
-                                            config.id, () => GlobalKey()),
-                                        onDragStart: (globalPos) => _startDrag(
-                                            config.id, globalPos, constraints),
-                                        onDragUpdate: _updateDrag,
-                                        onDragEnd: _endDrag,
-                                        isBeingDragged: isBeingDragged,
-                                      );
-
-                                      if (index == 0) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 20.0),
-                                          child: bubble,
-                                        );
-                                      }
-                                      return bubble;
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      // Calculate heights for dynamic stacking
+                      _buildStackedBubbleLayout(
+                        context,
+                        constraints,
+                        stationaryConfigs,
+                        draggableConfigs,
+                        appTheme,
+                        isChatOverlayOpen,
                       ),
                       if (_dragState != null)
                         Positioned.fill(
@@ -868,25 +853,27 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     return const SizedBox.shrink();
   }
 
-  List<BubbleConfigState> _createBubbleConfigs(BuildContext context,
-      WidgetRef ref, FeedType feedType, dynamic appTheme) {
-    final List<BubbleConfigState> configs = [];
+  ({List<BubbleConfigState> stationary, List<BubbleConfigState> draggable})
+      _createBubbleConfigs(BuildContext context, WidgetRef ref,
+          FeedType feedType, dynamic appTheme) {
+    final List<BubbleConfigState> stationaryConfigs = [];
+    final List<BubbleConfigState> draggableConfigs = [];
 
     // System bubbles (order 0-99) - NOT DRAGGABLE
     if (widget.showSearchBtn) {
-      configs.add(BubbleFactory.searchBubble(
+      stationaryConfigs.add(BubbleFactory.searchBubble(
         backgroundColor: appTheme?.getSurfaceColor() ??
             Theme.of(context).colorScheme.surface,
         foregroundColor:
             appTheme?.getTextColor() ?? Theme.of(context).colorScheme.onSurface,
-        //padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(2), // Minimal padding
         order: 10,
       ));
     }
 
     if (widget.showProfileBtn) {
       final currentUser = ref.read(authProvider);
-      configs.add(BubbleFactory.profileBubble(
+      stationaryConfigs.add(BubbleFactory.profileBubble(
         userId: currentUser?.uid ?? '',
         isAlt: feedType == FeedType.alt,
         backgroundColor: feedType == FeedType.alt
@@ -899,7 +886,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                 Theme.of(context).colorScheme.secondary)
             : (appTheme?.getPrimaryColor() ??
                 Theme.of(context).colorScheme.primary),
-        //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+        padding: const EdgeInsets.all(2), // Minimal padding
         order: 30,
         customOnTap: () {
           HapticFeedback.lightImpact();
@@ -920,32 +907,35 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     // Chat Toggle Bubble (order 100) - NOT DRAGGABLE
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
-    // configs.add(BubbleFactory.chatToggleBubble(
-    //   isChatEnabled: isChatEnabled,
-    //   backgroundColor: isChatEnabled
-    //       ? (appTheme?.getPrimaryColor().withValues(alpha: 0.3) ??
-    //           Theme.of(context).colorScheme.primaryContainer)
-    //       : (appTheme?.getSurfaceColor().withValues(alpha: 0.3) ??
-    //           Theme.of(context).colorScheme.surfaceContainerHighest),
-    //   foregroundColor: isChatEnabled
-    //       ? (appTheme?.getPrimaryColor() ??
-    //           Theme.of(context).colorScheme.primary)
-    //       : (appTheme?.getTextColor().withValues(alpha: 0.6) ??
-    //           Theme.of(context).colorScheme.onSurfaceVariant),
-    //   padding: const EdgeInsets.fromLTRB(4, 16, 4, 4), // Extra top padding
-    //   order: 100,
-    //   onToggle: () {
-    //     HapticFeedback.mediumImpact();
-    //     ref.read(chatBubblesEnabledProvider.notifier).state = !isChatEnabled;
-    //   },
-    // ));
+    if (widget.showChatToggle) {
+      stationaryConfigs.add(BubbleFactory.chatToggleBubble(
+        isChatEnabled: isChatEnabled,
+        backgroundColor: isChatEnabled
+            ? (appTheme?.getPrimaryColor().withValues(alpha: 0.3) ??
+                Theme.of(context).colorScheme.primaryContainer)
+            : (appTheme?.getSurfaceColor().withValues(alpha: 0.3) ??
+                Theme.of(context).colorScheme.surfaceContainerHighest),
+        foregroundColor: isChatEnabled
+            ? (appTheme?.getPrimaryColor() ??
+                Theme.of(context).colorScheme.primary)
+            : (appTheme?.getTextColor().withValues(alpha: 0.6) ??
+                Theme.of(context).colorScheme.onSurfaceVariant),
+        padding: const EdgeInsets.all(
+            2), // Minimal padding to match other stationary bubbles
+        order: 100,
+        onToggle: () {
+          HapticFeedback.mediumImpact();
+          ref.read(chatBubblesEnabledProvider.notifier).state = !isChatEnabled;
+        },
+      ));
+    }
 
     // Community/Chat bubbles (order 500+) - DRAGGABLE - only show if chat is enabled
     if (widget.showHerdBubbles && isChatEnabled) {
       // For alt feed: Show herds first
       // TODO: Replace with actual herd data
       for (int i = 0; i < 5; i++) {
-        configs.add(BubbleFactory.herdBubble(
+        draggableConfigs.add(BubbleFactory.herdBubble(
           herdId: 'herd_$i',
           name: 'Herd ${i + 1}',
           backgroundColor: appTheme?.getSurfaceColor().withValues(alpha: 0.9) ??
@@ -981,7 +971,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         debugPrint(
             'Creating chat bubble - ID: ${chat.id}, Name: ${chat.otherUserName}, User ID: ${chat.otherUserId}');
 
-        configs.add(BubbleFactory.chatBubble(
+        draggableConfigs.add(BubbleFactory.chatBubble(
           chatId: chat.id,
           name: chat.otherUserName ?? "Unknown",
           imageUrl: chat.otherUserProfileImage,
@@ -1014,6 +1004,114 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       }
     }
 
-    return configs;
+    return (stationary: stationaryConfigs, draggable: draggableConfigs);
+  }
+
+  Widget _buildStackedBubbleLayout(
+    BuildContext context,
+    BoxConstraints constraints,
+    List<BubbleConfigState> stationaryConfigs,
+    List<BubbleConfigState> draggableConfigs,
+    dynamic appTheme,
+    bool isChatOverlayOpen,
+  ) {
+    // Calculate height of screen-level stationary bubbles (from stationaryConfigs)
+    double screenStationaryHeight = 0;
+    for (final config in stationaryConfigs) {
+      screenStationaryHeight += config.effectiveSize + config.padding.vertical;
+    }
+
+    // Calculate height of GlobalOverlayManager's FloatingButtonsColumn
+    // Use the same parameters as defined in router.dart (_TabScaffold)
+    final globalButtonsHeight = calculateFloatingButtonsHeight(
+      showProfileBtn: true, // From router: showProfileBtn: true
+      showSearchBtn: true, // From router: showSearchBtn: true
+      showNotificationsBtn: false, // From router: showNotificationsBtn: false
+      showChatToggle: true, // From router: showChatToggle: true
+    );
+
+    // Add some padding between sections
+    const sectionPadding = 8.0;
+    final totalStationarySpace =
+        screenStationaryHeight + globalButtonsHeight + sectionPadding;
+
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: totalStationarySpace, // Reserve space for bottom buttons
+      width: 70,
+      child: Column(
+        mainAxisSize: MainAxisSize.max, // Use full available height
+        children: [
+          // Draggable bubbles section (takes all available space)
+          if (draggableConfigs.isNotEmpty)
+            Expanded( // Use Expanded instead of ConstrainedBox to fill available space
+              child: ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  return const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white,
+                      Colors.white,
+                      Colors.white,
+                      Colors.transparent,
+                    ],
+                    stops: [
+                      0.0,
+                      0.92,
+                      0.96,
+                      1.0
+                    ], // Fade at the bottom near stationary bubbles
+                  ).createShader(bounds);
+                },
+                blendMode: BlendMode.dstIn,
+                child: AbsorbPointer(
+                  absorbing: isChatOverlayOpen,
+                  child: ListView.builder(
+                    reverse: true, // Start from bottom
+                    controller: _scrollController,
+                    physics: isChatOverlayOpen
+                        ? const NeverScrollableScrollPhysics()
+                        : const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.only(
+                      bottom: sectionPadding, // Space for gradient fade
+                    ),
+                    itemCount: draggableConfigs.length,
+                    itemBuilder: (context, index) {
+                      final config = draggableConfigs[index];
+                      final isBeingDragged = _dragState?.bubbleId == config.id;
+
+                      final bubble = DraggableBubble(
+                        key: ValueKey(config.id),
+                        config: config,
+                        appTheme: appTheme,
+                        globalKey: _bubbleKeys.putIfAbsent(
+                            config.id, () => GlobalKey()),
+                        onDragStart: (globalPos) =>
+                            _startDrag(config.id, globalPos, constraints),
+                        onDragUpdate: _updateDrag,
+                        onDragEnd: _endDrag,
+                        isBeingDragged: isBeingDragged,
+                      );
+
+                      // Add padding to the last item (bottom of the list)
+                      if (config == draggableConfigs.first) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: bubble,
+                        );
+                      }
+                      return bubble;
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+          // Stationary bubbles are now handled by GlobalOverlayManager's FloatingButtonsColumn
+        ],
+      ),
+    );
   }
 }

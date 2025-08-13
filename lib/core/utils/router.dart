@@ -796,6 +796,7 @@ class _TabScaffold extends ConsumerWidget {
     ref.watch(e2eeStatusProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // Prevent scaffold from moving with keyboard
       body: GlobalOverlayManager(
         showBottomNav: true,
         showSideBubbles: false,
