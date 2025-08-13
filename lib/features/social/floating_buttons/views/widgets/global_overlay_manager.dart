@@ -68,8 +68,12 @@ class GlobalOverlayManager extends ConsumerWidget {
                     final originalMediaQuery = MediaQuery.of(context);
                     final keyboardFreeMediaQuery = originalMediaQuery.copyWith(
                       viewInsets: EdgeInsets.zero,
+                      size: Size(
+                          originalMediaQuery.size.width,
+                          originalMediaQuery.size.height +
+                              originalMediaQuery.viewInsets.bottom),
                     );
-                    
+
                     return MediaQuery(
                       data: keyboardFreeMediaQuery,
                       child: SideBubblesOverlay(

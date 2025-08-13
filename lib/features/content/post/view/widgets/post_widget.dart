@@ -98,7 +98,7 @@ class _PostWidgetState extends ConsumerState<PostWidget>
         queryParameters: {'isAlt': widget.post.isAlt.toString()},
       ),
       child: Container(
-        margin: EdgeInsets.fromLTRB(8, 8, 1, 0),
+        margin: EdgeInsets.fromLTRB(8, 8, 8, 0),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(25),
