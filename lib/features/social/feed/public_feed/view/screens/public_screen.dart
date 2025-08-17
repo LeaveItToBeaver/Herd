@@ -74,6 +74,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     return PopScope(
       canPop: false, // Disable swipe to close
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: const Text('Public Feed'),
           actions: [
@@ -114,10 +115,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                   AnimatedPadding(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(
-                        right: isChatEnabled
-                            ? 70
-                            : 0), // Animate to 0 when disabled
+                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
                     child: publicFeedState.isLoading &&
                             publicFeedState.posts.isEmpty
                         ? _buildLoadingWidget()
@@ -160,21 +158,50 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                       top: 0,
                       bottom:
                           0, // Full height - overlay will manage its own layout
-                      child: SafeArea(
-                        top: true,
-                        left: false,
-                        right: false,
-                        bottom:
-                            false, // Don't apply SafeArea to bottom since we're handling it
-                        child: SideBubblesOverlay(
-                          showProfileBtn:
-                              false, // We'll use floating buttons from shell instead
-                          showSearchBtn:
-                              false, // We'll use floating buttons from shell instead
-                          showNotificationsBtn:
-                              false, // We'll use floating buttons from shell instead
-                          showHerdBubbles:
-                              false, // Public feed doesn't show herd bubbles
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeBottom: true,
+                        child: Builder(
+                          builder: (context) {
+                            // Complete keyboard isolation - preserve original screen size and remove insets
+                            final originalMediaQuery = MediaQuery.of(context);
+                            final keyboardFreeMediaQuery =
+                                originalMediaQuery.copyWith(
+                              size: Size(
+                                originalMediaQuery.size.width,
+                                originalMediaQuery.size.height +
+                                    originalMediaQuery.viewInsets.bottom,
+                              ),
+                              viewInsets: EdgeInsets.zero,
+                              viewPadding:
+                                  originalMediaQuery.viewPadding.copyWith(
+                                bottom: originalMediaQuery.viewPadding.bottom,
+                              ),
+                            );
+
+                            return MediaQuery(
+                              data: keyboardFreeMediaQuery,
+                              child: SafeArea(
+                                top: true,
+                                left: false,
+                                right: false,
+                                bottom:
+                                    false, // Don't apply SafeArea to bottom since we're handling it
+                                child: SideBubblesOverlay(
+                                  showProfileBtn:
+                                      false, // We'll use floating buttons from shell instead
+                                  showSearchBtn:
+                                      false, // We'll use floating buttons from shell instead
+                                  showNotificationsBtn:
+                                      false, // We'll use floating buttons from shell instead
+                                  showChatToggle:
+                                      false, // Chat toggle handled by shell's GlobalOverlayManager
+                                  showHerdBubbles:
+                                      false, // Public feed doesn't show herd bubbles
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

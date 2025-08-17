@@ -14,6 +14,7 @@ _ChatModel _$ChatModelFromJson(Map<String, dynamic> json) => _ChatModel(
       otherUserProfileImage: json['otherUserProfileImage'] as String?,
       otherUserAltProfileImage: json['otherUserAltProfileImage'] as String?,
       otherUserIsAlt: json['otherUserIsAlt'] as bool? ?? false,
+      isAlt: json['isAlt'] as bool? ?? false,
       lastMessage: json['lastMessage'] as String?,
       lastMessageTimestamp: json['lastMessageTimestamp'] == null
           ? null
@@ -35,6 +36,7 @@ Map<String, dynamic> _$ChatModelToJson(_ChatModel instance) =>
       'otherUserProfileImage': instance.otherUserProfileImage,
       'otherUserAltProfileImage': instance.otherUserAltProfileImage,
       'otherUserIsAlt': instance.otherUserIsAlt,
+      'isAlt': instance.isAlt,
       'lastMessage': instance.lastMessage,
       'lastMessageTimestamp': instance.lastMessageTimestamp?.toIso8601String(),
       'unreadCount': instance.unreadCount,

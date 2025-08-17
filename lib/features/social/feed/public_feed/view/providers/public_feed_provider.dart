@@ -33,8 +33,8 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
-  PublicFeedController(this.repository, this.userId, this.cacheManager,
-      this.ref, // Add this parameter
+  PublicFeedController(
+      this.repository, this.userId, this.cacheManager, this.ref,
       {this.pageSize = 20})
       : super(PublicFeedState.initial());
 

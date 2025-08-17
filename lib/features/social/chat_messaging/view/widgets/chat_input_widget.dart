@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
 
 class ChatInputWidget extends ConsumerStatefulWidget {
   final String chatId;

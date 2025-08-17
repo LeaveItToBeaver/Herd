@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
-import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 
 /// Automatically initializes E2EE identity keys when user is authenticated
 final e2eeInitProvider = FutureProvider<void>((ref) async {
@@ -19,6 +19,30 @@ final e2eeInitProvider = FutureProvider<void>((ref) async {
 });
 
 /// Provider that can be consumed in the app to ensure E2EE is initialized
-final e2eeStatusProvider = Provider<AsyncValue<void>>((ref) {
-  return ref.watch(e2eeInitProvider);
+
+final e2eeStatusProvider = FutureProvider<bool>((ref) async {
+  final user = ref.watch(authProvider);
+  if (user == null) return false;
+
+  try {
+    // Only initialize E2EE when actually needed (e.g., when opening a chat)
+    // Don't auto-publish keys on app startup
+    return true;
+  } catch (e) {
+    debugPrint('E2EE initialization deferred: $e');
+    return false;
+  }
+});
+
+final initializeE2eeProvider =
+    FutureProvider.family<void, String>((ref, userId) async {
+  final crypto = ref.read(chatCryptoServiceProvider);
+
+  try {
+    // Use FirebaseFirestore.instance directly, like your other providers
+    await crypto.ensureIdentityKeyPublished(FirebaseFirestore.instance, userId);
+  } catch (e) {
+    debugPrint('Failed to initialize E2EE for user $userId: $e');
+    // Don't throw - just log the error
+  }
 });

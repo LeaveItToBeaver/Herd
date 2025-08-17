@@ -139,13 +139,11 @@ class MessageRepository {
         .orderBy('timestamp', descending: true)
         .limit(limit);
     if (last != null) q = q.startAfterDocument(last);
-    
     return q.snapshots().asyncMap((snap) async {
       final List<MessageModel> messages = [];
       for (final doc in snap.docs) {
         try {
           final data = doc.data();
-          
           // Check if message is encrypted (has ciphertext field)
           if (data.containsKey('ciphertext')) {
             // Encrypted message - try to decrypt it
@@ -165,7 +163,8 @@ class MessageRepository {
   }
 
   /// Convert hierarchical plaintext document to MessageModel
-  MessageModel _fromHierarchicalDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+  MessageModel _fromHierarchicalDoc(
+      QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     return MessageModel(
       id: doc.id,
@@ -226,14 +225,14 @@ class MessageRepository {
         .orderBy('timestamp', descending: true)
         .limit(limit);
     if (lastDocument != null) q = q.startAfterDocument(lastDocument);
-    
+
     final snap = await q.get();
     final List<MessageModel> messages = [];
-    
+
     for (final doc in snap.docs) {
       try {
         final data = doc.data();
-        
+
         // Check if message is encrypted (has ciphertext field)
         if (data.containsKey('ciphertext')) {
           // Encrypted message - try to decrypt it
@@ -248,25 +247,28 @@ class MessageRepository {
         continue;
       }
     }
-    
     return messages;
   }
 
   /// Stream a single message by ID from hierarchical collection.
   Stream<MessageModel?> getMessageById(String chatId, String messageId) {
-    return _chatMessages(chatId).doc(messageId).snapshots().asyncMap((snap) async {
+    return _chatMessages(chatId)
+        .doc(messageId)
+        .snapshots()
+        .asyncMap((snap) async {
       if (!snap.exists) return null;
-      
+
       try {
         final data = snap.data()!;
-        
+
         // Check if message is encrypted (has ciphertext field)
         if (data.containsKey('ciphertext')) {
           // Encrypted message - try to decrypt it
           return await _decodeEncrypted(chatId, messageId, data);
         } else {
           // Plaintext message - convert directly
-          return _fromHierarchicalDoc(snap as QueryDocumentSnapshot<Map<String, dynamic>>);
+          return _fromHierarchicalDoc(
+              snap as QueryDocumentSnapshot<Map<String, dynamic>>);
         }
       } catch (e) {
         return null;
@@ -543,11 +545,11 @@ class MessageRepository {
   }) async {
     final sender = await _users.getUserById(senderId);
     if (sender == null) throw Exception('Sender not found');
-    
+
     // Use hierarchical structure instead of flat messages
     final messageRef = _chatMessages(chatId).doc();
     final now = DateTime.now();
-    
+
     final data = {
       'id': messageRef.id,
       'chatId': chatId,
@@ -566,7 +568,6 @@ class MessageRepository {
       'reactions': <String, dynamic>{},
       'readReceipts': <String, dynamic>{},
     };
-    
     final batch = _firestore.batch();
     batch.set(messageRef, data);
     batch.update(_chats.doc(chatId), {
@@ -578,7 +579,6 @@ class MessageRepository {
         'type': type.toString().split('.').last,
       },
     });
-    
     final chatDoc = await _chats.doc(chatId).get();
     final participants =
         List<String>.from(chatDoc.data()?['participants'] ?? []);
@@ -597,7 +597,6 @@ class MessageRepository {
       batch.update(uc, upd);
     }
     await batch.commit();
-    
     return MessageModel(
       id: messageRef.id,
       chatId: chatId,

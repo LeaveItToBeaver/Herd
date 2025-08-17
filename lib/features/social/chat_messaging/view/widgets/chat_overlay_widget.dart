@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_header_widget.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_message_list_widget.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_input_widget.dart';
+import 'package:herdapp/core/barrels/widgets.dart';
 
 class ChatOverlayWidget extends ConsumerStatefulWidget {
   final String bubbleId;
@@ -35,6 +32,16 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
       setState(() {
         _isKeyboardVisible = newKeyboardVisible;
       });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    final currentUser = ref.read(authProvider);
+    if (currentUser != null) {
+      ref.read(initializeE2eeProvider(currentUser.uid));
     }
   }
 

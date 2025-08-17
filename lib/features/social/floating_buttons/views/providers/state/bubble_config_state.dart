@@ -16,7 +16,7 @@ abstract class BubbleConfigState with _$BubbleConfigState {
 
     // Visual properties
     double? size,
-    @Default(EdgeInsets.all(4)) EdgeInsets padding,
+    @Default(EdgeInsets.all(0)) EdgeInsets padding,
     Color? backgroundColor,
     Color? foregroundColor,
     @Default(false) bool isLarge,

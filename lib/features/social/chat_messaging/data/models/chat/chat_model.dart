@@ -17,6 +17,7 @@ abstract class ChatModel with _$ChatModel {
     String? otherUserProfileImage,
     String? otherUserAltProfileImage,
     @Default(false) bool otherUserIsAlt,
+    @Default(false) bool isAlt,
     // Common chat properties
     String? lastMessage,
     DateTime? lastMessageTimestamp,

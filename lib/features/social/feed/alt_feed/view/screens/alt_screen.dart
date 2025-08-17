@@ -81,6 +81,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     return PopScope(
       canPop: false, // Disable swipe to close
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: const Text('Alt Feed'),
           actions: [
@@ -153,10 +154,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   AnimatedPadding(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(
-                        right: isChatEnabled
-                            ? 70
-                            : 0), // Animate to 0 when disabled
+                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
                     child: altFeedState.isLoading && altFeedState.posts.isEmpty
                         ? _buildLoadingWidget()
                         : altFeedState.error != null
@@ -200,20 +198,50 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                       top: 0,
                       bottom:
                           0, // Full height - overlay will manage its own layout
-                      child: SafeArea(
-                        top: true,
-                        left: false,
-                        right: false,
-                        bottom:
-                            false, // Don't apply SafeArea to bottom since we're handling it
-                        child: SideBubblesOverlay(
-                          showProfileBtn:
-                              false, // Profile handled by shell's GlobalOverlayManager
-                          showSearchBtn:
-                              false, // Search handled by shell's GlobalOverlayManager
-                          showNotificationsBtn: false, // Not needed here
-                          showHerdBubbles:
-                              true, // Show herd bubbles for alt feed
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeBottom: true,
+                        child: Builder(
+                          builder: (context) {
+                            // Complete keyboard isolation - preserve original screen size and remove insets
+                            final originalMediaQuery = MediaQuery.of(context);
+                            final keyboardFreeMediaQuery =
+                                originalMediaQuery.copyWith(
+                              size: Size(
+                                originalMediaQuery.size.width,
+                                originalMediaQuery.size.height +
+                                    originalMediaQuery.viewInsets.bottom,
+                              ),
+                              viewInsets: EdgeInsets.zero,
+                              viewPadding:
+                                  originalMediaQuery.viewPadding.copyWith(
+                                bottom: originalMediaQuery.viewPadding.bottom,
+                              ),
+                            );
+
+                            return MediaQuery(
+                              data: keyboardFreeMediaQuery,
+                              child: SafeArea(
+                                top: false,
+                                left: false,
+                                right: false,
+                                bottom:
+                                    false, // Don't apply SafeArea to bottom since we're handling it
+                                child: SideBubblesOverlay(
+                                  showProfileBtn:
+                                      false, // Profile handled by shell's GlobalOverlayManager
+                                  showSearchBtn:
+                                      false, // Search handled by shell's GlobalOverlayManager
+                                  showNotificationsBtn:
+                                      false, // Not needed here
+                                  showChatToggle:
+                                      false, // Chat toggle handled by shell's GlobalOverlayManager
+                                  showHerdBubbles:
+                                      true, // Show herd bubbles for alt feed
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

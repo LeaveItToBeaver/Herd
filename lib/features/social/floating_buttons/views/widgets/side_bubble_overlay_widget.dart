@@ -7,24 +7,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/views/providers/chat_overlay_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/bubble_factory.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/bubble_explosion_painter.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/controllers/advanced_haptics_controller.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/controllers/haptics_controller.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/enums/bubble_content_type.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/super_stretchy_painter.dart';
+
+import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/bubble_config_state.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/drag_state.dart';
+import 'package:http/http.dart';
 
 class SideBubblesOverlay extends ConsumerStatefulWidget {
   final bool showProfileBtn;
   final bool showSearchBtn;
   final bool showNotificationsBtn;
   final bool showHerdBubbles; // New parameter
+  final bool showChatToggle; // New parameter to control chat toggle
 
   const SideBubblesOverlay({
     super.key,
@@ -32,6 +34,7 @@ class SideBubblesOverlay extends ConsumerStatefulWidget {
     this.showSearchBtn = true,
     this.showNotificationsBtn = true,
     this.showHerdBubbles = false, // Default to false (public feed)
+    this.showChatToggle = true, // Default to true
   });
 
   @override
@@ -40,6 +43,55 @@ class SideBubblesOverlay extends ConsumerStatefulWidget {
 
 class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     with TickerProviderStateMixin {
+  /// Calculate height of FloatingButtonsColumn rendered by GlobalOverlayManager
+  /// Mirrors the exact logic from floating_buttons_column_widget.dart
+  static double calculateFloatingButtonsHeight({
+    required bool showProfileBtn,
+    required bool showSearchBtn,
+    required bool showNotificationsBtn,
+    required bool showChatToggle,
+  }) {
+    const double fabSize =
+        56.0; // Standard FloatingActionButton size (mini: false)
+    const double buttonSpacing = 8.0; // Padding between buttons
+
+    double totalHeight = 0;
+    bool hasPreviousButton = false;
+
+    // Profile button - mirrors FloatingButtonsColumn logic
+    if (showProfileBtn) {
+      totalHeight += fabSize;
+      final bothButtonsVisible = showProfileBtn && showSearchBtn;
+      if (bothButtonsVisible) {
+        totalHeight += buttonSpacing; // padding: EdgeInsets.only(bottom: 8.0)
+      }
+      hasPreviousButton = true;
+    }
+
+    // Notifications button
+    if (showNotificationsBtn) {
+      totalHeight += fabSize;
+      totalHeight += buttonSpacing; // padding: EdgeInsets.only(bottom: 8.0)
+      hasPreviousButton = true;
+    }
+
+    // Search button
+    if (showSearchBtn) {
+      totalHeight += fabSize;
+      if (showChatToggle) {
+        totalHeight += buttonSpacing; // padding: EdgeInsets.only(bottom: 8.0)
+      }
+      hasPreviousButton = true;
+    }
+
+    // Chat toggle button (no bottom padding)
+    if (showChatToggle) {
+      totalHeight += fabSize;
+    }
+
+    return totalHeight;
+  }
+
   late ScrollController _scrollController;
 
   DragState? _dragState;
@@ -116,28 +168,47 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
       final newState = Map<String, VoidCallback>.from(state);
 
-      // Register callbacks for actual chat bubble IDs based on active chats
+      // Register callbacks for chat bubbles
       final activeChats = ref.read(activeChatBubblesProvider);
-      debugPrint(
-          'Registering animation callbacks for ${activeChats.length} active chats');
       for (final chat in activeChats) {
-        debugPrint('Registering callback for chat ID: ${chat.id}');
-        newState[chat.id] = _animateFromChat;
+        newState[chat.id] = _animateFromChat; // Use chat-specific callback
       }
 
-      // Also register for herd bubbles with their actual IDs
-      for (int i = 0; i < 5; i++) {
-        newState['herd_$i'] = _animateFromChat;
+      // Register callbacks for herd bubbles with DIFFERENT callback
+      final currentUser = ref.read(authProvider);
+      if (currentUser != null) {
+        final userHerds = ref.read(profileUserHerdsProvider(currentUser.uid));
+        userHerds.whenData((herds) {
+          for (final herd in herds) {
+            newState['herd_${herd.id}'] =
+                _animateFromHerd; // Use herd-specific callback
+          }
+        });
       }
 
-      // Keep legacy chat_ format for backward compatibility
-      for (int i = 0; i < 10; i++) {
-        newState['chat_$i'] = _animateFromChat;
-      }
-
-      debugPrint('Total animation callbacks registered: ${newState.length}');
       return newState;
     });
+  }
+
+  void _animateFromHerd() {
+    // Restore preserved drag state if we don't have current drag state
+    if (_dragState == null && _preservedDragState != null) {
+      setState(() {
+        _dragState = _preservedDragState;
+        _preservedDragState = null;
+      });
+    }
+
+    if (_dragState == null) {
+      // No drag state to animate from, just close directly
+      ref.read(herdOverlayOpenProvider.notifier).state = false;
+      ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
+      ref.read(activeOverlayTypeProvider.notifier).state = null;
+      ref.read(explosionRevealProvider.notifier).state = null;
+      return;
+    }
+
+    closeOverlayWithAnimation(OverlayType.herd);
   }
 
   @override
@@ -159,9 +230,10 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final renderBox = key!.currentContext!.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
-    final bubbleConfigs = _createBubbleConfigs(
+    final configs = _createBubbleConfigs(
         context, ref, ref.watch(currentFeedProvider), null);
-    final bubbleConfig = bubbleConfigs.firstWhere((c) => c.id == bubbleId);
+    final allBubbleConfigs = [...configs.stationary, ...configs.draggable];
+    final bubbleConfig = allBubbleConfigs.firstWhere((c) => c.id == bubbleId);
 
     final paddedContainerGlobalPos = renderBox.localToGlobal(Offset.zero);
     final paddedContainerSize = renderBox.size;
@@ -277,8 +349,13 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     );
 
     if (_dragState!.hasTriggeredChatThreshold && _dragState!.isInChatZone) {
+      final bubbleConfig = _dragState!.bubbleConfig;
+      final overlayType = bubbleConfig.id.startsWith('herd_')
+          ? OverlayType.herd
+          : OverlayType.chat;
+
       // Animate bubble to chat position and open chat overlay
-      _animateToChat();
+      _animateToOverlay(overlayType);
       return;
     }
 
@@ -321,15 +398,23 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     HapticFeedback.lightImpact();
   }
 
-  void _animateToChat() {
+  void _animateToOverlay(OverlayType overlayType) {
     if (_dragState == null) return;
 
     // Preserve the drag state to prevent loss during rebuilds
     _preservedDragState = _dragState;
 
-    ref.read(chatOverlayOpenProvider.notifier).state = true;
-    ref.read(chatTriggeredByBubbleProvider.notifier).state =
-        _dragState!.bubbleId;
+    if (overlayType == OverlayType.chat) {
+      ref.read(chatOverlayOpenProvider.notifier).state = true;
+      ref.read(chatTriggeredByBubbleProvider.notifier).state =
+          _dragState!.bubbleId;
+    } else if (overlayType == OverlayType.herd) {
+      ref.read(herdOverlayOpenProvider.notifier).state = true;
+      ref.read(herdTriggeredByBubbleProvider.notifier).state =
+          _dragState!.bubbleId;
+    }
+
+    ref.read(activeOverlayTypeProvider.notifier).state = overlayType;
 
     setState(() {
       _dragState = _dragState!.copyWith(
@@ -466,7 +551,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     _snapBackController!.forward();
   }
 
-  void closeChatWithAnimation() {
+  void closeOverlayWithAnimation(OverlayType overlayType) {
     if (_dragState == null) return;
 
     final containerRenderBox = context.findRenderObject() as RenderBox?;
@@ -529,20 +614,22 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _chatCloseController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        ref.read(chatOverlayOpenProvider.notifier).state = false;
+        // Close the appropriate overlay type
+        if (overlayType == OverlayType.chat) {
+          ref.read(chatOverlayOpenProvider.notifier).state = false;
+          ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
+        } else {
+          ref.read(herdOverlayOpenProvider.notifier).state = false;
+          ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
+        }
 
-        ref.read(explosionRevealProvider.notifier).state = (
-          isActive: false,
-          center: Offset.zero,
-          progress: 0.0,
-          bubbleId: '',
-        );
+        ref.read(activeOverlayTypeProvider.notifier).state = null;
+        ref.read(explosionRevealProvider.notifier).state = null;
 
         _snapBackToOriginalPosition();
       }
     });
 
-    // Start close animation
     _chatCloseController!.forward();
   }
 
@@ -612,7 +699,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       return;
     }
 
-    closeChatWithAnimation();
+    closeOverlayWithAnimation(OverlayType.chat);
   }
 
   @override
@@ -657,8 +744,21 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       });
     }
 
-    final bubbleConfigs =
-        _createBubbleConfigs(context, ref, feedType, appTheme);
+    final herdClosingBubbleId = ref.watch(herdClosingAnimationProvider);
+    if (herdClosingBubbleId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(herdClosingAnimationProvider.notifier).state = null;
+        final callbacks = ref.read(bubbleAnimationCallbackProvider);
+        final callback = callbacks[herdClosingBubbleId];
+        if (callback != null) {
+          callback();
+        }
+      });
+    }
+
+    final configs = _createBubbleConfigs(context, ref, feedType, appTheme);
+    final stationaryConfigs = configs.stationary;
+    final draggableConfigs = configs.draggable;
 
     return AnimatedBuilder(
       animation: _chatVisibilityAnimation!,
@@ -675,82 +775,14 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 185,
-                        width: 70,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ShaderMask(
-                                shaderCallback: (Rect bounds) {
-                                  return LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: const [
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.white,
-                                      Colors.transparent,
-                                    ],
-                                    stops: const [
-                                      0.0,
-                                      0.80,
-                                      0.85,
-                                      0.88,
-                                      0.90,
-                                      1.0
-                                    ], // Sharp wall effect: solid until 75%, then razor-sharp fade
-                                  ).createShader(bounds);
-                                },
-                                blendMode: BlendMode.dstIn,
-                                child: AbsorbPointer(
-                                  absorbing:
-                                      isChatOverlayOpen, // Completely disable touch when chat is open
-                                  child: ListView.builder(
-                                    reverse: true,
-                                    controller: _scrollController,
-                                    physics: isChatOverlayOpen
-                                        ? const NeverScrollableScrollPhysics()
-                                        : const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.only(bottom: 15),
-                                    itemCount: bubbleConfigs.length,
-                                    itemBuilder: (context, index) {
-                                      final config = bubbleConfigs[index];
-                                      final isBeingDragged =
-                                          _dragState?.bubbleId == config.id;
-
-                                      final bubble = DraggableBubble(
-                                        key: ValueKey(config.id),
-                                        config: config,
-                                        appTheme: appTheme,
-                                        globalKey: _bubbleKeys.putIfAbsent(
-                                            config.id, () => GlobalKey()),
-                                        onDragStart: (globalPos) => _startDrag(
-                                            config.id, globalPos, constraints),
-                                        onDragUpdate: _updateDrag,
-                                        onDragEnd: _endDrag,
-                                        isBeingDragged: isBeingDragged,
-                                      );
-
-                                      if (index == 0) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 20.0),
-                                          child: bubble,
-                                        );
-                                      }
-                                      return bubble;
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      // Calculate heights for dynamic stacking
+                      _buildStackedBubbleLayout(
+                        context,
+                        constraints,
+                        stationaryConfigs,
+                        draggableConfigs,
+                        appTheme,
+                        isChatOverlayOpen,
                       ),
                       if (_dragState != null)
                         Positioned.fill(
@@ -870,25 +902,27 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     return const SizedBox.shrink();
   }
 
-  List<BubbleConfigState> _createBubbleConfigs(BuildContext context,
-      WidgetRef ref, FeedType feedType, dynamic appTheme) {
-    final List<BubbleConfigState> configs = [];
+  ({List<BubbleConfigState> stationary, List<BubbleConfigState> draggable})
+      _createBubbleConfigs(BuildContext context, WidgetRef ref,
+          FeedType feedType, dynamic appTheme) {
+    final List<BubbleConfigState> stationaryConfigs = [];
+    final List<BubbleConfigState> draggableConfigs = [];
 
     // System bubbles (order 0-99) - NOT DRAGGABLE
     if (widget.showSearchBtn) {
-      configs.add(BubbleFactory.searchBubble(
+      stationaryConfigs.add(BubbleFactory.searchBubble(
         backgroundColor: appTheme?.getSurfaceColor() ??
             Theme.of(context).colorScheme.surface,
         foregroundColor:
             appTheme?.getTextColor() ?? Theme.of(context).colorScheme.onSurface,
-        //padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(2), // Minimal padding
         order: 10,
       ));
     }
 
     if (widget.showProfileBtn) {
       final currentUser = ref.read(authProvider);
-      configs.add(BubbleFactory.profileBubble(
+      stationaryConfigs.add(BubbleFactory.profileBubble(
         userId: currentUser?.uid ?? '',
         isAlt: feedType == FeedType.alt,
         backgroundColor: feedType == FeedType.alt
@@ -901,7 +935,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                 Theme.of(context).colorScheme.secondary)
             : (appTheme?.getPrimaryColor() ??
                 Theme.of(context).colorScheme.primary),
-        //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+        padding: const EdgeInsets.all(2), // Minimal padding
         order: 30,
         customOnTap: () {
           HapticFeedback.lightImpact();
@@ -922,71 +956,84 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     // Chat Toggle Bubble (order 100) - NOT DRAGGABLE
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
-    // configs.add(BubbleFactory.chatToggleBubble(
-    //   isChatEnabled: isChatEnabled,
-    //   backgroundColor: isChatEnabled
-    //       ? (appTheme?.getPrimaryColor().withValues(alpha: 0.3) ??
-    //           Theme.of(context).colorScheme.primaryContainer)
-    //       : (appTheme?.getSurfaceColor().withValues(alpha: 0.3) ??
-    //           Theme.of(context).colorScheme.surfaceContainerHighest),
-    //   foregroundColor: isChatEnabled
-    //       ? (appTheme?.getPrimaryColor() ??
-    //           Theme.of(context).colorScheme.primary)
-    //       : (appTheme?.getTextColor().withValues(alpha: 0.6) ??
-    //           Theme.of(context).colorScheme.onSurfaceVariant),
-    //   padding: const EdgeInsets.fromLTRB(4, 16, 4, 4), // Extra top padding
-    //   order: 100,
-    //   onToggle: () {
-    //     HapticFeedback.mediumImpact();
-    //     ref.read(chatBubblesEnabledProvider.notifier).state = !isChatEnabled;
-    //   },
-    // ));
+    if (widget.showChatToggle) {
+      stationaryConfigs.add(BubbleFactory.chatToggleBubble(
+        isChatEnabled: isChatEnabled,
+        backgroundColor: isChatEnabled
+            ? (appTheme?.getPrimaryColor().withValues(alpha: 0.3) ??
+                Theme.of(context).colorScheme.primaryContainer)
+            : (appTheme?.getSurfaceColor().withValues(alpha: 0.3) ??
+                Theme.of(context).colorScheme.surfaceContainerHighest),
+        foregroundColor: isChatEnabled
+            ? (appTheme?.getPrimaryColor() ??
+                Theme.of(context).colorScheme.primary)
+            : (appTheme?.getTextColor().withValues(alpha: 0.6) ??
+                Theme.of(context).colorScheme.onSurfaceVariant),
+        padding: const EdgeInsets.all(
+            2), // Minimal padding to match other stationary bubbles
+        order: 100,
+        onToggle: () {
+          HapticFeedback.mediumImpact();
+          ref.read(chatBubblesEnabledProvider.notifier).state = !isChatEnabled;
+        },
+      ));
+    }
 
     // Community/Chat bubbles (order 500+) - DRAGGABLE - only show if chat is enabled
-    if (widget.showHerdBubbles && isChatEnabled) {
-      // For alt feed: Show herds first
-      // TODO: Replace with actual herd data
-      for (int i = 0; i < 5; i++) {
-        configs.add(BubbleFactory.herdBubble(
-          herdId: 'herd_$i',
-          name: 'Herd ${i + 1}',
-          backgroundColor: appTheme?.getSurfaceColor().withValues(alpha: 0.9) ??
-              Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-          foregroundColor: appTheme?.getTextColor() ??
-              Theme.of(context).colorScheme.onSurface,
-          //padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
-          order: 500 + i,
-          customOnTap: () {
-            HapticFeedback.lightImpact();
-            // TODO: Navigate to herd
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Herd ${i + 1} tapped')),
-            );
-          },
-        ).copyWith(
-          isDraggable: true, // Make herd bubbles draggable
-          icon: Icons.groups, // Use groups icon for herds
-          contentType: BubbleContentType.icon, // Show icon instead of text
-        ));
+    if (widget.showHerdBubbles && isChatEnabled && feedType == FeedType.alt) {
+      final currentUser = ref.read(authProvider);
+
+      if (currentUser != null) {
+        final userherds = ref.watch(profileUserHerdsProvider(currentUser.uid));
+
+        userherds.whenData((herds) {
+          for (int i = 0; i < herds.length; i++) {
+            final herd = herds[i];
+
+            draggableConfigs.add(BubbleFactory.herdBubble(
+                    herdId: 'herd_${herd.id}',
+                    name: herd.name,
+                    coverImageUrl: herd.profileImageURL,
+                    backgroundColor: appTheme?.getBackgroundColor() ??
+                        Theme.of(context).colorScheme.surface,
+                    foregroundColor: appTheme?.getTextColor() ??
+                        Theme.of(context).colorScheme.onSurface,
+                    customOnTap: () {
+                      HapticFeedback.lightImpact();
+                      /* TODO: Add something here for tapping a herd bubble. 
+                    Maybe it just takes you directly to it. I don't know. */
+                    })
+                .copyWith(
+                    isDraggable: true,
+                    contentType: herd.profileImageURL != null
+                        ? BubbleContentType.herdCoverImage
+                        : BubbleContentType.icon,
+                    icon: Icons.groups));
+          }
+        });
       }
     }
 
     // Chat bubbles for both feeds - only show if chat is enabled
     if (isChatEnabled) {
       final activeChats = ref.watch(activeChatBubblesProvider);
+      final filteredChats = activeChats.where((chat) {
+        if (feedType == FeedType.alt) {
+          return chat.isAlt ?? false;
+        } else {
+          return !(chat.isAlt ?? false);
+        }
+      }).toList();
 
       final chatStartOrder = widget.showHerdBubbles ? 600 : 500;
-      for (int i = 0; i < activeChats.length; i++) {
-        final chat = activeChats[i];
-
-        // Debug: Print chat information to help troubleshoot
-        debugPrint(
-            'Creating chat bubble - ID: ${chat.id}, Name: ${chat.otherUserName}, User ID: ${chat.otherUserId}');
-
-        configs.add(BubbleFactory.chatBubble(
+      for (int i = 0; i < filteredChats.length; i++) {
+        final chat = filteredChats[i];
+        draggableConfigs.add(BubbleFactory.chatBubble(
           chatId: chat.id,
-          name: chat.otherUserName ?? "Unknown",
-          imageUrl: chat.otherUserProfileImage,
+          name: chat.otherUserName ?? "unknown",
+          imageUrl: feedType == FeedType.alt
+              ? chat.otherUserAltProfileImage ?? chat.otherUserProfileImage
+              : chat.otherUserProfileImage,
           lastMessage: chat.lastMessage,
           unreadCount: chat.unreadCount > 0 ? chat.unreadCount : null,
           isOnline: false, // You can add online status logic later
@@ -1005,17 +1052,124 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
             );
           },
         ).copyWith(
-          isDraggable: true, // Make chat bubbles draggable
-          icon: chat.otherUserProfileImage == null
-              ? Icons.chat_bubble_outline
-              : null,
-          contentType: chat.otherUserProfileImage != null
+          isDraggable: true,
+          contentType: chat.otherUserProfileImage != null ||
+                  chat.otherUserAltProfileImage != null
               ? BubbleContentType.profileImage
-              : BubbleContentType.icon,
+              : BubbleContentType.text,
         ));
       }
     }
 
-    return configs;
+    return (stationary: stationaryConfigs, draggable: draggableConfigs);
+  }
+
+  Widget _buildStackedBubbleLayout(
+    BuildContext context,
+    BoxConstraints constraints,
+    List<BubbleConfigState> stationaryConfigs,
+    List<BubbleConfigState> draggableConfigs,
+    dynamic appTheme,
+    bool isChatOverlayOpen,
+  ) {
+    // Calculate height of screen-level stationary bubbles (from stationaryConfigs)
+    double screenStationaryHeight = 0;
+    for (final config in stationaryConfigs) {
+      screenStationaryHeight += config.effectiveSize + config.padding.vertical;
+    }
+
+    // Calculate height of GlobalOverlayManager's FloatingButtonsColumn
+    // Use the same parameters as defined in router.dart (_TabScaffold)
+    final globalButtonsHeight = calculateFloatingButtonsHeight(
+      showProfileBtn: true, // From router: showProfileBtn: true
+      showSearchBtn: true, // From router: showSearchBtn: true
+      showNotificationsBtn: false, // From router: showNotificationsBtn: false
+      showChatToggle: true, // From router: showChatToggle: true
+    );
+
+    // Add some padding between sections
+    const sectionPadding = 8.0;
+    final totalStationarySpace =
+        screenStationaryHeight + globalButtonsHeight + sectionPadding;
+
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: totalStationarySpace, // Reserve space for bottom buttons
+      width: 70,
+      child: Column(
+        mainAxisSize: MainAxisSize.max, // Use full available height
+        children: [
+          // Draggable bubbles section (takes all available space)
+          if (draggableConfigs.isNotEmpty)
+            Expanded(
+              // Use Expanded instead of ConstrainedBox to fill available space
+              child: ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  return const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white,
+                      Colors.white,
+                      Colors.white,
+                      Colors.transparent,
+                    ],
+                    stops: [
+                      0.0,
+                      0.92,
+                      0.96,
+                      1.0
+                    ], // Fade at the bottom near stationary bubbles
+                  ).createShader(bounds);
+                },
+                blendMode: BlendMode.dstIn,
+                child: AbsorbPointer(
+                  absorbing: isChatOverlayOpen,
+                  child: ListView.builder(
+                    reverse: true, // Start from bottom
+                    controller: _scrollController,
+                    physics: isChatOverlayOpen
+                        ? const NeverScrollableScrollPhysics()
+                        : const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.only(
+                      bottom: sectionPadding, // Space for gradient fade
+                    ),
+                    itemCount: draggableConfigs.length,
+                    itemBuilder: (context, index) {
+                      final config = draggableConfigs[index];
+                      final isBeingDragged = _dragState?.bubbleId == config.id;
+
+                      final bubble = DraggableBubble(
+                        key: ValueKey(config.id),
+                        config: config,
+                        appTheme: appTheme,
+                        globalKey: _bubbleKeys.putIfAbsent(
+                            config.id, () => GlobalKey()),
+                        onDragStart: (globalPos) =>
+                            _startDrag(config.id, globalPos, constraints),
+                        onDragUpdate: _updateDrag,
+                        onDragEnd: _endDrag,
+                        isBeingDragged: isBeingDragged,
+                      );
+
+                      // Add padding to the last item (bottom of the list)
+                      if (config == draggableConfigs.first) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: bubble,
+                        );
+                      }
+                      return bubble;
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+          // Stationary bubbles are now handled by GlobalOverlayManager's FloatingButtonsColumn
+        ],
+      ),
+    );
   }
 }

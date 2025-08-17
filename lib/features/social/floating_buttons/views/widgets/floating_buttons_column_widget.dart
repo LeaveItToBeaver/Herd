@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 
 class FloatingButtonsColumn extends ConsumerWidget {
   final bool showProfileBtn;
@@ -27,8 +28,11 @@ class FloatingButtonsColumn extends ConsumerWidget {
     final notifications =
         ref.watch(notificationStreamProvider(ref.read(authProvider)!.uid));
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
-    final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
+    //final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
     final chatTriggeredByBubble = ref.watch(chatTriggeredByBubbleProvider);
+
+    final activeOverlay = ref.watch(activeOverlayTypeProvider);
+    final isOverlayOpen = activeOverlay != null;
 
     final bool bothButtonsVisible = showProfileBtn && showSearchBtn;
 
@@ -131,26 +135,34 @@ class FloatingButtonsColumn extends ConsumerWidget {
               borderRadius: BorderRadius.circular(30.0),
             ),
             child: Icon(
-              isChatOverlayOpen
-                  ? Icons.close // Close icon when chat overlay is open
-                  : (isChatEnabled
-                      ? Icons.chat_bubble
-                      : Icons
-                          .chat_bubble_outline), // Toggle icon when overlay is closed
-              color: isChatOverlayOpen || isChatEnabled
+              isOverlayOpen ? Icons.close : Icons.chat_bubble_outline,
+              color: isOverlayOpen || isChatEnabled
                   ? Theme.of(context).colorScheme.primary
                   : Colors.white,
             ),
             onPressed: () {
               HapticFeedback.mediumImpact();
-              if (isChatOverlayOpen) {
-                // Trigger proper close animation using the same mechanism as drag-to-close
+
+              final activeOverlay = ref.read(activeOverlayTypeProvider);
+
+              if (activeOverlay == OverlayType.chat) {
+                // For chat overlay
                 if (chatTriggeredByBubble != null) {
                   ref.read(chatClosingAnimationProvider.notifier).state =
                       chatTriggeredByBubble;
                 } else {
-                  // Fallback: close directly if no bubble ID
                   ref.read(chatOverlayOpenProvider.notifier).state = false;
+                  ref.read(activeOverlayTypeProvider.notifier).state = null;
+                }
+              } else if (activeOverlay == OverlayType.herd) {
+                // For herd overlay
+                final herdBubbleId = ref.read(herdTriggeredByBubbleProvider);
+                if (herdBubbleId != null) {
+                  ref.read(herdClosingAnimationProvider.notifier).state =
+                      herdBubbleId;
+                } else {
+                  ref.read(herdOverlayOpenProvider.notifier).state = false;
+                  ref.read(activeOverlayTypeProvider.notifier).state = null;
                 }
               } else {
                 // Toggle chat bubbles enabled/disabled
