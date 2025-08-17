@@ -20,7 +20,8 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
   String? get otherUserUsername;
   String? get otherUserProfileImage;
   String? get otherUserAltProfileImage;
-  bool get otherUserIsAlt; // Common chat properties
+  bool get otherUserIsAlt;
+  bool get isAlt; // Common chat properties
   String? get lastMessage;
   DateTime? get lastMessageTimestamp;
   int get unreadCount;
@@ -52,6 +53,7 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty(
           'otherUserAltProfileImage', otherUserAltProfileImage))
       ..add(DiagnosticsProperty('otherUserIsAlt', otherUserIsAlt))
+      ..add(DiagnosticsProperty('isAlt', isAlt))
       ..add(DiagnosticsProperty('lastMessage', lastMessage))
       ..add(DiagnosticsProperty('lastMessageTimestamp', lastMessageTimestamp))
       ..add(DiagnosticsProperty('unreadCount', unreadCount))
@@ -81,6 +83,7 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
                 other.otherUserAltProfileImage == otherUserAltProfileImage) &&
             (identical(other.otherUserIsAlt, otherUserIsAlt) ||
                 other.otherUserIsAlt == otherUserIsAlt) &&
+            (identical(other.isAlt, isAlt) || other.isAlt == isAlt) &&
             (identical(other.lastMessage, lastMessage) ||
                 other.lastMessage == lastMessage) &&
             (identical(other.lastMessageTimestamp, lastMessageTimestamp) ||
@@ -108,6 +111,7 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
       otherUserProfileImage,
       otherUserAltProfileImage,
       otherUserIsAlt,
+      isAlt,
       lastMessage,
       lastMessageTimestamp,
       unreadCount,
@@ -119,7 +123,7 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, groupId: $groupId)';
+    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, isAlt: $isAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, groupId: $groupId)';
   }
 }
 
@@ -136,6 +140,7 @@ abstract mixin class $ChatModelCopyWith<$Res> {
       String? otherUserProfileImage,
       String? otherUserAltProfileImage,
       bool otherUserIsAlt,
+      bool isAlt,
       String? lastMessage,
       DateTime? lastMessageTimestamp,
       int unreadCount,
@@ -165,6 +170,7 @@ class _$ChatModelCopyWithImpl<$Res> implements $ChatModelCopyWith<$Res> {
     Object? otherUserProfileImage = freezed,
     Object? otherUserAltProfileImage = freezed,
     Object? otherUserIsAlt = null,
+    Object? isAlt = null,
     Object? lastMessage = freezed,
     Object? lastMessageTimestamp = freezed,
     Object? unreadCount = null,
@@ -202,6 +208,10 @@ class _$ChatModelCopyWithImpl<$Res> implements $ChatModelCopyWith<$Res> {
       otherUserIsAlt: null == otherUserIsAlt
           ? _self.otherUserIsAlt
           : otherUserIsAlt // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isAlt: null == isAlt
+          ? _self.isAlt
+          : isAlt // ignore: cast_nullable_to_non_nullable
               as bool,
       lastMessage: freezed == lastMessage
           ? _self.lastMessage
@@ -340,6 +350,7 @@ extension ChatModelPatterns on ChatModel {
             String? otherUserProfileImage,
             String? otherUserAltProfileImage,
             bool otherUserIsAlt,
+            bool isAlt,
             String? lastMessage,
             DateTime? lastMessageTimestamp,
             int unreadCount,
@@ -362,6 +373,7 @@ extension ChatModelPatterns on ChatModel {
             _that.otherUserProfileImage,
             _that.otherUserAltProfileImage,
             _that.otherUserIsAlt,
+            _that.isAlt,
             _that.lastMessage,
             _that.lastMessageTimestamp,
             _that.unreadCount,
@@ -398,6 +410,7 @@ extension ChatModelPatterns on ChatModel {
             String? otherUserProfileImage,
             String? otherUserAltProfileImage,
             bool otherUserIsAlt,
+            bool isAlt,
             String? lastMessage,
             DateTime? lastMessageTimestamp,
             int unreadCount,
@@ -419,6 +432,7 @@ extension ChatModelPatterns on ChatModel {
             _that.otherUserProfileImage,
             _that.otherUserAltProfileImage,
             _that.otherUserIsAlt,
+            _that.isAlt,
             _that.lastMessage,
             _that.lastMessageTimestamp,
             _that.unreadCount,
@@ -454,6 +468,7 @@ extension ChatModelPatterns on ChatModel {
             String? otherUserProfileImage,
             String? otherUserAltProfileImage,
             bool otherUserIsAlt,
+            bool isAlt,
             String? lastMessage,
             DateTime? lastMessageTimestamp,
             int unreadCount,
@@ -475,6 +490,7 @@ extension ChatModelPatterns on ChatModel {
             _that.otherUserProfileImage,
             _that.otherUserAltProfileImage,
             _that.otherUserIsAlt,
+            _that.isAlt,
             _that.lastMessage,
             _that.lastMessageTimestamp,
             _that.unreadCount,
@@ -500,6 +516,7 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
       this.otherUserProfileImage,
       this.otherUserAltProfileImage,
       this.otherUserIsAlt = false,
+      this.isAlt = false,
       this.lastMessage,
       this.lastMessageTimestamp,
       this.unreadCount = 0,
@@ -528,6 +545,9 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool otherUserIsAlt;
+  @override
+  @JsonKey()
+  final bool isAlt;
 // Common chat properties
   @override
   final String? lastMessage;
@@ -579,6 +599,7 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty(
           'otherUserAltProfileImage', otherUserAltProfileImage))
       ..add(DiagnosticsProperty('otherUserIsAlt', otherUserIsAlt))
+      ..add(DiagnosticsProperty('isAlt', isAlt))
       ..add(DiagnosticsProperty('lastMessage', lastMessage))
       ..add(DiagnosticsProperty('lastMessageTimestamp', lastMessageTimestamp))
       ..add(DiagnosticsProperty('unreadCount', unreadCount))
@@ -608,6 +629,7 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
                 other.otherUserAltProfileImage == otherUserAltProfileImage) &&
             (identical(other.otherUserIsAlt, otherUserIsAlt) ||
                 other.otherUserIsAlt == otherUserIsAlt) &&
+            (identical(other.isAlt, isAlt) || other.isAlt == isAlt) &&
             (identical(other.lastMessage, lastMessage) ||
                 other.lastMessage == lastMessage) &&
             (identical(other.lastMessageTimestamp, lastMessageTimestamp) ||
@@ -635,6 +657,7 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
       otherUserProfileImage,
       otherUserAltProfileImage,
       otherUserIsAlt,
+      isAlt,
       lastMessage,
       lastMessageTimestamp,
       unreadCount,
@@ -646,7 +669,7 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, groupId: $groupId)';
+    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, isAlt: $isAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, groupId: $groupId)';
   }
 }
 
@@ -666,6 +689,7 @@ abstract mixin class _$ChatModelCopyWith<$Res>
       String? otherUserProfileImage,
       String? otherUserAltProfileImage,
       bool otherUserIsAlt,
+      bool isAlt,
       String? lastMessage,
       DateTime? lastMessageTimestamp,
       int unreadCount,
@@ -695,6 +719,7 @@ class __$ChatModelCopyWithImpl<$Res> implements _$ChatModelCopyWith<$Res> {
     Object? otherUserProfileImage = freezed,
     Object? otherUserAltProfileImage = freezed,
     Object? otherUserIsAlt = null,
+    Object? isAlt = null,
     Object? lastMessage = freezed,
     Object? lastMessageTimestamp = freezed,
     Object? unreadCount = null,
@@ -732,6 +757,10 @@ class __$ChatModelCopyWithImpl<$Res> implements _$ChatModelCopyWith<$Res> {
       otherUserIsAlt: null == otherUserIsAlt
           ? _self.otherUserIsAlt
           : otherUserIsAlt // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isAlt: null == isAlt
+          ? _self.isAlt
+          : isAlt // ignore: cast_nullable_to_non_nullable
               as bool,
       lastMessage: freezed == lastMessage
           ? _self.lastMessage

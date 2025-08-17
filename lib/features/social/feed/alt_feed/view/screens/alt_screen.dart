@@ -154,7 +154,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   AnimatedPadding(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(right: isChatEnabled ? 70 : 8),
+                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
                     child: altFeedState.isLoading && altFeedState.posts.isEmpty
                         ? _buildLoadingWidget()
                         : altFeedState.error != null

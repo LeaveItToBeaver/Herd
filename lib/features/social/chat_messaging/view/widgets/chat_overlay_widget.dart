@@ -36,6 +36,16 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    final currentUser = ref.read(authProvider);
+    if (currentUser != null) {
+      ref.read(initializeE2eeProvider(currentUser.uid));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentChat = ref.watch(currentChatProvider(widget.bubbleId));
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;

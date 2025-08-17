@@ -616,7 +616,7 @@ class _BubbleConfig extends BubbleConfigState {
       this.type = BubbleType.custom,
       this.contentType = BubbleContentType.icon,
       this.size,
-      this.padding = const EdgeInsets.all(4),
+      this.padding = const EdgeInsets.all(0),
       this.backgroundColor,
       this.foregroundColor,
       this.isLarge = false,

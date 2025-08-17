@@ -115,7 +115,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                   AnimatedPadding(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(right: isChatEnabled ? 70 : 8),
+                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
                     child: publicFeedState.isLoading &&
                             publicFeedState.posts.isEmpty
                         ? _buildLoadingWidget()
