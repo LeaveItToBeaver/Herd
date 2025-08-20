@@ -22,6 +22,7 @@ import '../../features/community/moderation/view/screens/pinned_post_management_
 import '../../features/user/user_profile/data/models/user_model.dart';
 import '../../features/user/user_profile/view/widgets/user_list_screen.dart';
 import '../../features/ui/navigation/utils/bottom_nav_route_observer.dart';
+import '../../features/social/chat_messaging/view/screens/chat_screen.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -775,6 +776,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             userId: extra['userId'] as String,
             listType: extra['listType'] as String,
             title: extra['title'] as String,
+          );
+        },
+      ),
+
+      // Chat Route
+      GoRoute(
+        path: '/chat',
+        name: 'chat',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final chatId = state.uri.queryParameters['chatId'];
+
+          return NoTransitionPage(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: GlobalOverlayManager(
+                showBottomNav: false,
+                showSideBubbles: false,
+                showProfileBtn: false,
+                showSearchBtn: false,
+                showNotificationsBtn: false,
+                showChatToggle: false,
+                child: ChatScreen(chatId: chatId),
+              ),
+            ),
           );
         },
       ),

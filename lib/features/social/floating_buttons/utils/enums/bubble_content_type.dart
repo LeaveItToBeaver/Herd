@@ -1,7 +1,7 @@
 enum BubbleContentType {
   icon,
   profileImage,
-  herdCoverImage,
+  herdProfileImage,
   text,
   custom,
 }

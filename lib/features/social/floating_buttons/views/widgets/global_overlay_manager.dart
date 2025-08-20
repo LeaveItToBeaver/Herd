@@ -6,6 +6,8 @@ import 'package:herdapp/features/community/herds/view/widgets/herd_overlay_widge
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
+import 'package:herdapp/features/social/floating_buttons/views/widgets/animated_reveal_overlay.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
@@ -192,38 +194,6 @@ class GlobalOverlayManager extends ConsumerWidget {
   }
 }
 
-// Widget that wraps chat overlay with explosion reveal effect
-class _ChatOverlayWithReveal extends StatelessWidget {
-  final ({
-    bool isActive,
-    Offset center,
-    double progress,
-    String bubbleId,
-  }) explosionReveal;
-  final Color backgroundColor;
-  final Widget child;
-
-  const _ChatOverlayWithReveal({
-    required this.explosionReveal,
-    required this.backgroundColor,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Create a circular reveal path
-    final revealRadius = explosionReveal.progress * 1000.0; // Max reveal radius
-
-    return ClipPath(
-      clipper: _CircularRevealClipper(
-        center: explosionReveal.center,
-        radius: revealRadius,
-      ),
-      child: child,
-    );
-  }
-}
-
 Widget _buildOverlay(
     {required OverlayType overlayType,
     required String? bubbleId,
@@ -232,11 +202,6 @@ Widget _buildOverlay(
     required VoidCallback onClose,
     required WidgetRef ref}) {
   if (bubbleId == null) return const SizedBox.shrink();
-
-  // final overlayWidget = overlayType == OverlayType.chat
-  //     ? ChatOverlayWidget(bubbleId: bubbleId, onClose: onClose)
-  //     : HerdOverlayWidget(
-  //         herdId: bubbleId.replaceFirst('herd_', ''), onClose: onClose);
 
   final overlayWidget = overlayType == OverlayType.chat
       ? ChatOverlayWidget(
@@ -272,44 +237,22 @@ Widget _buildOverlay(
           },
         );
 
+  // Use the new animated reveal overlay if explosion reveal is active
   if (explosionReveal != null && explosionReveal.isActive) {
-    return _ChatOverlayWithReveal(
-      explosionReveal: explosionReveal,
+    debugPrint(
+        "🎆 Creating AnimatedRevealOverlay for $bubbleId at center: ${explosionReveal.center}");
+    return AnimatedRevealOverlay(
+      explosionCenter: explosionReveal.center,
       backgroundColor: backgroundColor,
+      isVisible: true,
+      duration: const Duration(milliseconds: 800),
+      onAnimationComplete: () {
+        debugPrint("🎆 Reveal animation completed for $bubbleId");
+      },
       child: overlayWidget,
     );
   }
 
+  debugPrint("🎆 Using overlay without reveal animation for $bubbleId");
   return overlayWidget;
-}
-
-// Custom clipper for circular reveal effect
-class _CircularRevealClipper extends CustomClipper<Path> {
-  final Offset center;
-  final double radius;
-
-  _CircularRevealClipper({
-    required this.center,
-    required this.radius,
-  });
-
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-
-    // Create a circular path at the explosion center
-    path.addOval(
-      Rect.fromCircle(
-        center: center,
-        radius: radius,
-      ),
-    );
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant _CircularRevealClipper oldClipper) {
-    return oldClipper.center != center || oldClipper.radius != radius;
-  }
 }

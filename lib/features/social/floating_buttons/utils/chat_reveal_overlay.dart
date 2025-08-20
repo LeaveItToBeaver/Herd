@@ -16,68 +16,116 @@ class ChatRevealOverlay extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Save the canvas state
+    canvas.save();
+
     if (animationProgress <= 0.0) {
       // Cover everything before animation starts
       final paint = Paint()
         ..style = PaintingStyle.fill
         ..color = backgroundColor;
       canvas.drawRect(Offset.zero & size, paint);
+      canvas.restore();
       return;
     }
 
-    // Create a path that covers the entire canvas
-    final fullPath = Path()..addRect(Offset.zero & size);
+    if (animationProgress >= 1.0) {
+      // Animation complete - don't draw anything (fully revealed)
+      canvas.restore();
+      return;
+    }
 
-    // Create expanding circles that will be cut out to reveal the content
+    // Calculate the maximum radius needed to cover the entire screen from any point
+    final maxRadius = math.sqrt(math.pow(
+                math.max(explosionCenter.dx, size.width - explosionCenter.dx),
+                2) +
+            math.pow(
+                math.max(explosionCenter.dy, size.height - explosionCenter.dy),
+                2)) +
+        50;
+
+    // Create the reveal clip path
     final revealPath = Path();
 
-    // Multiple expanding circles for smooth reveal effect
-    final circleCount = 3;
-    for (int i = 0; i < circleCount; i++) {
-      final staggerDelay = i * 0.2;
-      final adjustedProgress =
-          ((animationProgress - staggerDelay) / (1.0 - staggerDelay))
-              .clamp(0.0, 1.0);
+    // Main reveal circle with easing
+    final easedProgress = _easeOutCubic(animationProgress);
+    final currentRadius = maxRadius * easedProgress;
 
-      if (adjustedProgress <= 0) continue;
+    revealPath.addOval(Rect.fromCircle(
+      center: explosionCenter,
+      radius: currentRadius,
+    ));
 
-      // Calculate radius that will eventually cover the entire screen
-      final maxRadius =
-          math.sqrt(math.pow(size.width, 2) + math.pow(size.height, 2)) + 100;
-      final currentRadius = maxRadius * _easeOutQuart(adjustedProgress);
+    // Add secondary ripple circles for more dramatic effect
+    if (animationProgress > 0.2) {
+      final secondaryProgress =
+          ((animationProgress - 0.2) / 0.8).clamp(0.0, 1.0);
+      final secondaryRadius =
+          maxRadius * _easeOutQuart(secondaryProgress) * 0.7;
 
-      // Add circle to reveal path
       revealPath.addOval(Rect.fromCircle(
         center: explosionCenter,
-        radius: currentRadius,
+        radius: secondaryRadius,
       ));
     }
 
-    // Subtract the reveal circles from the full canvas to create holes
-    final maskPath =
-        Path.combine(PathOperation.difference, fullPath, revealPath);
+    // Clip the canvas to the reveal area
+    canvas.clipPath(revealPath);
 
-    // Draw the mask that covers everything except the revealed areas
-    final paint = Paint()..style = PaintingStyle.fill;
+    // Draw background that will be clipped
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = backgroundColor.withValues(alpha: 1.0 - easedProgress);
 
-    canvas.drawPath(maskPath, paint);
+    canvas.drawRect(Offset.zero & size, paint);
+
+    // Add ripple rings effect
+    _drawRippleRings(canvas, size, easedProgress);
+
+    canvas.restore();
 
     debugPrint(
-        "🎨 Drew mask path with ${revealPath.getBounds()} reveal bounds");
+        "🎨 Drew reveal effect: progress=$animationProgress, radius=$currentRadius");
+  }
 
-    // Add subtle glow around the reveal edges
-    if (animationProgress > 0.3) {
-      final glowPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+  void _drawRippleRings(Canvas canvas, Size size, double progress) {
+    if (progress < 0.1) return;
 
-      canvas.drawPath(revealPath, glowPaint);
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    // Draw multiple expanding rings
+    for (int i = 0; i < 3; i++) {
+      final ringDelay = i * 0.15;
+      final ringProgress =
+          ((progress - ringDelay) / (1.0 - ringDelay)).clamp(0.0, 1.0);
+
+      if (ringProgress <= 0) continue;
+
+      final maxRadius = math.sqrt(math.pow(
+              math.max(explosionCenter.dx, size.width - explosionCenter.dx),
+              2) +
+          math.pow(
+              math.max(explosionCenter.dy, size.height - explosionCenter.dy),
+              2));
+
+      final ringRadius =
+          maxRadius * _easeOutQuart(ringProgress) * (0.8 + i * 0.1);
+      final alpha = (1.0 - ringProgress) * 0.3;
+
+      ringPaint.color = backgroundColor.withValues(alpha: alpha);
+
+      canvas.drawCircle(explosionCenter, ringRadius, ringPaint);
     }
   }
 
   double _easeOutQuart(double t) {
     return 1 - math.pow(1 - t, 4).toDouble();
+  }
+
+  double _easeOutCubic(double t) {
+    return 1 - math.pow(1 - t, 3).toDouble();
   }
 
   @override

@@ -19,7 +19,6 @@ import 'package:herdapp/features/social/floating_buttons/utils/super_stretchy_pa
 import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/bubble_config_state.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/drag_state.dart';
-import 'package:http/http.dart';
 
 class SideBubblesOverlay extends ConsumerStatefulWidget {
   final bool showProfileBtn;
@@ -361,7 +360,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _snapBackController?.dispose();
     _snapBackController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1200), // Increased from 800ms
       vsync: this,
     );
 
@@ -431,6 +430,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           Offset(_dragState!.bubbleConfig.effectiveSize / 2,
               _dragState!.bubbleConfig.effectiveSize / 2);
 
+      debugPrint(
+          "🎆 Setting explosion reveal for chat at center: $bubbleGlobalCenter, bubbleId: ${_dragState!.bubbleId}");
       ref.read(explosionRevealProvider.notifier).state = (
         isActive: true,
         center: bubbleGlobalCenter,
@@ -441,7 +442,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _chatMorphController?.dispose();
     _chatMorphController = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 800), // Increased from 500ms
       vsync: this,
     );
 
@@ -463,7 +464,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _snapBackController?.dispose();
     _snapBackController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 600), // Increased from 400ms
       vsync: this,
     );
 
@@ -993,7 +994,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
             draggableConfigs.add(BubbleFactory.herdBubble(
                     herdId: 'herd_${herd.id}',
                     name: herd.name,
-                    coverImageUrl: herd.profileImageURL,
+                    profileImageUrl: herd.profileImageURL,
                     backgroundColor: appTheme?.getBackgroundColor() ??
                         Theme.of(context).colorScheme.surface,
                     foregroundColor: appTheme?.getTextColor() ??
@@ -1006,7 +1007,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                 .copyWith(
                     isDraggable: true,
                     contentType: herd.profileImageURL != null
-                        ? BubbleContentType.herdCoverImage
+                        ? BubbleContentType.herdProfileImage
                         : BubbleContentType.icon,
                     icon: Icons.groups));
           }
@@ -1019,9 +1020,9 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       final activeChats = ref.watch(activeChatBubblesProvider);
       final filteredChats = activeChats.where((chat) {
         if (feedType == FeedType.alt) {
-          return chat.isAlt ?? false;
+          return chat.isAlt;
         } else {
-          return !(chat.isAlt ?? false);
+          return !chat.isAlt;
         }
       }).toList();
 
@@ -1044,11 +1045,10 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           order: chatStartOrder + i,
           customOnTap: () {
             HapticFeedback.lightImpact();
-            // TODO: Open chat directly or handle chat tap
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(
-                      'Chat with ${chat.otherUserName ?? "Unknown"} tapped')),
+            // Navigate to chat screen
+            context.pushNamed(
+              'chat',
+              queryParameters: {'chatId': chat.id},
             );
           },
         ).copyWith(

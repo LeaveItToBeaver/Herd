@@ -105,7 +105,7 @@ class BubbleFactory {
   static BubbleConfigState herdBubble({
     required String herdId,
     required String name,
-    String? coverImageUrl,
+    String? profileImageUrl,
     Color? backgroundColor,
     Color? foregroundColor,
     int order = 300,
@@ -115,11 +115,11 @@ class BubbleFactory {
     return BubbleConfigState(
       id: herdId,
       type: BubbleType.custom,
-      contentType: coverImageUrl != null
-          ? BubbleContentType.herdCoverImage
+      contentType: profileImageUrl != null
+          ? BubbleContentType.herdProfileImage
           : BubbleContentType.text,
       text: name.isNotEmpty ? name[0].toUpperCase() : '?',
-      imageUrl: coverImageUrl,
+      imageUrl: profileImageUrl,
       routeName: customOnTap == null ? 'herd' : null,
       routeParams: customOnTap == null ? {'id': herdId} : null,
       onTap: customOnTap,
@@ -206,21 +206,24 @@ class BubbleFactory {
     EdgeInsets? padding,
     VoidCallback? customOnTap,
   }) {
-    return chatBubble(
+    return BubbleConfigState(
+      id: chatId,
+      type: BubbleType.chat,
+      contentType: (imageUrl != null && imageUrl.isNotEmpty)
+          ? BubbleContentType.profileImage
+          : BubbleContentType.text,
+      imageUrl: imageUrl, // Set the image URL
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      onTap: customOnTap,
+      isDraggable: true,
+      order: order,
+      isChatBubble: true,
       chatId: chatId,
-      name: name,
-      imageUrl: imageUrl,
       lastMessage: lastMessage,
       unreadCount: unreadCount,
       isOnline: isOnline,
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
-      order: order,
-      padding: padding ?? const EdgeInsets.all(4),
-      customOnTap: customOnTap,
-    ).copyWith(
-      type: BubbleType.draggable,
-      isDraggable: true,
+      icon: Icons.person, // Fallback icon
     );
   }
 
