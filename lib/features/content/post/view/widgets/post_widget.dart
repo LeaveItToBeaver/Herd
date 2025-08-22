@@ -35,34 +35,31 @@ class _PostWidgetState extends ConsumerState<PostWidget>
   @override
   void initState() {
     super.initState();
-    _hasInitializedInteraction = true;
+    // Use a Future to avoid modifying state during build
+    Future.microtask(() {
+      _initializePostInteraction();
+    });
   }
 
-  // void _initializePostInteraction() {
-  //   // Only initialize once to avoid repeated calls
-  //   if (!_hasInitializedInteraction && mounted) {
-  //     final user = ref.read(currentUserProvider);
-  //     final userId = user.userId;
-  //     if (userId != null) {
-  //       // Use a Future to avoid modifying state during build
-  //       Future.microtask(() {
-  //         if (mounted) {
-  //           ref
-  //               .read(postInteractionsWithPrivacyProvider(PostParams(
-  //                       id: widget.post.id, isAlt: widget.post.isAlt))
-  //                   .notifier)
-  //               .initializeState(userId);
-  //           // Now we can mark it as initialized
-  //           if (mounted) {
-  //             setState(() {
-  //               _hasInitializedInteraction = true;
-  //             });
-  //           }
-  //         }
-  //       });
-  //     }
-  //   }
-  // }
+  void _initializePostInteraction() {
+    // Only initialize once to avoid repeated calls
+    if (!_hasInitializedInteraction && mounted) {
+      final user = ref.read(currentUserProvider);
+      final userId = user.userId;
+      if (userId != null) {
+        ref
+            .read(postInteractionsWithPrivacyProvider(
+                    PostParams(id: widget.post.id, isAlt: widget.post.isAlt))
+                .notifier)
+            .initializeState(userId);
+
+        // Mark as initialized to prevent future calls
+        setState(() {
+          _hasInitializedInteraction = true;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +69,6 @@ class _PostWidgetState extends ConsumerState<PostWidget>
     final user = ref.read(currentUserProvider);
     final bool userAllowsNsfw = user.allowNSFW ?? false;
     final bool userPrefersBlur = user.blurNSFW ?? true;
-    // final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-    //     PostParams(id: widget.post.id, isAlt: widget.post.isAlt)));
 
     // Format the timestamp here, so it's always available
 

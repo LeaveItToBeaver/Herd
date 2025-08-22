@@ -108,9 +108,6 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   Animation<double>? _chatMorphAnimation;
   Animation<double>? _chatScaleAnimation;
 
-  AnimationController? _chatCloseController;
-  Animation<double>? _chatCloseAnimation;
-
   // Chat visibility animation controller
   AnimationController? _chatVisibilityController;
   Animation<double>? _chatVisibilityAnimation;
@@ -167,29 +164,50 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
       final newState = Map<String, VoidCallback>.from(state);
 
-      // Register callbacks for chat bubbles
+      // Register close animation callbacks for chat bubbles
       final activeChats = ref.read(activeChatBubblesProvider);
       for (final chat in activeChats) {
-        newState[chat.id] = _animateFromChat; // Use chat-specific callback
+        newState[chat.id] =
+            () => _startCloseAnimation(chat.id, false); // false = chat
+        newState['${chat.id}_snapback'] =
+            () => _snapBackAfterClose(); // Snap back callback
       }
 
-      // Register callbacks for herd bubbles with DIFFERENT callback
+      // Register close animation callbacks for herd bubbles
       final currentUser = ref.read(authProvider);
       if (currentUser != null) {
-        final userHerds = ref.read(profileUserHerdsProvider(currentUser.uid));
-        userHerds.whenData((herds) {
+        final userHerdsAsync =
+            ref.watch(profileUserHerdsProvider(currentUser.uid));
+        if (userHerdsAsync.hasValue && userHerdsAsync.value != null) {
+          final herds = userHerdsAsync.value!;
           for (final herd in herds) {
-            newState['herd_${herd.id}'] =
-                _animateFromHerd; // Use herd-specific callback
+            final herdBubbleId = 'herd_${herd.id}';
+            newState[herdBubbleId] =
+                () => _startCloseAnimation(herdBubbleId, true); // true = herd
+            newState['${herdBubbleId}_snapback'] =
+                () => _snapBackAfterCloseHerd(); // Snap back callback
           }
-        });
+        }
       }
 
       return newState;
     });
   }
 
-  void _animateFromHerd() {
+  /// Unified close animation method for both chat and herd bubbles
+  void _startCloseAnimation(String bubbleId, bool isHerd) {
+    debugPrint("🎆 _startCloseAnimation called for $bubbleId, isHerd: $isHerd");
+
+    // Check if animation is already in progress to prevent duplicate calls
+    final currentReveal = ref.read(explosionRevealProvider);
+    if (currentReveal != null &&
+        currentReveal.isActive &&
+        currentReveal.isClosing) {
+      debugPrint(
+          "🎆 Close animation already in progress, ignoring duplicate call");
+      return;
+    }
+
     // Restore preserved drag state if we don't have current drag state
     if (_dragState == null && _preservedDragState != null) {
       setState(() {
@@ -199,15 +217,51 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     }
 
     if (_dragState == null) {
-      // No drag state to animate from, just close directly
-      ref.read(herdOverlayOpenProvider.notifier).state = false;
-      ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
+      debugPrint("🎆 No drag state, closing overlay directly");
+      // No animation, just close directly
+      if (isHerd) {
+        ref.read(herdOverlayOpenProvider.notifier).state = false;
+        ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
+      } else {
+        ref.read(chatOverlayOpenProvider.notifier).state = false;
+        ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
+      }
       ref.read(activeOverlayTypeProvider.notifier).state = null;
-      ref.read(explosionRevealProvider.notifier).state = null;
       return;
     }
 
-    closeOverlayWithAnimation(OverlayType.herd);
+    // Calculate the bubble center for the animation
+    final containerRenderBox = context.findRenderObject() as RenderBox?;
+    if (containerRenderBox != null) {
+      final containerGlobalPos = containerRenderBox.localToGlobal(Offset.zero);
+      final bubbleGlobalCenter = containerGlobalPos +
+          _dragState!.currentPosition +
+          Offset(_dragState!.bubbleConfig.effectiveSize / 2,
+              _dragState!.bubbleConfig.effectiveSize / 2);
+
+      // Set the closing animation state - AnimatedRevealOverlay will handle the animation
+      ref.read(explosionRevealProvider.notifier).state = (
+        isActive: true,
+        center: bubbleGlobalCenter,
+        progress: 1.0, // Start at fully revealed for closing
+        bubbleId: _dragState!.bubbleId,
+        isClosing: true, // Mark as closing animation
+      );
+    }
+  }
+
+  void _snapBackAfterCloseHerd() {
+    debugPrint("🎆 _snapBackAfterCloseHerd called");
+
+    // Close overlay states
+    ref.read(herdOverlayOpenProvider.notifier).state = false;
+    ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
+    ref.read(activeOverlayTypeProvider.notifier).state = null;
+
+    // Snap bubble back to original position
+    if (_dragState != null) {
+      _snapBackToOriginalPosition();
+    }
   }
 
   @override
@@ -215,7 +269,6 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     _scrollController.dispose();
     _snapBackController?.dispose();
     _chatMorphController?.dispose();
-    _chatCloseController?.dispose();
     _chatVisibilityController?.dispose();
     _hapticController.dispose();
     super.dispose();
@@ -229,8 +282,18 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final renderBox = key!.currentContext!.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
+    final currentUser = ref.read(authProvider);
+    final userHerdsAsync = currentUser != null
+        ? ref.watch(profileUserHerdsProvider(currentUser.uid))
+        : null;
+
     final configs = _createBubbleConfigs(
-        context, ref, ref.watch(currentFeedProvider), null);
+        context,
+        ref,
+        ref.watch(currentFeedProvider),
+        null,
+        ref.read(activeChatBubblesProvider),
+        userHerdsAsync);
     final allBubbleConfigs = [...configs.stationary, ...configs.draggable];
     final bubbleConfig = allBubbleConfigs.firstWhere((c) => c.id == bubbleId);
 
@@ -360,7 +423,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _snapBackController?.dispose();
     _snapBackController = AnimationController(
-      duration: const Duration(milliseconds: 1200), // Increased from 800ms
+      duration:
+          const Duration(milliseconds: 800), // Faster for regular snap back
       vsync: this,
     );
 
@@ -437,6 +501,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         center: bubbleGlobalCenter,
         progress: 0.0,
         bubbleId: _dragState!.bubbleId,
+        isClosing: false, // Opening animation
       );
     }
 
@@ -498,6 +563,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
             center: bubbleGlobalCenter,
             progress: explosionProgress,
             bubbleId: _dragState!.bubbleId,
+            isClosing: false, // Opening animation
           );
         }
       }
@@ -552,88 +618,6 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     _snapBackController!.forward();
   }
 
-  void closeOverlayWithAnimation(OverlayType overlayType) {
-    if (_dragState == null) return;
-
-    final containerRenderBox = context.findRenderObject() as RenderBox?;
-    if (containerRenderBox != null) {
-      final containerGlobalPos = containerRenderBox.localToGlobal(Offset.zero);
-      final bubbleGlobalCenter = containerGlobalPos +
-          _dragState!.currentPosition +
-          Offset(_dragState!.bubbleConfig.effectiveSize / 2,
-              _dragState!.bubbleConfig.effectiveSize / 2);
-
-      ref.read(explosionRevealProvider.notifier).state = (
-        isActive: true,
-        center: bubbleGlobalCenter,
-        progress: 1.0, // Start fully revealed
-        bubbleId: _dragState!.bubbleId,
-      );
-    }
-
-    _chatCloseController?.dispose();
-    _chatCloseController = AnimationController(
-      duration: const Duration(milliseconds: 400), // Faster close
-      vsync: this,
-    );
-
-    _chatCloseAnimation = Tween<double>(
-      begin: 1.0, // Start from fully revealed
-      end: 0.0, // Contract to nothing
-    ).animate(CurvedAnimation(
-      parent: _chatCloseController!,
-      curve: Curves.easeInQuart, // Quick close curve
-    ));
-
-    _chatCloseAnimation!.addListener(() {
-      if (_dragState != null) {
-        setState(() {
-          // Force updates during close animation
-        });
-
-        final reverseProgress = _chatCloseAnimation!.value;
-
-        // Convert relative position to global screen position
-        final containerRenderBox = context.findRenderObject() as RenderBox?;
-        if (containerRenderBox != null) {
-          final containerGlobalPos =
-              containerRenderBox.localToGlobal(Offset.zero);
-          final bubbleGlobalCenter = containerGlobalPos +
-              _dragState!.currentPosition +
-              Offset(_dragState!.bubbleConfig.effectiveSize / 2,
-                  _dragState!.bubbleConfig.effectiveSize / 2);
-
-          ref.read(explosionRevealProvider.notifier).state = (
-            isActive: true,
-            center: bubbleGlobalCenter,
-            progress: reverseProgress, // Contracts from 1.0 to 0.0
-            bubbleId: _dragState!.bubbleId,
-          );
-        }
-      }
-    });
-
-    _chatCloseController!.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        // Close the appropriate overlay type
-        if (overlayType == OverlayType.chat) {
-          ref.read(chatOverlayOpenProvider.notifier).state = false;
-          ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
-        } else {
-          ref.read(herdOverlayOpenProvider.notifier).state = false;
-          ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
-        }
-
-        ref.read(activeOverlayTypeProvider.notifier).state = null;
-        ref.read(explosionRevealProvider.notifier).state = null;
-
-        _snapBackToOriginalPosition();
-      }
-    });
-
-    _chatCloseController!.forward();
-  }
-
   void _snapBackToOriginalPosition() {
     if (_dragState == null) return;
 
@@ -647,7 +631,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _snapBackController?.dispose();
     _snapBackController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 600), // Slightly slower snap back
       vsync: this,
     );
 
@@ -671,6 +655,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     _snapBackController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
+        // Snap back completed - clean up drag state
         setState(() {
           _dragState = null;
           _overlayWidth = 70.0;
@@ -683,24 +668,18 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     _snapBackController!.forward();
   }
 
-  void _animateFromChat() {
-    // Restore preserved drag state if we don't have current drag state
-    if (_dragState == null && _preservedDragState != null) {
-      setState(() {
-        _dragState = _preservedDragState;
-        _preservedDragState = null;
-      });
-    }
+  void _snapBackAfterClose() {
+    debugPrint("🎆 _snapBackAfterClose called");
 
-    if (_dragState == null) {
-      // No drag state to animate from, just close directly
-      ref.read(chatOverlayOpenProvider.notifier).state = false;
-      ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
-      ref.read(explosionRevealProvider.notifier).state = null;
-      return;
-    }
+    // Close overlay states
+    ref.read(chatOverlayOpenProvider.notifier).state = false;
+    ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
+    ref.read(activeOverlayTypeProvider.notifier).state = null;
 
-    closeOverlayWithAnimation(OverlayType.chat);
+    // Snap bubble back to original position
+    if (_dragState != null) {
+      _snapBackToOriginalPosition();
+    }
   }
 
   @override
@@ -710,11 +689,41 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     final appTheme = customization?.appTheme;
     final backgroundColor = appTheme?.getBackgroundColor() ??
         Theme.of(context).scaffoldBackgroundColor;
-    final isChatOverlayOpen =
-        ref.watch(chatOverlayOpenProvider); // Watch chat overlay state
+    final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
 
-    // Watch active chats and update animation callbacks when they change
+    // Use ref.listen outside of build in initState/didChangeDependencies
+    // Only watch the chat bubbles for rebuilding the bubble list
     final activeChats = ref.watch(activeChatBubblesProvider);
+
+    // Get user herds once to avoid repeated provider access during animation
+    final currentUser = ref.read(authProvider);
+    final userHerdsAsync = currentUser != null &&
+            widget.showHerdBubbles &&
+            feedType == FeedType.alt
+        ? ref.watch(profileUserHerdsProvider(currentUser.uid))
+        : null;
+
+    // Use separate listeners that don't trigger rebuilds - only handle the close animation trigger
+    ref.listen<String?>(chatClosingAnimationProvider, (previous, next) {
+      if (next != null) {
+        debugPrint('Chat closing animation requested for bubble ID: $next');
+        // Clear the provider state to prevent re-triggering
+        ref.read(chatClosingAnimationProvider.notifier).state = null;
+        // Only call the unified close animation method - no duplicate calls
+        _startCloseAnimation(next, false); // false = chat
+      }
+    });
+
+    ref.listen<String?>(herdClosingAnimationProvider, (previous, next) {
+      if (next != null) {
+        debugPrint('Herd closing animation requested for bubble ID: $next');
+        // Clear the provider state to prevent re-triggering
+        ref.read(herdClosingAnimationProvider.notifier).state = null;
+        // Only call the unified close animation method - no duplicate calls
+        _startCloseAnimation(next, true); // true = herd
+      }
+    });
+
     ref.listen(activeChatBubblesProvider, (previous, next) {
       if (previous != next) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -725,39 +734,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       }
     });
 
-    // Listen for chat closing animation requests
-    final chatClosingBubbleId = ref.watch(chatClosingAnimationProvider);
-    if (chatClosingBubbleId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        debugPrint(
-            'Chat closing animation requested for bubble ID: $chatClosingBubbleId');
-        ref.read(chatClosingAnimationProvider.notifier).state = null;
-        final callbacks = ref.read(bubbleAnimationCallbackProvider);
-        final callback = callbacks[chatClosingBubbleId];
-        if (callback != null) {
-          debugPrint(
-              'Found callback for bubble ID: $chatClosingBubbleId, executing...');
-          callback();
-        } else {
-          debugPrint('No callback found for bubble ID: $chatClosingBubbleId');
-          debugPrint('Available callback IDs: ${callbacks.keys.toList()}');
-        }
-      });
-    }
-
-    final herdClosingBubbleId = ref.watch(herdClosingAnimationProvider);
-    if (herdClosingBubbleId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(herdClosingAnimationProvider.notifier).state = null;
-        final callbacks = ref.read(bubbleAnimationCallbackProvider);
-        final callback = callbacks[herdClosingBubbleId];
-        if (callback != null) {
-          callback();
-        }
-      });
-    }
-
-    final configs = _createBubbleConfigs(context, ref, feedType, appTheme);
+    final configs = _createBubbleConfigs(
+        context, ref, feedType, appTheme, activeChats, userHerdsAsync);
     final stationaryConfigs = configs.stationary;
     final draggableConfigs = configs.draggable;
 
@@ -824,9 +802,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   Widget _buildDraggedBubble(BubbleConfigState config) {
     final scale = _chatScaleAnimation?.value ?? 1.0;
     final explosionProgress = _chatMorphAnimation?.value ?? 0.0;
-    final closeProgress = _chatCloseAnimation?.value ?? 1.0;
 
-    // Calculate effective animations - consider both opening and closing
+    // Calculate effective animations for opening animation only
     double effectiveScale = 1.0;
     double effectiveExplosionProgress = 0.0;
 
@@ -834,10 +811,6 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       // Opening: use forward animation
       effectiveScale = scale;
       effectiveExplosionProgress = explosionProgress;
-    } else if (_chatCloseAnimation != null) {
-      // Closing: use reverse animation
-      effectiveScale = 1.0 + (scale - 1.0) * closeProgress;
-      effectiveExplosionProgress = explosionProgress * closeProgress;
     }
 
     // If we're in explosion mode (progress > 0), show explosion effect
@@ -904,8 +877,13 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   }
 
   ({List<BubbleConfigState> stationary, List<BubbleConfigState> draggable})
-      _createBubbleConfigs(BuildContext context, WidgetRef ref,
-          FeedType feedType, dynamic appTheme) {
+      _createBubbleConfigs(
+          BuildContext context,
+          WidgetRef ref,
+          FeedType feedType,
+          dynamic appTheme,
+          List<dynamic> activeChats,
+          dynamic userHerdsAsync) {
     final List<BubbleConfigState> stationaryConfigs = [];
     final List<BubbleConfigState> draggableConfigs = [];
 
@@ -981,43 +959,37 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     }
 
     // Community/Chat bubbles (order 500+) - DRAGGABLE - only show if chat is enabled
-    if (widget.showHerdBubbles && isChatEnabled && feedType == FeedType.alt) {
-      final currentUser = ref.read(authProvider);
+    if (userHerdsAsync != null &&
+        userHerdsAsync.hasValue &&
+        userHerdsAsync.value != null) {
+      final herds = userHerdsAsync.value!;
+      for (int i = 0; i < herds.length; i++) {
+        final herd = herds[i];
 
-      if (currentUser != null) {
-        final userherds = ref.watch(profileUserHerdsProvider(currentUser.uid));
-
-        userherds.whenData((herds) {
-          for (int i = 0; i < herds.length; i++) {
-            final herd = herds[i];
-
-            draggableConfigs.add(BubbleFactory.herdBubble(
-                    herdId: 'herd_${herd.id}',
-                    name: herd.name,
-                    profileImageUrl: herd.profileImageURL,
-                    backgroundColor: appTheme?.getBackgroundColor() ??
-                        Theme.of(context).colorScheme.surface,
-                    foregroundColor: appTheme?.getTextColor() ??
-                        Theme.of(context).colorScheme.onSurface,
-                    customOnTap: () {
-                      HapticFeedback.lightImpact();
-                      /* TODO: Add something here for tapping a herd bubble. 
-                    Maybe it just takes you directly to it. I don't know. */
-                    })
-                .copyWith(
-                    isDraggable: true,
-                    contentType: herd.profileImageURL != null
-                        ? BubbleContentType.herdProfileImage
-                        : BubbleContentType.icon,
-                    icon: Icons.groups));
-          }
-        });
+        draggableConfigs.add(BubbleFactory.herdBubble(
+                herdId: 'herd_${herd.id}',
+                name: herd.name,
+                profileImageUrl: herd.profileImageURL,
+                backgroundColor: appTheme?.getBackgroundColor() ??
+                    Theme.of(context).colorScheme.surface,
+                foregroundColor: appTheme?.getTextColor() ??
+                    Theme.of(context).colorScheme.onSurface,
+                customOnTap: () {
+                  HapticFeedback.lightImpact();
+                  /* TODO: Add something here for tapping a herd bubble. 
+                Maybe it just takes you directly to it. I don't know. */
+                })
+            .copyWith(
+                isDraggable: true,
+                contentType: herd.profileImageURL != null
+                    ? BubbleContentType.herdProfileImage
+                    : BubbleContentType.icon,
+                icon: Icons.groups));
       }
     }
 
     // Chat bubbles for both feeds - only show if chat is enabled
     if (isChatEnabled) {
-      final activeChats = ref.watch(activeChatBubblesProvider);
       final filteredChats = activeChats.where((chat) {
         if (feedType == FeedType.alt) {
           return chat.isAlt;

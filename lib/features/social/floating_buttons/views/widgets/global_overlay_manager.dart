@@ -7,7 +7,6 @@ import 'package:herdapp/features/social/floating_buttons/providers/chat_animatio
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 import 'package:herdapp/features/social/floating_buttons/views/widgets/animated_reveal_overlay.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
@@ -129,38 +128,28 @@ class GlobalOverlayManager extends ConsumerWidget {
                         ? chatTriggeredByBubble
                         : herdTriggeredByBubble;
 
-                    // Handle close for appropriate overlay type
-                    if (activeOverlayType == OverlayType.chat) {
-                      final callbacks =
-                          ref.read(bubbleAnimationCallbackProvider);
-                      final callback = callbacks[bubbleId];
+                    debugPrint(
+                        "🎆 GlobalOverlayManager onClose called for $bubbleId");
 
-                      if (callback != null) {
+                    // Immediately start closing animation by setting explosion reveal to closing state
+                    final currentReveal = ref.read(explosionRevealProvider);
+                    if (currentReveal != null && currentReveal.isActive) {
+                      // Update to closing state immediately for instant response
+                      ref.read(explosionRevealProvider.notifier).state = (
+                        isActive: true,
+                        center: currentReveal.center,
+                        progress: currentReveal.progress,
+                        bubbleId: currentReveal.bubbleId,
+                        isClosing: true, // Switch to closing mode instantly
+                      );
+                    } else {
+                      // No reveal animation, trigger direct close
+                      if (activeOverlayType == OverlayType.chat) {
                         ref.read(chatClosingAnimationProvider.notifier).state =
                             bubbleId;
-                      } else {
-                        ref.read(chatOverlayOpenProvider.notifier).state =
-                            false;
-                        ref.read(chatTriggeredByBubbleProvider.notifier).state =
-                            null;
-                        ref.read(activeOverlayTypeProvider.notifier).state =
-                            null;
-                      }
-                    } else if (activeOverlayType == OverlayType.herd) {
-                      final callbacks =
-                          ref.read(bubbleAnimationCallbackProvider);
-                      final callback = callbacks[bubbleId];
-
-                      if (callback != null) {
+                      } else if (activeOverlayType == OverlayType.herd) {
                         ref.read(herdClosingAnimationProvider.notifier).state =
                             bubbleId;
-                      } else {
-                        ref.read(herdOverlayOpenProvider.notifier).state =
-                            false;
-                        ref.read(herdTriggeredByBubbleProvider.notifier).state =
-                            null;
-                        ref.read(activeOverlayTypeProvider.notifier).state =
-                            null;
                       }
                     }
                   },
@@ -206,48 +195,36 @@ Widget _buildOverlay(
   final overlayWidget = overlayType == OverlayType.chat
       ? ChatOverlayWidget(
           bubbleId: bubbleId,
-          onClose: () {
-            // Use specific animation provider for chat
-            final callbacks = ref.read(bubbleAnimationCallbackProvider);
-            final callback = callbacks[bubbleId];
-
-            if (callback != null) {
-              ref.read(chatClosingAnimationProvider.notifier).state = bubbleId;
-            } else {
-              ref.read(chatOverlayOpenProvider.notifier).state = false;
-              ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
-              ref.read(activeOverlayTypeProvider.notifier).state = null;
-            }
-          },
+          onClose: onClose, // Pass the callback directly
         )
       : HerdOverlayWidget(
           herdId: bubbleId.replaceFirst('herd_', ''),
-          onClose: () {
-            // Use specific animation provider for herd
-            final callbacks = ref.read(bubbleAnimationCallbackProvider);
-            final callback = callbacks[bubbleId];
-
-            if (callback != null) {
-              ref.read(herdClosingAnimationProvider.notifier).state = bubbleId;
-            } else {
-              ref.read(herdOverlayOpenProvider.notifier).state = false;
-              ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
-              ref.read(activeOverlayTypeProvider.notifier).state = null;
-            }
-          },
+          onClose: onClose, // Pass the callback directly
         );
 
-  // Use the new animated reveal overlay if explosion reveal is active
+  // Always use AnimatedRevealOverlay for consistent animation handling
   if (explosionReveal != null && explosionReveal.isActive) {
+    final isClosing = explosionReveal.isClosing;
     debugPrint(
-        "🎆 Creating AnimatedRevealOverlay for $bubbleId at center: ${explosionReveal.center}");
+        "🎆 Creating AnimatedRevealOverlay for $bubbleId at center: ${explosionReveal.center}, isClosing: $isClosing");
+
     return AnimatedRevealOverlay(
       explosionCenter: explosionReveal.center,
       backgroundColor: backgroundColor,
-      isVisible: true,
-      duration: const Duration(milliseconds: 800),
+      isVisible: !isClosing, // true for opening, false for closing
+      isReversed: isClosing,
+      duration: const Duration(milliseconds: 800), // Consistent 800ms duration
       onAnimationComplete: () {
-        debugPrint("🎆 Reveal animation completed for $bubbleId");
+        debugPrint(
+            "🎆 Reveal animation completed for $bubbleId, isClosing: $isClosing");
+        if (isClosing) {
+          // Animation finished, now trigger snap back
+          final callbacks = ref.read(bubbleAnimationCallbackProvider);
+          final snapBackCallback = callbacks['${bubbleId}_snapback'];
+          if (snapBackCallback != null) {
+            snapBackCallback();
+          }
+        }
       },
       child: overlayWidget,
     );

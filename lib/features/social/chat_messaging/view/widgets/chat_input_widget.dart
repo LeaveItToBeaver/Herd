@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
@@ -20,12 +21,16 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
   final FocusNode _focusNode = FocusNode();
   bool _hasText = false;
 
+  // Debounce text updates to reduce provider calls
+  Timer? _textDebounceTimer;
+  Timer? _typingTimer;
+
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController();
 
-    // Listen to text changes
+    // Listen to text changes with debouncing
     _textController.addListener(() {
       final hasText = _textController.text.trim().isNotEmpty;
       if (hasText != _hasText) {
@@ -34,20 +39,41 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
         });
       }
 
-      final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
-      notifier.updateText(_textController.text);
+      // Debounce text updates to provider to reduce rebuild frequency
+      _textDebounceTimer?.cancel();
+      _textDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+        final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
+        notifier.updateText(_textController.text);
+      });
+
+      // Handle typing indicator with separate debouncing
+      _typingTimer?.cancel();
+      if (_textController.text.isNotEmpty) {
+        final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
+        notifier.setTyping(true);
+
+        // Stop typing indicator after 2 seconds of inactivity
+        _typingTimer = Timer(const Duration(seconds: 2), () {
+          notifier.setTyping(false);
+        });
+      }
     });
 
     // Listen to focus changes for typing indicator
     _focusNode.addListener(() {
       final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
-      notifier
-          .setTyping(_focusNode.hasFocus && _textController.text.isNotEmpty);
+      if (!_focusNode.hasFocus) {
+        notifier.setTyping(false);
+      } else if (_textController.text.isNotEmpty) {
+        notifier.setTyping(true);
+      }
     });
   }
 
   @override
   void dispose() {
+    _textDebounceTimer?.cancel();
+    _typingTimer?.cancel();
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();

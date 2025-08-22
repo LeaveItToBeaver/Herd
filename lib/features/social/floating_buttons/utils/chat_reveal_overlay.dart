@@ -21,7 +21,7 @@ class ChatRevealOverlay extends CustomPainter {
 
     if (animationProgress <= 0.0) {
       // Cover everything before animation starts
-      final paint = Paint()
+      final paint = Paint() 
         ..style = PaintingStyle.fill
         ..color = backgroundColor;
       canvas.drawRect(Offset.zero & size, paint);
@@ -44,13 +44,15 @@ class ChatRevealOverlay extends CustomPainter {
                 2)) +
         50;
 
-    // Create the reveal clip path
-    final revealPath = Path();
-
     // Main reveal circle with easing
     final easedProgress = _easeOutCubic(animationProgress);
     final currentRadius = maxRadius * easedProgress;
 
+    // Create the inverse clip path (everything EXCEPT the reveal area)
+    final maskPath = Path();
+    maskPath.addRect(Offset.zero & size); // Full screen rect
+
+    final revealPath = Path();
     revealPath.addOval(Rect.fromCircle(
       center: explosionCenter,
       radius: currentRadius,
@@ -69,19 +71,25 @@ class ChatRevealOverlay extends CustomPainter {
       ));
     }
 
-    // Clip the canvas to the reveal area
-    canvas.clipPath(revealPath);
+    // Subtract the reveal area from the full screen (inverse masking)
+    final maskWithHole =
+        Path.combine(PathOperation.difference, maskPath, revealPath);
 
-    // Draw background that will be clipped
+    // Clip to the mask (everything except the revealed area)
+    canvas.clipPath(maskWithHole);
+
+    // Draw background that covers everything except the revealed area
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..color = backgroundColor.withValues(alpha: 1.0 - easedProgress);
+      ..color = backgroundColor;
 
     canvas.drawRect(Offset.zero & size, paint);
 
-    // Add ripple rings effect
-    _drawRippleRings(canvas, size, easedProgress);
+    canvas.restore();
 
+    // Draw ripple rings on top without clipping
+    canvas.save();
+    _drawRippleRings(canvas, size, easedProgress);
     canvas.restore();
 
     debugPrint(

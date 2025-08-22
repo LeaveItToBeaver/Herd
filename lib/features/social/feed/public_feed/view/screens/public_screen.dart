@@ -19,7 +19,8 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _refreshVisiblePostInteractions();
+    // Remove this to prevent rebuilds when keyboard appears
+    // _refreshVisiblePostInteractions();
   }
 
   void _refreshVisiblePostInteractions() {
