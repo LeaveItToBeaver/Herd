@@ -66,6 +66,10 @@ class _AnimatedRevealOverlayState extends State<AnimatedRevealOverlay>
     } else if (!widget.isVisible && widget.isReversed) {
       debugPrint("🎆 Starting reverse animation (closing)");
       _controller.forward(); // Forward goes from 1.0 to 0.0 for reverse
+    } else if (widget.isReversed) {
+      // Handle any closing animation case immediately
+      debugPrint("🎆 Starting immediate reverse animation (closing)");
+      _controller.forward();
     }
   }
 
@@ -79,27 +83,16 @@ class _AnimatedRevealOverlayState extends State<AnimatedRevealOverlay>
       debugPrint(
           "🎆 Widget updated - isVisible: ${widget.isVisible}, isReversed: ${widget.isReversed}");
 
-      if (widget.isReversed && !widget.isVisible) {
-        // Closing animation - start immediately
-        debugPrint("🎆 Starting immediate close animation");
+      // Only handle transitions, not recreate animations that should start in initState
+      if (widget.isReversed && !widget.isVisible && !oldWidget.isReversed) {
+        // Transition from opening to closing - start immediately
+        debugPrint("🎆 Transitioning to close animation");
         _revealAnimation = Tween<double>(
           begin: _controller.value, // Start from current position
           end: 0.0,
         ).animate(CurvedAnimation(
           parent: _controller,
           curve: Curves.easeInQuart,
-        ));
-        _controller.reset();
-        _controller.forward();
-      } else if (widget.isVisible && !widget.isReversed) {
-        // Opening animation
-        debugPrint("🎆 Starting open animation");
-        _revealAnimation = Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).animate(CurvedAnimation(
-          parent: _controller,
-          curve: Curves.easeOutQuart,
         ));
         _controller.reset();
         _controller.forward();

@@ -232,31 +232,58 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     // Calculate the bubble center for the animation
     final containerRenderBox = context.findRenderObject() as RenderBox?;
-    if (containerRenderBox != null) {
+    Offset bubbleGlobalCenter;
+
+    // Try to reuse the existing explosion center for consistency
+    final existingReveal = ref.read(explosionRevealProvider);
+    if (existingReveal != null &&
+        existingReveal.isActive &&
+        !existingReveal.isClosing) {
+      // Reuse the opening animation's center for perfect symmetry
+      bubbleGlobalCenter = existingReveal.center;
+      debugPrint(
+          "🎆 Reusing opening animation center for CLOSING: $bubbleGlobalCenter, bubbleId: $bubbleId");
+    } else if (containerRenderBox != null) {
+      // Fallback to calculating center from current position
       final containerGlobalPos = containerRenderBox.localToGlobal(Offset.zero);
-      final bubbleGlobalCenter = containerGlobalPos +
+      bubbleGlobalCenter = containerGlobalPos +
           _dragState!.currentPosition +
           Offset(_dragState!.bubbleConfig.effectiveSize / 2,
               _dragState!.bubbleConfig.effectiveSize / 2);
-
-      // Set the closing animation state - AnimatedRevealOverlay will handle the animation
-      ref.read(explosionRevealProvider.notifier).state = (
-        isActive: true,
-        center: bubbleGlobalCenter,
-        progress: 1.0, // Start at fully revealed for closing
-        bubbleId: _dragState!.bubbleId,
-        isClosing: true, // Mark as closing animation
-      );
+      debugPrint(
+          "🎆 Calculated new center for CLOSING animation: $bubbleGlobalCenter, bubbleId: $bubbleId");
+    } else {
+      debugPrint("🎆 Could not determine bubble center for closing animation");
+      return;
     }
+
+    debugPrint(
+        "🎆 Setting explosion reveal for CLOSING animation at center: $bubbleGlobalCenter, bubbleId: $bubbleId");
+
+    // Set the closing animation state BEFORE any overlay state changes
+    // This ensures AnimatedRevealOverlay will handle the animation properly
+    ref.read(explosionRevealProvider.notifier).state = (
+      isActive: true,
+      center: bubbleGlobalCenter,
+      progress: 1.0, // Start at fully revealed for closing
+      bubbleId: bubbleId,
+      isClosing: true, // Mark as closing animation
+    );
+
+    // DO NOT close overlay states here - let AnimatedRevealOverlay handle it
+    // via onAnimationComplete callback which will call the snapback methods
   }
 
   void _snapBackAfterCloseHerd() {
-    debugPrint("🎆 _snapBackAfterCloseHerd called");
+    debugPrint("🎆 _snapBackAfterCloseHerd called - closing overlay states");
 
     // Close overlay states
     ref.read(herdOverlayOpenProvider.notifier).state = false;
     ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
     ref.read(activeOverlayTypeProvider.notifier).state = null;
+
+    // Clear explosion reveal state
+    ref.read(explosionRevealProvider.notifier).state = null;
 
     // Snap bubble back to original position
     if (_dragState != null) {
@@ -547,25 +574,9 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           // Force high frequency updates for smooth animation
         });
 
-        final explosionProgress = _chatMorphAnimation!.value;
-
-        final containerRenderBox = context.findRenderObject() as RenderBox?;
-        if (containerRenderBox != null) {
-          final containerGlobalPos =
-              containerRenderBox.localToGlobal(Offset.zero);
-          final bubbleGlobalCenter = containerGlobalPos +
-              _dragState!.currentPosition +
-              Offset(_dragState!.bubbleConfig.effectiveSize / 2,
-                  _dragState!.bubbleConfig.effectiveSize / 2);
-
-          ref.read(explosionRevealProvider.notifier).state = (
-            isActive: true,
-            center: bubbleGlobalCenter,
-            progress: explosionProgress,
-            bubbleId: _dragState!.bubbleId,
-            isClosing: false, // Opening animation
-          );
-        }
+        // DO NOT update explosion reveal progress here - let AnimatedRevealOverlay handle its own animation
+        // The explosion reveal state was set once in _animateToOverlay() and should remain static
+        // This prevents constant rebuilding of the global overlay manager
       }
     });
 
@@ -604,7 +615,10 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           );
         });
 
-        ref.read(explosionRevealProvider.notifier).state = null;
+        // DO NOT clear explosion reveal state here - keep it active for potential closing animation
+        // The closing animation will handle clearing it when appropriate
+        debugPrint(
+            "🎆 Opening animation completed, keeping explosion reveal active for closing");
       }
     });
 
@@ -669,12 +683,15 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   }
 
   void _snapBackAfterClose() {
-    debugPrint("🎆 _snapBackAfterClose called");
+    debugPrint("🎆 _snapBackAfterClose called - closing overlay states");
 
     // Close overlay states
     ref.read(chatOverlayOpenProvider.notifier).state = false;
     ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
     ref.read(activeOverlayTypeProvider.notifier).state = null;
+
+    // Clear explosion reveal state
+    ref.read(explosionRevealProvider.notifier).state = null;
 
     // Snap bubble back to original position
     if (_dragState != null) {
@@ -706,9 +723,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     ref.listen<String?>(chatClosingAnimationProvider,
         (previous, chatClosingBubbleId) {
       if (chatClosingBubbleId != null && chatClosingBubbleId != previous) {
-        debugPrint('🎆 Animation status changed: AnimationStatus.forward');
         debugPrint(
-            '🎆 Using overlay without reveal animation for $chatClosingBubbleId');
+            '🎆 Chat closing animation triggered for: $chatClosingBubbleId');
 
         ref.read(chatClosingAnimationProvider.notifier).state = null;
 
@@ -716,9 +732,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         final callback = callbacks[chatClosingBubbleId];
         if (callback != null) {
           debugPrint(
-              '🎆 Reveal animation started for $chatClosingBubbleId, isClosing: true');
-          callback();
-          debugPrint('🎆 _snapBackAfterClose called');
+              '🎆 Starting reveal animation for $chatClosingBubbleId, isClosing: true');
+          callback(); // This calls _startCloseAnimation, AnimatedRevealOverlay will handle the rest
         } else {
           debugPrint('No callback found for bubble ID: $chatClosingBubbleId');
           debugPrint('Available callback IDs: ${callbacks.keys.toList()}');
@@ -729,12 +744,20 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     ref.listen<String?>(herdClosingAnimationProvider,
         (previous, herdClosingBubbleId) {
       if (herdClosingBubbleId != null && herdClosingBubbleId != previous) {
+        debugPrint(
+            '🎆 Herd closing animation triggered for: $herdClosingBubbleId');
+
         ref.read(herdClosingAnimationProvider.notifier).state = null;
 
         final callbacks = ref.read(bubbleAnimationCallbackProvider);
         final callback = callbacks[herdClosingBubbleId];
         if (callback != null) {
-          callback();
+          debugPrint(
+              '🎆 Starting reveal animation for $herdClosingBubbleId, isClosing: true');
+          callback(); // This calls _startCloseAnimation, AnimatedRevealOverlay will handle the rest
+        } else {
+          debugPrint('No callback found for bubble ID: $herdClosingBubbleId');
+          debugPrint('Available callback IDs: ${callbacks.keys.toList()}');
         }
       }
     });

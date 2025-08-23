@@ -202,7 +202,8 @@ Widget _buildOverlay(
           onClose: onClose, // Pass the callback directly
         );
 
-  // Always use AnimatedRevealOverlay for consistent animation handling
+  // ALWAYS use AnimatedRevealOverlay for consistent animation handling
+  // Check if we have explosion reveal data OR if this is a triggered overlay
   if (explosionReveal != null && explosionReveal.isActive) {
     final isClosing = explosionReveal.isClosing;
     debugPrint(

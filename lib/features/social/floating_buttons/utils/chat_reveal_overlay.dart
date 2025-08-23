@@ -21,7 +21,7 @@ class ChatRevealOverlay extends CustomPainter {
 
     if (animationProgress <= 0.0) {
       // Cover everything before animation starts
-      final paint = Paint() 
+      final paint = Paint()
         ..style = PaintingStyle.fill
         ..color = backgroundColor;
       canvas.drawRect(Offset.zero & size, paint);
@@ -44,9 +44,10 @@ class ChatRevealOverlay extends CustomPainter {
                 2)) +
         50;
 
-    // Main reveal circle with easing
-    final easedProgress = _easeOutCubic(animationProgress);
-    final currentRadius = maxRadius * easedProgress;
+    // Main reveal circle - use LIMITED range (0 → 0.6) so reveal completes earlier
+    // This makes the overlay fully visible by 60% of animation instead of 100%
+    final effectiveProgress = (animationProgress * 0.85).clamp(0.0, 0.85);
+    final currentRadius = maxRadius * effectiveProgress;
 
     // Create the inverse clip path (everything EXCEPT the reveal area)
     final maskPath = Path();
@@ -62,8 +63,10 @@ class ChatRevealOverlay extends CustomPainter {
     if (animationProgress > 0.2) {
       final secondaryProgress =
           ((animationProgress - 0.2) / 0.8).clamp(0.0, 1.0);
-      final secondaryRadius =
-          maxRadius * _easeOutQuart(secondaryProgress) * 0.7;
+      // Use the same limited range for consistency
+      final secondaryEffectiveProgress =
+          (secondaryProgress * 0.6).clamp(0.0, 0.6);
+      final secondaryRadius = maxRadius * secondaryEffectiveProgress * 0.7;
 
       revealPath.addOval(Rect.fromCircle(
         center: explosionCenter,
@@ -89,11 +92,11 @@ class ChatRevealOverlay extends CustomPainter {
 
     // Draw ripple rings on top without clipping
     canvas.save();
-    _drawRippleRings(canvas, size, easedProgress);
+    _drawRippleRings(canvas, size, animationProgress); // Use direct progress
     canvas.restore();
 
     debugPrint(
-        "🎨 Drew reveal effect: progress=$animationProgress, radius=$currentRadius");
+        "🎨 Drew reveal effect: progress=$animationProgress, effectiveProgress=$effectiveProgress, radius=$currentRadius, maxRadius=$maxRadius");
   }
 
   void _drawRippleRings(Canvas canvas, Size size, double progress) {
@@ -130,10 +133,6 @@ class ChatRevealOverlay extends CustomPainter {
 
   double _easeOutQuart(double t) {
     return 1 - math.pow(1 - t, 4).toDouble();
-  }
-
-  double _easeOutCubic(double t) {
-    return 1 - math.pow(1 - t, 3).toDouble();
   }
 
   @override
