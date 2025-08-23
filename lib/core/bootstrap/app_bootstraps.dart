@@ -178,18 +178,28 @@ class AppBootstrap {
       case NotificationType.commentReply:
         if (notification.commentId?.isNotEmpty == true &&
             notification.postId?.isNotEmpty == true) {
-          router.push(
-              '/post/${notification.postId}/comment/${notification.commentId}');
+          // Use the commentThread route and pass data via extra
+          router.push('/commentThread', extra: {
+            'commentId': notification.commentId,
+            'postId': notification.postId,
+            'isAltPost': notification.isAlt,
+          });
         }
         break;
 
       case NotificationType.connectionRequest:
-        router.push('/connections/requests');
+        router.push('/connection-requests');
         break;
 
       case NotificationType.connectionAccepted:
         if (notification.senderId.isNotEmpty) {
-          router.push('/altProfile/${notification.senderId}?isAlt=true');
+          router.push('/altProfile/${notification.senderId}');
+        }
+        break;
+
+      case NotificationType.chatMessage:
+        if (notification.chatId?.isNotEmpty == true) {
+          router.push('/chat?chatId=${notification.chatId}');
         }
         break;
 

@@ -6,13 +6,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/providers/exception_logger_provider.dart';
 import '../../../../../core/services/exception_logging_service.dart';
+import '../../../../social/chat_messaging/data/cache/message_cache_service.dart';
+import '../../../../social/chat_messaging/view/providers/chat_provider.dart';
+import '../../../../social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
+import '../../../../social/floating_buttons/providers/chat_animation_provider.dart';
+import '../../../../../core/bootstrap/app_bootstraps.dart';
 
 class AuthNotifier extends StateNotifier<User?> {
   final FirebaseAuth _auth;
   final ExceptionLoggerService _logger;
+  final Ref _ref;
   StreamSubscription<User?>? _authStateSubscription;
 
-  AuthNotifier(this._auth, this._logger) : super(_auth.currentUser) {
+  AuthNotifier(this._auth, this._logger, this._ref) : super(_auth.currentUser) {
     _authStateSubscription = _auth.authStateChanges().listen((user) {
       if (mounted) {
         // Only update state if the widget is still mounted
@@ -92,8 +98,40 @@ class AuthNotifier extends StateNotifier<User?> {
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
-    state = null;
+    try {
+      debugPrint('🔄 Starting logout process...');
+      
+      // 1. Clear chat message caches
+      final messageCache = _ref.read(messageCacheServiceProvider);
+      await messageCache.clearAllCaches();
+      
+      // 2. Reset chat providers state
+      _ref.invalidate(chatStateProvider);
+      _ref.invalidate(chatPaginationProvider);
+      
+      // 3. Reset chat bubbles and animation state
+      _ref.invalidate(chatBubblesEnabledProvider);
+      _ref.invalidate(chatClosingAnimationProvider);
+      _ref.invalidate(herdClosingAnimationProvider);
+      _ref.invalidate(bubbleAnimationCallbackProvider);
+      _ref.invalidate(explosionRevealProvider);
+      
+      // 4. Clean up notifications
+      final bootstrap = _ref.read(AppBootstrap.appBootstrapProvider);
+      bootstrap.resetNotifications();
+      
+      // 5. Sign out from Firebase Auth
+      await _auth.signOut();
+      state = null;
+      
+      debugPrint('✅ Logout completed successfully');
+    } catch (e) {
+      debugPrint('❌ Error during logout: $e');
+      // Still try to sign out even if cleanup fails
+      await _auth.signOut();
+      state = null;
+      rethrow;
+    }
   }
 
   Future<void> resetPassword(String email) async {
@@ -132,7 +170,7 @@ class AuthNotifier extends StateNotifier<User?> {
 
 final authProvider = StateNotifierProvider<AuthNotifier, User?>((ref) {
   final exceptionLogger = ref.watch(exceptionLoggerProvider);
-  return AuthNotifier(FirebaseAuth.instance, exceptionLogger);
+  return AuthNotifier(FirebaseAuth.instance, exceptionLogger, ref);
 });
 
 final authStateChangesProvider = StreamProvider<User?>((ref) {

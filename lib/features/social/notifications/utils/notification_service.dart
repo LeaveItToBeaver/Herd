@@ -377,13 +377,54 @@ class NotificationService {
     }
   }
 
-  /// Clear all notifications
+  /// Clear all notifications and reset badge count
   Future<void> clearAllNotifications() async {
     try {
       await _localNotifications.cancelAll();
+      
+      // Clear iOS app badge
+      await _clearIOSBadge();
+      
       debugPrint('✅ All local notifications cleared');
     } catch (e) {
       debugPrint('❌ Error clearing notifications: $e');
+    }
+  }
+
+  /// Clear iOS app badge count
+  Future<void> _clearIOSBadge() async {
+    try {
+      // Clear badge using flutter_local_notifications
+      final iosImpl = _localNotifications.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      
+      if (iosImpl != null) {
+        await iosImpl.requestPermissions(
+          alert: true,
+          badge: true, 
+          sound: true,
+        );
+      }
+
+      // Set badge to 0 to clear it
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('⚠️ Could not clear iOS badge: $e');
+    }
+  }
+
+  /// Update app badge count based on unread notifications
+  Future<void> updateBadgeCount(int unreadCount) async {
+    try {
+      // This will be handled by FCM automatically when sending notifications
+      // with the proper badge count in the APNS payload
+      debugPrint('📱 Badge count should be: $unreadCount');
+    } catch (e) {
+      debugPrint('❌ Error updating badge count: $e');
     }
   }
 

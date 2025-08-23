@@ -12,9 +12,7 @@ class ChatRepository {
 
   ChatRepository(this._firestore, this._userRepository);
 
-  // Collection references
-  CollectionReference<Map<String, dynamic>> get _chats =>
-      _firestore.collection('chats');
+  // Note: Legacy chats collection removed - using single collection architecture
 
   CollectionReference<Map<String, dynamic>> _userChats(String? userId) =>
       _firestore.collection('userChats').doc(userId).collection('chats');
@@ -22,7 +20,7 @@ class ChatRepository {
   CollectionReference<Map<String, dynamic>> _chatMembers(String chatId) =>
       _firestore.collection('chatMembers').doc(chatId).collection('members');
 
-  /// Create or get direct chat between two users
+  /// Create or get direct chat between two users - Single collection architecture
   Future<ChatModel?> getOrCreateDirectChat({
     required String currentUserId,
     required String otherUserId,
@@ -40,199 +38,205 @@ class ChatRepository {
       final List<String> userIds = [currentUserId, otherUserId]..sort();
       final chatId = '${userIds[0]}_${userIds[1]}';
 
-      // Check if chat exists
-      final chatDoc = await _firestore.collection('chats').doc(chatId).get();
+      debugPrint('🔍 Creating/getting chat: $chatId between $currentUserId and $otherUserId');
 
-      if (chatDoc.exists) {
-        // Update user info if provided
+      // Check if chat exists in current user's userChats collection
+      final currentUserChatDoc = await _userChats(currentUserId).doc(chatId).get();
+
+      if (currentUserChatDoc.exists) {
+        debugPrint('✅ Chat exists, updating info if provided');
+        
+        // Chat exists - optionally update other user's info in current user's document
         final updates = <String, dynamic>{};
-
-        // Update info for current user's view
+        
         if (otherUserName != null) {
-          updates['otherUserName_$currentUserId'] = otherUserName;
+          updates['otherParticipantName'] = otherUserName;
         }
         if (otherUserUsername != null) {
-          updates['otherUserUsername_$currentUserId'] = otherUserUsername;
+          updates['otherParticipantUsername'] = otherUserUsername;
         }
         if (otherUserProfileImage != null) {
-          updates['otherUserProfileImage_$currentUserId'] =
-              otherUserProfileImage;
+          updates['otherParticipantPhoto'] = otherUserProfileImage;
         }
         if (otherUserAltProfileImage != null) {
-          updates['otherUserAltProfileImage_$currentUserId'] =
-              otherUserAltProfileImage;
-        }
-
-        // Update info for other user's view
-        if (currentUserName != null) {
-          updates['otherUserName_$otherUserId'] = currentUserName;
-        }
-        if (currentUserProfileImage != null) {
-          updates['otherUserProfileImage_$otherUserId'] =
-              currentUserProfileImage;
-        }
-        if (currentUserAltProfileImage != null) {
-          updates['otherUserAltProfileImage_$otherUserId'] =
-              currentUserAltProfileImage;
+          updates['otherParticipantAltPhoto'] = otherUserAltProfileImage;
         }
 
         if (updates.isNotEmpty) {
-          updates['updatedAt'] = FieldValue.serverTimestamp();
-          await chatDoc.reference.update(updates);
+          updates['lastActivity'] = FieldValue.serverTimestamp();
+          await currentUserChatDoc.reference.update(updates);
+          debugPrint('📝 Updated current user chat info');
         }
 
-        return _chatFromFirestore(chatDoc, currentUserId);
+        // Also update the other user's document if we have current user info
+        if (currentUserName != null || currentUserProfileImage != null || currentUserAltProfileImage != null) {
+          final otherUserUpdates = <String, dynamic>{};
+          
+          if (currentUserName != null) {
+            otherUserUpdates['otherParticipantName'] = currentUserName;
+          }
+          if (currentUserProfileImage != null) {
+            otherUserUpdates['otherParticipantPhoto'] = currentUserProfileImage;
+          }
+          if (currentUserAltProfileImage != null) {
+            otherUserUpdates['otherParticipantAltPhoto'] = currentUserAltProfileImage;
+          }
+
+          if (otherUserUpdates.isNotEmpty) {
+            otherUserUpdates['lastActivity'] = FieldValue.serverTimestamp();
+            await _userChats(otherUserId).doc(chatId).update(otherUserUpdates);
+            debugPrint('📝 Updated other user chat info');
+          }
+        }
+
+        return getChatByBubbleId(chatId, currentUserId);
       }
 
-      // Create new chat
-      final chatData = {
-        'participants': [currentUserId, otherUserId],
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
+      debugPrint('🆕 Creating new chat documents');
+
+      // Create new chat using batch operation
+      final batch = _firestore.batch();
+      final now = FieldValue.serverTimestamp();
+
+      // Create user-specific chat document for current user
+      batch.set(_userChats(currentUserId).doc(chatId), {
+        'chatId': chatId,
+        'type': 'direct',
+        'otherParticipantId': otherUserId,
+        'otherParticipantName': otherUserName,
+        'otherParticipantUsername': otherUserUsername,
+        'otherParticipantPhoto': otherUserProfileImage,
+        'otherParticipantAltPhoto': otherUserAltProfileImage,
         'lastMessage': null,
         'lastMessageTimestamp': null,
-        'isAlt': isAlt,
-        'isGroupChat': false,
+        'unreadCount': 0,
         'isPinned': false,
         'isMuted': false,
         'isArchived': false,
+        'isAlt': isAlt,
+        'createdAt': now,
+        'lastActivity': now,
+      });
 
-        // Store user info for current user's view
-        'otherUserId_$currentUserId': otherUserId,
-        'otherUserName_$currentUserId': otherUserName,
-        'otherUserUsername_$currentUserId': otherUserUsername,
-        'otherUserProfileImage_$currentUserId': otherUserProfileImage,
-        'otherUserAltProfileImage_$currentUserId': otherUserAltProfileImage,
-        'unreadCount_$currentUserId': 0,
+      // Create user-specific chat document for other user
+      batch.set(_userChats(otherUserId).doc(chatId), {
+        'chatId': chatId,
+        'type': 'direct',
+        'otherParticipantId': currentUserId,
+        'otherParticipantName': currentUserName,
+        'otherParticipantUsername': null, // We might not have current user's username
+        'otherParticipantPhoto': currentUserProfileImage,
+        'otherParticipantAltPhoto': currentUserAltProfileImage,
+        'lastMessage': null,
+        'lastMessageTimestamp': null,
+        'unreadCount': 0,
+        'isPinned': false,
+        'isMuted': false,
+        'isArchived': false,
+        'isAlt': isAlt,
+        'createdAt': now,
+        'lastActivity': now,
+      });
 
-        // Store user info for other user's view
-        'otherUserId_$otherUserId': currentUserId,
-        'otherUserName_$otherUserId': currentUserName,
-        'otherUserProfileImage_$otherUserId': currentUserProfileImage,
-        'otherUserAltProfileImage_$otherUserId': currentUserAltProfileImage,
-        'unreadCount_$otherUserId': 0,
-      };
+      await batch.commit();
+      debugPrint('✅ Chat documents created successfully');
 
-      await _firestore.collection('chats').doc(chatId).set(chatData);
-      final newDoc = await _firestore.collection('chats').doc(chatId).get();
-
-      return _chatFromFirestore(newDoc, currentUserId);
+      return getChatByBubbleId(chatId, currentUserId);
     } catch (e) {
-      print('Error creating/getting direct chat: $e');
+      debugPrint('❌ Error creating/getting direct chat: $e');
       return null;
     }
   }
 
-  ChatModel? _chatFromFirestore(DocumentSnapshot doc, String currentUserId) {
-    if (!doc.exists) return null;
-
+  /// Get participants for a chat from user's perspective - Single collection architecture
+  Future<List<String>> getChatParticipants(String chatId, String userId) async {
     try {
-      final data = doc.data() as Map<String, dynamic>;
+      debugPrint('🔍 Getting participants for chat: $chatId from user: $userId');
+      
+      final userChatDoc = await _userChats(userId).doc(chatId).get();
+      
+      if (!userChatDoc.exists) {
+        debugPrint('❌ User chat document not found: $chatId for user: $userId');
+        return [];
+      }
 
-      // Extract values safely with null checks
-      final otherUserId = data['otherUserId_$currentUserId'];
-      final otherUserName = data['otherUserName_$currentUserId'];
-      final otherUserUsername = data['otherUserUsername_$currentUserId'];
-      final otherUserProfileImage =
-          data['otherUserProfileImage_$currentUserId'];
-      final otherUserAltProfileImage =
-          data['otherUserAltProfileImage_$currentUserId'];
+      final data = userChatDoc.data()!;
+      final chatType = data['type'] as String?;
 
-      // Debug logging
-      debugPrint('DEBUG: Chat data keys: ${data.keys.toList()}');
-      debugPrint(
-          'DEBUG: otherUserId value: $otherUserId (type: ${otherUserId.runtimeType})');
-      debugPrint(
-          'DEBUG: otherUserName value: $otherUserName (type: ${otherUserName.runtimeType})');
-
-      // Ensure we're dealing with the correct types
-      return ChatModel(
-        id: doc.id,
-        otherUserId: otherUserId is String ? otherUserId : null,
-        otherUserName: otherUserName is String ? otherUserName : null,
-        otherUserUsername:
-            otherUserUsername is String ? otherUserUsername : null,
-        otherUserProfileImage:
-            otherUserProfileImage is String ? otherUserProfileImage : null,
-        otherUserAltProfileImage: otherUserAltProfileImage is String
-            ? otherUserAltProfileImage
-            : null,
-        otherUserIsAlt: (data['otherUserIsAlt_$currentUserId'] is bool)
-            ? data['otherUserIsAlt_$currentUserId']
-            : false,
-        isAlt: (data['isAlt'] is bool) ? data['isAlt'] : false,
-        lastMessage:
-            (data['lastMessage'] is String) ? data['lastMessage'] : null,
-        lastMessageTimestamp: (data['lastMessageTimestamp'] is Timestamp)
-            ? (data['lastMessageTimestamp'] as Timestamp).toDate()
-            : null,
-        unreadCount: (data['unreadCount_$currentUserId'] is int)
-            ? data['unreadCount_$currentUserId']
-            : 0,
-        isGroupChat:
-            (data['isGroupChat'] is bool) ? data['isGroupChat'] : false,
-        isMuted: (data['isMuted_$currentUserId'] is bool)
-            ? data['isMuted_$currentUserId']
-            : false,
-        isArchived: (data['isArchived_$currentUserId'] is bool)
-            ? data['isArchived_$currentUserId']
-            : false,
-        isPinned: (data['isPinned_$currentUserId'] is bool)
-            ? data['isPinned_$currentUserId']
-            : false,
-        groupId: (data['groupId'] is String) ? data['groupId'] : null,
-      );
-    } catch (e, stackTrace) {
-      debugPrint('Error in _chatFromFirestore: $e');
-      debugPrint('StackTrace: $stackTrace');
-      return null;
+      if (chatType == 'direct') {
+        // Direct chat: participants are [userId, otherParticipantId]
+        final otherParticipantId = data['otherParticipantId'] as String?;
+        if (otherParticipantId == null) {
+          debugPrint('❌ No otherParticipantId found in direct chat: $chatId');
+          return [userId]; // Return at least the current user
+        }
+        
+        final participants = [userId, otherParticipantId];
+        debugPrint('✅ Direct chat participants: $participants');
+        return participants;
+      } 
+      else if (chatType == 'group') {
+        // Group chat: participants are stored in the participants array
+        final participants = List<String>.from(data['participants'] ?? []);
+        debugPrint('✅ Group chat participants: $participants');
+        return participants;
+      } 
+      else {
+        debugPrint('❌ Unknown chat type: $chatType for chat: $chatId');
+        return [userId]; // Return at least the current user
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting chat participants: $e');
+      return [userId]; // Return at least the current user
     }
   }
 
-  /// Get user's chat list with pagination
+  /// Check if a chat exists from user's perspective
+  Future<bool> chatExists(String chatId, String userId) async {
+    try {
+      final doc = await _userChats(userId).doc(chatId).get();
+      return doc.exists;
+    } catch (e) {
+      debugPrint('❌ Error checking if chat exists: $e');
+      return false;
+    }
+  }
+
+  /// Get user's chat list with pagination - Now much simpler with user-specific collections!
   Stream<List<ChatModel>> getUserChats(String userId, {int limit = 20}) {
+    debugPrint('🔍 Getting chats for user: $userId');
+    
     return _userChats(userId)
         .orderBy('isPinned', descending: true)
         .orderBy('lastActivity', descending: true)
         .limit(limit)
         .snapshots()
         .map((snapshot) {
+      debugPrint('📱 Found ${snapshot.docs.length} chats for user: $userId');
+      
       return snapshot.docs.map((doc) {
         final data = doc.data();
+        final chatId = doc.id; // Use document ID as chat ID
 
-        // Convert userChat data to ChatModel
-        if (data['type'] == 'direct') {
-          return ChatModel(
-            id: data['chatId'] as String? ?? '',
-            otherUserId: data['otherParticipantId'] as String?,
-            otherUserName: data['otherParticipantName'] as String?,
-            otherUserProfileImage: data['otherParticipantPhoto'] as String?,
-            lastMessage: data['lastMessage']?['text'] as String?,
-            lastMessageTimestamp:
-                (data['lastMessage']?['timestamp'] as Timestamp?)?.toDate(),
-            unreadCount: data['unreadCount'] as int? ?? 0,
-            isGroupChat: false,
-            isMuted: data['isMuted'] as bool? ?? false,
-            isArchived: data['isArchived'] as bool? ?? false,
-            isPinned: data['isPinned'] as bool? ?? false,
-          );
-        } else {
-          // Group chat
-          return ChatModel(
-            id: data['chatId'] as String? ?? '',
-            otherUserName: data['groupName'] as String?,
-            otherUserProfileImage: data['groupPhoto'] as String?,
-            lastMessage: data['lastMessage']?['text'] as String?,
-            lastMessageTimestamp:
-                (data['lastMessage']?['timestamp'] as Timestamp?)?.toDate(),
-            unreadCount: data['unreadCount'] as int? ?? 0,
-            isGroupChat: true,
-            isMuted: data['isMuted'] as bool? ?? false,
-            isArchived: data['isArchived'] as bool? ?? false,
-            isPinned: data['isPinned'] as bool? ?? false,
-            groupId: data['chatId'] as String?,
-          );
-        }
+        // Convert userChat data to ChatModel using consistent structure
+        return ChatModel(
+          id: chatId,
+          otherUserId: data['otherParticipantId'] as String?,
+          otherUserName: data['otherParticipantName'] as String?,
+          otherUserUsername: data['otherParticipantUsername'] as String?,
+          otherUserProfileImage: data['otherParticipantPhoto'] as String?,
+          otherUserAltProfileImage: data['otherParticipantAltPhoto'] as String?,
+          lastMessage: data['lastMessage']?['text'] as String?,
+          lastMessageTimestamp:
+              (data['lastMessage']?['timestamp'] as Timestamp?)?.toDate(),
+          unreadCount: data['unreadCount'] as int? ?? 0,
+          isGroupChat: data['type'] == 'group',
+          isMuted: data['isMuted'] as bool? ?? false,
+          isArchived: data['isArchived'] as bool? ?? false,
+          isPinned: data['isPinned'] as bool? ?? false,
+          isAlt: data['isAlt'] as bool? ?? false,
+          groupId: data['type'] == 'group' ? chatId : null,
+        );
       }).toList();
     });
   }
@@ -246,33 +250,55 @@ class ChatRepository {
     String? photoUrl,
   }) async {
     try {
-      final chatRef = _chats.doc();
-      final chatId = chatRef.id;
-      final now = DateTime.now();
+      // Generate unique group chat ID
+      final chatId = _firestore.collection('groups').doc().id;
 
       // Include creator in members
       final allMembers = {...memberIds, creatorId}.toList();
 
       final batch = _firestore.batch();
+      final now = FieldValue.serverTimestamp();
 
-      // Create main chat document
-      batch.set(chatRef, {
-        'id': chatId,
-        'type': 'group',
-        'name': groupName,
-        'description': description,
-        'photoUrl': photoUrl,
-        'participants': allMembers,
-        'participantCount': allMembers.length,
-        'admins': [creatorId],
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastActivity': FieldValue.serverTimestamp(),
-        'settings': {
-          'isPublic': false,
-          'allowInvites': true,
-          'maxMembers': 256,
-        },
-      });
+      // Create userChats document for each participant (single collection architecture)
+      for (final memberId in allMembers) {
+        final memberNames = <String, String>{};
+        final memberPhotos = <String, String>{};
+        
+        // TODO: In a real implementation, you'd fetch member names and photos
+        // For now, we'll create minimal group chat documents
+        for (final otherId in allMembers) {
+          if (otherId != memberId) {
+            memberNames[otherId] = 'Member $otherId'; // Placeholder
+            memberPhotos[otherId] = ''; // Placeholder
+          }
+        }
+        
+        batch.set(_userChats(memberId).doc(chatId), {
+          'chatId': chatId,
+          'type': 'group',
+          'groupName': groupName,
+          'groupPhoto': photoUrl,
+          'description': description,
+          'participants': allMembers,
+          'participantNames': memberNames,
+          'participantPhotos': memberPhotos,
+          'admins': [creatorId],
+          'isAdmin': memberId == creatorId,
+          'lastMessage': null,
+          'lastMessageTimestamp': null,
+          'unreadCount': 0,
+          'isPinned': false,
+          'isMuted': false,
+          'isArchived': false,
+          'createdAt': now,
+          'lastActivity': now,
+          'settings': {
+            'isPublic': false,
+            'allowInvites': true,
+            'maxMembers': 256,
+          },
+        });
+      }
 
       // Create chat member documents
       for (final memberId in allMembers) {
@@ -309,7 +335,7 @@ class ChatRepository {
         id: chatId,
         otherUserName: groupName,
         otherUserProfileImage: photoUrl,
-        lastMessageTimestamp: now,
+        lastMessageTimestamp: DateTime.now(),
         unreadCount: 0,
         isGroupChat: true,
         groupId: chatId,
@@ -322,51 +348,53 @@ class ChatRepository {
   Future<ChatModel?> getChatByBubbleId(
       String bubbleId, String? currentUserId) async {
     try {
-      // Extract chat ID from bubble ID
-      final chatId = bubbleId.replaceFirst('chat_', '');
+      if (currentUserId == null) {
+        debugPrint('❌ Cannot get chat: currentUserId is null');
+        return null;
+      }
 
-      // Get user's chat data
+      // Extract chat ID from bubble ID (handle both formats)
+      String chatId = bubbleId;
+      if (bubbleId.startsWith('chat_')) {
+        chatId = bubbleId.replaceFirst('chat_', '');
+      }
+
+      debugPrint('🔍 Looking for user chat: $chatId for user: $currentUserId');
+
+      // Get user-specific chat document (new architecture)
       final userChatDoc = await _userChats(currentUserId).doc(chatId).get();
 
       if (!userChatDoc.exists) {
+        debugPrint('❌ User chat document not found: $chatId');
         return null;
       }
 
       final data = userChatDoc.data()!;
 
-      if (data['type'] == 'direct') {
-        return ChatModel(
-          id: chatId,
-          otherUserId: data['otherParticipantId'] as String?,
-          otherUserName: data['otherParticipantName'] as String?,
-          otherUserProfileImage: data['otherParticipantPhoto'] as String?,
-          lastMessage: data['lastMessage']?['text'] as String?,
-          lastMessageTimestamp:
-              (data['lastMessage']?['timestamp'] as Timestamp?)?.toDate(),
-          unreadCount: data['unreadCount'] as int? ?? 0,
-          isGroupChat: false,
-          isMuted: data['isMuted'] as bool? ?? false,
-          isArchived: data['isArchived'] as bool? ?? false,
-          isPinned: data['isPinned'] as bool? ?? false,
-        );
-      } else {
-        // Group chat
-        return ChatModel(
-          id: chatId,
-          otherUserName: data['groupName'] as String?,
-          otherUserProfileImage: data['groupPhoto'] as String?,
-          lastMessage: data['lastMessage']?['text'] as String?,
-          lastMessageTimestamp:
-              (data['lastMessage']?['timestamp'] as Timestamp?)?.toDate(),
-          unreadCount: data['unreadCount'] as int? ?? 0,
-          isGroupChat: true,
-          isMuted: data['isMuted'] as bool? ?? false,
-          isArchived: data['isArchived'] as bool? ?? false,
-          isPinned: data['isPinned'] as bool? ?? false,
-          groupId: chatId,
-        );
-      }
+      // Convert userChat data to ChatModel using the new structure
+      final chatModel = ChatModel(
+        id: chatId,
+        otherUserId: data['otherParticipantId'] as String?,
+        otherUserName: data['otherParticipantName'] as String?,
+        otherUserUsername: data['otherParticipantUsername'] as String?,
+        otherUserProfileImage: data['otherParticipantPhoto'] as String?,
+        otherUserAltProfileImage: data['otherParticipantAltPhoto'] as String?,
+        lastMessage: data['lastMessage']?['text'] as String?,
+        lastMessageTimestamp:
+            (data['lastMessage']?['timestamp'] as Timestamp?)?.toDate(),
+        unreadCount: data['unreadCount'] as int? ?? 0,
+        isGroupChat: data['type'] == 'group',
+        isMuted: data['isMuted'] as bool? ?? false,
+        isArchived: data['isArchived'] as bool? ?? false,
+        isPinned: data['isPinned'] as bool? ?? false,
+        isAlt: data['isAlt'] as bool? ?? false,
+        groupId: data['type'] == 'group' ? chatId : null,
+      );
+      
+      debugPrint('✅ User chat found and parsed successfully: ${chatModel.id}');
+      return chatModel;
     } catch (e) {
+      debugPrint('❌ Error in getChatByBubbleId: $e');
       throw Exception('Failed to get chat by bubble ID: $e');
     }
   }

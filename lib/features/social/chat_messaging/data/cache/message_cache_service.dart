@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
@@ -202,4 +203,112 @@ class MessageCacheService {
       orElse: () => MessageType.text,
     );
   }
+
+  /// Clear all cached messages for a specific chat
+  Future<void> clearChatCache(String chatId) async {
+    if (!_initialized) await initialize();
+    
+    // Clear from memory
+    _memory.remove(chatId);
+    
+    if (kIsWeb) return; // Skip disk operations on web
+    
+    try {
+      final file = File('${_messagesDir!.path}/$chatId.json');
+      if (await file.exists()) {
+        await file.delete();
+        debugPrint('🗑️ Cleared cache for chat: $chatId');
+      }
+    } catch (e) {
+      debugPrint('❌ Error clearing chat cache ($chatId): $e');
+    }
+  }
+
+  /// Clear all cached messages and media files
+  Future<void> clearAllCaches() async {
+    if (!_initialized) await initialize();
+    
+    // Clear all in-memory data
+    _memory.clear();
+    
+    if (kIsWeb) return; // Skip disk operations on web
+    
+    try {
+      // Clear message cache files
+      if (_messagesDir != null && await _messagesDir!.exists()) {
+        final messageFiles = _messagesDir!.listSync().whereType<File>();
+        for (final file in messageFiles) {
+          await file.delete();
+        }
+        debugPrint('🗑️ Cleared all message cache files');
+      }
+      
+      // Clear media cache files
+      if (_mediaDir != null && await _mediaDir!.exists()) {
+        final mediaFiles = _mediaDir!.listSync().whereType<File>();
+        for (final file in mediaFiles) {
+          await file.delete();
+        }
+        debugPrint('🗑️ Cleared all media cache files');
+      }
+      
+      debugPrint('✅ All chat caches cleared successfully');
+    } catch (e) {
+      debugPrint('❌ Error clearing all caches: $e');
+    }
+  }
+
+  /// Clear cache for a specific user (when switching users)
+  Future<void> clearUserCache(String userId) async {
+    if (!_initialized) await initialize();
+    
+    // For now, clear all caches since we don't track per-user
+    // In the future, we could implement per-user cache directories
+    await clearAllCaches();
+    debugPrint('🔄 Cleared cache for user: $userId');
+  }
+
+  /// Get cache statistics for debugging
+  Future<Map<String, dynamic>> getCacheStats() async {
+    if (!_initialized) await initialize();
+    
+    final stats = <String, dynamic>{
+      'memoryCacheSize': _memory.length,
+      'memoryChats': _memory.keys.toList(),
+    };
+    
+    if (!kIsWeb && _messagesDir != null && _mediaDir != null) {
+      try {
+        final messageFiles = _messagesDir!.listSync().whereType<File>().toList();
+        final mediaFiles = _mediaDir!.listSync().whereType<File>().toList();
+        
+        stats['diskMessageFiles'] = messageFiles.length;
+        stats['diskMediaFiles'] = mediaFiles.length;
+        
+        int totalSize = 0;
+        for (final file in [...messageFiles, ...mediaFiles]) {
+          totalSize += await file.length();
+        }
+        stats['totalDiskSize'] = totalSize;
+        stats['totalDiskSizeFormatted'] = _formatBytes(totalSize);
+      } catch (e) {
+        debugPrint('❌ Error getting cache stats: $e');
+      }
+    }
+    
+    return stats;
+  }
+
+  /// Format bytes to human readable string
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
 }
+
+/// Provider for the message cache service
+final messageCacheServiceProvider = Provider<MessageCacheService>((ref) {
+  return MessageCacheService();
+});

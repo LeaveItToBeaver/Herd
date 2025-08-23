@@ -108,6 +108,9 @@ class NotificationListItem extends StatelessWidget {
         iconData = Icons.emoji_events;
         iconColor = Colors.amber;
         break;
+      case NotificationType.chatMessage:
+        iconData = Icons.message;
+        iconColor = Colors.purple;
     }
 
     if (profileUrl != null && profileUrl.isNotEmpty) {
@@ -300,6 +303,24 @@ class NotificationListItem extends StatelessWidget {
             ),
             TextSpan(
               text: '$count likes',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
+          ],
+        );
+        break;
+      case NotificationType.chatMessage:
+        notificationText = TextSpan(
+          children: [
+            TextSpan(
+              text: senderName,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary),
+            ),
+            TextSpan(
+              text: ' sent you a message',
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary),

@@ -1,27 +1,29 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/crypto/chat_crypto_service.dart';
 import 'package:herdapp/features/user/user_profile/data/repositories/user_repository.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
 
 /// Handles all message CRUD, encryption, and search logic.
 class MessageRepository {
   final FirebaseFirestore _firestore;
   final UserRepository _users;
   final ChatCryptoService _crypto;
+  final ChatRepository _chats;
   static const int _fetchLimit = 50;
   int get pageSize => _fetchLimit;
 
-  MessageRepository(this._firestore, this._users, this._crypto);
+  MessageRepository(this._firestore, this._users, this._crypto, this._chats);
 
   // Collections
   CollectionReference<Map<String, dynamic>> get _legacyMessages =>
       _firestore.collection('messages'); // legacy flat
   CollectionReference<Map<String, dynamic>> _chatMessages(String chatId) =>
       _firestore.collection('chatMessages').doc(chatId).collection('messages');
-  CollectionReference<Map<String, dynamic>> get _chats =>
-      _firestore.collection('chats');
+  // Note: Legacy chats collection removed - using single collection architecture
   CollectionReference<Map<String, dynamic>> _userChats(String uid) =>
       _firestore.collection('userChats').doc(uid).collection('chats');
 
@@ -37,16 +39,16 @@ class MessageRepository {
   }) async {
     final sender = await _users.getUserById(senderId);
     if (sender == null) throw Exception('Sender not found');
-    final chatDoc = await _chats.doc(chatId).get();
-    if (!chatDoc.exists) throw Exception('Chat not found');
-    final chatData = chatDoc.data()!;
-    if (chatData['type'] != 'direct') {
-      throw Exception('Only direct chats supported for E2EE now');
-    }
-    final participants = List<String>.from(chatData['participants'] ?? []);
+    
+    // Use new single collection architecture to get participants
+    final participants = await _chats.getChatParticipants(chatId, senderId);
     if (participants.length != 2) {
-      throw Exception('Direct chat must have 2 participants');
+      throw Exception('Direct chat must have exactly 2 participants, got ${participants.length}');
     }
+    
+    // Ensure chat exists
+    final chatExists = await _chats.chatExists(chatId, senderId);
+    if (!chatExists) throw Exception('Chat not found');
     final otherId =
         participants.firstWhere((p) => p != senderId, orElse: () => senderId);
     final otherKeyDoc =
@@ -87,9 +89,7 @@ class MessageRepository {
       'timestamp': FieldValue.serverTimestamp(), // normalized field name
       ...encrypted,
     });
-    batch.update(_chats.doc(chatId), {
-      'lastActivity': FieldValue.serverTimestamp(),
-    });
+    // Update userChats for all participants (single collection architecture)
     for (final uid in participants) {
       final ref = _userChats(uid).doc(chatId);
       final update = <String, dynamic>{
@@ -281,6 +281,7 @@ class MessageRepository {
 
   /// Backwards-compatible sendMessage that auto-selects encryption for direct chats.
   /// Uses fallback strategy: plaintext until both users have keys, then encrypted.
+  /// Updated for single collection architecture.
   Future<MessageModel> sendMessage({
     required String chatId,
     required String senderId,
@@ -290,28 +291,35 @@ class MessageRepository {
     Map<String, dynamic>? mediaData,
     String? senderName,
   }) async {
-    final chatDoc = await _chats.doc(chatId).get();
-    if (!chatDoc.exists) throw Exception('Chat not found');
-    final chatData = chatDoc.data()!;
-    final isDirect = chatData['type'] == 'direct';
+    // Get participants using new single collection architecture
+    final participants = await _chats.getChatParticipants(chatId, senderId);
+    
+    if (participants.isEmpty) {
+      throw Exception('Chat not found or no participants');
+    }
+    
+    // Check if chat exists
+    final chatExists = await _chats.chatExists(chatId, senderId);
+    if (!chatExists) {
+      throw Exception('Chat not found');
+    }
+
+    final isDirect = participants.length == 2;
 
     if (isDirect) {
       // Check if both users have identity keys for E2EE
-      final participants = List<String>.from(chatData['participants'] ?? []);
-      if (participants.length == 2) {
-        final hasEncryption = await _canUseEncryption(participants);
-        if (hasEncryption) {
-          // Both users have keys - use encrypted path
-          return sendEncryptedDirect(
-            chatId: chatId,
-            senderId: senderId,
-            content: content,
-            type: type,
-            replyToMessageId: replyToMessageId,
-            media: mediaData,
-            senderName: senderName,
-          );
-        }
+      final hasEncryption = await _canUseEncryption(participants);
+      if (hasEncryption) {
+        // Both users have keys - use encrypted path
+        return sendEncryptedDirect(
+          chatId: chatId,
+          senderId: senderId,
+          content: content,
+          type: type,
+          replyToMessageId: replyToMessageId,
+          media: mediaData,
+          senderName: senderName,
+        );
       }
     }
 
@@ -348,9 +356,12 @@ class MessageRepository {
       'unreadCount': 0,
       'lastReadTimestamp': FieldValue.serverTimestamp(),
     });
+    
     // For legacy flat messages, emulate prior behavior updating read receipts (best-effort).
-    final chatDoc = await _chats.doc(chatId).get();
-    final participantCount = chatDoc.data()?['participantCount'] ?? 2;
+    // Get participant count from userChats instead of chats collection
+    final participants = await _chats.getChatParticipants(chatId, userId);
+    final participantCount = participants.length;
+    
     if (participantCount < 50) {
       final unread = await _legacyMessages
           .where('chatId', isEqualTo: chatId)
@@ -448,15 +459,15 @@ class MessageRepository {
       );
     }
 
-    final chatDoc = await _chats.doc(chatId).get();
-    if (!chatDoc.exists) return _empty(chatId, id, data, ts);
-    final cData = chatDoc.data()!;
-    if (cData['type'] != 'direct') return _empty(chatId, id, data, ts);
-    final parts = List<String>.from(cData['participants'] ?? []);
-    if (parts.length != 2) return _empty(chatId, id, data, ts);
+    // Check if chat exists and is direct using new architecture
+    final participants = await _chats.getChatParticipants(chatId, data['senderId'] as String? ?? '');
+    if (participants.isEmpty) return _empty(chatId, id, data, ts);
+    
+    // Only decrypt direct chats (2 participants)
+    if (participants.length != 2) return _empty(chatId, id, data, ts);
 
     Map<String, dynamic>? decrypted;
-    for (final pid in parts) {
+    for (final pid in participants) {
       try {
         final keyDoc = await _firestore.collection('userKeys').doc(pid).get();
         final pub = keyDoc.data()?['identityPub'];
@@ -572,21 +583,16 @@ class MessageRepository {
       'readReceipts': <String, dynamic>{},
     };
 
+    // Get participants using new single collection architecture
+    final participants = await _chats.getChatParticipants(chatId, senderId);
+    if (participants.isEmpty) {
+      throw Exception('Chat not found or no participants');
+    }
+
     final batch = _firestore.batch();
     batch.set(messageRef, data);
-    batch.update(_chats.doc(chatId), {
-      'lastActivity': FieldValue.serverTimestamp(),
-      'lastMessage': {
-        'text': content,
-        'senderId': senderId,
-        'timestamp': FieldValue.serverTimestamp(),
-        'type': type.toString().split('.').last,
-      },
-    });
 
-    final chatDoc = await _chats.doc(chatId).get();
-    final participants =
-        List<String>.from(chatDoc.data()?['participants'] ?? []);
+    // Update userChats for all participants (single collection architecture)
     for (final pid in participants) {
       final uc = _userChats(pid).doc(chatId);
       final upd = <String, dynamic>{

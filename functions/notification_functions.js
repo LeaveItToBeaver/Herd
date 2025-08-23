@@ -176,6 +176,9 @@ module.exports = function (admin) {
                     case 'postMilestone':
                         typeEnabled = settings.milestoneNotifications !== false;
                         break;
+                    case 'chatMessage':
+                        typeEnabled = settings.chatNotifications !== false;
+                        break;
                 }
             }
 
@@ -291,6 +294,8 @@ module.exports = function (admin) {
             body,
             postId,
             commentId,
+            chatId,
+            messageId,
             isAlt = false,
             count
         } = params;
@@ -326,7 +331,7 @@ module.exports = function (admin) {
                 : senderData?.profileImageURL;
 
             // Generate path for navigation
-            const path = generateNavigationPath(type, senderId, postId, commentId, isAlt);
+            const path = generateNavigationPath(type, senderId, postId, commentId, isAlt, chatId);
 
             // Build notification data object, only including defined values
             const notificationData = {
@@ -336,7 +341,7 @@ module.exports = function (admin) {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 isRead: false,
                 title: title || generateTitle(type, senderName, count),
-                body: body || generateBody(type, senderName, count),
+                body: body || generateBody(type, senderName, count, body),
                 senderName: senderName,
                 isAlt,
                 path: path, // Add navigation path
@@ -345,6 +350,8 @@ module.exports = function (admin) {
             // Only add optional fields if they have values
             if (postId) notificationData.postId = postId;
             if (commentId) notificationData.commentId = commentId;
+            if (chatId) notificationData.chatId = chatId;
+            if (messageId) notificationData.messageId = messageId;
             if (senderData?.username) notificationData.senderUsername = senderData.username;
             if (senderProfileImage) notificationData.senderProfileImage = senderProfileImage;
             if (senderData?.altProfileImageURL) notificationData.senderAltProfileImage = senderData.altProfileImageURL;
@@ -360,6 +367,8 @@ module.exports = function (admin) {
                 senderId,
                 postId: postId || '',
                 commentId: commentId || '',
+                chatId: chatId || '',
+                messageId: messageId || '',
                 isAlt: isAlt ? 'true' : 'false',
                 notificationId,
                 path: path || '',
@@ -383,7 +392,7 @@ module.exports = function (admin) {
     /**
      * Generate navigation path for notification
      */
-    function generateNavigationPath(type, senderId, postId, commentId, isAlt) {
+    function generateNavigationPath(type, senderId, postId, commentId, isAlt, chatId) {
         switch (type) {
             case 'follow':
                 // Use publicProfile as default for follow notifications
@@ -407,6 +416,10 @@ module.exports = function (admin) {
             case 'connectionAccepted':
                 // Connection accepted usually means alt profile interaction
                 return senderId ? `/altProfile/${senderId}` : null;
+
+            case 'chatMessage':
+                // Navigate directly to the specific chat
+                return chatId ? `/chat?chatId=${chatId}` : null;
 
             default:
                 return null;
@@ -434,6 +447,8 @@ module.exports = function (admin) {
                 return 'Connection Accepted';
             case 'postMilestone':
                 return `🎉 ${count} Likes!`;
+            case 'chatMessage':
+                return senderName;
             default:
                 return 'New Notification';
         }
@@ -442,7 +457,7 @@ module.exports = function (admin) {
     /**
      * Generate notification body based on type
      */
-    function generateBody(type, senderName = 'Someone', count = null) {
+    function generateBody(type, senderName = 'Someone', count = null, customBody = null) {
         switch (type) {
             case 'follow':
                 return `${senderName} started following you`;
@@ -460,6 +475,8 @@ module.exports = function (admin) {
                 return `${senderName} accepted your connection request`;
             case 'postMilestone':
                 return `Your post reached ${count} likes!`;
+            case 'chatMessage':
+                return customBody || `${senderName} sent you a message`;
             default:
                 return 'You have a new notification';
         }
@@ -917,6 +934,58 @@ module.exports = function (admin) {
                         isAlt: true,
                     });
                 }
+            }),
+
+        // Chat message notification trigger
+        onNewChatMessage: onDocumentCreated("chatMessages/{chatId}/messages/{messageId}",
+            async (event) => {
+                const chatId = event.params.chatId;
+                const messageId = event.params.messageId;
+                const messageData = event.data.data();
+                
+                logger.log(`💬 New chat message: ${messageId} in chat ${chatId}`);
+                
+                const senderId = messageData.senderId;
+                const content = messageData.content || '';
+                const timestamp = messageData.timestamp;
+                
+                // Get chat participants using new single collection architecture
+                // For direct chats, chatId format is "userId1_userId2"
+                const chatIdParts = chatId.split('_');
+                
+                if (chatIdParts.length !== 2) {
+                    logger.log(`⚠️ Unsupported chat format: ${chatId} (group chats not yet supported)`);
+                    return;
+                }
+                
+                // For direct chats, determine recipient from chatId
+                const [user1, user2] = chatIdParts;
+                const recipientId = user1 === senderId ? user2 : user1;
+                
+                if (!recipientId || recipientId === senderId) {
+                    logger.log(`⚠️ Could not determine recipient for chat ${chatId}`);
+                    return;
+                }
+                
+                logger.log(`💬 Sending notification to recipient: ${recipientId}`);
+                
+                // Don't notify if recipient is currently in the chat (you can enhance this with presence detection)
+                
+                // Get sender info
+                const senderSnapshot = await firestore.collection('users').doc(senderId).get();
+                const senderData = senderSnapshot.exists ? senderSnapshot.data() : null;
+                const senderName = senderData ? `${senderData.firstName || ''} ${senderData.lastName || ''}`.trim() || 'Someone' : 'Someone';
+                
+                // Create notification
+                await createNotification({
+                    recipientId: recipientId,
+                    senderId: senderId,
+                    type: 'chatMessage',
+                    title: senderName,
+                    body: content.length > 50 ? content.substring(0, 47) + '...' : content || 'Sent you a message',
+                    chatId: chatId,
+                    messageId: messageId
+                });
             }),
 
         // New Cloud Functions

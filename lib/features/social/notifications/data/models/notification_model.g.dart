@@ -18,6 +18,8 @@ _NotificationModel _$NotificationModelFromJson(Map<String, dynamic> json) =>
       body: json['body'] as String?,
       postId: json['postId'] as String?,
       commentId: json['commentId'] as String?,
+      chatId: json['chatId'] as String?,
+      messageId: json['messageId'] as String?,
       senderName: json['senderName'] as String?,
       senderUsername: json['senderUsername'] as String?,
       senderProfileImage: json['senderProfileImage'] as String?,
@@ -40,6 +42,8 @@ Map<String, dynamic> _$NotificationModelToJson(_NotificationModel instance) =>
       'body': instance.body,
       'postId': instance.postId,
       'commentId': instance.commentId,
+      'chatId': instance.chatId,
+      'messageId': instance.messageId,
       'senderName': instance.senderName,
       'senderUsername': instance.senderUsername,
       'senderProfileImage': instance.senderProfileImage,
@@ -59,4 +63,5 @@ const _$NotificationTypeEnumMap = {
   NotificationType.connectionRequest: 'connectionRequest',
   NotificationType.connectionAccepted: 'connectionAccepted',
   NotificationType.postMilestone: 'postMilestone',
+  NotificationType.chatMessage: 'chatMessage',
 };

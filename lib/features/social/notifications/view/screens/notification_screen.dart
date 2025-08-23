@@ -6,6 +6,7 @@ import 'package:herdapp/features/social/notifications/data/models/notification_m
 import 'package:herdapp/features/social/notifications/view/providers/notification_provider.dart';
 import 'package:herdapp/features/social/notifications/view/providers/state/notification_state.dart';
 import 'package:herdapp/features/social/notifications/view/widgets/notification_item_list.dart';
+import 'package:herdapp/features/social/notifications/utils/notification_service.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 
 class NotificationScreen extends ConsumerStatefulWidget {
@@ -27,12 +28,21 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     });
   }
 
-  void _refreshNotifications() {
+  void _refreshNotifications() async {
     final currentUser = ref.read(authProvider);
     if (currentUser != null) {
+      // Clear local notifications and badge when opening notifications screen
+      try {
+        final notificationService = ref.read(notificationServiceProvider);
+        await notificationService.clearAllNotifications();
+      } catch (e) {
+        print('⚠️ Could not clear local notifications: $e');
+      }
+
+      // Load and mark notifications as read
       ref
           .read(notificationProvider(currentUser.uid).notifier)
-          .refreshNotifications(markAsRead: true); // Auto-mark as read
+          .refreshNotifications(markAsRead: true);
     }
   }
 

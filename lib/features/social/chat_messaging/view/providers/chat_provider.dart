@@ -144,14 +144,21 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
 
       // Get current authenticated user
       final authUser = _ref.read(authProvider);
-      final currentUser = _ref.read(currentUserProvider);
+      final currentUserAsync = _ref.read(currentUserProvider);
 
       if (authUser == null) {
         throw Exception('User not authenticated');
       }
 
+      // Handle AsyncValue properly
+      final currentUser = currentUserAsync.when(
+        data: (user) => user,
+        loading: () => null,
+        error: (_, __) => null,
+      );
+
       if (currentUser == null) {
-        throw Exception('User profile not found');
+        throw Exception('User profile not loaded. Please wait and try again.');
       }
 
       // Send message with complete user data
