@@ -78,7 +78,6 @@ export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_input_w
 export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_message_list_widget.dart';
 export 'package:herdapp/features/social/chat_messaging/view/widgets/chat_overlay_widget.dart';
 export 'package:herdapp/features/social/chat_messaging/view/widgets/empty_chat_state_widget.dart';
-export 'package:herdapp/features/social/chat_messaging/view/widgets/message_bubble_widget.dart';
 export 'package:herdapp/features/social/chat_messaging/view/widgets/swipable_message_widget.dart';
 
 //Floating Buttons and Navigation Widgets
