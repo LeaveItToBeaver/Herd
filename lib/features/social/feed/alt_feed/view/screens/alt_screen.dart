@@ -151,104 +151,68 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // Main content with animated padding
-                  AnimatedPadding(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
-                    child: altFeedState.isLoading && altFeedState.posts.isEmpty
-                        ? _buildLoadingWidget()
-                        : altFeedState.error != null
-                            ? _buildErrorWidget(context, altFeedState.error!,
-                                () {
-                                ref
-                                    .read(altFeedControllerProvider.notifier)
-                                    .refreshFeed();
-                              })
-                            : PostListWidget(
-                                scrollController: _scrollController,
-                                posts: altFeedState.posts,
-                                isLoading: altFeedState.isLoading,
-                                hasError: altFeedState.error != null,
-                                errorMessage: altFeedState.error?.toString(),
-                                hasMorePosts: altFeedState.hasMorePosts,
-                                onRefresh: () => ref
-                                    .read(altFeedControllerProvider.notifier)
-                                    .refreshFeed(),
-                                onLoadMore: () => ref
-                                    .read(altFeedControllerProvider.notifier)
-                                    .loadMorePosts(),
-                                type: PostListType.feed,
-                                emptyMessage: 'No alt posts yet',
-                                emptyActionLabel: 'Create an alt post',
-                                onEmptyAction: () {
-                                  // Navigate to create post screen with isAlt=true context.pushNamed
-                                  context.pushNamed(
-                                    'create',
-                                    queryParameters: {'isAlt': 'true'},
-                                  );
-                                },
-                                isRefreshing: altFeedState.isRefreshing,
-                              ),
+                  // Wrap the content in a RepaintBoundary to isolate repaints
+                  RepaintBoundary(
+                    child: _FeedContentWrapper(
+                      scrollController: _scrollController,
+                      altFeedState: altFeedState,
+                    ),
                   ),
 
-                  // Side bubbles overlay - only show if chat is enabled
-                  if (isChatEnabled)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom:
-                          0, // Full height - overlay will manage its own layout
-                      child: MediaQuery.removePadding(
-                        context: context,
-                        removeBottom: true,
-                        child: Builder(
-                          builder: (context) {
-                            // Complete keyboard isolation - preserve original screen size and remove insets
-                            final originalMediaQuery = MediaQuery.of(context);
-                            final keyboardFreeMediaQuery =
-                                originalMediaQuery.copyWith(
-                              size: Size(
-                                originalMediaQuery.size.width,
-                                originalMediaQuery.size.height +
-                                    originalMediaQuery.viewInsets.bottom,
-                              ),
-                              viewInsets: EdgeInsets.zero,
-                              viewPadding:
-                                  originalMediaQuery.viewPadding.copyWith(
-                                bottom: originalMediaQuery.viewPadding.bottom,
-                              ),
-                            );
+                  // Isolate the side bubbles in a separate Consumer
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isChatEnabled =
+                          ref.watch(chatBubblesEnabledProvider);
 
-                            return MediaQuery(
-                              data: keyboardFreeMediaQuery,
-                              child: SafeArea(
-                                top: false,
-                                left: false,
-                                right: false,
-                                bottom:
-                                    false, // Don't apply SafeArea to bottom since we're handling it
-                                child: SideBubblesOverlay(
-                                  showProfileBtn:
-                                      false, // Profile handled by shell's GlobalOverlayManager
-                                  showSearchBtn:
-                                      false, // Search handled by shell's GlobalOverlayManager
-                                  showNotificationsBtn:
-                                      false, // Not needed here
-                                  showChatToggle:
-                                      false, // Chat toggle handled by shell's GlobalOverlayManager
-                                  showHerdBubbles:
-                                      true, // Show herd bubbles for alt feed
+                      if (!isChatEnabled) return const SizedBox.shrink();
+
+                      return Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: MediaQuery.removePadding(
+                          context: context,
+                          removeBottom: true,
+                          child: Builder(
+                            builder: (context) {
+                              final originalMediaQuery = MediaQuery.of(context);
+                              final keyboardFreeMediaQuery =
+                                  originalMediaQuery.copyWith(
+                                size: Size(
+                                  originalMediaQuery.size.width,
+                                  originalMediaQuery.size.height +
+                                      originalMediaQuery.viewInsets.bottom,
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+                                viewInsets: EdgeInsets.zero,
+                                viewPadding:
+                                    originalMediaQuery.viewPadding.copyWith(
+                                  bottom: originalMediaQuery.viewPadding.bottom,
+                                ),
+                              );
 
-                  // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
-                  // This prevents double-rendering of buttons
+                              return MediaQuery(
+                                data: keyboardFreeMediaQuery,
+                                child: SafeArea(
+                                  top: false,
+                                  left: false,
+                                  right: false,
+                                  bottom: false,
+                                  child: SideBubblesOverlay(
+                                    showProfileBtn: false,
+                                    showSearchBtn: false,
+                                    showNotificationsBtn: false,
+                                    showChatToggle: false,
+                                    showHerdBubbles: true,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -425,6 +389,115 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _FeedContentWrapper extends ConsumerWidget {
+  final ScrollController scrollController;
+  final AltFeedState altFeedState;
+
+  const _FeedContentWrapper({
+    required this.scrollController,
+    required this.altFeedState,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Only watch chat enabled state through select to minimize rebuilds
+    final hasChat = ref.watch(
+      chatBubblesEnabledProvider.select((enabled) => enabled),
+    );
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      margin: EdgeInsets.only(right: hasChat ? 60 : 0),
+      child: RepaintBoundary(
+        child: altFeedState.isLoading && altFeedState.posts.isEmpty
+            ? _buildLoadingWidget()
+            : altFeedState.error != null
+                ? _buildErrorWidget(context, altFeedState.error!, () {
+                    ref.read(altFeedControllerProvider.notifier).refreshFeed();
+                  })
+                : PostListWidget(
+                    scrollController: scrollController,
+                    posts: altFeedState.posts,
+                    isLoading: altFeedState.isLoading,
+                    hasError: altFeedState.error != null,
+                    errorMessage: altFeedState.error?.toString(),
+                    hasMorePosts: altFeedState.hasMorePosts,
+                    onRefresh: () => ref
+                        .read(altFeedControllerProvider.notifier)
+                        .refreshFeed(),
+                    onLoadMore: () => ref
+                        .read(altFeedControllerProvider.notifier)
+                        .loadMorePosts(),
+                    type: PostListType.feed,
+                    emptyMessage: 'No alt posts yet',
+                    emptyActionLabel: 'Create an alt post',
+                    onEmptyAction: () {
+                      context.pushNamed(
+                        'create',
+                        queryParameters: {'isAlt': 'true'},
+                      );
+                    },
+                    isRefreshing: altFeedState.isRefreshing,
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: 100),
+        Center(child: CircularProgressIndicator()),
+        SizedBox(height: 100),
+      ],
+    );
+  }
+
+  Widget _buildErrorWidget(
+      BuildContext context, Object error, VoidCallback onRetry) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 100),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 60,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load feed',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const BottomNavPadding(),
+      ],
     );
   }
 }

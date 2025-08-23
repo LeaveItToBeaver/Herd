@@ -1,10 +1,9 @@
-import 'package:chewie/chewie.dart';
+// lib/features/content/post/view/screens/post_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
-import 'package:video_player/video_player.dart';
 
 class PostScreen extends ConsumerStatefulWidget {
   final String postId;
@@ -23,201 +22,121 @@ class PostScreen extends ConsumerStatefulWidget {
 }
 
 class _PostScreenState extends ConsumerState<PostScreen> {
-  final FocusNode _commentFocusNode = FocusNode();
-  VideoPlayerController? _videoController;
-  ChewieController? _chewieController;
-  bool _isVideoInitialized = false;
-  bool _showNSFWContent = false;
-
   @override
   void initState() {
     super.initState();
+
+    // Initialize interactions
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(currentUserProvider);
       final userId = user.userId;
       if (userId != null) {
-        // Use the updated provider with PostParams
         ref
-            .read(postInteractionsWithPrivacyProvider(
-                    // Pass params needed by interactions provider
-                    PostParams(
-                        id: widget.postId,
-                        isAlt: widget.isAlt,
-                        herdId: widget.herdId))
-                .notifier)
+            .read(postInteractionsWithPrivacyProvider(PostParams(
+              id: widget.postId,
+              isAlt: widget.isAlt,
+              herdId: widget.herdId,
+            )).notifier)
             .initializeState(userId);
       }
     });
   }
 
   @override
-  void dispose() {
-    _commentFocusNode.dispose();
-    _disposeVideoControllers();
-    super.dispose();
-  }
-
-  void _disposeVideoControllers() {
-    _chewieController?.dispose();
-    _videoController?.dispose();
-    _isVideoInitialized = false;
-  }
-
-  Future<void> _initializeVideo(String videoUrl) async {
-    if (_isVideoInitialized) return;
-
-    // Dispose any existing controllers first
-    _disposeVideoControllers();
-
-    try {
-      _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
-      await _videoController!.initialize();
-
-      _chewieController = ChewieController(
-        videoPlayerController: _videoController!,
-        autoPlay: false,
-        looping: false,
-        aspectRatio: _videoController!.value.aspectRatio,
-        placeholder: Container(
-          color: Colors.black,
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-        materialProgressColors: ChewieProgressColors(
-          playedColor: Colors.blue,
-          handleColor: Colors.blue,
-          backgroundColor: Colors.grey,
-          bufferedColor: Colors.blue.withValues(alpha: 0.5),
-        ),
-      );
-
-      if (mounted) {
-        setState(() {
-          _isVideoInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing video: $e');
-      // Show an error snackbar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load video: $e')),
-        );
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final staticPostAsyncValue = ref.watch(
-        staticPostProvider(PostParams(id: widget.postId, isAlt: widget.isAlt)));
-
-    final currentUserAsync =
-        ref.watch(currentUserProvider.select((value) => value.userOrNull));
-
-    final interactionParams = PostParams(
-        id: widget.postId, isAlt: widget.isAlt, herdId: widget.herdId);
+    final postAsync = ref.watch(
+      staticPostProvider(PostParams(id: widget.postId, isAlt: widget.isAlt)),
+    );
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        // backgroundColor: widget.isAlt
-        //     ? theme.appBarTheme.foregroundColor
-        //     : theme.appBarTheme.foregroundColor,
-        title: LayoutBuilder(builder: (context, constraints) {
-          return Row(
-            children: [
-              if (widget.isAlt)
-                const Padding(
-                  padding: EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.public_rounded, size: 20),
-                ),
-              Expanded(
-                child: staticPostAsyncValue.when(
-                  data: (post) => Text(
-                    post?.title ?? 'Post',
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    softWrap: false,
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            return Row(
+              children: [
+                if (widget.isAlt)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.public_rounded, size: 20),
                   ),
-                  loading: () => const Text('Loading...'),
-                  error: (error, stack) => const Text('Error'),
+                Expanded(
+                  child: postAsync.when(
+                    data: (post) => Text(
+                      post?.title ?? 'Post',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                    loading: () => const Text('Loading...'),
+                    error: (error, stack) => const Text('Error'),
+                  ),
                 ),
-              ),
-            ],
-          );
-        }),
+              ],
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: widget.isAlt
-                ? null
-                : () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sharing post...')),
-                    );
-                  },
-            //color: widget.isAlt ? Colors.grey : Colors.white,
+            onPressed: widget.isAlt ? null : () => _sharePost(context),
           ),
         ],
       ),
-      body: staticPostAsyncValue.when(
+      body: postAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
         data: (post) {
           if (post == null) {
             return const Center(child: Text('Post not found.'));
           }
-          if (currentUserAsync == null) {
-            return const Center(
-                child: Text('User not found.')); // Handle missing user
-          }
 
-          // Wrap with RefreshIndicator for pull-to-refresh
           return RefreshIndicator(
-            onRefresh: () => _refreshPost(interactionParams),
+            onRefresh: () => _refreshPost(),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Privacy badges
-                  PostPrivacyBadges(
-                    isAlt: post.isAlt,
-                    isNSFW: post.isNSFW,
+                  // Type indicators
+                  RepaintBoundary(
+                    child: PostTypeIndicators(post: post),
                   ),
 
                   // Author header
-                  PostAuthorHeader(
-                    postId: widget.postId,
-                    isAlt: widget.isAlt,
+                  RepaintBoundary(
+                    child: PostAuthorHeader(
+                      post: post,
+                      displayMode: HeaderDisplayMode.full,
+                    ),
                   ),
 
                   // Post content
-                  PostContentSection(
-                    postId: widget.postId,
-                    isAlt: widget.isAlt,
-                    showNSFWContent: _showNSFWContent,
-                    toggleNSFW: _toggleNSFW,
-                    videoController: _videoController,
-                    chewieController: _chewieController,
-                    isVideoInitialized: _isVideoInitialized,
-                    initializeVideo: _initializeVideo,
+                  RepaintBoundary(
+                    child: PostContentDisplay(
+                      post: post,
+                      displayMode: HeaderDisplayMode.full,
+                      initialExpanded: true,
+                    ),
                   ),
 
                   // Action bar
-                  PostActionBar(
-                    postId: widget.postId,
-                    isAlt: widget.isAlt,
-                    herdId: widget.herdId,
-                    onCommentTap: _scrollToComments,
-                    onShareTap: post.isAlt ? null : _sharePost,
+                  RepaintBoundary(
+                    child: PostActionBar(
+                      post: post,
+                      displayMode: HeaderDisplayMode.full,
+                      onCommentTap: _scrollToComments,
+                      onShareTap: post.isAlt ? null : () => _sharePost(context),
+                    ),
                   ),
 
                   // Comments section
-                  PostCommentSection(
-                    postId: widget.postId,
-                    isAltPost: widget.isAlt,
+                  RepaintBoundary(
+                    child: _CommentSection(
+                      postId: widget.postId,
+                      isAltPost: widget.isAlt,
+                    ),
                   ),
 
                   // Extra bottom padding
@@ -231,17 +150,11 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
-  void _toggleNSFW() {
-    setState(() {
-      _showNSFWContent = !_showNSFWContent;
-    });
-  }
-
   void _scrollToComments() {
-    // Implement scrolling to comments section
+    // TODO: Implement scroll to comments
   }
 
-  void _sharePost() {
+  void _sharePost(BuildContext context) {
     if (widget.isAlt) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -249,39 +162,78 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     );
   }
 
-  Future<void> _refreshPost(PostParams interactionParams) async {
-    // Accept params
+  Future<void> _refreshPost() async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
           content: Text('Refreshing...'),
-          duration: Duration(milliseconds: 800)));
+          duration: Duration(milliseconds: 800),
+        ),
+      );
 
-      // 1. Invalidate the static provider to force a re-fetch
-      ref.invalidate(staticPostProvider(
-          PostParams(id: widget.postId, isAlt: widget.isAlt)));
+      // Invalidate the static provider to force a re-fetch
+      ref.invalidate(
+        staticPostProvider(PostParams(id: widget.postId, isAlt: widget.isAlt)),
+      );
 
-      // 2. Reload comments (no change needed here)
+      // Reload comments
       await ref.read(commentsProvider(widget.postId).notifier).loadComments();
       await ref.read(repliesProvider(widget.postId).notifier).loadReplies();
 
-      // 3. Reload interaction data
+      // Reload interaction data
       final user = ref.read(currentUserProvider);
       final userId = user.userId;
       if (userId != null) {
-        // Invalidate and re-initialize the interactions provider
-        ref.invalidate(postInteractionsWithPrivacyProvider(interactionParams));
+        final params = PostParams(
+          id: widget.postId,
+          isAlt: widget.isAlt,
+          herdId: widget.herdId,
+        );
+
+        ref.invalidate(postInteractionsWithPrivacyProvider(params));
         await ref
-            .read(
-                postInteractionsWithPrivacyProvider(interactionParams).notifier)
+            .read(postInteractionsWithPrivacyProvider(params).notifier)
             .initializeState(userId);
       }
-
-      // No need for setState({}) here as provider invalidation triggers rebuilds
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error refreshing: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error refreshing: $e')),
+        );
       }
     }
+  }
+}
+
+class _CommentSection extends StatelessWidget {
+  final String postId;
+  final bool isAltPost;
+
+  const _CommentSection({
+    required this.postId,
+    required this.isAltPost,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Comments section header
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            "Comments",
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+
+        // Comments list widget
+        CommentListWidget(
+          postId: postId,
+          isAltPost: isAltPost,
+        ),
+      ],
+    );
   }
 }

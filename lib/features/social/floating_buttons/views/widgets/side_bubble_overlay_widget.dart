@@ -703,27 +703,41 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         ? ref.watch(profileUserHerdsProvider(currentUser.uid))
         : null;
 
-    // Use separate listeners that don't trigger rebuilds - only handle the close animation trigger
-    ref.listen<String?>(chatClosingAnimationProvider, (previous, next) {
-      if (next != null) {
-        debugPrint('Chat closing animation requested for bubble ID: $next');
-        // Clear the provider state to prevent re-triggering
+    ref.listen<String?>(chatClosingAnimationProvider,
+        (previous, chatClosingBubbleId) {
+      if (chatClosingBubbleId != null && chatClosingBubbleId != previous) {
+        debugPrint('🎆 Animation status changed: AnimationStatus.forward');
+        debugPrint(
+            '🎆 Using overlay without reveal animation for $chatClosingBubbleId');
+
         ref.read(chatClosingAnimationProvider.notifier).state = null;
-        // Only call the unified close animation method - no duplicate calls
-        _startCloseAnimation(next, false); // false = chat
+
+        final callbacks = ref.read(bubbleAnimationCallbackProvider);
+        final callback = callbacks[chatClosingBubbleId];
+        if (callback != null) {
+          debugPrint(
+              '🎆 Reveal animation started for $chatClosingBubbleId, isClosing: true');
+          callback();
+          debugPrint('🎆 _snapBackAfterClose called');
+        } else {
+          debugPrint('No callback found for bubble ID: $chatClosingBubbleId');
+          debugPrint('Available callback IDs: ${callbacks.keys.toList()}');
+        }
       }
     });
 
-    ref.listen<String?>(herdClosingAnimationProvider, (previous, next) {
-      if (next != null) {
-        debugPrint('Herd closing animation requested for bubble ID: $next');
-        // Clear the provider state to prevent re-triggering
+    ref.listen<String?>(herdClosingAnimationProvider,
+        (previous, herdClosingBubbleId) {
+      if (herdClosingBubbleId != null && herdClosingBubbleId != previous) {
         ref.read(herdClosingAnimationProvider.notifier).state = null;
-        // Only call the unified close animation method - no duplicate calls
-        _startCloseAnimation(next, true); // true = herd
+
+        final callbacks = ref.read(bubbleAnimationCallbackProvider);
+        final callback = callbacks[herdClosingBubbleId];
+        if (callback != null) {
+          callback();
+        }
       }
     });
-
     ref.listen(activeChatBubblesProvider, (previous, next) {
       if (previous != next) {
         WidgetsBinding.instance.addPostFrameCallback((_) {

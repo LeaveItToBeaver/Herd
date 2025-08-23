@@ -21,16 +21,12 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
   final FocusNode _focusNode = FocusNode();
   bool _hasText = false;
 
-  // Debounce text updates to reduce provider calls
-  Timer? _textDebounceTimer;
-  Timer? _typingTimer;
-
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController();
 
-    // Listen to text changes with debouncing
+    // Listen to text changes
     _textController.addListener(() {
       final hasText = _textController.text.trim().isNotEmpty;
       if (hasText != _hasText) {
@@ -39,41 +35,25 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
         });
       }
 
-      // Debounce text updates to provider to reduce rebuild frequency
-      _textDebounceTimer?.cancel();
-      _textDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      // Only update provider if text actually changed
+      if (mounted) {
         final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
         notifier.updateText(_textController.text);
-      });
-
-      // Handle typing indicator with separate debouncing
-      _typingTimer?.cancel();
-      if (_textController.text.isNotEmpty) {
-        final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
-        notifier.setTyping(true);
-
-        // Stop typing indicator after 2 seconds of inactivity
-        _typingTimer = Timer(const Duration(seconds: 2), () {
-          notifier.setTyping(false);
-        });
       }
     });
 
     // Listen to focus changes for typing indicator
     _focusNode.addListener(() {
-      final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
-      if (!_focusNode.hasFocus) {
-        notifier.setTyping(false);
-      } else if (_textController.text.isNotEmpty) {
-        notifier.setTyping(true);
+      if (mounted) {
+        final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
+        notifier
+            .setTyping(_focusNode.hasFocus && _textController.text.isNotEmpty);
       }
     });
   }
 
   @override
   void dispose() {
-    _textDebounceTimer?.cancel();
-    _typingTimer?.cancel();
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -97,222 +77,264 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final inputState = ref.watch(messageInputProvider(widget.chatId));
-    final replyMessage = inputState.replyToMessageId != null
-        ? ref.watch(messageProvider(inputState.replyToMessageId!))
-        : null;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
+    // Wrap entire input widget in RepaintBoundary
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color:
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+              width: 1,
+            ),
           ),
         ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Reply preview
-            if (inputState.replyToMessageId != null)
-              replyMessage!.when(
-                data: (message) => message != null
-                    ? _ReplyPreview(
-                        message: message,
-                        onDismiss: () {
-                          ref
-                              .read(
-                                  messageInputProvider(widget.chatId).notifier)
-                              .setReplyTo(null);
-                        },
-                      )
-                    : const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-                loading: () => const CircularProgressIndicator(),
-              ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Reply preview - only rebuilds when reply state changes
+              Consumer(
+                builder: (context, ref, child) {
+                  final replyToMessageId = ref.watch(
+                    messageInputProvider(widget.chatId).select(
+                      (state) => state.replyToMessageId,
+                    ),
+                  );
 
-            // Error message
-            if (inputState.error != null)
-              _ErrorBanner(
-                error: inputState.error!,
-                onDismiss: () {
-                  ref
-                      .read(messageInputProvider(widget.chatId).notifier)
-                      .clearError();
+                  if (replyToMessageId == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return ref.watch(messageProvider(replyToMessageId)).when(
+                        data: (message) => message != null
+                            ? RepaintBoundary(
+                                child: _ReplyPreview(
+                                  message: message,
+                                  onDismiss: () {
+                                    ref
+                                        .read(
+                                            messageInputProvider(widget.chatId)
+                                                .notifier)
+                                        .setReplyTo(null);
+                                  },
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                        loading: () => const CircularProgressIndicator(),
+                      );
                 },
               ),
 
-            // Input area
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Text input field
-                  Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(
-                        minHeight: 44,
-                        maxHeight: 120,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          // Attachment button
-                          IconButton(
-                            icon: Icon(
-                              Icons.add,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              size: 22,
-                            ),
-                            onPressed: () {
-                              // TODO: Implement attachment picker
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Attachments coming soon!'),
-                                  duration: Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                            tooltip: 'Add attachment',
-                            padding: const EdgeInsets.all(10),
-                            constraints: const BoxConstraints(),
-                          ),
+              // Error message - only rebuilds when error state changes
+              Consumer(
+                builder: (context, ref, child) {
+                  final error = ref.watch(
+                    messageInputProvider(widget.chatId).select(
+                      (state) => state.error,
+                    ),
+                  );
 
-                          // Text field
-                          Expanded(
-                            child: TextField(
-                              controller: _textController,
-                              focusNode: _focusNode,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                hintText: inputState.replyToMessageId != null
-                                    ? 'Reply...'
-                                    : 'Message...',
-                                hintStyle: TextStyle(
+                  if (error == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return RepaintBoundary(
+                    child: _ErrorBanner(
+                      error: error,
+                      onDismiss: () {
+                        ref
+                            .read(messageInputProvider(widget.chatId).notifier)
+                            .clearError();
+                      },
+                    ),
+                  );
+                },
+              ),
+
+              // Input area - isolated from state changes
+              RepaintBoundary(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Text input field
+                      Expanded(
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            minHeight: 44,
+                            maxHeight: 120,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // Attachment button
+                              IconButton(
+                                icon: Icon(
+                                  Icons.add,
                                   color: Theme.of(context)
                                       .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.6),
+                                      .onSurfaceVariant,
+                                  size: 22,
+                                ),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Attachments coming soon!'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                tooltip: 'Add attachment',
+                                padding: const EdgeInsets.all(10),
+                                constraints: const BoxConstraints(),
+                              ),
+
+                              // Text field
+                              Expanded(
+                                child: TextField(
+                                  controller: _textController,
+                                  focusNode: _focusNode,
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    hintText: 'Message...',
+                                    hintStyle: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  keyboardType: TextInputType.multiline,
+                                  maxLines: null,
+                                  onSubmitted: (_) => _sendMessage(),
                                 ),
                               ),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              textCapitalization: TextCapitalization.sentences,
-                              keyboardType: TextInputType.multiline,
-                              maxLines: null,
-                              onSubmitted: (_) => _sendMessage(),
-                            ),
-                          ),
 
-                          // Emoji button (only when no text)
-                          if (!_hasText)
-                            IconButton(
-                              icon: Icon(
-                                Icons.mood,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                size: 22,
-                              ),
-                              onPressed: () {
-                                // TODO: Implement emoji picker
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Emoji picker coming soon!'),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                              tooltip: 'Emojis',
-                              padding: const EdgeInsets.all(10),
-                              constraints: const BoxConstraints(),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Send/Voice button
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: _hasText && !inputState.isSending
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.hardEdge,
-                      child: InkWell(
-                        onTap: _hasText && !inputState.isSending
-                            ? _sendMessage
-                            : () {
-                                // TODO: Voice recording
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Voice messages coming soon!'),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                        child: Center(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 150),
-                            child: inputState.isSending
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Theme.of(context).colorScheme.onPrimary,
-                                      ),
-                                    ),
-                                  )
-                                : Icon(
-                                    _hasText ? Icons.send : Icons.mic,
-                                    color: _hasText
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                              // Emoji button (only when no text)
+                              if (!_hasText)
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.mood,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                     size: 22,
                                   ),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content:
+                                            Text('Emoji picker coming soon!'),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  tooltip: 'Emojis',
+                                  padding: const EdgeInsets.all(10),
+                                  constraints: const BoxConstraints(),
+                                ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
+
+                      // Send/Voice button - isolated from provider state
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final isSending = ref.watch(
+                            messageInputProvider(widget.chatId).select(
+                              (state) => state.isSending,
+                            ),
+                          );
+
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: _hasText && !isSending
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.transparent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              shape: const CircleBorder(),
+                              clipBehavior: Clip.hardEdge,
+                              child: InkWell(
+                                onTap: _hasText && !isSending
+                                    ? _sendMessage
+                                    : () {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Voice messages coming soon!'),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
+                                child: Center(
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 150),
+                                    child: isSending
+                                        ? SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimary,
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            _hasText ? Icons.send : Icons.mic,
+                                            color: _hasText
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimary
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                            size: 22,
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

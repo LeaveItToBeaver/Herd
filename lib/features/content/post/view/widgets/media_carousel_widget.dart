@@ -211,6 +211,13 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
       );
     }
 
+    // Wrap each media item in RepaintBoundary for performance isolation
+    return RepaintBoundary(
+      child: _buildMediaContent(mediaItem, index),
+    );
+  }
+
+  Widget _buildMediaContent(PostMediaModel mediaItem, int index) {
     // Determine what type of media to build
     if (mediaItem.mediaType == 'video') {
       return _buildVideoItem(mediaItem, index);
