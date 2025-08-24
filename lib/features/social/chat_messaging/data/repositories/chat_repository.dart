@@ -38,17 +38,19 @@ class ChatRepository {
       final List<String> userIds = [currentUserId, otherUserId]..sort();
       final chatId = '${userIds[0]}_${userIds[1]}';
 
-      debugPrint('🔍 Creating/getting chat: $chatId between $currentUserId and $otherUserId');
+      debugPrint(
+          '🔍 Creating/getting chat: $chatId between $currentUserId and $otherUserId');
 
       // Check if chat exists in current user's userChats collection
-      final currentUserChatDoc = await _userChats(currentUserId).doc(chatId).get();
+      final currentUserChatDoc =
+          await _userChats(currentUserId).doc(chatId).get();
 
       if (currentUserChatDoc.exists) {
         debugPrint('✅ Chat exists, updating info if provided');
-        
+
         // Chat exists - optionally update other user's info in current user's document
         final updates = <String, dynamic>{};
-        
+
         if (otherUserName != null) {
           updates['otherParticipantName'] = otherUserName;
         }
@@ -69,9 +71,11 @@ class ChatRepository {
         }
 
         // Also update the other user's document if we have current user info
-        if (currentUserName != null || currentUserProfileImage != null || currentUserAltProfileImage != null) {
+        if (currentUserName != null ||
+            currentUserProfileImage != null ||
+            currentUserAltProfileImage != null) {
           final otherUserUpdates = <String, dynamic>{};
-          
+
           if (currentUserName != null) {
             otherUserUpdates['otherParticipantName'] = currentUserName;
           }
@@ -79,7 +83,8 @@ class ChatRepository {
             otherUserUpdates['otherParticipantPhoto'] = currentUserProfileImage;
           }
           if (currentUserAltProfileImage != null) {
-            otherUserUpdates['otherParticipantAltPhoto'] = currentUserAltProfileImage;
+            otherUserUpdates['otherParticipantAltPhoto'] =
+                currentUserAltProfileImage;
           }
 
           if (otherUserUpdates.isNotEmpty) {
@@ -124,7 +129,8 @@ class ChatRepository {
         'type': 'direct',
         'otherParticipantId': currentUserId,
         'otherParticipantName': currentUserName,
-        'otherParticipantUsername': null, // We might not have current user's username
+        'otherParticipantUsername':
+            null, // We might not have current user's username
         'otherParticipantPhoto': currentUserProfileImage,
         'otherParticipantAltPhoto': currentUserAltProfileImage,
         'lastMessage': null,
@@ -151,13 +157,34 @@ class ChatRepository {
   /// Get participants for a chat from user's perspective - Single collection architecture
   Future<List<String>> getChatParticipants(String chatId, String userId) async {
     try {
-      debugPrint('🔍 Getting participants for chat: $chatId from user: $userId');
-      
+      debugPrint(
+          '🔍 Getting participants for chat: $chatId from user: $userId');
+
+      // For direct chats, we can derive participants from chatId directly
+      if (chatId.contains('_')) {
+        final parts = chatId.split('_');
+        if (parts.length == 2) {
+          final participants = [parts[0], parts[1]];
+          debugPrint(
+              '✅ Derived participants from chatId directly: $participants');
+          return participants;
+        }
+      }
+
+      // Fallback: get from user's own chat document (for group chats or when chatId doesn't follow pattern)
       final userChatDoc = await _userChats(userId).doc(chatId).get();
-      
+
       if (!userChatDoc.exists) {
         debugPrint('❌ User chat document not found: $chatId for user: $userId');
-        return [];
+        // Emergency fallback: try to derive from chatId
+        if (chatId.contains('_')) {
+          final parts = chatId.split('_');
+          if (parts.length == 2) {
+            debugPrint('🔄 Emergency fallback to chatId derivation');
+            return [parts[0], parts[1]];
+          }
+        }
+        return [userId]; // Return at least the current user
       }
 
       final data = userChatDoc.data()!;
@@ -170,23 +197,31 @@ class ChatRepository {
           debugPrint('❌ No otherParticipantId found in direct chat: $chatId');
           return [userId]; // Return at least the current user
         }
-        
+
         final participants = [userId, otherParticipantId];
         debugPrint('✅ Direct chat participants: $participants');
         return participants;
-      } 
-      else if (chatType == 'group') {
+      } else if (chatType == 'group') {
         // Group chat: participants are stored in the participants array
         final participants = List<String>.from(data['participants'] ?? []);
         debugPrint('✅ Group chat participants: $participants');
         return participants;
-      } 
-      else {
+      } else {
         debugPrint('❌ Unknown chat type: $chatType for chat: $chatId');
         return [userId]; // Return at least the current user
       }
     } catch (e) {
       debugPrint('❌ Error getting chat participants: $e');
+
+      // Emergency fallback: derive from chatId for direct chats
+      if (chatId.contains('_')) {
+        final parts = chatId.split('_');
+        if (parts.length == 2) {
+          debugPrint('🔄 Using emergency fallback for chatId: $chatId');
+          return [parts[0], parts[1]];
+        }
+      }
+
       return [userId]; // Return at least the current user
     }
   }
@@ -205,18 +240,23 @@ class ChatRepository {
   /// Get user's chat list with pagination - Now much simpler with user-specific collections!
   Stream<List<ChatModel>> getUserChats(String userId, {int limit = 20}) {
     debugPrint('🔍 Getting chats for user: $userId');
-    
+
     return _userChats(userId)
         .orderBy('isPinned', descending: true)
         .orderBy('lastActivity', descending: true)
         .limit(limit)
         .snapshots()
         .map((snapshot) {
-      debugPrint('📱 Found ${snapshot.docs.length} chats for user: $userId');
-      
-      return snapshot.docs.map((doc) {
+      debugPrint(
+          '📱 Found ${snapshot.docs.length} chat documents for user: $userId');
+
+      final chatModels = snapshot.docs.map((doc) {
         final data = doc.data();
         final chatId = doc.id; // Use document ID as chat ID
+
+        debugPrint('📄 Processing chat document: $chatId');
+        debugPrint('   - Other participant: ${data['otherParticipantId']}');
+        debugPrint('   - Chat type: ${data['type']}');
 
         // Convert userChat data to ChatModel using consistent structure
         return ChatModel(
@@ -238,6 +278,19 @@ class ChatRepository {
           groupId: data['type'] == 'group' ? chatId : null,
         );
       }).toList();
+
+      debugPrint('✅ Returning ${chatModels.length} chat models');
+
+      // Check for duplicate chat IDs at the source
+      final chatIds = chatModels.map((c) => c.id).toList();
+      final uniqueIds = chatIds.toSet();
+      if (chatIds.length != uniqueIds.length) {
+        debugPrint('⚠️ WARNING: Repository returning duplicate chat IDs!');
+        debugPrint('All IDs: $chatIds');
+        debugPrint('Unique IDs: $uniqueIds');
+      }
+
+      return chatModels;
     });
   }
 
@@ -263,7 +316,7 @@ class ChatRepository {
       for (final memberId in allMembers) {
         final memberNames = <String, String>{};
         final memberPhotos = <String, String>{};
-        
+
         // TODO: In a real implementation, you'd fetch member names and photos
         // For now, we'll create minimal group chat documents
         for (final otherId in allMembers) {
@@ -272,7 +325,7 @@ class ChatRepository {
             memberPhotos[otherId] = ''; // Placeholder
           }
         }
-        
+
         batch.set(_userChats(memberId).doc(chatId), {
           'chatId': chatId,
           'type': 'group',
@@ -390,7 +443,7 @@ class ChatRepository {
         isAlt: data['isAlt'] as bool? ?? false,
         groupId: data['type'] == 'group' ? chatId : null,
       );
-      
+
       debugPrint('✅ User chat found and parsed successfully: ${chatModel.id}');
       return chatModel;
     } catch (e) {

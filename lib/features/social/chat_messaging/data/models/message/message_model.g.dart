@@ -16,6 +16,8 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
       content: json['content'] as String?,
       type: $enumDecodeNullable(_$MessageTypeEnumMap, json['type']) ??
           MessageType.text,
+      status: $enumDecodeNullable(_$MessageStatusEnumMap, json['status']) ??
+          MessageStatus.delivered,
       timestamp: DateTime.parse(json['timestamp'] as String),
       editedAt: json['editedAt'] == null
           ? null
@@ -63,6 +65,7 @@ Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
       'senderProfileImage': instance.senderProfileImage,
       'content': instance.content,
       'type': _$MessageTypeEnumMap[instance.type]!,
+      'status': _$MessageStatusEnumMap[instance.status]!,
       'timestamp': instance.timestamp.toIso8601String(),
       'editedAt': instance.editedAt?.toIso8601String(),
       'mediaUrl': instance.mediaUrl,
@@ -103,4 +106,12 @@ const _$MessageTypeEnumMap = {
   MessageType.location: 'location',
   MessageType.contact: 'contact',
   MessageType.sticker: 'sticker',
+};
+
+const _$MessageStatusEnumMap = {
+  MessageStatus.draft: 'draft',
+  MessageStatus.sending: 'sending',
+  MessageStatus.delivered: 'delivered',
+  MessageStatus.failed: 'failed',
+  MessageStatus.read: 'read',
 };

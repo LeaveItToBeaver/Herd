@@ -16,7 +16,105 @@ class MessageRepository {
   static const int _fetchLimit = 50;
   int get pageSize => _fetchLimit;
 
+  // Cache to prevent excessive calls
+  final Map<String, List<String>> _participantsCache = {};
+  final Map<String, String?> _userKeysCache = {};
+  final Map<String, bool> _encryptionCapabilityCache = {};
+
   MessageRepository(this._firestore, this._users, this._crypto, this._chats);
+
+  // Cached methods to prevent excessive calls
+  Future<List<String>> _getCachedParticipants(
+      String chatId, String userId) async {
+    final key = '${chatId}_$userId';
+    if (_participantsCache.containsKey(key)) {
+      return _participantsCache[key]!;
+    }
+
+    try {
+      // For direct chats, derive participants from chatId format (more reliable)
+      if (chatId.contains('_')) {
+        final parts = chatId.split('_');
+        if (parts.length == 2) {
+          final participants = [parts[0], parts[1]];
+          _participantsCache[key] = participants;
+          debugPrint('✅ Derived participants from chatId: $participants');
+          // Clear cache after 5 minutes to prevent stale data
+          Future.delayed(
+              const Duration(minutes: 5), () => _participantsCache.remove(key));
+          return participants;
+        }
+      }
+
+      // Fallback: get from user's own chat document (only for group chats)
+      final participants = await _chats.getChatParticipants(chatId, userId);
+      _participantsCache[key] = participants;
+      // Clear cache after 5 minutes to prevent stale data
+      Future.delayed(
+          const Duration(minutes: 5), () => _participantsCache.remove(key));
+      return participants;
+    } catch (e) {
+      debugPrint('❌ Failed to get cached participants: $e');
+
+      // Emergency fallback: derive from chatId for direct chats
+      if (chatId.contains('_')) {
+        final parts = chatId.split('_');
+        if (parts.length == 2) {
+          debugPrint('🔄 Using emergency fallback for chatId: $chatId');
+          return [parts[0], parts[1]];
+        }
+      }
+
+      return [userId]; // Return at least the current user
+    }
+  }
+
+  Future<String?> _getCachedUserKey(String userId) async {
+    if (_userKeysCache.containsKey(userId)) {
+      return _userKeysCache[userId];
+    }
+
+    try {
+      final keyDoc = await _firestore.collection('userKeys').doc(userId).get();
+      final key = keyDoc.data()?['identityPub'] as String?;
+      _userKeysCache[userId] = key;
+      // Clear cache after 10 minutes
+      Future.delayed(
+          const Duration(minutes: 10), () => _userKeysCache.remove(userId));
+      return key;
+    } catch (e) {
+      debugPrint('❌ Failed to get cached user key: $e');
+      _userKeysCache[userId] = null;
+      return null;
+    }
+  }
+
+  Future<bool> _getCachedEncryptionCapability(List<String> participants) async {
+    final key = participants.join('_');
+    if (_encryptionCapabilityCache.containsKey(key)) {
+      return _encryptionCapabilityCache[key]!;
+    }
+
+    try {
+      for (final userId in participants) {
+        final userKey = await _getCachedUserKey(userId);
+        if (userKey == null) {
+          _encryptionCapabilityCache[key] = false;
+          Future.delayed(const Duration(minutes: 2),
+              () => _encryptionCapabilityCache.remove(key));
+          return false;
+        }
+      }
+      _encryptionCapabilityCache[key] = true;
+      Future.delayed(const Duration(minutes: 5),
+          () => _encryptionCapabilityCache.remove(key));
+      return true;
+    } catch (e) {
+      debugPrint('❌ Failed to check cached encryption capability: $e');
+      _encryptionCapabilityCache[key] = false;
+      return false;
+    }
+  }
 
   // Collections
   CollectionReference<Map<String, dynamic>> get _legacyMessages =>
@@ -39,21 +137,20 @@ class MessageRepository {
   }) async {
     final sender = await _users.getUserById(senderId);
     if (sender == null) throw Exception('Sender not found');
-    
-    // Use new single collection architecture to get participants
-    final participants = await _chats.getChatParticipants(chatId, senderId);
+
+    // Use cached participants to prevent excessive calls
+    final participants = await _getCachedParticipants(chatId, senderId);
     if (participants.length != 2) {
-      throw Exception('Direct chat must have exactly 2 participants, got ${participants.length}');
+      throw Exception(
+          'Direct chat must have exactly 2 participants, got ${participants.length}');
     }
-    
+
     // Ensure chat exists
     final chatExists = await _chats.chatExists(chatId, senderId);
     if (!chatExists) throw Exception('Chat not found');
     final otherId =
         participants.firstWhere((p) => p != senderId, orElse: () => senderId);
-    final otherKeyDoc =
-        await _firestore.collection('userKeys').doc(otherId).get();
-    final otherPub = otherKeyDoc.data()?['identityPub'];
+    final otherPub = await _getCachedUserKey(otherId);
     if (otherPub == null) throw Exception('Missing other user public key');
 
     final secret = await _crypto.deriveDirectChatKey(
@@ -291,13 +388,13 @@ class MessageRepository {
     Map<String, dynamic>? mediaData,
     String? senderName,
   }) async {
-    // Get participants using new single collection architecture
-    final participants = await _chats.getChatParticipants(chatId, senderId);
-    
+    // Get cached participants to prevent excessive calls
+    final participants = await _getCachedParticipants(chatId, senderId);
+
     if (participants.isEmpty) {
       throw Exception('Chat not found or no participants');
     }
-    
+
     // Check if chat exists
     final chatExists = await _chats.chatExists(chatId, senderId);
     if (!chatExists) {
@@ -307,8 +404,8 @@ class MessageRepository {
     final isDirect = participants.length == 2;
 
     if (isDirect) {
-      // Check if both users have identity keys for E2EE
-      final hasEncryption = await _canUseEncryption(participants);
+      // Check if both users have identity keys for E2EE (cached)
+      final hasEncryption = await _getCachedEncryptionCapability(participants);
       if (hasEncryption) {
         // Both users have keys - use encrypted path
         return sendEncryptedDirect(
@@ -332,23 +429,6 @@ class MessageRepository {
     );
   }
 
-  /// Check if all participants have published identity keys for encryption
-  Future<bool> _canUseEncryption(List<String> participants) async {
-    try {
-      for (final userId in participants) {
-        final keyDoc =
-            await _firestore.collection('userKeys').doc(userId).get();
-        if (!keyDoc.exists || keyDoc.data()?['identityPub'] == null) {
-          return false;
-        }
-      }
-      return true;
-    } catch (e) {
-      // If any error checking keys, fall back to plaintext
-      return false;
-    }
-  }
-
   /// Mark messages as read (legacy + userChats metadata). Encrypted read receipts TBD.
   Future<void> markMessagesAsRead(String chatId, String userId) async {
     // Reset unread count
@@ -356,12 +436,12 @@ class MessageRepository {
       'unreadCount': 0,
       'lastReadTimestamp': FieldValue.serverTimestamp(),
     });
-    
+
     // For legacy flat messages, emulate prior behavior updating read receipts (best-effort).
-    // Get participant count from userChats instead of chats collection
-    final participants = await _chats.getChatParticipants(chatId, userId);
+    // Get participant count from cached data
+    final participants = await _getCachedParticipants(chatId, userId);
     final participantCount = participants.length;
-    
+
     if (participantCount < 50) {
       final unread = await _legacyMessages
           .where('chatId', isEqualTo: chatId)
@@ -437,7 +517,10 @@ class MessageRepository {
   Future<MessageModel> _decodeEncrypted(
       String chatId, String id, Map<String, dynamic> data) async {
     final ts = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+    // If no ciphertext, this shouldn't have been called - return plaintext message
     if (data['ciphertext'] == null) {
+      debugPrint('⚠️ _decodeEncrypted called for plaintext message: $id');
       final legacyTypeStr = data['type'] as String?;
       final legacyType = legacyTypeStr == null
           ? MessageType.text
@@ -459,18 +542,18 @@ class MessageRepository {
       );
     }
 
-    // Check if chat exists and is direct using new architecture
-    final participants = await _chats.getChatParticipants(chatId, data['senderId'] as String? ?? '');
+    // Check if chat exists and is direct using cached participants
+    final participants =
+        await _getCachedParticipants(chatId, data['senderId'] as String? ?? '');
     if (participants.isEmpty) return _empty(chatId, id, data, ts);
-    
+
     // Only decrypt direct chats (2 participants)
     if (participants.length != 2) return _empty(chatId, id, data, ts);
 
     Map<String, dynamic>? decrypted;
     for (final pid in participants) {
       try {
-        final keyDoc = await _firestore.collection('userKeys').doc(pid).get();
-        final pub = keyDoc.data()?['identityPub'];
+        final pub = await _getCachedUserKey(pid);
         if (pub == null) continue;
         final key = await _crypto.deriveDirectChatKey(
           otherPublicKeyBytes: base64Decode(pub),
@@ -566,7 +649,7 @@ class MessageRepository {
 
     final data = {
       'id': messageRef.id,
-      'chatId': chatId,
+      'chatId': chatId, // FIXED: Add chatId field for _fromHierarchicalDoc
       'senderId': senderId,
       'senderName': '${sender.firstName} ${sender.lastName}'.trim(),
       'senderProfileImage': sender.profileImageURL,
@@ -583,8 +666,8 @@ class MessageRepository {
       'readReceipts': <String, dynamic>{},
     };
 
-    // Get participants using new single collection architecture
-    final participants = await _chats.getChatParticipants(chatId, senderId);
+    // Get cached participants to prevent excessive calls
+    final participants = await _getCachedParticipants(chatId, senderId);
     if (participants.isEmpty) {
       throw Exception('Chat not found or no participants');
     }

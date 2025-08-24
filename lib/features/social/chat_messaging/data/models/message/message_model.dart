@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../enums/message_type.dart';
+import '../../enums/message_status.dart';
 
 part 'message_model.freezed.dart';
 part 'message_model.g.dart';
@@ -16,6 +17,7 @@ abstract class MessageModel with _$MessageModel {
     String? senderProfileImage,
     String? content,
     @Default(MessageType.text) MessageType type,
+    @Default(MessageStatus.delivered) MessageStatus status,
     required DateTime timestamp,
     DateTime? editedAt,
     String? mediaUrl,

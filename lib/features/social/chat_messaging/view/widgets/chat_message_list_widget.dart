@@ -4,6 +4,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/message_status_indicator_widget.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 
 class ChatMessageListWidget extends ConsumerStatefulWidget {
@@ -64,21 +65,6 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
     }
   }
 
-  String formatMessageTime(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inDays > 0) {
-      return '${timestamp.day}/${timestamp.month}';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m';
-    } else {
-      return 'now';
-    }
-  }
-
   void _handleReply(String messageId, String messageContent) {
     ref
         .read(messageInputProvider(widget.chatId).notifier)
@@ -87,156 +73,156 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final messages = ref.watch(messagesProvider(widget.chatId));
-    final currentUser = ref.watch(currentUserProvider);
-    final currentChat = ref.watch(currentChatProvider(widget.chatId));
+    final messagesState = ref.watch(messagesProvider(widget.chatId));
+    final optimisticMessages =
+        ref.watch(optimisticMessagesProvider(widget.chatId));
 
-    return messages.when(
-      data: (messageList) {
-        if (messageList.isEmpty) {
-          return EmptyChatStateWidget(
-            chatName: currentChat.value?.otherUserName ?? 'this user',
-            onSendFirstMessage: () {
-              // Focus the input field
-              // You might want to pass a callback to focus the input
-            },
-          );
-        }
+    // Combine server messages with optimistic messages
+    final allMessages = <MessageModel>[];
+    allMessages.addAll(messagesState.messages);
 
-        // Sort messages by timestamp (oldest first for correct display order)
-        final sortedMessages = [...messageList]
-          ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    // Add optimistic messages that aren't already in server messages
+    final serverIds = messagesState.messages.map((m) => m.id).toSet();
+    for (final optimisticMsg in optimisticMessages.values) {
+      if (!serverIds.contains(optimisticMsg.id)) {
+        allMessages.add(optimisticMsg);
+      }
+    }
 
-        // Scroll to bottom when new messages arrive
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_isAtBottom) {
-            _scrollToBottom();
-          }
-        });
+    return _buildMessagesList(allMessages, context);
+  }
 
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            // Handle overscroll for swipe-to-close
-            if (_isAtBottom && notification is OverscrollNotification) {
-              if (notification.overscroll > 0) {
-                setState(() {
-                  _isDragging = true;
-                  _dragOffset += notification.overscroll;
-                });
+  Widget _buildMessagesList(
+      List<MessageModel> messageList, BuildContext context) {
+    if (messageList.isEmpty) {
+      final currentChat = ref.read(currentChatProvider(widget.chatId));
+      return EmptyChatStateWidget(
+        chatName: currentChat.value?.otherUserName ?? 'this user',
+        onSendFirstMessage: () {
+          // Focus the input field
+        },
+      );
+    }
 
-                if (_dragOffset > 100 && widget.onCloseRequested != null) {
-                  widget.onCloseRequested!();
-                }
-              }
-            } else if (notification is ScrollEndNotification) {
-              setState(() {
-                _isDragging = false;
-                _dragOffset = 0.0;
-              });
+    // Sort messages by timestamp (oldest first for correct display order)
+    final sortedMessages = [...messageList]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    // Scroll to bottom when new messages arrive
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isAtBottom) {
+        _scrollToBottom();
+      }
+    });
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Handle overscroll for swipe-to-close
+        if (_isAtBottom && notification is OverscrollNotification) {
+          if (notification.overscroll > 0) {
+            setState(() {
+              _isDragging = true;
+              _dragOffset += notification.overscroll;
+            });
+
+            if (_dragOffset > 100 && widget.onCloseRequested != null) {
+              widget.onCloseRequested!();
             }
-            return false;
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            transform: Matrix4.translationValues(
-                0, _isDragging ? _dragOffset * 0.3 : 0, 0),
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: sortedMessages.length,
-              itemBuilder: (context, index) {
-                final message = sortedMessages[index];
-                // Fix: Properly determine if message is from current user
-                final isCurrentUser = currentUser.when(
-                  data: (user) => user?.id == message.senderId,
-                  loading: () => false,
-                  error: (_, __) => false,
-                );
-
-                // Check if we should show date separator
-                bool showDateSeparator = false;
-                if (index == 0) {
-                  showDateSeparator = true;
-                } else {
-                  final previousMessage = sortedMessages[index - 1];
-                  final currentDate = DateTime(
-                    message.timestamp.year,
-                    message.timestamp.month,
-                    message.timestamp.day,
-                  );
-                  final previousDate = DateTime(
-                    previousMessage.timestamp.year,
-                    previousMessage.timestamp.month,
-                    previousMessage.timestamp.day,
-                  );
-                  showDateSeparator =
-                      !currentDate.isAtSameMomentAs(previousDate);
-                }
-
-                return Column(
-                  children: [
-                    // Date separator
-                    if (showDateSeparator) ...[
-                      const SizedBox(height: 16),
-                      _DateSeparator(date: message.timestamp),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Swipeable message
-                    SwipeableMessage(
-                      message: message,
-                      isCurrentUser: isCurrentUser,
-                      onReply: () =>
-                          _handleReply(message.id, message.content ?? ''),
-                      child: _MessageWithProfile(
-                        message: message,
-                        isCurrentUser: isCurrentUser,
-                        currentUser: currentUser,
-                        currentChat: currentChat,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-                  ],
-                );
-              },
-            ),
-          ),
-        );
+          }
+        } else if (notification is ScrollEndNotification) {
+          setState(() {
+            _isDragging = false;
+            _dragOffset = 0.0;
+          });
+        }
+        return false;
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
-      ),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load messages',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                ref.invalidate(messageProvider(widget.chatId));
-              },
-              child: const Text('Retry'),
-            ),
-          ],
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        transform: Matrix4.translationValues(
+            0, _isDragging ? _dragOffset * 0.3 : 0, 0),
+        child: ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: sortedMessages.length,
+          itemBuilder: (context, index) => _MessageItem(
+            message: sortedMessages[index],
+            previousMessage: index > 0 ? sortedMessages[index - 1] : null,
+            chatId: widget.chatId,
+            onReply: _handleReply,
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _MessageItem extends ConsumerWidget {
+  final MessageModel message;
+  final MessageModel? previousMessage;
+  final String chatId;
+  final Function(String, String) onReply;
+
+  const _MessageItem({
+    required this.message,
+    this.previousMessage,
+    required this.chatId,
+    required this.onReply,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.read(currentUserProvider);
+    final currentChat = ref.read(currentChatProvider(chatId));
+
+    final isCurrentUser = currentUser.when(
+      data: (user) => user?.id == message.senderId,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
+    // Check if we should show date separator
+    bool showDateSeparator = false;
+    if (previousMessage == null) {
+      showDateSeparator = true;
+    } else {
+      final currentDate = DateTime(
+        message.timestamp.year,
+        message.timestamp.month,
+        message.timestamp.day,
+      );
+      final previousDate = DateTime(
+        previousMessage!.timestamp.year,
+        previousMessage!.timestamp.month,
+        previousMessage!.timestamp.day,
+      );
+      showDateSeparator = !currentDate.isAtSameMomentAs(previousDate);
+    }
+
+    return Column(
+      children: [
+        // Date separator
+        if (showDateSeparator) ...[
+          const SizedBox(height: 16),
+          _DateSeparator(date: message.timestamp),
+          const SizedBox(height: 16),
+        ],
+
+        // Swipeable message
+        SwipeableMessage(
+          message: message,
+          isCurrentUser: isCurrentUser,
+          onReply: () => onReply(message.id, message.content ?? ''),
+          child: _MessageWithProfile(
+            message: message,
+            isCurrentUser: isCurrentUser,
+            currentUser: currentUser,
+            currentChat: currentChat,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
@@ -430,18 +416,29 @@ class _MessageWithProfile extends StatelessWidget {
                   ),
                 ),
 
-                // Timestamp
+                // Timestamp and status
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
-                  child: Text(
-                    _formatMessageTime(message.timestamp),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant
-                              .withValues(alpha: 0.6),
-                          fontSize: 11,
-                        ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatMessageTime(message.timestamp),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                              fontSize: 11,
+                            ),
+                      ),
+
+                      // Status indicator for current user messages
+                      if (isCurrentUser) ...[
+                        const SizedBox(width: 4),
+                        MessageStatusIndicator(status: message.status),
+                      ],
+                    ],
                   ),
                 ),
               ],

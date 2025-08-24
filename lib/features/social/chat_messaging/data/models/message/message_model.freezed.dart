@@ -21,6 +21,7 @@ mixin _$MessageModel {
   String? get senderProfileImage;
   String? get content;
   MessageType get type;
+  MessageStatus get status;
   DateTime get timestamp;
   DateTime? get editedAt;
   String? get mediaUrl;
@@ -75,6 +76,7 @@ mixin _$MessageModel {
                 other.senderProfileImage == senderProfileImage) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
             (identical(other.editedAt, editedAt) ||
@@ -139,6 +141,7 @@ mixin _$MessageModel {
         senderProfileImage,
         content,
         type,
+        status,
         timestamp,
         editedAt,
         mediaUrl,
@@ -169,7 +172,7 @@ mixin _$MessageModel {
 
   @override
   String toString() {
-    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
+    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, status: $status, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
   }
 }
 
@@ -187,6 +190,7 @@ abstract mixin class $MessageModelCopyWith<$Res> {
       String? senderProfileImage,
       String? content,
       MessageType type,
+      MessageStatus status,
       DateTime timestamp,
       DateTime? editedAt,
       String? mediaUrl,
@@ -234,6 +238,7 @@ class _$MessageModelCopyWithImpl<$Res> implements $MessageModelCopyWith<$Res> {
     Object? senderProfileImage = freezed,
     Object? content = freezed,
     Object? type = null,
+    Object? status = null,
     Object? timestamp = null,
     Object? editedAt = freezed,
     Object? mediaUrl = freezed,
@@ -290,6 +295,10 @@ class _$MessageModelCopyWithImpl<$Res> implements $MessageModelCopyWith<$Res> {
           ? _self.type
           : type // ignore: cast_nullable_to_non_nullable
               as MessageType,
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as MessageStatus,
       timestamp: null == timestamp
           ? _self.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
@@ -499,6 +508,7 @@ extension MessageModelPatterns on MessageModel {
             String? senderProfileImage,
             String? content,
             MessageType type,
+            MessageStatus status,
             DateTime timestamp,
             DateTime? editedAt,
             String? mediaUrl,
@@ -539,6 +549,7 @@ extension MessageModelPatterns on MessageModel {
             _that.senderProfileImage,
             _that.content,
             _that.type,
+            _that.status,
             _that.timestamp,
             _that.editedAt,
             _that.mediaUrl,
@@ -593,6 +604,7 @@ extension MessageModelPatterns on MessageModel {
             String? senderProfileImage,
             String? content,
             MessageType type,
+            MessageStatus status,
             DateTime timestamp,
             DateTime? editedAt,
             String? mediaUrl,
@@ -632,6 +644,7 @@ extension MessageModelPatterns on MessageModel {
             _that.senderProfileImage,
             _that.content,
             _that.type,
+            _that.status,
             _that.timestamp,
             _that.editedAt,
             _that.mediaUrl,
@@ -685,6 +698,7 @@ extension MessageModelPatterns on MessageModel {
             String? senderProfileImage,
             String? content,
             MessageType type,
+            MessageStatus status,
             DateTime timestamp,
             DateTime? editedAt,
             String? mediaUrl,
@@ -724,6 +738,7 @@ extension MessageModelPatterns on MessageModel {
             _that.senderProfileImage,
             _that.content,
             _that.type,
+            _that.status,
             _that.timestamp,
             _that.editedAt,
             _that.mediaUrl,
@@ -767,6 +782,7 @@ class _MessageModel extends MessageModel {
       this.senderProfileImage,
       this.content,
       this.type = MessageType.text,
+      this.status = MessageStatus.delivered,
       required this.timestamp,
       this.editedAt,
       this.mediaUrl,
@@ -814,6 +830,9 @@ class _MessageModel extends MessageModel {
   @override
   @JsonKey()
   final MessageType type;
+  @override
+  @JsonKey()
+  final MessageStatus status;
   @override
   final DateTime timestamp;
   @override
@@ -923,6 +942,7 @@ class _MessageModel extends MessageModel {
                 other.senderProfileImage == senderProfileImage) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
             (identical(other.editedAt, editedAt) ||
@@ -988,6 +1008,7 @@ class _MessageModel extends MessageModel {
         senderProfileImage,
         content,
         type,
+        status,
         timestamp,
         editedAt,
         mediaUrl,
@@ -1018,7 +1039,7 @@ class _MessageModel extends MessageModel {
 
   @override
   String toString() {
-    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
+    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, status: $status, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
   }
 }
 
@@ -1038,6 +1059,7 @@ abstract mixin class _$MessageModelCopyWith<$Res>
       String? senderProfileImage,
       String? content,
       MessageType type,
+      MessageStatus status,
       DateTime timestamp,
       DateTime? editedAt,
       String? mediaUrl,
@@ -1086,6 +1108,7 @@ class __$MessageModelCopyWithImpl<$Res>
     Object? senderProfileImage = freezed,
     Object? content = freezed,
     Object? type = null,
+    Object? status = null,
     Object? timestamp = null,
     Object? editedAt = freezed,
     Object? mediaUrl = freezed,
@@ -1142,6 +1165,10 @@ class __$MessageModelCopyWithImpl<$Res>
           ? _self.type
           : type // ignore: cast_nullable_to_non_nullable
               as MessageType,
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as MessageStatus,
       timestamp: null == timestamp
           ? _self.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
