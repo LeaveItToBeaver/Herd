@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
@@ -34,11 +35,8 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
         });
       }
 
-      // Only update provider if text actually changed
-      if (mounted) {
-        final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
-        notifier.updateText(_textController.text);
-      }
+      // Debounce provider updates to prevent excessive rebuilds during typing
+      _debounceUpdateProvider();
     });
 
     // Listen to focus changes for typing indicator
@@ -51,8 +49,21 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
     });
   }
 
+  Timer? _debounceTimer;
+
+  void _debounceUpdateProvider() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
+        notifier.updateText(_textController.text);
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -64,14 +75,16 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
     final notifier = ref.read(messageInputProvider(widget.chatId).notifier);
     await notifier.sendMessage();
 
-    // Clear the text field if message was sent successfully
-    final newState = ref.read(messageInputProvider(widget.chatId));
-    if (newState.text.isEmpty) {
-      _textController.clear();
-      setState(() {
-        _hasText = false;
-      });
-    }
+    // Force sync controller with provider state after sending
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentState = ref.read(messageInputProvider(widget.chatId));
+      if (currentState.text != _textController.text) {
+        _textController.text = currentState.text;
+        setState(() {
+          _hasText = currentState.text.trim().isNotEmpty;
+        });
+      }
+    });
   }
 
   @override
@@ -144,6 +157,7 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
                   return RepaintBoundary(
                     child: _ErrorBanner(
                       error: error,
+                      chatId: widget.chatId,
                       onDismiss: () {
                         ref
                             .read(messageInputProvider(widget.chatId).notifier)
@@ -416,17 +430,21 @@ class _ReplyPreview extends StatelessWidget {
   }
 }
 
-class _ErrorBanner extends StatelessWidget {
+class _ErrorBanner extends ConsumerWidget {
   final String error;
   final VoidCallback onDismiss;
+  final String chatId;
 
   const _ErrorBanner({
     required this.error,
     required this.onDismiss,
+    required this.chatId,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isRetryableError = error.contains('Failed to send message');
+
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -443,11 +461,39 @@ class _ErrorBanner extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              error,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onErrorContainer,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  error,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                ),
+                if (isRetryableError) ...[
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: () {
+                      ref
+                          .read(messageInputProvider(chatId).notifier)
+                          .clearError();
+                      ref
+                          .read(messageInputProvider(chatId).notifier)
+                          .sendMessage();
+                    },
+                    child: Text(
+                      'Tap to retry',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                    ),
                   ),
+                ],
+              ],
             ),
           ),
           IconButton(

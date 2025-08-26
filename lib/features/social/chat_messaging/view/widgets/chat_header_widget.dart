@@ -92,7 +92,7 @@ class ChatHeaderWidget extends ConsumerWidget {
 
                 const SizedBox(height: 2),
 
-                // Username or status
+                // Status
                 currentChat.when(
                   data: (chat) => Text(
                     chat?.otherUserUsername ?? '@unknown',

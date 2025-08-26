@@ -386,6 +386,9 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
 
     final content = state.text.trim();
 
+    // Set sending state immediately
+    state = state.copyWith(isSending: true, error: null);
+
     try {
       final messagesRepo = _ref.read(messageRepositoryProvider);
       final messagesNotifier = _ref.read(messagesProvider(_chatId).notifier);
@@ -430,43 +433,64 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
       // 2. Add to UI immediately (like appending to todo list)
       messagesNotifier.addOptimisticMessage(optimisticMessage);
 
-      // 3. Clear input immediately for better UX
+      // 3. Clear input immediately for better UX - THIS IS KEY!
       state = state.copyWith(
         text: '',
-        isSending: false,
+        isSending: false, // Allow typing immediately
         replyToMessageId: null,
         error: null,
       );
 
-      // 4. Send to Firebase in background
-      try {
-        final sentMessage = await messagesRepo.sendMessage(
-          chatId: _chatId,
-          senderId: authUser.uid,
-          content: content,
-          senderName: senderName,
-          replyToMessageId: optimisticMessage.replyToMessageId,
-        );
-
-        // 5. Replace temp ID with server ID (no UI disruption)
-        messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
-
-        debugPrint('✅ Message sent successfully: ${sentMessage.id}');
-      } catch (error) {
-        // 6. Mark as failed if sending failed
-        messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
-
-        debugPrint('❌ Failed to send message: $error');
-
-        // Optionally show error in input state for user awareness
-        state = state.copyWith(error: 'Failed to send message. Tap to retry.');
-      }
+      // 4. Send to Firebase in background (don't await here to prevent blocking)
+      _sendMessageInBackground(
+        messagesRepo,
+        messagesNotifier,
+        tempId,
+        optimisticMessage,
+        authUser.uid,
+        content,
+        senderName,
+      );
     } catch (error) {
       // Handle initial setup errors (auth, user loading, etc.)
       state = state.copyWith(
         isSending: false,
         error: error.toString(),
       );
+    }
+  }
+
+  /// Send message in background without blocking UI
+  void _sendMessageInBackground(
+    MessageRepository messagesRepo,
+    MessagesNotifier messagesNotifier,
+    String tempId,
+    MessageModel optimisticMessage,
+    String senderId,
+    String content,
+    String senderName,
+  ) async {
+    try {
+      final sentMessage = await messagesRepo.sendMessage(
+        chatId: _chatId,
+        senderId: senderId,
+        content: content,
+        senderName: senderName,
+        replyToMessageId: optimisticMessage.replyToMessageId,
+      );
+
+      // Replace temp ID with server ID (no UI disruption)
+      messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
+
+      debugPrint('✅ Message sent successfully: ${sentMessage.id}');
+    } catch (error) {
+      // Mark as failed if sending failed
+      messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
+
+      debugPrint('❌ Failed to send message: $error');
+
+      // Show error in input state for user awareness
+      state = state.copyWith(error: 'Failed to send message. Tap to retry.');
     }
   }
 

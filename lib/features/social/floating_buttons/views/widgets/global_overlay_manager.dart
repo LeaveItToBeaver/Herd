@@ -5,7 +5,6 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/view/widgets/herd_overlay_widget.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 import 'package:herdapp/features/social/floating_buttons/views/widgets/animated_reveal_overlay.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
@@ -53,6 +52,8 @@ class GlobalOverlayManager extends ConsumerWidget {
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
     double navBarPositionRight = 10;
 
+    final bool isOverlayActive = activeOverlayType != null;
+
     return Container(
       color: Theme.of(context).colorScheme.primary,
       child: Material(
@@ -63,37 +64,6 @@ class GlobalOverlayManager extends ConsumerWidget {
             child,
 
             // Side Bubbles - only shown if explicitly enabled
-            if (showSideBubbles)
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: Builder(
-                  builder: (context) {
-                    // Create completely keyboard-independent MediaQuery
-                    final originalMediaQuery = MediaQuery.of(context);
-                    final keyboardFreeMediaQuery = originalMediaQuery.copyWith(
-                      viewInsets: EdgeInsets.zero,
-                      size: Size(
-                          originalMediaQuery.size.width,
-                          originalMediaQuery.size.height +
-                              originalMediaQuery.viewInsets.bottom),
-                    );
-
-                    return MediaQuery(
-                      data: keyboardFreeMediaQuery,
-                      child: SideBubblesOverlay(
-                        showProfileBtn: showProfileBtn,
-                        showSearchBtn: showSearchBtn,
-                        showNotificationsBtn: showNotificationsBtn,
-                        showHerdBubbles: showHerdBubbles,
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-            // Bottom Navigation - positioned before chat overlay so chat appears on top
             if (showBottomNav)
               Positioned(
                 left: 10,
@@ -109,6 +79,7 @@ class GlobalOverlayManager extends ConsumerWidget {
                 ),
               ),
 
+            // Chat/Herd Overlay - Drawn before side bubbles
             if (activeOverlayType != null)
               Positioned(
                 left: 0,
@@ -152,6 +123,37 @@ class GlobalOverlayManager extends ConsumerWidget {
                             bubbleId;
                       }
                     }
+                  },
+                ),
+              ),
+
+            // Side Bubbles - Moved here to be drawn ON TOP of the chat overlay
+            if (showSideBubbles)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Builder(
+                  builder: (context) {
+                    // Create completely keyboard-independent MediaQuery
+                    final originalMediaQuery = MediaQuery.of(context);
+                    final keyboardFreeMediaQuery = originalMediaQuery.copyWith(
+                      viewInsets: EdgeInsets.zero,
+                      size: Size(
+                          originalMediaQuery.size.width,
+                          originalMediaQuery.size.height +
+                              originalMediaQuery.viewInsets.bottom),
+                    );
+
+                    return MediaQuery(
+                      data: keyboardFreeMediaQuery,
+                      child: SideBubblesOverlay(
+                        showProfileBtn: showProfileBtn,
+                        showSearchBtn: showSearchBtn,
+                        showNotificationsBtn: showNotificationsBtn,
+                        showHerdBubbles: showHerdBubbles,
+                      ),
+                    );
                   },
                 ),
               ),

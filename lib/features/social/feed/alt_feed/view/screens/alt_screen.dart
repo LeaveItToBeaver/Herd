@@ -408,6 +408,7 @@ class _FeedContentWrapper extends ConsumerWidget {
     final hasChat = ref.watch(
       chatBubblesEnabledProvider.select((enabled) => enabled),
     );
+    final isOverlayActive = ref.watch(activeOverlayTypeProvider) != null;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -420,29 +421,35 @@ class _FeedContentWrapper extends ConsumerWidget {
                 ? _buildErrorWidget(context, altFeedState.error!, () {
                     ref.read(altFeedControllerProvider.notifier).refreshFeed();
                   })
-                : PostListWidget(
-                    scrollController: scrollController,
-                    posts: altFeedState.posts,
-                    isLoading: altFeedState.isLoading,
-                    hasError: altFeedState.error != null,
-                    errorMessage: altFeedState.error?.toString(),
-                    hasMorePosts: altFeedState.hasMorePosts,
-                    onRefresh: () => ref
-                        .read(altFeedControllerProvider.notifier)
-                        .refreshFeed(),
-                    onLoadMore: () => ref
-                        .read(altFeedControllerProvider.notifier)
-                        .loadMorePosts(),
-                    type: PostListType.feed,
-                    emptyMessage: 'No alt posts yet',
-                    emptyActionLabel: 'Create an alt post',
-                    onEmptyAction: () {
-                      context.pushNamed(
-                        'create',
-                        queryParameters: {'isAlt': 'true'},
-                      );
-                    },
-                    isRefreshing: altFeedState.isRefreshing,
+                : TickerMode(
+                    enabled: !isOverlayActive,
+                    child: Offstage(
+                      offstage: isOverlayActive,
+                      child: PostListWidget(
+                        scrollController: scrollController,
+                        posts: altFeedState.posts,
+                        isLoading: altFeedState.isLoading,
+                        hasError: altFeedState.error != null,
+                        errorMessage: altFeedState.error?.toString(),
+                        hasMorePosts: altFeedState.hasMorePosts,
+                        onRefresh: () => ref
+                            .read(altFeedControllerProvider.notifier)
+                            .refreshFeed(),
+                        onLoadMore: () => ref
+                            .read(altFeedControllerProvider.notifier)
+                            .loadMorePosts(),
+                        type: PostListType.feed,
+                        emptyMessage: 'No alt posts yet',
+                        emptyActionLabel: 'Create an alt post',
+                        onEmptyAction: () {
+                          context.pushNamed(
+                            'create',
+                            queryParameters: {'isAlt': 'true'},
+                          );
+                        },
+                        isRefreshing: altFeedState.isRefreshing,
+                      ),
+                    ),
                   ),
       ),
     );
