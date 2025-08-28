@@ -128,37 +128,28 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                                     .read(publicFeedControllerProvider.notifier)
                                     .refreshFeed();
                               })
-                            : TickerMode(
-                                enabled: !isOverlayActive,
-                                child: Offstage(
-                                  offstage: isOverlayActive,
-                                  child: PostListWidget(
-                                    scrollController: _scrollController,
-                                    posts: publicFeedState.posts,
-                                    isLoading: publicFeedState.isLoading &&
-                                        publicFeedState.posts.isEmpty,
-                                    hasError: publicFeedState.error != null,
-                                    errorMessage:
-                                        publicFeedState.error?.toString(),
-                                    hasMorePosts: publicFeedState.hasMorePosts,
-                                    onRefresh: () => ref
-                                        .read(publicFeedControllerProvider
-                                            .notifier)
-                                        .refreshFeed(),
-                                    onLoadMore: () => ref
-                                        .read(publicFeedControllerProvider
-                                            .notifier)
-                                        .loadMorePosts(),
-                                    type: PostListType.feed,
-                                    emptyMessage:
-                                        'No posts in your public feed yet',
-                                    emptyActionLabel: 'Find users to follow',
-                                    onEmptyAction: () {
-                                      context.pushNamed('search');
-                                    },
-                                    isRefreshing: publicFeedState.isRefreshing,
-                                  ),
-                                ),
+                            : PostListWidget(
+                                scrollController: _scrollController,
+                                posts: publicFeedState.posts,
+                                isLoading: publicFeedState.isLoading &&
+                                    publicFeedState.posts.isEmpty,
+                                hasError: publicFeedState.error != null,
+                                errorMessage: publicFeedState.error?.toString(),
+                                hasMorePosts: publicFeedState.hasMorePosts,
+                                onRefresh: () => ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .refreshFeed(),
+                                onLoadMore: () => ref
+                                    .read(publicFeedControllerProvider.notifier)
+                                    .loadMorePosts(),
+                                type: PostListType.feed,
+                                emptyMessage:
+                                    'No posts in your public feed yet',
+                                emptyActionLabel: 'Find users to follow',
+                                onEmptyAction: () {
+                                  context.pushNamed('search');
+                                },
+                                isRefreshing: publicFeedState.isRefreshing,
                               ),
                   ),
 

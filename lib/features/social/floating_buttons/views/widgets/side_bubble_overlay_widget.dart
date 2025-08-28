@@ -24,8 +24,8 @@ class SideBubblesOverlay extends ConsumerStatefulWidget {
   final bool showProfileBtn;
   final bool showSearchBtn;
   final bool showNotificationsBtn;
-  final bool showHerdBubbles; // New parameter
-  final bool showChatToggle; // New parameter to control chat toggle
+  final bool showHerdBubbles;
+  final bool showChatToggle;
 
   const SideBubblesOverlay({
     super.key,
@@ -288,6 +288,17 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     // Snap bubble back to original position
     if (_dragState != null) {
       _snapBackToOriginalPosition();
+    }
+
+    _executePendingNavigationCallback();
+  }
+
+  void _executePendingNavigationCallback() {
+    final callbacks = ref.read(bubbleAnimationCallbackProvider);
+    final navigationCallback = callbacks['_navigation_pending'];
+    if (navigationCallback != null) {
+      debugPrint("== EXECUTING NAVIGATION CALLBACK ==");
+      navigationCallback();
     }
   }
 
@@ -697,6 +708,8 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     if (_dragState != null) {
       _snapBackToOriginalPosition();
     }
+
+    _executePendingNavigationCallback();
   }
 
   @override
@@ -1133,45 +1146,48 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
                   ).createShader(bounds);
                 },
                 blendMode: BlendMode.dstIn,
-                child: AbsorbPointer(
-                  absorbing: isChatOverlayOpen,
-                  child: ListView.builder(
-                    reverse: true, // Start from bottom
-                    controller: _scrollController,
-                    physics: isChatOverlayOpen
-                        ? const NeverScrollableScrollPhysics()
-                        : const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(
-                      bottom: sectionPadding, // Space for gradient fade
-                    ),
-                    itemCount: draggableConfigs.length,
-                    itemBuilder: (context, index) {
-                      final config = draggableConfigs[index];
-                      final isBeingDragged = _dragState?.bubbleId == config.id;
-
-                      final bubble = DraggableBubble(
-                        key: ValueKey(config.id),
-                        config: config,
-                        appTheme: appTheme,
-                        globalKey: _bubbleKeys.putIfAbsent(
-                            config.id, () => GlobalKey()),
-                        onDragStart: (globalPos) =>
-                            _startDrag(config.id, globalPos, constraints),
-                        onDragUpdate: _updateDrag,
-                        onDragEnd: _endDrag,
-                        isBeingDragged: isBeingDragged,
-                      );
-
-                      // Add padding to the last item (bottom of the list)
-                      if (config == draggableConfigs.first) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: bubble,
-                        );
-                      }
-                      return bubble;
-                    },
+                child: ListView.builder(
+                  reverse: true, // Start from bottom
+                  controller: _scrollController,
+                  physics: isChatOverlayOpen
+                      ? const NeverScrollableScrollPhysics()
+                      : const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    bottom: sectionPadding, // Space for gradient fade
                   ),
+                  itemCount: draggableConfigs.length,
+                  itemBuilder: (context, index) {
+                    final config = draggableConfigs[index];
+                    final isBeingDragged = _dragState?.bubbleId == config.id;
+
+                    final bubble = DraggableBubble(
+                      key: ValueKey(config.id),
+                      config: config,
+                      appTheme: appTheme,
+                      globalKey:
+                          _bubbleKeys.putIfAbsent(config.id, () => GlobalKey()),
+                      onDragStart: isChatOverlayOpen
+                          ? (_) {} // Disable drag when overlay is open
+                          : (globalPos) =>
+                              _startDrag(config.id, globalPos, constraints),
+                      onDragUpdate: isChatOverlayOpen
+                          ? (_) {} // Disable drag when overlay is open
+                          : _updateDrag,
+                      onDragEnd: isChatOverlayOpen
+                          ? () {} // Disable drag when overlay is open
+                          : _endDrag,
+                      isBeingDragged: isBeingDragged,
+                    );
+
+                    // Add padding to the last item (bottom of the list)
+                    if (config == draggableConfigs.first) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: bubble,
+                      );
+                    }
+                    return bubble;
+                  },
                 ),
               ),
             ),
