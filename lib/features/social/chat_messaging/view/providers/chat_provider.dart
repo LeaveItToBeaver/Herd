@@ -170,13 +170,19 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
         final newMessages = <MessageModel>[];
         final messagesToRemoveFromOptimistic = <String>[];
 
-        // Process server messages
+        // Process server messages - only add truly new messages
         for (final serverMsg in serverMessages) {
-          if (!currentIds.contains(serverMsg.id)) {
+          // More thorough duplicate check: check both current UI state AND cached messages
+          final isDuplicate = currentIds.contains(serverMsg.id) ||
+              state.messages.any((m) => m.id == serverMsg.id &&
+                  m.content == serverMsg.content &&
+                  m.senderId == serverMsg.senderId);
+                  
+          if (!isDuplicate) {
             newMessages.add(serverMsg);
+            debugPrint('📱 Adding new server message: ${serverMsg.id}');
 
             // Check if this server message replaces an optimistic message
-            // This can happen when the server assigns a new ID to an optimistic message
             for (final optimisticId in optimisticIds) {
               final optimisticMsg = optimisticMessages[optimisticId]!;
               if (_messagesMatch(optimisticMsg, serverMsg)) {
@@ -184,6 +190,8 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
                 break;
               }
             }
+          } else {
+            debugPrint('⚠️ Skipping duplicate message: ${serverMsg.id}');
           }
         }
 
@@ -359,6 +367,36 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   void setCurrentChat(ChatModel? chat) {
     state = state.copyWith(currentChat: chat);
+    
+    // Auto-mark messages as read when opening a chat
+    if (chat != null) {
+      _markChatAsRead(chat.id);
+    }
+  }
+  
+  Future<void> _markChatAsRead(String chatId) async {
+    try {
+      final authUser = _ref.read(authProvider);
+      if (authUser == null) return;
+      
+      final messagesRepo = _ref.read(messageRepositoryProvider);
+      await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
+      
+      debugPrint('✅ Marked chat $chatId as read for user ${authUser.uid}');
+    } catch (e) {
+      debugPrint('❌ Failed to mark chat as read: $e');
+    }
+  }
+  
+  /// Force clear all message caches for debugging
+  Future<void> clearAllMessageCaches() async {
+    try {
+      final cache = _ref.read(messageCacheServiceProvider);
+      await cache.clearAllCaches();
+      debugPrint('🗑️ Cleared all message caches');
+    } catch (e) {
+      debugPrint('❌ Failed to clear caches: $e');
+    }
   }
 }
 

@@ -49,7 +49,7 @@ class PinnedPostsWidget extends ConsumerWidget {
               ),
             ),
           SizedBox(
-            height: 300,
+            height: 350,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -93,170 +93,97 @@ class PinnedPostCard extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with pin icon
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  UserProfileImage(
-                    radius: 16,
-                    profileImageUrl: post.isAlt
-                        ? post.authorProfileImageURL
-                        : post.authorProfileImageURL,
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: post.isAlt
+                ? Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                    width: 1,
+                  )
+                : Border.all(
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.3),
+                    width: 1,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header - Use the shared PostAuthorHeader component with pin icon
+                RepaintBoundary(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(2, 1, 2, 0),
+                    child: Row(
                       children: [
-                        Text(
-                          post.authorUsername ?? 'Unknown',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                        Expanded(
+                          child: PostAuthorHeader(
+                            post: post,
+                            displayMode: HeaderDisplayMode.pinned,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          post.age,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
+                        Icon(
+                          Icons.push_pin,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.push_pin,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
-              ),
-            ),
-
-            // Content preview
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title if available
-                    if (post.title != null && post.title!.isNotEmpty) ...[
-                      Text(
-                        post.title!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-
-                    // Media preview or text content
-                    if (post.mediaItems.isNotEmpty) ...[
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: MediaCarouselWidget(
-                            mediaItems: post.mediaItems,
-                            height: 150,
-                            showIndicator: false,
-                            autoPlay: false,
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      Expanded(
-                        child: _buildContentPreview(theme, context),
-                      ),
-                    ],
-                  ],
                 ),
-              ),
-            ),
 
-            // Footer with stats
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.thumb_up_outlined,
-                        size: 14,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${post.likeCount - post.dislikeCount}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.comment_outlined,
-                        size: 14,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${post.commentCount}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (post.isAlt)
-                    Icon(
-                      Icons.lock,
-                      size: 14,
-                      color: Colors.blue[400],
+                // Content - Simple approach without complex constraints
+                Expanded(
+                  child: RepaintBoundary(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: post.mediaItems.isNotEmpty
+                          ? PostMediaDisplay(
+                              post: post,
+                              displayMode: HeaderDisplayMode.pinned,
+                            )
+                          : PostContentDisplay(
+                              post: post,
+                              displayMode: HeaderDisplayMode.pinned,
+                              initialExpanded: false,
+                              onReadMore: () {
+                                context.pushNamed(
+                                  'post',
+                                  pathParameters: {'id': post.id},
+                                  queryParameters: {'isAlt': post.isAlt.toString()},
+                                );
+                              },
+                            ),
                     ),
-                ],
-              ),
+                  ),
+                ),
+
+                // Action bar - Use the shared PostActionBar component
+                RepaintBoundary(
+                  child: PostActionBar(
+                    post: post,
+                    displayMode: HeaderDisplayMode.pinned,
+                    onCommentTap: () => context.pushNamed(
+                      'post',
+                      pathParameters: {'id': post.id},
+                      queryParameters: {'isAlt': post.isAlt.toString()},
+                    ),
+                    onShareTap: post.isAlt ? null : () => _sharePost(context),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContentPreview(ThemeData theme, context) {
-    return PostContentWidget(
-      post: post,
-      isExpanded: false, // Always collapsed in preview
-      isCompact: true, // Use compact mode for card
-      onToggleExpansion: () {
-        // Navigate to full post instead of expanding in place
-        context.pushNamed(
-          'post',
-          pathParameters: {'id': post.id},
-          queryParameters: {'isAlt': post.isAlt.toString()},
-        );
-      },
-      buildMediaPreview: (post) {
-        // Return a simple container since we handle media separately
-        return const SizedBox.shrink();
-      },
-      shouldShowMedia: false, // We handle media separately in the pinned card
+  void _sharePost(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sharing post...')),
     );
   }
 }

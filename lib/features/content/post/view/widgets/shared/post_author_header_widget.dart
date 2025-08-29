@@ -8,6 +8,7 @@ import 'package:herdapp/features/content/post/data/models/post_model.dart';
 enum HeaderDisplayMode {
   compact, // For feed list
   full, // For post screen
+  pinned, // For ultra-compact pinned posts
 }
 
 class PostAuthorHeader extends ConsumerWidget {
@@ -68,7 +69,11 @@ class _UserHeader extends ConsumerWidget {
     );
 
     return Padding(
-      padding: EdgeInsets.all(isCompact ? 8 : 12),
+      padding: EdgeInsets.all(
+        displayMode == HeaderDisplayMode.pinned 
+          ? 4 
+          : (isCompact ? 8 : 12)
+      ),
       child: userAsync.when(
         loading: () => _buildLoadingState(isCompact),
         error: (_, __) => _buildErrorState(isCompact),
@@ -274,7 +279,11 @@ class _HerdHeader extends ConsumerWidget {
       children: [
         // Herd info
         Padding(
-          padding: EdgeInsets.all(isCompact ? 8 : 12),
+          padding: EdgeInsets.all(
+            displayMode == HeaderDisplayMode.pinned 
+              ? 4 
+              : (isCompact ? 8 : 12)
+          ),
           child: herdAsync.when(
             loading: () => _buildLoadingState(isCompact),
             error: (_, __) => const Text('Unknown herd'),
@@ -325,8 +334,12 @@ class _HerdHeader extends ConsumerWidget {
         // Author info
         Padding(
           padding: EdgeInsets.only(
-            left: isCompact ? 16 : 20,
-            bottom: isCompact ? 8 : 12,
+            left: displayMode == HeaderDisplayMode.pinned 
+              ? 8 
+              : (isCompact ? 16 : 20),
+            bottom: displayMode == HeaderDisplayMode.pinned 
+              ? 4 
+              : (isCompact ? 8 : 12),
           ),
           child: userAsync.when(
             loading: () => _buildAuthorLoadingState(),

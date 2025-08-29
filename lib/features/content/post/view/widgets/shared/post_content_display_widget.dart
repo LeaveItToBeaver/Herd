@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/post_content_display.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,12 +10,16 @@ class PostContentDisplay extends ConsumerStatefulWidget {
   final PostModel post;
   final HeaderDisplayMode displayMode;
   final bool initialExpanded;
+  final VoidCallback? onReadMore;
+  final double? maxHeight;
 
   const PostContentDisplay({
     super.key,
     required this.post,
     this.displayMode = HeaderDisplayMode.compact,
     this.initialExpanded = false,
+    this.onReadMore,
+    this.maxHeight,
   });
 
   @override
@@ -37,6 +40,12 @@ class _PostContentDisplayState extends ConsumerState<PostContentDisplay> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // For pinned posts, use completely separate simple rendering to avoid constraint issues
+    if (widget.displayMode == HeaderDisplayMode.pinned) {
+      return _buildSimplePinnedPostContent(theme);
+    }
+
     final isCompact = widget.displayMode == HeaderDisplayMode.compact;
 
     // Use select to only rebuild when specific user settings change
@@ -149,9 +158,7 @@ class _PostContentDisplayState extends ConsumerState<PostContentDisplay> {
   }
 
   Widget _buildTextContent(ThemeData theme) {
-    final isCompact = widget.displayMode == HeaderDisplayMode.compact;
-
-    // For full screen, always show all content
+    // For full screen, always show all content without constraints
     if (widget.displayMode == HeaderDisplayMode.full) {
       if (widget.post.isRichText) {
         return QuillViewerWidget(
@@ -167,7 +174,80 @@ class _PostContentDisplayState extends ConsumerState<PostContentDisplay> {
       }
     }
 
-    // For compact mode, handle expansion
+    // For pinned posts, use the simple pinned content method
+    if (widget.displayMode == HeaderDisplayMode.pinned) {
+      return _buildSimplePinnedPostContent(theme);
+    }
+
+    // For normal feed posts, use the original behavior
+    return _buildFeedContent(theme);
+  }
+
+  Widget _buildSimplePinnedPostContent(ThemeData theme) {
+    // For pinned posts, use QuillViewerWidget to properly display rich text and mentions
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.post.title?.isNotEmpty ?? false)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              widget.post.title!,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+        // Use QuillViewerWidget for both rich text and plain text content
+        if (widget.post.content.isNotEmpty) ...[
+          Expanded(
+            child: widget.post.isRichText
+                ? QuillViewerWidget(
+                    key: ValueKey('quill_viewer_${widget.post.id}_pinned'),
+                    jsonContent: widget.post.content,
+                    source: RichTextSource.pinnedPost,
+                  )
+                : Text(
+                    widget.post.content,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                      height: 1.3,
+                    ),
+                    overflow: TextOverflow.fade,
+                  ),
+          ),
+
+          // Only show "Read more" if there's actually more content to show
+          if (_shouldShowReadMore())
+            GestureDetector(
+              onTap: widget.onReadMore,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Read more',
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFeedContent(ThemeData theme) {
+    final isCompact = widget.displayMode == HeaderDisplayMode.compact;
+
     if (widget.post.isRichText) {
       return RepaintBoundary(
         child: Column(
@@ -176,21 +256,20 @@ class _PostContentDisplayState extends ConsumerState<PostContentDisplay> {
             RebuildDetector(
               name: 'QuillViewer-${widget.post.id}',
               child: QuillViewerWidget(
-                key: ValueKey('quill_viewer_${widget.post.id}_compact'),
+                key: ValueKey('quill_viewer_${widget.post.id}_feed'),
                 jsonContent: widget.post.content,
-                source: RichTextSource.postFeed, // Use the new feed source
+                source: RichTextSource.postFeed,
                 isExpanded: _isExpanded,
               ),
             ),
-            // For rich text, show "Read more" if content appears to have substantial content
-            // This is a simple heuristic - you might want to improve this
             if (!_isExpanded && _shouldShowReadMore())
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isExpanded = true;
-                  });
-                },
+                onTap: widget.onReadMore ??
+                    () {
+                      setState(() {
+                        _isExpanded = true;
+                      });
+                    },
                 child: Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
@@ -209,11 +288,12 @@ class _PostContentDisplayState extends ConsumerState<PostContentDisplay> {
     } else {
       return GestureDetector(
         onTap: isCompact && widget.post.content.length > 150
-            ? () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              }
+            ? widget.onReadMore ??
+                () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                }
             : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

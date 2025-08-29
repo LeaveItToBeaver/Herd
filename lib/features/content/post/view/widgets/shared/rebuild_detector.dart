@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/rebuild_detector.dart
 import 'package:flutter/material.dart';
 
 /// A diagnostic widget that helps identify what's causing rebuilds

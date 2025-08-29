@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/memo_widget.dart
 import 'package:flutter/material.dart';
 
 /// A widget that memoizes its child and only rebuilds when dependencies change

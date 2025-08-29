@@ -62,13 +62,26 @@ class MessageCacheService {
 
   Future<void> putMessages(String chatId, List<MessageModel> messages) async {
     if (!_initialized) await initialize();
-    // Deduplicate by id and keep ascending order by timestamp
+    // Improved deduplication: merge existing and new messages by ID
     final existing = List<MessageModel>.from(_memory[chatId] ?? []);
-    final map = {for (final m in existing) m.id: m};
-    for (final m in messages) {
-      map[m.id] = m;
+    final existingMap = {for (final m in existing) m.id: m};
+    
+    // Only add messages that aren't already cached or have newer timestamps
+    final newMessages = <MessageModel>[];
+    for (final message in messages) {
+      final existingMessage = existingMap[message.id];
+      if (existingMessage == null || 
+          message.timestamp.isAfter(existingMessage.timestamp)) {
+        existingMap[message.id] = message;
+        if (existingMessage == null) {
+          debugPrint('➕ Caching new message: ${message.id}');
+        } else {
+          debugPrint('🔄 Updating cached message: ${message.id}');
+        }
+      }
     }
-    final merged = map.values.toList()
+    
+    final merged = existingMap.values.toList()
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     _memory[chatId] = merged;
     if (kIsWeb) return; // Skip disk on web

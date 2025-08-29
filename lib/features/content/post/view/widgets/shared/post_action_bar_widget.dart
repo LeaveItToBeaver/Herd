@@ -1,3 +1,4 @@
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,11 +23,14 @@ class PostActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCompact = displayMode == HeaderDisplayMode.compact;
+    final isPinned = displayMode == HeaderDisplayMode.pinned;
 
     // Wrap entire action bar in RepaintBoundary
     return RepaintBoundary(
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: isCompact ? 0 : 4),
+        padding: EdgeInsets.symmetric(
+          vertical: isPinned ? 0 : (isCompact ? 0 : 4)
+        ),
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
@@ -171,24 +175,27 @@ class _LikeButton extends ConsumerWidget {
     final isLoading = likeState.$3;
 
     if (isCompact) {
-      return TextButton.icon(
-        onPressed: isLoading ? null : () => _handleLike(context, ref),
-        icon: Icon(
-          isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-          size: 18,
-          color: isLiked ? Colors.green : null,
-        ),
-        label: Text(
-          isLoading ? '...' : _formatCount(totalLikes),
-          style: TextStyle(
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 0, 0),
+        child: TextButton.icon(
+          onPressed: isLoading ? null : () => _handleLike(context, ref),
+          icon: Icon(
+            isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+            size: 18,
             color: isLiked ? Colors.green : null,
-            fontWeight: FontWeight.w500,
           ),
-        ),
-        style: TextButton.styleFrom(
-          minimumSize: Size.zero,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          label: Text(
+            isLoading ? '...' : _formatCount(totalLikes),
+            style: TextStyle(
+              color: isLiked ? Colors.green : null,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          style: TextButton.styleFrom(
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
       );
     }
@@ -358,14 +365,17 @@ class _ShareButton extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (isCompact) {
-      return IconButton(
-        icon: Icon(
-          Icons.share_outlined,
-          size: 20,
-          color: isAlt ? theme.disabledColor : null,
+      return Padding(
+        padding: EdgeInsets.fromLTRB(0, 0, 2, 0),
+        child: IconButton(
+          icon: Icon(
+            Icons.share_outlined,
+            size: 20,
+            color: isAlt ? theme.disabledColor : null,
+          ),
+          onPressed: isAlt ? null : (onTap ?? () => _handleShare(context)),
+          tooltip: isAlt ? 'Cannot share alt posts' : 'Share',
         ),
-        onPressed: isAlt ? null : (onTap ?? () => _handleShare(context)),
-        tooltip: isAlt ? 'Cannot share alt posts' : 'Share',
       );
     }
 

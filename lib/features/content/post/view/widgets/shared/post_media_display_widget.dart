@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/post_media_display.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
@@ -8,11 +7,13 @@ import 'package:herdapp/features/content/post/data/models/post_model.dart';
 class PostMediaDisplay extends StatelessWidget {
   final PostModel post;
   final HeaderDisplayMode displayMode;
+  final double? maxHeight;
 
   const PostMediaDisplay({
     super.key,
     required this.post,
     this.displayMode = HeaderDisplayMode.compact,
+    this.maxHeight,
   });
 
   @override
@@ -24,12 +25,37 @@ class PostMediaDisplay extends StatelessWidget {
     }
 
     final isCompact = displayMode == HeaderDisplayMode.compact;
-
+    final isPinned = displayMode == HeaderDisplayMode.pinned;
+    
+    // Use available space or fallback to reasonable defaults
+    if (maxHeight != null) {
+      // Use ALL available space when provided
+      return MediaCarouselWidget(
+        mediaItems: mediaItems,
+        height: maxHeight!,
+        autoPlay: !isCompact && !isPinned,
+        showIndicator: isPinned ? false : mediaItems.length > 1, // No indicators for pinned posts
+        onMediaTap: (media, index) {
+          context.pushNamed(
+            'gallery',
+            pathParameters: {'postId': post.id},
+            queryParameters: {
+              'index': index.toString(),
+              'isAlt': post.isAlt.toString(),
+            },
+          );
+        },
+      );
+    }
+    
+    // Fallback to responsive heights when maxHeight not provided
+    final mediaHeight = isPinned ? 200.0 : (isCompact ? 300.0 : 350.0);
+    
     return MediaCarouselWidget(
       mediaItems: mediaItems,
-      height: isCompact ? 300 : 350,
-      autoPlay: !isCompact,
-      showIndicator: mediaItems.length > 1,
+      height: mediaHeight,
+      autoPlay: !isCompact && !isPinned,
+      showIndicator: isPinned ? false : mediaItems.length > 1, // No indicators for pinned posts
       onMediaTap: (media, index) {
         context.pushNamed(
           'gallery',

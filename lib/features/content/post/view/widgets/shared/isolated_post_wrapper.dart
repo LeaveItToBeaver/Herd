@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/isolated_post_wrapper.dart
 import 'package:flutter/material.dart';
 
 /// A wrapper that isolates widgets from MediaQuery changes (like keyboard)

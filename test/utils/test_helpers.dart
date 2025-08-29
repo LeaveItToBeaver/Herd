@@ -9,7 +9,6 @@ import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 
 /// Shared test utilities and helper functions for the test suite
 class TestHelpers {
-  
   /// Creates a test app wrapper with ProviderScope
   static Widget createTestApp({
     required Widget child,
@@ -184,17 +183,17 @@ class TestHelpers {
     Duration timeout = const Duration(seconds: 10),
   }) async {
     final end = DateTime.now().add(timeout);
-    
+
     while (DateTime.now().isBefore(end)) {
       await tester.pump();
-      
+
       if (finder.evaluate().isNotEmpty) {
         return;
       }
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
     }
-    
+
     throw TimeoutException(
       'Widget not found within timeout',
       timeout,
@@ -209,16 +208,16 @@ class TestHelpers {
   }) async {
     bool found = false;
     final end = DateTime.now().add(timeout);
-    
+
     while (!found && DateTime.now().isBefore(end)) {
       await tester.pump();
       found = finder.evaluate().isNotEmpty;
-      
+
       if (!found) {
         await tester.pump(const Duration(milliseconds: 100));
       }
     }
-    
+
     if (!found) {
       throw TimeoutException(
         'Widget not found within timeout',
@@ -251,11 +250,11 @@ class TestHelpers {
       if (target.evaluate().isNotEmpty) {
         return;
       }
-      
+
       await tester.drag(scrollable, Offset(0, -delta));
       await tester.pumpAndSettle();
     }
-    
+
     throw Exception('Could not find widget by scrolling');
   }
 
@@ -263,7 +262,7 @@ class TestHelpers {
   static void verifyAccessibility(WidgetTester tester) {
     final semantics = tester.binding.pipelineOwner.semanticsOwner;
     expect(semantics, isNotNull);
-    
+
     // Verify semantic tree is not empty
     final semanticsTree = semantics?.rootSemanticsNode;
     expect(semanticsTree, isNotNull);
@@ -306,7 +305,7 @@ class TestHelpers {
   static String timeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays}d ago';
     } else if (difference.inHours > 0) {
@@ -327,7 +326,7 @@ class TestHelpers {
       'createdAt': DateTime.now(),
       'updatedAt': DateTime.now(),
     };
-    
+
     switch (collection) {
       case 'posts':
         baseData.addAll(createTestPostData());
@@ -345,11 +344,11 @@ class TestHelpers {
         });
         break;
     }
-    
+
     if (customData != null) {
       baseData.addAll(customData);
     }
-    
+
     return baseData;
   }
 }
@@ -358,9 +357,9 @@ class TestHelpers {
 class TimeoutException implements Exception {
   final String message;
   final Duration timeout;
-  
+
   const TimeoutException(this.message, this.timeout);
-  
+
   @override
   String toString() => 'TimeoutException: $message (timeout: $timeout)';
 }
@@ -374,14 +373,14 @@ class MockProviders {
       // someProviderProvider.overrideWith((ref) => MockSomeProvider()),
     ];
   }
-  
+
   static List<Override> getChatOverrides() {
     return [
       ...getBasicOverrides(),
       // Add chat-specific provider overrides
     ];
   }
-  
+
   static List<Override> getPostOverrides() {
     return [
       ...getBasicOverrides(),
@@ -393,23 +392,24 @@ class MockProviders {
 /// Test matchers for custom assertions
 class CustomMatchers {
   static Matcher isValidPostModel = predicate<PostModel>(
-    (post) => post.id.isNotEmpty && 
-              post.authorId.isNotEmpty && 
-              post.title.isNotEmpty,
+    (post) =>
+        post.id.isNotEmpty &&
+        post.authorId.isNotEmpty &&
+        post.title!.isNotEmpty,
     'is a valid PostModel',
   );
-  
+
   static Matcher isValidMessageModel = predicate<MessageModel>(
-    (message) => message.id.isNotEmpty && 
-                 message.chatId.isNotEmpty && 
-                 message.senderId.isNotEmpty,
+    (message) =>
+        message.id.isNotEmpty &&
+        message.chatId.isNotEmpty &&
+        message.senderId.isNotEmpty,
     'is a valid MessageModel',
   );
-  
+
   static Matcher isValidUserModel = predicate<UserModel>(
-    (user) => user.id.isNotEmpty && 
-              user.username.isNotEmpty && 
-              user.email.isNotEmpty,
+    (user) =>
+        user.id.isNotEmpty && user.username.isNotEmpty && user.email.isNotEmpty,
     'is a valid UserModel',
   );
 }

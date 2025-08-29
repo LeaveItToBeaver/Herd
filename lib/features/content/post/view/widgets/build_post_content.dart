@@ -9,6 +9,7 @@ class PostContentWidget extends StatelessWidget {
   final VoidCallback onToggleExpansion;
   final Widget Function(PostModel) buildMediaPreview;
   final bool shouldShowMedia;
+  final bool isPinned;
 
   const PostContentWidget({
     super.key,
@@ -18,6 +19,7 @@ class PostContentWidget extends StatelessWidget {
     required this.onToggleExpansion,
     required this.buildMediaPreview,
     required this.shouldShowMedia,
+    this.isPinned = false,
   });
 
   @override
@@ -72,7 +74,7 @@ class PostContentWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'Read more',
+                isPinned ? 'Read more' : 'Read more',
                 style: TextStyle(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w500,

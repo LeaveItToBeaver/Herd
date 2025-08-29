@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/post_nsfw_overlay.dart
 import 'package:flutter/material.dart';
 
 class PostNsfwOverlay extends StatelessWidget {

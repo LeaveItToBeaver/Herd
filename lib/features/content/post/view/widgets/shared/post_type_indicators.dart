@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/post_type_indicators.dart
 import 'package:flutter/material.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 

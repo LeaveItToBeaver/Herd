@@ -1,4 +1,3 @@
-// lib/features/content/post/view/widgets/shared/static_post_wrapper.dart
 import 'package:flutter/material.dart';
 
 /// A wrapper that creates a static context to prevent unnecessary rebuilds

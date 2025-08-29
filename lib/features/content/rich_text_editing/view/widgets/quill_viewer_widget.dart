@@ -7,6 +7,7 @@ enum RichTextSource {
   postWidget,
   postScreen,
   postFeed, // Add this for the feed context
+  pinnedPost, // Add this for pinned posts
 }
 
 class QuillViewerWidget extends StatefulWidget {
@@ -241,6 +242,27 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget>
         controller: _controller,
         config: postScreenConfig,
       );
+    } else if (widget.source == RichTextSource.pinnedPost) {
+      // For pinned posts: non-scrollable, compact configuration
+      final pinnedConfig = quill.QuillEditorConfig(
+        customStyles: customStyles,
+        autoFocus: false,
+        expands: false,
+        padding: EdgeInsets.zero,
+        scrollable: false,
+        showCursor: false,
+        enableInteractiveSelection: false,
+        embedBuilders: [
+          ReadOnlyMentionEmbedBuilder(context),
+        ],
+      );
+
+      editor = quill.QuillEditor(
+        controller: _controller,
+        focusNode: FocusNode(canRequestFocus: false),
+        scrollController: ScrollController(),
+        config: pinnedConfig,
+      );
     } else {
       // For non-scrollable compact post widget preview
       final scrollController = ScrollController();
@@ -261,6 +283,18 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget>
         width: double.infinity,
         child: ClipRect(
           child: editor,
+        ),
+      );
+    }
+
+    // For pinned posts, allow flexible height but constrain it
+    if (widget.source == RichTextSource.pinnedPost) {
+      return Flexible(
+        child: Container(
+          width: double.infinity,
+          child: ClipRect(
+            child: editor,
+          ),
         ),
       );
     }
