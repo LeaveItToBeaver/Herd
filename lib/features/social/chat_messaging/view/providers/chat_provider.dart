@@ -132,12 +132,13 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
   final Ref _ref;
   final String _chatId;
   StreamSubscription<List<MessageModel>>? _streamSubscription;
+  Timer? _deltaCheckTimer;
 
   MessagesNotifier(this._ref, this._chatId) : super(const MessagesState()) {
-    _initialize();
+    _initializeCacheFirst();
   }
 
-  void _initialize() async {
+  void _initializeCacheFirst() async {
     final cache = _ref.read(messageCacheServiceProvider);
     final messagesRepo = _ref.read(messageRepositoryProvider);
 
@@ -159,69 +160,103 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       debugPrint('⚠️ Cache load failed: $e');
     }
 
-    // 2. Start server stream (only add NEW messages, don't replace all)
-    _streamSubscription = messagesRepo.getChatMessages(_chatId).listen(
-      (serverMessages) async {
-        final currentIds = state.messages.map((m) => m.id).toSet();
-        final optimisticMessages =
-            _ref.read(optimisticMessagesProvider(_chatId));
-        final optimisticIds = optimisticMessages.keys.toSet();
+    // 2. Check for new messages using count-based delta sync
+    await _performDeltaSync();
 
-        final newMessages = <MessageModel>[];
-        final messagesToRemoveFromOptimistic = <String>[];
+    // 3. Set up periodic delta sync instead of continuous stream
+    _deltaCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _performDeltaSync();
+    });
+  }
 
-        // Process server messages - only add truly new messages
-        for (final serverMsg in serverMessages) {
-          // More thorough duplicate check: check both current UI state AND cached messages
-          final isDuplicate = currentIds.contains(serverMsg.id) ||
-              state.messages.any((m) => m.id == serverMsg.id &&
-                  m.content == serverMsg.content &&
-                  m.senderId == serverMsg.senderId);
-                  
-          if (!isDuplicate) {
-            newMessages.add(serverMsg);
-            debugPrint('📱 Adding new server message: ${serverMsg.id}');
+  Future<void> _performDeltaSync() async {
+    try {
+      final messagesRepo = _ref.read(messageRepositoryProvider);
+      final cache = _ref.read(messageCacheServiceProvider);
 
-            // Check if this server message replaces an optimistic message
-            for (final optimisticId in optimisticIds) {
-              final optimisticMsg = optimisticMessages[optimisticId]!;
-              if (_messagesMatch(optimisticMsg, serverMsg)) {
-                messagesToRemoveFromOptimistic.add(optimisticId);
-                break;
-              }
-            }
-          } else {
-            debugPrint('⚠️ Skipping duplicate message: ${serverMsg.id}');
-          }
-        }
+      // Get current cached count
+      final cachedCount = state.messages.length;
 
-        // Remove matched optimistic messages
-        if (messagesToRemoveFromOptimistic.isNotEmpty) {
-          final optimisticNotifier =
-              _ref.read(optimisticMessagesProvider(_chatId).notifier);
-          for (final id in messagesToRemoveFromOptimistic) {
-            optimisticNotifier.removeOptimisticMessage(id);
-            debugPrint(
-                '🔄 Removed optimistic message $id (replaced by server)');
-          }
-        }
+      // Get server count
+      final serverCount = await messagesRepo.getMessageCount(_chatId);
+
+      debugPrint('🔢 Delta sync: cached=$cachedCount, server=$serverCount');
+
+      if (serverCount > cachedCount) {
+        // Only fetch the difference
+        final missingCount = serverCount - cachedCount;
+        debugPrint('📥 Fetching $missingCount new messages');
+
+        // Get the latest timestamp from cache to fetch only newer messages
+        final latestCachedTimestamp =
+            state.messages.isNotEmpty ? state.messages.last.timestamp : null;
+
+        final newMessages = await messagesRepo.fetchLatestMessages(
+          _chatId,
+          afterTimestamp: latestCachedTimestamp,
+          limit: 50,
+        );
 
         if (newMessages.isNotEmpty) {
-          // Append new messages to existing list (don't replace all)
-          final updatedMessages = [...state.messages, ...newMessages];
-          state = state.copyWith(messages: _sortMessages(updatedMessages));
+          // Check for optimistic message matches and remove them immediately
+          final optimisticMessages =
+              _ref.read(optimisticMessagesProvider(_chatId));
+          final optimisticNotifier =
+              _ref.read(optimisticMessagesProvider(_chatId).notifier);
 
-          // Update cache with all messages (for persistence)
-          await cache.putMessages(_chatId, updatedMessages);
+          final messagesToRemove = <String>[];
+          for (final serverMsg in newMessages) {
+            for (final entry in optimisticMessages.entries) {
+              if (_messagesMatch(entry.value, serverMsg)) {
+                messagesToRemove.add(entry.key);
+                debugPrint(
+                    '� Removing optimistic ${entry.key} -> server ${serverMsg.id}');
+              }
+            }
+          }
+
+          // Remove optimistic messages BEFORE adding server messages
+          for (final id in messagesToRemove) {
+            optimisticNotifier.removeOptimisticMessage(id);
+          }
+
+          // Add new messages to state and cache
+          final updatedMessages = [...state.messages, ...newMessages];
+          final sortedMessages = _sortMessages(updatedMessages);
+
+          state = state.copyWith(messages: sortedMessages);
+
+          // Update cache
+          await cache.putMessages(_chatId, sortedMessages);
+
           debugPrint(
-              '📱 Added ${newMessages.length} NEW messages from server for chat: $_chatId');
+              '✅ Added ${newMessages.length} new messages via delta sync');
         }
-      },
-      onError: (e) {
-        debugPrint('❌ Server stream error: $e');
-        // Keep showing cached messages even if server fails
-      },
-    );
+      } else if (serverCount < cachedCount) {
+        // Handle case where messages were deleted on server
+        debugPrint('⚠️ Server has fewer messages than cache - refetching all');
+        await _refetchAllMessages();
+      }
+    } catch (e) {
+      debugPrint('❌ Delta sync error: $e');
+    }
+  }
+
+  Future<void> _refetchAllMessages() async {
+    try {
+      final messagesRepo = _ref.read(messageRepositoryProvider);
+      final cache = _ref.read(messageCacheServiceProvider);
+
+      final allMessages = await messagesRepo.fetchAllMessages(_chatId);
+      state = state.copyWith(messages: _sortMessages(allMessages));
+
+      // Update cache with fresh data
+      await cache.putMessages(_chatId, allMessages);
+
+      debugPrint('🔄 Refetched all ${allMessages.length} messages');
+    } catch (e) {
+      debugPrint('❌ Refetch error: $e');
+    }
   }
 
   // Helper method to check if messages match (for optimistic -> server replacement)
@@ -229,8 +264,8 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     return optimistic.content == server.content &&
         optimistic.senderId == server.senderId &&
         optimistic.chatId == server.chatId &&
-        optimistic.timestamp.difference(server.timestamp).abs().inMinutes <
-            2; // Allow 2 min difference
+        optimistic.timestamp.difference(server.timestamp).abs().inSeconds <
+            10; // Allow 10 sec difference
   }
 
   // Add message optimistically (like appending to todo list)
@@ -289,6 +324,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
   @override
   void dispose() {
     _streamSubscription?.cancel();
+    _deltaCheckTimer?.cancel();
     super.dispose();
   }
 }
@@ -367,27 +403,27 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   void setCurrentChat(ChatModel? chat) {
     state = state.copyWith(currentChat: chat);
-    
+
     // Auto-mark messages as read when opening a chat
     if (chat != null) {
       _markChatAsRead(chat.id);
     }
   }
-  
+
   Future<void> _markChatAsRead(String chatId) async {
     try {
       final authUser = _ref.read(authProvider);
       if (authUser == null) return;
-      
+
       final messagesRepo = _ref.read(messageRepositoryProvider);
       await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
-      
+
       debugPrint('✅ Marked chat $chatId as read for user ${authUser.uid}');
     } catch (e) {
       debugPrint('❌ Failed to mark chat as read: $e');
     }
   }
-  
+
   /// Force clear all message caches for debugging
   Future<void> clearAllMessageCaches() async {
     try {

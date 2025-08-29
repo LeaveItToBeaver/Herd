@@ -78,41 +78,43 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
     final optimisticMessages =
         ref.watch(optimisticMessagesProvider(widget.chatId));
 
-    // Combine server messages with optimistic messages, removing duplicates
+    // More aggressive filtering to prevent any duplication
     final allMessages = <MessageModel>[];
+    final seenContent = <String>{};
     final messageIds = <String>{};
 
-    // Add server messages first
+    // Helper function to create content key for duplicate detection
+    String contentKey(MessageModel msg) =>
+        '${msg.senderId}:${msg.content}:${msg.timestamp.millisecondsSinceEpoch ~/ 1000}';
+
+    // Add server messages first (they take priority)
     for (final message in messagesState.messages) {
-      if (!messageIds.contains(message.id)) {
+      final key = contentKey(message);
+      if (!messageIds.contains(message.id) && !seenContent.contains(key)) {
         allMessages.add(message);
         messageIds.add(message.id);
+        seenContent.add(key);
       }
     }
 
-    // Add optimistic messages that don't have corresponding server messages
-    // Only check for optimistic messages that are still sending or failed
+    // Only add optimistic messages that don't duplicate server messages
     for (final optimisticMsg in optimisticMessages.values) {
-      // Don't show optimistic messages that have been delivered
-      // (let the server message handle the display)
+      final key = contentKey(optimisticMsg);
+
+      // Don't show optimistic messages that are delivered (server should handle these)
       if (optimisticMsg.status == MessageStatus.delivered) {
         continue;
       }
 
-      // Check if this optimistic message has a corresponding server message
-      final hasServerEquivalent = allMessages.any((serverMsg) =>
-          serverMsg.content == optimisticMsg.content &&
-          serverMsg.senderId == optimisticMsg.senderId &&
-          serverMsg.timestamp
-                  .difference(optimisticMsg.timestamp)
-                  .abs()
-                  .inSeconds <
-              30);
-
-      if (!hasServerEquivalent && !messageIds.contains(optimisticMsg.id)) {
-        allMessages.add(optimisticMsg);
-        messageIds.add(optimisticMsg.id);
+      // Skip if we already have this content or message ID
+      if (messageIds.contains(optimisticMsg.id) || seenContent.contains(key)) {
+        continue;
       }
+
+      // Only add if it's truly unique
+      allMessages.add(optimisticMsg);
+      messageIds.add(optimisticMsg.id);
+      seenContent.add(key);
     }
 
     return _buildMessagesList(allMessages, context);
