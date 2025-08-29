@@ -774,4 +774,69 @@ class MessageRepository {
     }
     return results;
   }
+
+  /// Get total message count for a chat (for delta sync)
+  Future<int> getMessageCount(String chatId) async {
+    try {
+      final snapshot = await _chatMessages(chatId).count().get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      debugPrint('❌ Failed to get message count: $e');
+      return 0;
+    }
+  }
+
+  /// Fetch all messages for a chat (fallback when cache is inconsistent)
+  Future<List<MessageModel>> fetchAllMessages(String chatId) async {
+    try {
+      final snapshot = await _chatMessages(chatId)
+          .orderBy('timestamp', descending: false)
+          .get();
+
+      final messages = <MessageModel>[];
+      for (final doc in snapshot.docs) {
+        try {
+          messages.add(_fromHierarchicalDoc(doc));
+        } catch (e) {
+          debugPrint('❌ Failed to parse message ${doc.id}: $e');
+        }
+      }
+      return messages;
+    } catch (e) {
+      debugPrint('❌ Failed to fetch all messages: $e');
+      return [];
+    }
+  }
+
+  /// Fetch latest messages after a certain timestamp (for delta sync)
+  Future<List<MessageModel>> fetchLatestMessages(
+    String chatId, {
+    required int limit,
+    DateTime? afterTimestamp,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query =
+          _chatMessages(chatId).orderBy('timestamp', descending: false);
+
+      if (afterTimestamp != null) {
+        query = query.where('timestamp',
+            isGreaterThan: Timestamp.fromDate(afterTimestamp));
+      }
+
+      final snapshot = await query.limit(limit).get();
+
+      final messages = <MessageModel>[];
+      for (final doc in snapshot.docs) {
+        try {
+          messages.add(_fromHierarchicalDoc(doc));
+        } catch (e) {
+          debugPrint('❌ Failed to parse message ${doc.id}: $e');
+        }
+      }
+      return messages;
+    } catch (e) {
+      debugPrint('❌ Failed to fetch latest messages: $e');
+      return [];
+    }
+  }
 }

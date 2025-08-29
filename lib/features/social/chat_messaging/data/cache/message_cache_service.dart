@@ -62,25 +62,43 @@ class MessageCacheService {
 
   Future<void> putMessages(String chatId, List<MessageModel> messages) async {
     if (!_initialized) await initialize();
-    // Improved deduplication: merge existing and new messages by ID
+    // Enhanced deduplication: merge existing and new messages by ID and content similarity
     final existing = List<MessageModel>.from(_memory[chatId] ?? []);
     final existingMap = {for (final m in existing) m.id: m};
-    
+
     // Only add messages that aren't already cached or have newer timestamps
-    final newMessages = <MessageModel>[];
     for (final message in messages) {
       final existingMessage = existingMap[message.id];
-      if (existingMessage == null || 
-          message.timestamp.isAfter(existingMessage.timestamp)) {
-        existingMap[message.id] = message;
-        if (existingMessage == null) {
-          debugPrint('➕ Caching new message: ${message.id}');
-        } else {
-          debugPrint('🔄 Updating cached message: ${message.id}');
+
+      // For content duplicate check, only flag as duplicate if:
+      // 1. Same content AND sender
+      // 2. Timestamps are very close (within 5 seconds)
+      // 3. AND it's not a temp/optimistic message being replaced by server message
+      final isDuplicateContent = existing.any((existingMsg) =>
+          existingMsg.id != message.id &&
+          existingMsg.content == message.content &&
+          existingMsg.senderId == message.senderId &&
+          existingMsg.timestamp.difference(message.timestamp).abs().inSeconds <
+              5 &&
+          !message.id.startsWith('temp_') && // Don't block server messages
+          !existingMsg.id
+              .startsWith('temp_')); // Don't block over temp messages
+
+      if (!isDuplicateContent) {
+        if (existingMessage == null ||
+            message.timestamp.isAfter(existingMessage.timestamp)) {
+          existingMap[message.id] = message;
+          if (existingMessage == null) {
+            debugPrint('➕ Caching new message: ${message.id}');
+          } else {
+            debugPrint('🔄 Updating cached message: ${message.id}');
+          }
         }
+      } else {
+        debugPrint('⚠️ Skipping duplicate content for message: ${message.id}');
       }
     }
-    
+
     final merged = existingMap.values.toList()
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     _memory[chatId] = merged;
@@ -220,12 +238,12 @@ class MessageCacheService {
   /// Clear all cached messages for a specific chat
   Future<void> clearChatCache(String chatId) async {
     if (!_initialized) await initialize();
-    
+
     // Clear from memory
     _memory.remove(chatId);
-    
+
     if (kIsWeb) return; // Skip disk operations on web
-    
+
     try {
       final file = File('${_messagesDir!.path}/$chatId.json');
       if (await file.exists()) {
@@ -240,12 +258,12 @@ class MessageCacheService {
   /// Clear all cached messages and media files
   Future<void> clearAllCaches() async {
     if (!_initialized) await initialize();
-    
+
     // Clear all in-memory data
     _memory.clear();
-    
+
     if (kIsWeb) return; // Skip disk operations on web
-    
+
     try {
       // Clear message cache files
       if (_messagesDir != null && await _messagesDir!.exists()) {
@@ -255,7 +273,7 @@ class MessageCacheService {
         }
         debugPrint('🗑️ Cleared all message cache files');
       }
-      
+
       // Clear media cache files
       if (_mediaDir != null && await _mediaDir!.exists()) {
         final mediaFiles = _mediaDir!.listSync().whereType<File>();
@@ -264,7 +282,7 @@ class MessageCacheService {
         }
         debugPrint('🗑️ Cleared all media cache files');
       }
-      
+
       debugPrint('✅ All chat caches cleared successfully');
     } catch (e) {
       debugPrint('❌ Error clearing all caches: $e');
@@ -274,7 +292,7 @@ class MessageCacheService {
   /// Clear cache for a specific user (when switching users)
   Future<void> clearUserCache(String userId) async {
     if (!_initialized) await initialize();
-    
+
     // For now, clear all caches since we don't track per-user
     // In the future, we could implement per-user cache directories
     await clearAllCaches();
@@ -284,20 +302,21 @@ class MessageCacheService {
   /// Get cache statistics for debugging
   Future<Map<String, dynamic>> getCacheStats() async {
     if (!_initialized) await initialize();
-    
+
     final stats = <String, dynamic>{
       'memoryCacheSize': _memory.length,
       'memoryChats': _memory.keys.toList(),
     };
-    
+
     if (!kIsWeb && _messagesDir != null && _mediaDir != null) {
       try {
-        final messageFiles = _messagesDir!.listSync().whereType<File>().toList();
+        final messageFiles =
+            _messagesDir!.listSync().whereType<File>().toList();
         final mediaFiles = _mediaDir!.listSync().whereType<File>().toList();
-        
+
         stats['diskMessageFiles'] = messageFiles.length;
         stats['diskMediaFiles'] = mediaFiles.length;
-        
+
         int totalSize = 0;
         for (final file in [...messageFiles, ...mediaFiles]) {
           totalSize += await file.length();
@@ -308,7 +327,7 @@ class MessageCacheService {
         debugPrint('❌ Error getting cache stats: $e');
       }
     }
-    
+
     return stats;
   }
 
@@ -316,7 +335,8 @@ class MessageCacheService {
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }

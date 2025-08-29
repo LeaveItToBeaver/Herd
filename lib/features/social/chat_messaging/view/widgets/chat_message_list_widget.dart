@@ -4,6 +4,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
+import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/message_status_indicator_widget.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 
@@ -77,15 +78,40 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
     final optimisticMessages =
         ref.watch(optimisticMessagesProvider(widget.chatId));
 
-    // Combine server messages with optimistic messages
+    // Combine server messages with optimistic messages, removing duplicates
     final allMessages = <MessageModel>[];
-    allMessages.addAll(messagesState.messages);
+    final messageIds = <String>{};
 
-    // Add optimistic messages that aren't already in server messages
-    final serverIds = messagesState.messages.map((m) => m.id).toSet();
+    // Add server messages first
+    for (final message in messagesState.messages) {
+      if (!messageIds.contains(message.id)) {
+        allMessages.add(message);
+        messageIds.add(message.id);
+      }
+    }
+
+    // Add optimistic messages that don't have corresponding server messages
+    // Only check for optimistic messages that are still sending or failed
     for (final optimisticMsg in optimisticMessages.values) {
-      if (!serverIds.contains(optimisticMsg.id)) {
+      // Don't show optimistic messages that have been delivered
+      // (let the server message handle the display)
+      if (optimisticMsg.status == MessageStatus.delivered) {
+        continue;
+      }
+
+      // Check if this optimistic message has a corresponding server message
+      final hasServerEquivalent = allMessages.any((serverMsg) =>
+          serverMsg.content == optimisticMsg.content &&
+          serverMsg.senderId == optimisticMsg.senderId &&
+          serverMsg.timestamp
+                  .difference(optimisticMsg.timestamp)
+                  .abs()
+                  .inSeconds <
+              30);
+
+      if (!hasServerEquivalent && !messageIds.contains(optimisticMsg.id)) {
         allMessages.add(optimisticMsg);
+        messageIds.add(optimisticMsg.id);
       }
     }
 
