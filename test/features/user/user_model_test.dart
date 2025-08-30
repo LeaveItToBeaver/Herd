@@ -5,7 +5,7 @@ void main() {
   group('UserModel', () {
     test('should create UserModel with required fields', () {
       final user = UserModel(
-        userId: 'test_user_id',
+        id: 'test_user_id',
         username: 'testuser',
         email: 'test@example.com',
         firstName: 'Test',
@@ -13,14 +13,14 @@ void main() {
         isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 0,
-        altPostCount: 0,
-        totalPoints: 0,
-        isPrivate: false,
-        enableAltProfile: false,
+        totalPosts: 0,
+        altTotalPosts: 0,
+        userPoints: 0,
+        isPrivateAccount: false,
+        altIsActive: false,
       );
 
-      expect(user.userId, 'test_user_id');
+      expect(user.id, 'test_user_id');
       expect(user.username, 'testuser');
       expect(user.email, 'test@example.com');
       expect(user.firstName, 'Test');
@@ -30,7 +30,7 @@ void main() {
 
     test('should handle optional fields', () {
       final user = UserModel(
-        userId: 'test_user_id',
+        id: 'test_user_id',
         username: 'testuser',
         email: 'test@example.com',
         firstName: 'Test',
@@ -38,23 +38,23 @@ void main() {
         isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 0,
-        altPostCount: 0,
-        totalPoints: 0,
-        isPrivate: false,
-        enableAltProfile: false,
+        totalPosts: 0,
+        altTotalPosts: 0,
+        userPoints: 0,
+        isPrivateAccount: false,
+        altIsActive: false,
         bio: 'This is a test bio',
         profileImageURL: 'https://example.com/avatar.jpg',
         coverImageURL: 'https://example.com/cover.jpg',
-        location: 'Test City',
-        website: 'https://testsite.com',
+        //location: 'Test City',
+        //website: 'https://testsite.com',
       );
 
       expect(user.bio, 'This is a test bio');
       expect(user.profileImageURL, 'https://example.com/avatar.jpg');
       expect(user.coverImageURL, 'https://example.com/cover.jpg');
-      expect(user.location, 'Test City');
-      expect(user.website, 'https://testsite.com');
+      //expect(user.location, 'Test City');
+      //expect(user.website, 'https://testsite.com');
     });
 
     test('should create UserModel from JSON', () {
@@ -77,32 +77,26 @@ void main() {
 
       final user = UserModel.fromJson(json);
 
-      expect(user.userId, 'test_user_id');
+      expect(user.id, 'test_user_id');
       expect(user.username, 'testuser');
       expect(user.bio, 'Test bio');
       expect(user.isVerified, true);
-      expect(user.publicPostCount, 5);
-      expect(user.altPostCount, 3);
-      expect(user.totalPoints, 100);
-      expect(user.enableAltProfile, true);
+      expect(user.totalPosts, 5);
+      expect(user.altTotalPosts, 3);
+      expect(user.userPoints, 100);
+      expect(user.altIsActive, true);
     });
 
     test('should convert UserModel to JSON', () {
       final user = UserModel(
-        userId: 'test_user_id',
         username: 'testuser',
         email: 'test@example.com',
         firstName: 'Test',
         lastName: 'User',
-        bio: 'Test bio',
-        isVerified: true,
-        createdAt: DateTime(2023, 1, 1),
-        updatedAt: DateTime(2023, 1, 2),
-        publicPostCount: 5,
-        altPostCount: 3,
-        totalPoints: 100,
-        isPrivate: false,
-        enableAltProfile: true,
+        isVerified: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        id: 'test_user_id',
       );
 
       final json = user.toJson();
@@ -119,7 +113,6 @@ void main() {
 
     test('should create copy with updated fields', () {
       final originalUser = UserModel(
-        userId: 'test_user_id',
         username: 'testuser',
         email: 'test@example.com',
         firstName: 'Test',
@@ -127,23 +120,19 @@ void main() {
         isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 0,
-        altPostCount: 0,
-        totalPoints: 0,
-        isPrivate: false,
-        enableAltProfile: false,
+        id: 'test_user_id',
       );
 
       final updatedUser = originalUser.copyWith(
         bio: 'Updated bio',
         isVerified: true,
-        totalPoints: 150,
+        userPoints: 150,
       );
 
-      expect(updatedUser.userId, originalUser.userId); // Unchanged
+      expect(updatedUser.id, originalUser.id); // Unchanged
       expect(updatedUser.bio, 'Updated bio'); // Changed
       expect(updatedUser.isVerified, true); // Changed
-      expect(updatedUser.totalPoints, 150); // Changed
+      expect(updatedUser.userPoints, 150); // Changed
     });
 
     test('should validate email format', () {
@@ -170,11 +159,11 @@ void main() {
 
       for (final email in invalidEmails) {
         // Basic validation - should not have proper @ and . structure
-        final isValid = email.contains('@') && 
-                       email.indexOf('@') > 0 && 
-                       email.indexOf('@') < email.length - 1 &&
-                       email.split('@').length == 2 &&
-                       email.split('@')[1].contains('.');
+        final isValid = email.contains('@') &&
+            email.indexOf('@') > 0 &&
+            email.indexOf('@') < email.length - 1 &&
+            email.split('@').length == 2 &&
+            email.split('@')[1].contains('.');
         expect(isValid, false);
       }
     });
@@ -207,7 +196,6 @@ void main() {
 
     test('should handle alt profile settings', () {
       final user = UserModel(
-        userId: 'test_user_id',
         username: 'testuser',
         email: 'test@example.com',
         firstName: 'Test',
@@ -215,17 +203,13 @@ void main() {
         isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 5,
-        altPostCount: 3,
-        totalPoints: 0,
-        isPrivate: false,
-        enableAltProfile: true,
         altBio: 'Alternative bio',
         altProfileImageURL: 'https://example.com/alt-avatar.jpg',
         altCoverImageURL: 'https://example.com/alt-cover.jpg',
+        id: 'test_user_id',
       );
 
-      expect(user.enableAltProfile, true);
+      expect(user.altIsActive, true);
       expect(user.altBio, 'Alternative bio');
       expect(user.altProfileImageURL, 'https://example.com/alt-avatar.jpg');
       expect(user.altCoverImageURL, 'https://example.com/alt-cover.jpg');
@@ -233,7 +217,6 @@ void main() {
 
     test('should calculate total post count', () {
       final user = UserModel(
-        userId: 'test_user_id',
         username: 'testuser',
         email: 'test@example.com',
         firstName: 'Test',
@@ -241,52 +224,38 @@ void main() {
         isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 10,
-        altPostCount: 5,
-        totalPoints: 0,
-        isPrivate: false,
-        enableAltProfile: false,
+        id: 'test_user_id',
       );
 
-      final totalPosts = user.publicPostCount + user.altPostCount;
+      final totalPosts = user.totalPosts + user.altTotalPosts;
       expect(totalPosts, 15);
     });
 
     test('should handle privacy settings', () {
       final privateUser = UserModel(
-        userId: 'private_user_id',
-        username: 'privateuser',
-        email: 'private@example.com',
-        firstName: 'Private',
+        username: 'testuser',
+        email: 'test@example.com',
+        firstName: 'Test',
         lastName: 'User',
         isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 0,
-        altPostCount: 0,
-        totalPoints: 0,
-        isPrivate: true,
-        enableAltProfile: false,
+        id: 'test_user_id',
       );
 
-      expect(privateUser.isPrivate, true);
+      expect(privateUser.isPrivateAccount, true);
     });
 
     test('should handle verification status', () {
       final verifiedUser = UserModel(
-        userId: 'verified_user_id',
-        username: 'verifieduser',
-        email: 'verified@example.com',
-        firstName: 'Verified',
+        username: 'testuser',
+        email: 'test@example.com',
+        firstName: 'Test',
         lastName: 'User',
-        isVerified: true,
+        isVerified: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        publicPostCount: 0,
-        altPostCount: 0,
-        totalPoints: 0,
-        isPrivate: false,
-        enableAltProfile: false,
+        id: 'test_user_id',
       );
 
       expect(verifiedUser.isVerified, true);

@@ -478,17 +478,31 @@ class MessageRepository {
       editPlaintext(
           messageId: messageId, userId: userId, newContent: newContent);
 
-  /// Backwards-compatible delete for legacy messages.
-  Future<void> softDeleteMessage(String chatId, String messageId) async {
+  Future<void> softDeleteMessage(
+      String chatId, String messageId, String currentUserId) async {
     try {
-      await _firestore
+      final messageRef = _firestore
           .collection('chatMessages')
           .doc(chatId)
           .collection('messages')
-          .doc(messageId)
-          .update({
+          .doc(messageId);
+
+      // First verify the message exists and user owns it
+      final messageDoc = await messageRef.get();
+      if (!messageDoc.exists) {
+        throw Exception('Message not found');
+      }
+
+      final messageData = messageDoc.data()!;
+      if (messageData['senderId'] != currentUserId) {
+        throw Exception('You can only delete your own messages');
+      }
+
+      // Perform soft delete
+      await messageRef.update({
         'isDeleted': true,
         'deletedAt': FieldValue.serverTimestamp(),
+        'deletedBy': currentUserId,
       });
 
       debugPrint('✅ Message soft deleted successfully');

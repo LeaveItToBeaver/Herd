@@ -156,6 +156,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                     child: _FeedContentWrapper(
                       scrollController: _scrollController,
                       altFeedState: altFeedState,
+                      buildLoadingWidget: _buildLoadingWidget,
+                      buildErrorWidget: _buildErrorWidget,
                     ),
                   ),
 
@@ -396,10 +398,16 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
 class _FeedContentWrapper extends ConsumerWidget {
   final ScrollController scrollController;
   final AltFeedState altFeedState;
+  final Widget Function() buildLoadingWidget;
+  final Widget Function(
+          BuildContext context, Object error, VoidCallback onRetry)
+      buildErrorWidget;
 
   const _FeedContentWrapper({
     required this.scrollController,
     required this.altFeedState,
+    required this.buildLoadingWidget,
+    required this.buildErrorWidget,
   });
 
   @override
@@ -416,9 +424,9 @@ class _FeedContentWrapper extends ConsumerWidget {
       margin: EdgeInsets.only(right: hasChat ? 60 : 0),
       child: RepaintBoundary(
         child: altFeedState.isLoading && altFeedState.posts.isEmpty
-            ? _buildLoadingWidget()
+            ? buildLoadingWidget()
             : altFeedState.error != null
-                ? _buildErrorWidget(context, altFeedState.error!, () {
+                ? buildErrorWidget(context, altFeedState.error!, () {
                     ref.read(altFeedControllerProvider.notifier).refreshFeed();
                   })
                 : PostListWidget(
@@ -446,59 +454,6 @@ class _FeedContentWrapper extends ConsumerWidget {
                     isRefreshing: altFeedState.isRefreshing,
                   ),
       ),
-    );
-  }
-
-  Widget _buildLoadingWidget() {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: const [
-        SizedBox(height: 100),
-        Center(child: CircularProgressIndicator()),
-        SizedBox(height: 100),
-      ],
-    );
-  }
-
-  Widget _buildErrorWidget(
-      BuildContext context, Object error, VoidCallback onRetry) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        const SizedBox(height: 100),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Theme.of(context).colorScheme.error,
-                  size: 60,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Failed to load feed',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  error.toString(),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: onRetry,
-                  child: const Text('Try Again'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const BottomNavPadding(),
-      ],
     );
   }
 }

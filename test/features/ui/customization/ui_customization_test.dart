@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
 
 void main() {
   group('UI Customization', () {
@@ -19,7 +17,7 @@ void main() {
     test('should copy with updated values', () {
       const userId = 'test_user_id';
       final original = UICustomizationModel.defaultForUser(userId);
-      
+
       final updated = original.copyWith(
         appTheme: AppThemeSettings(primaryColor: '#FF5722'),
       );
@@ -50,7 +48,8 @@ void main() {
       }
 
       for (final color in invalidColors) {
-        expect(_isValidHexColor(color), false, reason: '$color should be invalid');
+        expect(_isValidHexColor(color), false,
+            reason: '$color should be invalid');
       }
     });
 
@@ -155,29 +154,30 @@ void main() {
     test('should handle serialization', () {
       const userId = 'test_user_id';
       final original = UICustomizationModel.defaultForUser(userId);
-      
+
       final json = original.toJson();
       final deserialized = UICustomizationModel.fromJson(json);
 
       expect(deserialized.userId, original.userId);
-      expect(deserialized.appTheme.primaryColor, original.appTheme.primaryColor);
+      expect(
+          deserialized.appTheme.primaryColor, original.appTheme.primaryColor);
     });
 
     test('should validate customization bounds', () {
       // Test boundary values
       expect(_isValidBorderRadius(-1.0), false); // Negative
-      expect(_isValidBorderRadius(0.0), true);   // Zero
-      expect(_isValidBorderRadius(50.0), true);  // Normal
+      expect(_isValidBorderRadius(0.0), true); // Zero
+      expect(_isValidBorderRadius(50.0), true); // Normal
       expect(_isValidBorderRadius(100.0), false); // Too large
 
-      expect(_isValidFontSize(8.0), false);  // Too small
-      expect(_isValidFontSize(12.0), true);  // Valid
-      expect(_isValidFontSize(24.0), true);  // Valid
+      expect(_isValidFontSize(8.0), false); // Too small
+      expect(_isValidFontSize(12.0), true); // Valid
+      expect(_isValidFontSize(24.0), true); // Valid
       expect(_isValidFontSize(48.0), false); // Too large
 
-      expect(_isValidImageSize(20.0), false);  // Too small
-      expect(_isValidImageSize(50.0), true);   // Valid
-      expect(_isValidImageSize(150.0), true);  // Valid
+      expect(_isValidImageSize(20.0), false); // Too small
+      expect(_isValidImageSize(50.0), true); // Valid
+      expect(_isValidImageSize(150.0), true); // Valid
       expect(_isValidImageSize(300.0), false); // Too large
     });
   });
@@ -272,7 +272,8 @@ class UICustomizationModel {
     return UICustomizationModel(
       userId: json['userId'],
       appTheme: AppThemeSettings.fromJson(json['appTheme']),
-      profileCustomization: ProfileCustomization.fromJson(json['profileCustomization']),
+      profileCustomization:
+          ProfileCustomization.fromJson(json['profileCustomization']),
       componentStyles: ComponentStyles.fromJson(json['componentStyles']),
       layoutPreferences: LayoutPreferences.fromJson(json['layoutPreferences']),
       typography: TypographySettings.fromJson(json['typography']),
@@ -294,18 +295,19 @@ class AppThemeSettings {
   });
 
   Map<String, dynamic> toJson() => {
-    'primaryColor': primaryColor,
-    'secondaryColor': secondaryColor,
-    'useMaterial3': useMaterial3,
-    'enableGradients': enableGradients,
-  };
+        'primaryColor': primaryColor,
+        'secondaryColor': secondaryColor,
+        'useMaterial3': useMaterial3,
+        'enableGradients': enableGradients,
+      };
 
-  static AppThemeSettings fromJson(Map<String, dynamic> json) => AppThemeSettings(
-    primaryColor: json['primaryColor'],
-    secondaryColor: json['secondaryColor'],
-    useMaterial3: json['useMaterial3'] ?? true,
-    enableGradients: json['enableGradients'] ?? false,
-  );
+  static AppThemeSettings fromJson(Map<String, dynamic> json) =>
+      AppThemeSettings(
+        primaryColor: json['primaryColor'],
+        secondaryColor: json['secondaryColor'],
+        useMaterial3: json['useMaterial3'] ?? true,
+        enableGradients: json['enableGradients'] ?? false,
+      );
 }
 
 class ProfileCustomization {
@@ -324,20 +326,21 @@ class ProfileCustomization {
   });
 
   Map<String, dynamic> toJson() => {
-    'layout': layout,
-    'enableParticles': enableParticles,
-    'enableMusicPlayer': enableMusicPlayer,
-    'profileImageShape': profileImageShape,
-    'profileImageSize': profileImageSize,
-  };
+        'layout': layout,
+        'enableParticles': enableParticles,
+        'enableMusicPlayer': enableMusicPlayer,
+        'profileImageShape': profileImageShape,
+        'profileImageSize': profileImageSize,
+      };
 
-  static ProfileCustomization fromJson(Map<String, dynamic> json) => ProfileCustomization(
-    layout: json['layout'],
-    enableParticles: json['enableParticles'] ?? false,
-    enableMusicPlayer: json['enableMusicPlayer'] ?? false,
-    profileImageShape: json['profileImageShape'] ?? 'circle',
-    profileImageSize: json['profileImageSize'] ?? 80.0,
-  );
+  static ProfileCustomization fromJson(Map<String, dynamic> json) =>
+      ProfileCustomization(
+        layout: json['layout'],
+        enableParticles: json['enableParticles'] ?? false,
+        enableMusicPlayer: json['enableMusicPlayer'] ?? false,
+        profileImageShape: json['profileImageShape'] ?? 'circle',
+        profileImageSize: json['profileImageSize'] ?? 80.0,
+      );
 }
 
 class ComponentStyles {
@@ -354,18 +357,18 @@ class ComponentStyles {
   });
 
   Map<String, dynamic> toJson() => {
-    'cardBorderRadius': cardBorderRadius,
-    'buttonBorderRadius': buttonBorderRadius,
-    'inputBorderRadius': inputBorderRadius,
-    'elevationLevel': elevationLevel,
-  };
+        'cardBorderRadius': cardBorderRadius,
+        'buttonBorderRadius': buttonBorderRadius,
+        'inputBorderRadius': inputBorderRadius,
+        'elevationLevel': elevationLevel,
+      };
 
   static ComponentStyles fromJson(Map<String, dynamic> json) => ComponentStyles(
-    cardBorderRadius: json['cardBorderRadius'],
-    buttonBorderRadius: json['buttonBorderRadius'] ?? 8.0,
-    inputBorderRadius: json['inputBorderRadius'] ?? 4.0,
-    elevationLevel: json['elevationLevel'] ?? 1.0,
-  );
+        cardBorderRadius: json['cardBorderRadius'],
+        buttonBorderRadius: json['buttonBorderRadius'] ?? 8.0,
+        inputBorderRadius: json['inputBorderRadius'] ?? 4.0,
+        elevationLevel: json['elevationLevel'] ?? 1.0,
+      );
 }
 
 class LayoutPreferences {
@@ -382,18 +385,19 @@ class LayoutPreferences {
   });
 
   Map<String, dynamic> toJson() => {
-    'density': density,
-    'spacing': spacing,
-    'padding': padding,
-    'gridColumns': gridColumns,
-  };
+        'density': density,
+        'spacing': spacing,
+        'padding': padding,
+        'gridColumns': gridColumns,
+      };
 
-  static LayoutPreferences fromJson(Map<String, dynamic> json) => LayoutPreferences(
-    density: json['density'],
-    spacing: json['spacing'] ?? 8.0,
-    padding: json['padding'] ?? 16.0,
-    gridColumns: json['gridColumns'] ?? 1,
-  );
+  static LayoutPreferences fromJson(Map<String, dynamic> json) =>
+      LayoutPreferences(
+        density: json['density'],
+        spacing: json['spacing'] ?? 8.0,
+        padding: json['padding'] ?? 16.0,
+        gridColumns: json['gridColumns'] ?? 1,
+      );
 }
 
 class TypographySettings {
@@ -410,16 +414,17 @@ class TypographySettings {
   });
 
   Map<String, dynamic> toJson() => {
-    'primaryFont': primaryFont,
-    'secondaryFont': secondaryFont,
-    'fontSize': fontSize,
-    'fontWeight': fontWeight,
-  };
+        'primaryFont': primaryFont,
+        'secondaryFont': secondaryFont,
+        'fontSize': fontSize,
+        'fontWeight': fontWeight,
+      };
 
-  static TypographySettings fromJson(Map<String, dynamic> json) => TypographySettings(
-    primaryFont: json['primaryFont'],
-    secondaryFont: json['secondaryFont'] ?? 'Roboto',
-    fontSize: json['fontSize'] ?? 14.0,
-    fontWeight: json['fontWeight'] ?? 'normal',
-  );
+  static TypographySettings fromJson(Map<String, dynamic> json) =>
+      TypographySettings(
+        primaryFont: json['primaryFont'],
+        secondaryFont: json['secondaryFont'] ?? 'Roboto',
+        fontSize: json['fontSize'] ?? 14.0,
+        fontWeight: json['fontWeight'] ?? 'normal',
+      );
 }

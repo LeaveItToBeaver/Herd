@@ -36,7 +36,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         final notificationService = ref.read(notificationServiceProvider);
         await notificationService.clearAllNotifications();
       } catch (e) {
-        print('⚠️ Could not clear local notifications: $e');
+        debugPrint('⚠️ Could not clear local notifications: $e');
       }
 
       // Load and mark notifications as read

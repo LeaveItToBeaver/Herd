@@ -16,7 +16,6 @@ import 'package:herdapp/features/social/floating_buttons/utils/controllers/hapti
 import 'package:herdapp/features/social/floating_buttons/utils/enums/bubble_content_type.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/super_stretchy_painter.dart';
 
-import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/bubble_config_state.dart';
 import 'package:herdapp/features/social/floating_buttons/views/providers/state/drag_state.dart';
 

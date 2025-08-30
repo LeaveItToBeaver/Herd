@@ -33,6 +33,8 @@ abstract class MessageModel with _$MessageModel {
     @Default({}) Map<String, String> reactions,
     @Default(false) bool isEdited,
     @Default(false) bool isDeleted,
+    DateTime? deletedAt,
+    String? deletedBy,
     @Default(false) bool isPinned,
     @Default(false) bool isStarred,
     @Default(false) bool isForwarded,

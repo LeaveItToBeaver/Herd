@@ -290,7 +290,7 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget>
     // For pinned posts, allow flexible height but constrain it
     if (widget.source == RichTextSource.pinnedPost) {
       return Flexible(
-        child: Container(
+        child: SizedBox(
           width: double.infinity,
           child: ClipRect(
             child: editor,

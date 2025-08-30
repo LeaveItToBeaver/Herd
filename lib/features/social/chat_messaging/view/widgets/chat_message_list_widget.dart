@@ -122,6 +122,9 @@ class _ChatMessageListWidgetState extends ConsumerState<ChatMessageListWidget> {
 
   Widget _buildMessagesList(
       List<MessageModel> messageList, BuildContext context) {
+    final visibleMessages = messageList.where((message) {
+      return message.isDeleted != true;
+    });
     if (messageList.isEmpty) {
       final currentChat = ref.read(currentChatProvider(widget.chatId));
       return EmptyChatStateWidget(

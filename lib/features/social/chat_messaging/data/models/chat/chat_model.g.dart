@@ -24,6 +24,11 @@ _ChatModel _$ChatModelFromJson(Map<String, dynamic> json) => _ChatModel(
       isMuted: json['isMuted'] as bool? ?? false,
       isArchived: json['isArchived'] as bool? ?? false,
       isPinned: json['isPinned'] as bool? ?? false,
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      deletedAt: json['deletedAt'] == null
+          ? null
+          : DateTime.parse(json['deletedAt'] as String),
+      deletedBy: json['deletedBy'] as String?,
       groupId: json['groupId'] as String?,
     );
 
@@ -44,5 +49,8 @@ Map<String, dynamic> _$ChatModelToJson(_ChatModel instance) =>
       'isMuted': instance.isMuted,
       'isArchived': instance.isArchived,
       'isPinned': instance.isPinned,
+      'isDeleted': instance.isDeleted,
+      'deletedAt': instance.deletedAt?.toIso8601String(),
+      'deletedBy': instance.deletedBy,
       'groupId': instance.groupId,
     };

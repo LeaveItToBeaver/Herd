@@ -28,7 +28,10 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
   bool get isGroupChat;
   bool get isMuted;
   bool get isArchived;
-  bool get isPinned; // Group chat reference
+  bool get isPinned;
+  bool get isDeleted;
+  DateTime? get deletedAt;
+  String? get deletedBy; // Group chat reference
   String? get groupId;
 
   /// Create a copy of ChatModel
@@ -61,6 +64,9 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isMuted', isMuted))
       ..add(DiagnosticsProperty('isArchived', isArchived))
       ..add(DiagnosticsProperty('isPinned', isPinned))
+      ..add(DiagnosticsProperty('isDeleted', isDeleted))
+      ..add(DiagnosticsProperty('deletedAt', deletedAt))
+      ..add(DiagnosticsProperty('deletedBy', deletedBy))
       ..add(DiagnosticsProperty('groupId', groupId));
   }
 
@@ -97,33 +103,43 @@ mixin _$ChatModel implements DiagnosticableTreeMixin {
                 other.isArchived == isArchived) &&
             (identical(other.isPinned, isPinned) ||
                 other.isPinned == isPinned) &&
+            (identical(other.isDeleted, isDeleted) ||
+                other.isDeleted == isDeleted) &&
+            (identical(other.deletedAt, deletedAt) ||
+                other.deletedAt == deletedAt) &&
+            (identical(other.deletedBy, deletedBy) ||
+                other.deletedBy == deletedBy) &&
             (identical(other.groupId, groupId) || other.groupId == groupId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      otherUserId,
-      otherUserName,
-      otherUserUsername,
-      otherUserProfileImage,
-      otherUserAltProfileImage,
-      otherUserIsAlt,
-      isAlt,
-      lastMessage,
-      lastMessageTimestamp,
-      unreadCount,
-      isGroupChat,
-      isMuted,
-      isArchived,
-      isPinned,
-      groupId);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        otherUserId,
+        otherUserName,
+        otherUserUsername,
+        otherUserProfileImage,
+        otherUserAltProfileImage,
+        otherUserIsAlt,
+        isAlt,
+        lastMessage,
+        lastMessageTimestamp,
+        unreadCount,
+        isGroupChat,
+        isMuted,
+        isArchived,
+        isPinned,
+        isDeleted,
+        deletedAt,
+        deletedBy,
+        groupId
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, isAlt: $isAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, groupId: $groupId)';
+    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, isAlt: $isAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, isDeleted: $isDeleted, deletedAt: $deletedAt, deletedBy: $deletedBy, groupId: $groupId)';
   }
 }
 
@@ -148,6 +164,9 @@ abstract mixin class $ChatModelCopyWith<$Res> {
       bool isMuted,
       bool isArchived,
       bool isPinned,
+      bool isDeleted,
+      DateTime? deletedAt,
+      String? deletedBy,
       String? groupId});
 }
 
@@ -178,6 +197,9 @@ class _$ChatModelCopyWithImpl<$Res> implements $ChatModelCopyWith<$Res> {
     Object? isMuted = null,
     Object? isArchived = null,
     Object? isPinned = null,
+    Object? isDeleted = null,
+    Object? deletedAt = freezed,
+    Object? deletedBy = freezed,
     Object? groupId = freezed,
   }) {
     return _then(_self.copyWith(
@@ -241,6 +263,18 @@ class _$ChatModelCopyWithImpl<$Res> implements $ChatModelCopyWith<$Res> {
           ? _self.isPinned
           : isPinned // ignore: cast_nullable_to_non_nullable
               as bool,
+      isDeleted: null == isDeleted
+          ? _self.isDeleted
+          : isDeleted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      deletedAt: freezed == deletedAt
+          ? _self.deletedAt
+          : deletedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      deletedBy: freezed == deletedBy
+          ? _self.deletedBy
+          : deletedBy // ignore: cast_nullable_to_non_nullable
+              as String?,
       groupId: freezed == groupId
           ? _self.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -358,6 +392,9 @@ extension ChatModelPatterns on ChatModel {
             bool isMuted,
             bool isArchived,
             bool isPinned,
+            bool isDeleted,
+            DateTime? deletedAt,
+            String? deletedBy,
             String? groupId)?
         $default, {
     required TResult orElse(),
@@ -381,6 +418,9 @@ extension ChatModelPatterns on ChatModel {
             _that.isMuted,
             _that.isArchived,
             _that.isPinned,
+            _that.isDeleted,
+            _that.deletedAt,
+            _that.deletedBy,
             _that.groupId);
       case _:
         return orElse();
@@ -418,6 +458,9 @@ extension ChatModelPatterns on ChatModel {
             bool isMuted,
             bool isArchived,
             bool isPinned,
+            bool isDeleted,
+            DateTime? deletedAt,
+            String? deletedBy,
             String? groupId)
         $default,
   ) {
@@ -440,6 +483,9 @@ extension ChatModelPatterns on ChatModel {
             _that.isMuted,
             _that.isArchived,
             _that.isPinned,
+            _that.isDeleted,
+            _that.deletedAt,
+            _that.deletedBy,
             _that.groupId);
       case _:
         throw StateError('Unexpected subclass');
@@ -476,6 +522,9 @@ extension ChatModelPatterns on ChatModel {
             bool isMuted,
             bool isArchived,
             bool isPinned,
+            bool isDeleted,
+            DateTime? deletedAt,
+            String? deletedBy,
             String? groupId)?
         $default,
   ) {
@@ -498,6 +547,9 @@ extension ChatModelPatterns on ChatModel {
             _that.isMuted,
             _that.isArchived,
             _that.isPinned,
+            _that.isDeleted,
+            _that.deletedAt,
+            _that.deletedBy,
             _that.groupId);
       case _:
         return null;
@@ -524,6 +576,9 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
       this.isMuted = false,
       this.isArchived = false,
       this.isPinned = false,
+      this.isDeleted = false,
+      this.deletedAt,
+      this.deletedBy,
       this.groupId})
       : super._();
   factory _ChatModel.fromJson(Map<String, dynamic> json) =>
@@ -568,6 +623,13 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool isPinned;
+  @override
+  @JsonKey()
+  final bool isDeleted;
+  @override
+  final DateTime? deletedAt;
+  @override
+  final String? deletedBy;
 // Group chat reference
   @override
   final String? groupId;
@@ -607,6 +669,9 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isMuted', isMuted))
       ..add(DiagnosticsProperty('isArchived', isArchived))
       ..add(DiagnosticsProperty('isPinned', isPinned))
+      ..add(DiagnosticsProperty('isDeleted', isDeleted))
+      ..add(DiagnosticsProperty('deletedAt', deletedAt))
+      ..add(DiagnosticsProperty('deletedBy', deletedBy))
       ..add(DiagnosticsProperty('groupId', groupId));
   }
 
@@ -643,33 +708,43 @@ class _ChatModel extends ChatModel with DiagnosticableTreeMixin {
                 other.isArchived == isArchived) &&
             (identical(other.isPinned, isPinned) ||
                 other.isPinned == isPinned) &&
+            (identical(other.isDeleted, isDeleted) ||
+                other.isDeleted == isDeleted) &&
+            (identical(other.deletedAt, deletedAt) ||
+                other.deletedAt == deletedAt) &&
+            (identical(other.deletedBy, deletedBy) ||
+                other.deletedBy == deletedBy) &&
             (identical(other.groupId, groupId) || other.groupId == groupId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      otherUserId,
-      otherUserName,
-      otherUserUsername,
-      otherUserProfileImage,
-      otherUserAltProfileImage,
-      otherUserIsAlt,
-      isAlt,
-      lastMessage,
-      lastMessageTimestamp,
-      unreadCount,
-      isGroupChat,
-      isMuted,
-      isArchived,
-      isPinned,
-      groupId);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        otherUserId,
+        otherUserName,
+        otherUserUsername,
+        otherUserProfileImage,
+        otherUserAltProfileImage,
+        otherUserIsAlt,
+        isAlt,
+        lastMessage,
+        lastMessageTimestamp,
+        unreadCount,
+        isGroupChat,
+        isMuted,
+        isArchived,
+        isPinned,
+        isDeleted,
+        deletedAt,
+        deletedBy,
+        groupId
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, isAlt: $isAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, groupId: $groupId)';
+    return 'ChatModel(id: $id, otherUserId: $otherUserId, otherUserName: $otherUserName, otherUserUsername: $otherUserUsername, otherUserProfileImage: $otherUserProfileImage, otherUserAltProfileImage: $otherUserAltProfileImage, otherUserIsAlt: $otherUserIsAlt, isAlt: $isAlt, lastMessage: $lastMessage, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isGroupChat: $isGroupChat, isMuted: $isMuted, isArchived: $isArchived, isPinned: $isPinned, isDeleted: $isDeleted, deletedAt: $deletedAt, deletedBy: $deletedBy, groupId: $groupId)';
   }
 }
 
@@ -697,6 +772,9 @@ abstract mixin class _$ChatModelCopyWith<$Res>
       bool isMuted,
       bool isArchived,
       bool isPinned,
+      bool isDeleted,
+      DateTime? deletedAt,
+      String? deletedBy,
       String? groupId});
 }
 
@@ -727,6 +805,9 @@ class __$ChatModelCopyWithImpl<$Res> implements _$ChatModelCopyWith<$Res> {
     Object? isMuted = null,
     Object? isArchived = null,
     Object? isPinned = null,
+    Object? isDeleted = null,
+    Object? deletedAt = freezed,
+    Object? deletedBy = freezed,
     Object? groupId = freezed,
   }) {
     return _then(_ChatModel(
@@ -790,6 +871,18 @@ class __$ChatModelCopyWithImpl<$Res> implements _$ChatModelCopyWith<$Res> {
           ? _self.isPinned
           : isPinned // ignore: cast_nullable_to_non_nullable
               as bool,
+      isDeleted: null == isDeleted
+          ? _self.isDeleted
+          : isDeleted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      deletedAt: freezed == deletedAt
+          ? _self.deletedAt
+          : deletedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      deletedBy: freezed == deletedBy
+          ? _self.deletedBy
+          : deletedBy // ignore: cast_nullable_to_non_nullable
+              as String?,
       groupId: freezed == groupId
           ? _self.groupId
           : groupId // ignore: cast_nullable_to_non_nullable

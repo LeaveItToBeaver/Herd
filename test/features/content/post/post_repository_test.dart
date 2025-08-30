@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:herdapp/features/content/post/data/repositories/post_repository.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
@@ -22,50 +21,46 @@ void main() {
       fakeFirestore = FakeFirebaseFirestore();
       mockStorage = MockFirebaseStorage();
       mockFunctions = MockFirebaseFunctions();
-      
+
       repository = PostRepository();
       // We would need to modify PostRepository to accept these as dependencies
       // For now, we'll test the logic with fake data
     });
 
     group('getPostById', () {
-      test('should return post from public collection when isAlt is false', () async {
+      test('should return post from public collection when isAlt is false',
+          () async {
         // Arrange
         const postId = 'test_post_id';
         final postData = _createTestPostData();
-        
-        await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .set(postData);
+
+        await fakeFirestore.collection('posts').doc(postId).set(postData);
 
         // We would need to inject fakeFirestore into PostRepository
         // This is a structure example of how the test would work
-        
+
         expect(postData['title'], 'Test Post Title');
       });
 
-      test('should return post from alt collection when isAlt is true', () async {
+      test('should return post from alt collection when isAlt is true',
+          () async {
         // Arrange
         const postId = 'test_alt_post_id';
         final postData = _createTestPostData(isAlt: true);
-        
-        await fakeFirestore
-            .collection('altPosts')
-            .doc(postId)
-            .set(postData);
+
+        await fakeFirestore.collection('altPosts').doc(postId).set(postData);
 
         expect(postData['isAlt'], true);
       });
 
       test('should return null when post does not exist', () async {
         const nonExistentPostId = 'non_existent_post';
-        
+
         final doc = await fakeFirestore
             .collection('posts')
             .doc(nonExistentPostId)
             .get();
-            
+
         expect(doc.exists, false);
       });
     });
@@ -76,28 +71,20 @@ void main() {
         const postId = 'test_post_id';
         const userId = 'test_user_id';
         final originalData = _createTestPostData(authorId: userId);
-        
-        await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .set(originalData);
+
+        await fakeFirestore.collection('posts').doc(postId).set(originalData);
 
         // Act
-        await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .update({
-              'title': 'Updated Title',
-              'content': 'Updated Content',
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
+        await fakeFirestore.collection('posts').doc(postId).update({
+          'title': 'Updated Title',
+          'content': 'Updated Content',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
 
         // Assert
-        final updatedDoc = await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .get();
-        
+        final updatedDoc =
+            await fakeFirestore.collection('posts').doc(postId).get();
+
         expect(updatedDoc.data()!['title'], 'Updated Title');
         expect(updatedDoc.data()!['content'], 'Updated Content');
       });
@@ -107,17 +94,11 @@ void main() {
         const originalAuthorId = 'original_author';
         const differentUserId = 'different_user';
         final originalData = _createTestPostData(authorId: originalAuthorId);
-        
-        await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .set(originalData);
 
-        final doc = await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .get();
-            
+        await fakeFirestore.collection('posts').doc(postId).set(originalData);
+
+        final doc = await fakeFirestore.collection('posts').doc(postId).get();
+
         expect(doc.data()!['authorId'], originalAuthorId);
         expect(doc.data()!['authorId'], isNot(differentUserId));
       });
@@ -128,30 +109,18 @@ void main() {
         const postId = 'test_post_id';
         const userId = 'test_user_id';
         final postData = _createTestPostData(authorId: userId);
-        
-        await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .set(postData);
+
+        await fakeFirestore.collection('posts').doc(postId).set(postData);
 
         // Verify post exists
-        var doc = await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .get();
+        var doc = await fakeFirestore.collection('posts').doc(postId).get();
         expect(doc.exists, true);
 
         // Delete post
-        await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .delete();
+        await fakeFirestore.collection('posts').doc(postId).delete();
 
         // Verify post is deleted
-        doc = await fakeFirestore
-            .collection('posts')
-            .doc(postId)
-            .get();
+        doc = await fakeFirestore.collection('posts').doc(postId).get();
         expect(doc.exists, false);
       });
     });
@@ -160,32 +129,32 @@ void main() {
       test('should return posts for specific user', () async {
         const userId = 'test_user_id';
         const otherUserId = 'other_user_id';
-        
+
         // Add posts for test user
         await fakeFirestore
             .collection('posts')
             .doc('post1')
             .set(_createTestPostData(authorId: userId, title: 'User Post 1'));
-            
+
         await fakeFirestore
             .collection('posts')
             .doc('post2')
             .set(_createTestPostData(authorId: userId, title: 'User Post 2'));
-            
+
         // Add post for other user
-        await fakeFirestore
-            .collection('posts')
-            .doc('post3')
-            .set(_createTestPostData(authorId: otherUserId, title: 'Other User Post'));
+        await fakeFirestore.collection('posts').doc('post3').set(
+            _createTestPostData(
+                authorId: otherUserId, title: 'Other User Post'));
 
         // Query posts for test user
         final userPostsQuery = await fakeFirestore
             .collection('posts')
             .where('authorId', isEqualTo: userId)
             .get();
-            
+
         expect(userPostsQuery.docs.length, 2);
-        expect(userPostsQuery.docs.first.data()['title'], contains('User Post'));
+        expect(
+            userPostsQuery.docs.first.data()['title'], contains('User Post'));
       });
     });
 
@@ -193,7 +162,7 @@ void main() {
       test('should handle post interactions', () async {
         const postId = 'test_post_id';
         const userId = 'test_user_id';
-        
+
         // Create like document
         await fakeFirestore
             .collection('likes')
@@ -208,7 +177,7 @@ void main() {
             .collection('userInteractions')
             .doc(userId)
             .get();
-            
+
         expect(likeDoc.exists, true);
       });
     });
@@ -224,7 +193,7 @@ void main() {
         posts.sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
 
         expect(posts.first.id, 'post2'); // Highest score first
-        expect(posts.last.id, 'post3');  // Lowest score last
+        expect(posts.last.id, 'post3'); // Lowest score last
       });
     });
   });

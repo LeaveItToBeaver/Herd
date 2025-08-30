@@ -39,6 +39,10 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
           const {},
       isEdited: json['isEdited'] as bool? ?? false,
       isDeleted: json['isDeleted'] as bool? ?? false,
+      deletedAt: json['deletedAt'] == null
+          ? null
+          : DateTime.parse(json['deletedAt'] as String),
+      deletedBy: json['deletedBy'] as String?,
       isPinned: json['isPinned'] as bool? ?? false,
       isStarred: json['isStarred'] as bool? ?? false,
       isForwarded: json['isForwarded'] as bool? ?? false,
@@ -80,6 +84,8 @@ Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
       'reactions': instance.reactions,
       'isEdited': instance.isEdited,
       'isDeleted': instance.isDeleted,
+      'deletedAt': instance.deletedAt?.toIso8601String(),
+      'deletedBy': instance.deletedBy,
       'isPinned': instance.isPinned,
       'isStarred': instance.isStarred,
       'isForwarded': instance.isForwarded,

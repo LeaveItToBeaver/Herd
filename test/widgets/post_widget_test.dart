@@ -3,12 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/content/post/view/widgets/post_widget.dart';
-import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 
 void main() {
   group('PostWidget', () {
     late PostModel testPost;
-    
+
     setUp(() {
       testPost = PostModel(
         id: 'test_post_id',
@@ -60,7 +59,8 @@ void main() {
       expect(find.text('3'), findsWidgets); // Comment count
     });
 
-    testWidgets('should display author profile image when available', (tester) async {
+    testWidgets('should display author profile image when available',
+        (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
@@ -93,9 +93,8 @@ void main() {
     });
 
     testWidgets('should handle post with media', (tester) async {
-      final mediaPost = testPost.copyWith(
-        mediaURL: 'https://example.com/image.jpg'
-      );
+      final mediaPost =
+          testPost.copyWith(mediaURL: 'https://example.com/image.jpg');
 
       await tester.pumpWidget(
         ProviderScope(
@@ -108,7 +107,7 @@ void main() {
       );
 
       expect(find.text('Test Post Title'), findsOneWidget);
-      // Media widget would be present but testing actual image loading 
+      // Media widget would be present but testing actual image loading
       // requires more complex setup with mock network images
     });
 
@@ -125,7 +124,7 @@ void main() {
 
       // Look for like, dislike, and comment buttons
       expect(find.byType(IconButton), findsWidgets);
-      
+
       // Look for common icons used in social media apps
       expect(find.byIcon(Icons.thumb_up_alt_outlined), findsWidgets);
       expect(find.byIcon(Icons.thumb_down_alt_outlined), findsWidgets);
@@ -168,7 +167,8 @@ void main() {
       // Alt posts might have different styling or indicators
     });
 
-    testWidgets('should be tappable to navigate to post detail', (tester) async {
+    testWidgets('should be tappable to navigate to post detail',
+        (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
@@ -183,9 +183,12 @@ void main() {
       expect(find.byType(GestureDetector), findsWidgets);
     });
 
-    testWidgets('should handle long content with proper overflow', (tester) async {
+    testWidgets('should handle long content with proper overflow',
+        (tester) async {
       final longContentPost = testPost.copyWith(
-        content: 'This is a very long post content that should be handled properly. ' * 20,
+        content:
+            'This is a very long post content that should be handled properly. ' *
+                20,
       );
 
       await tester.pumpWidget(
@@ -204,7 +207,8 @@ void main() {
       // Content should be clipped or have a "read more" functionality
     });
 
-    testWidgets('should handle empty or null author profile image', (tester) async {
+    testWidgets('should handle empty or null author profile image',
+        (tester) async {
       final noAvatarPost = testPost.copyWith(authorProfileImageURL: null);
 
       await tester.pumpWidget(
@@ -220,7 +224,7 @@ void main() {
       // Should still display username and content
       expect(find.text('@testuser'), findsOneWidget);
       expect(find.text('Test Post Title'), findsOneWidget);
-      
+
       // Should show default avatar or placeholder
       expect(find.byType(CircleAvatar), findsWidgets);
     });

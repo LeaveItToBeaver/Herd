@@ -26,6 +26,9 @@ abstract class ChatModel with _$ChatModel {
     @Default(false) bool isMuted,
     @Default(false) bool isArchived,
     @Default(false) bool isPinned,
+    @Default(false) bool isDeleted,
+    DateTime? deletedAt,
+    String? deletedBy,
     // Group chat reference
     String? groupId, // Reference to GroupMessaging model
   }) = _ChatModel;

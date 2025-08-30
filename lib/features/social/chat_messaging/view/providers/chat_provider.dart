@@ -662,7 +662,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
         throw Exception('User not authenticated');
       }
 
-      await messagesRepo.softDeleteMessage(chatId, messageId);
+      await messagesRepo.softDeleteMessage(chatId, messageId, authUser.uid);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }

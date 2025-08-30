@@ -290,7 +290,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                         ref.read(authProvider)?.uid;
                                     final currentUserAsync =
                                         ref.read(currentUserProvider);
-                                    final currentUserData = currentUserAsync.userOrNull;
+                                    final currentUserData =
+                                        currentUserAsync.userOrNull;
 
                                     if (currentUserId != null &&
                                         currentUserData != null) {
@@ -316,7 +317,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                         isAlt: isAltContext,
                                         // Include current user info for the other person's view
                                         currentUserName:
-                                            '${currentUserData.firstName ?? ''} ${currentUserData.lastName ?? ''}'
+                                            '${currentUserData.firstName} ${currentUserData.lastName}'
                                                 .trim(),
                                         currentUserProfileImage:
                                             currentUserData.profileImageURL,
@@ -332,7 +333,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                                 .notifier)
                                             .addChatBubble(chat);
 
-                                        // Navigate to the chat screen
                                         context.pushNamed(
                                           'chat',
                                           queryParameters: {'chatId': chat.id},

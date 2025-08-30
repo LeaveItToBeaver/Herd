@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
@@ -20,7 +21,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
     ref.listen(authProvider, (previous, next) {
       final newUserId = next?.uid;
       if (newUserId != _currentUserId) {
-        print('👤 User changed from $_currentUserId to $newUserId');
+        debugPrint('👤 User changed from $_currentUserId to $newUserId');
         _currentUserId = newUserId;
         loadUserChats();
       }
@@ -30,7 +31,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
   Future<void> loadUserChats() async {
     final currentUser = ref.read(authProvider);
     if (currentUser == null) {
-      print('❌ No current user, clearing chats');
+      debugPrint('❌ No current user, clearing chats');
       _currentUserId = null;
       state = [];
       return;
@@ -38,7 +39,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
 
     // Prevent reloading if same user
     if (_currentUserId == currentUser.uid && _chatSubscription != null) {
-      print('⏭️ Same user, skipping reload: ${currentUser.uid}');
+      debugPrint('⏭️ Same user, skipping reload: ${currentUser.uid}');
       return;
     }
 
@@ -48,21 +49,21 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
     // Cancel previous subscription if exists
     _chatSubscription?.cancel();
 
-    print('🔄 Loading chats for user: ${currentUser.uid}');
+    debugPrint('🔄 Loading chats for user: ${currentUser.uid}');
 
     // Listen to user's chats with real-time updates
     _chatSubscription = chatRepo.getUserChats(currentUser.uid).listen(
       (chats) {
-        print('📱 Received ${chats.length} chats from stream');
+        debugPrint('📱 Received ${chats.length} chats from stream');
 
-        // Debug: Print chat IDs to check for duplicates
+        // Debug: debugPrint chat IDs to check for duplicates
         final chatIds = chats.map((c) => c.id).toList();
         final uniqueIds = chatIds.toSet();
 
         if (chatIds.length != uniqueIds.length) {
-          print('⚠️ WARNING: Duplicate chat IDs detected!');
-          print('All IDs: $chatIds');
-          print('Unique IDs: $uniqueIds');
+          debugPrint('⚠️ WARNING: Duplicate chat IDs detected!');
+          debugPrint('All IDs: $chatIds');
+          debugPrint('Unique IDs: $uniqueIds');
 
           // Remove duplicates by ID (keep latest)
           final Map<String, ChatModel> uniqueChats = {};
@@ -75,34 +76,34 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
           state = chats;
         }
 
-        print('✅ Updated state with ${state.length} unique chats');
+        debugPrint('✅ Updated state with ${state.length} unique chats');
       },
       onError: (error) {
-        print('❌ Error loading chats: $error');
+        debugPrint('❌ Error loading chats: $error');
         // Don't clear state on error, keep existing chats
       },
     );
   }
 
   void addChatBubble(ChatModel chat) {
-    print('➕ Adding chat bubble: ${chat.id}');
+    debugPrint('➕ Adding chat bubble: ${chat.id}');
 
     // Check if chat already exists
     final existingIndex = state.indexWhere((c) => c.id == chat.id);
 
     if (existingIndex >= 0) {
-      print('🔄 Updating existing chat: ${chat.id}');
+      debugPrint('🔄 Updating existing chat: ${chat.id}');
       // Update existing chat
       final updatedChats = [...state];
       updatedChats[existingIndex] = chat;
       state = updatedChats;
     } else {
-      print('🆕 Adding new chat: ${chat.id}');
+      debugPrint('🆕 Adding new chat: ${chat.id}');
       // Add new chat
       state = [...state, chat];
     }
 
-    print('📊 Total chats after add: ${state.length}');
+    debugPrint('📊 Total chats after add: ${state.length}');
   }
 
   void removeChatBubble(String chatId) {

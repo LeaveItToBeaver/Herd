@@ -184,7 +184,7 @@ class MessageCacheService {
       };
 
   MessageModel _fromCacheJson(Map<String, dynamic> j) {
-    DateTime _dt(dynamic v) => v == null
+    DateTime dt(dynamic v) => v == null
         ? DateTime.fromMillisecondsSinceEpoch(0)
         : DateTime.fromMillisecondsSinceEpoch(v as int);
     return MessageModel(
@@ -195,8 +195,8 @@ class MessageCacheService {
       senderProfileImage: j['senderProfileImage'] as String?,
       content: j['content'] as String?,
       type: _parseType(j['type'] as String?),
-      timestamp: _dt(j['timestamp']),
-      editedAt: j['editedAt'] != null ? _dt(j['editedAt']) : null,
+      timestamp: dt(j['timestamp']),
+      editedAt: j['editedAt'] != null ? dt(j['editedAt']) : null,
       mediaUrl: j['mediaUrl'] as String?,
       thumbnailUrl: j['thumbnailUrl'] as String?,
       fileName: j['fileName'] as String?,
@@ -215,7 +215,7 @@ class MessageCacheService {
       isForwarded: j['isForwarded'] == true,
       isSelfDestructing: j['isSelfDestructing'] == true,
       selfDestructTime:
-          j['selfDestructTime'] != null ? _dt(j['selfDestructTime']) : null,
+          j['selfDestructTime'] != null ? dt(j['selfDestructTime']) : null,
       quotedMessageId: j['quotedMessageId'] as String?,
       quotedMessageContent: j['quotedMessageContent'] as String?,
       latitude: (j['latitude'] as num?)?.toDouble(),
@@ -335,8 +335,9 @@ class MessageCacheService {
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024)
+    if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
