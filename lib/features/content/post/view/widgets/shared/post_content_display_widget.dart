@@ -206,7 +206,7 @@ class _PostContentDisplayState extends ConsumerState<PostContentDisplay> {
 
         // Use QuillViewerWidget for both rich text and plain text content
         if (widget.post.content.isNotEmpty) ...[
-          Expanded(
+          Flexible(
             child: widget.post.isRichText
                 ? QuillViewerWidget(
                     key: ValueKey('quill_viewer_${widget.post.id}_pinned'),
