@@ -166,7 +166,6 @@ abstract class NotificationModel with _$NotificationModel {
         // Navigate directly to the specific chat
         return chatId != null ? '/chat?chatId=$chatId' : null;
     }
-    return null;
   }
 
   Map<String, dynamic> toFirestore() {

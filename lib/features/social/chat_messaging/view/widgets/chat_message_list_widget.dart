@@ -5,7 +5,7 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
-import 'package:herdapp/features/social/chat_messaging/view/widgets/message_status_indicator_widget.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/interactive_message_widget.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 
 class ChatMessageListWidget extends ConsumerStatefulWidget {
@@ -198,6 +198,49 @@ class _MessageItem extends ConsumerWidget {
     required this.onReply,
   });
 
+  String _getDisplayName(MessageModel message, bool isCurrentUser,
+      AsyncValue<UserModel?> currentUser, AsyncValue<ChatModel?> currentChat) {
+    if (isCurrentUser) {
+      return currentUser.when(
+        data: (user) => user?.firstName ?? 'You',
+        loading: () => 'You',
+        error: (_, __) => 'You',
+      );
+    } else {
+      // Use sender name from message or fallback to chat info
+      if (message.senderName != null && message.senderName!.isNotEmpty) {
+        return message.senderName!.split(' ').first; // Get first name only
+      }
+      return currentChat.when(
+        data: (chat) => chat?.otherUserName?.split(' ').first ?? 'User',
+        loading: () => 'User',
+        error: (_, __) => 'User',
+      );
+    }
+  }
+
+  String? _getProfileImageUrl(MessageModel message, bool isCurrentUser,
+      AsyncValue<UserModel?> currentUser, AsyncValue<ChatModel?> currentChat) {
+    if (isCurrentUser) {
+      return currentUser.when(
+        data: (user) => user?.profileImageURL,
+        loading: () => null,
+        error: (_, __) => null,
+      );
+    } else {
+      // Use sender profile image from message or fallback to chat info
+      if (message.senderProfileImage != null &&
+          message.senderProfileImage!.isNotEmpty) {
+        return message.senderProfileImage;
+      }
+      return currentChat.when(
+        data: (chat) => chat?.otherUserProfileImage,
+        loading: () => null,
+        error: (_, __) => null,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.read(currentUserProvider);
@@ -236,16 +279,20 @@ class _MessageItem extends ConsumerWidget {
           const SizedBox(height: 16),
         ],
 
-        // Swipeable message
+        // Enhanced interactive message with swipe support
         SwipeableMessage(
           message: message,
           isCurrentUser: isCurrentUser,
           onReply: () => onReply(message.id, message.content ?? ''),
-          child: _MessageWithProfile(
+          onReplyCallback: onReply,
+          child: InteractiveMessageWidget(
             message: message,
             isCurrentUser: isCurrentUser,
-            currentUser: currentUser,
-            currentChat: currentChat,
+            displayName: _getDisplayName(
+                message, isCurrentUser, currentUser, currentChat),
+            profileImageUrl: _getProfileImageUrl(
+                message, isCurrentUser, currentUser, currentChat),
+            onReply: (messageId, content) => onReply(messageId, content),
           ),
         ),
 
@@ -288,200 +335,6 @@ class _DateSeparator extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
-      ),
-    );
-  }
-}
-
-class _MessageWithProfile extends StatelessWidget {
-  final MessageModel message;
-  final bool isCurrentUser;
-  final AsyncValue<UserModel?> currentUser;
-  final AsyncValue<ChatModel?> currentChat;
-
-  const _MessageWithProfile({
-    required this.message,
-    required this.isCurrentUser,
-    required this.currentUser,
-    required this.currentChat,
-  });
-
-  String _formatMessageTime(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inDays > 0) {
-      return '${timestamp.day}/${timestamp.month}';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m';
-    } else {
-      return 'now';
-    }
-  }
-
-  String _getDisplayName() {
-    if (isCurrentUser) {
-      return currentUser.when(
-        data: (user) => user?.firstName ?? 'You',
-        loading: () => 'You',
-        error: (_, __) => 'You',
-      );
-    } else {
-      // Use sender name from message or fallback to chat info
-      if (message.senderName != null && message.senderName!.isNotEmpty) {
-        return message.senderName!.split(' ').first; // Get first name only
-      }
-      return currentChat.when(
-        data: (chat) => chat?.otherUserName?.split(' ').first ?? 'User',
-        loading: () => 'User',
-        error: (_, __) => 'User',
-      );
-    }
-  }
-
-  String? _getProfileImageUrl() {
-    if (isCurrentUser) {
-      return currentUser.when(
-        data: (user) => user?.profileImageURL,
-        loading: () => null,
-        error: (_, __) => null,
-      );
-    } else {
-      // Use sender profile image from message or fallback to chat info
-      if (message.senderProfileImage != null &&
-          message.senderProfileImage!.isNotEmpty) {
-        return message.senderProfileImage;
-      }
-      return currentChat.when(
-        data: (chat) => chat?.otherUserProfileImage,
-        loading: () => null,
-        error: (_, __) => null,
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: isCurrentUser ? 50.0 : 0.0,
-        right: isCurrentUser ? 0.0 : 50.0,
-      ),
-      child: Row(
-        mainAxisAlignment:
-            isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // Avatar for other users (left side)
-          if (!isCurrentUser) ...[
-            UserProfileImage(
-              radius: 16,
-              profileImageUrl: _getProfileImageUrl(),
-            ),
-            const SizedBox(width: 8),
-          ],
-
-          // Message content
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isCurrentUser
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
-              children: [
-                // Sender name
-                Padding(
-                  padding: const EdgeInsets.only(left: 8, right: 8, bottom: 4),
-                  child: Text(
-                    _getDisplayName(),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant
-                              .withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ),
-
-                // Message bubble
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isCurrentUser
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(isCurrentUser ? 20 : 4),
-                      bottomRight: Radius.circular(isCurrentUser ? 4 : 20),
-                    ),
-                    border: Border.all(
-                      color: isCurrentUser
-                          ? Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.5)
-                          : Theme.of(context)
-                              .colorScheme
-                              .outline
-                              .withValues(alpha: 0.2),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Text(
-                    message.content ?? '',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isCurrentUser
-                              ? Theme.of(context).colorScheme.onPrimary
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ),
-
-                // Timestamp and status
-                Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _formatMessageTime(message.timestamp),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant
-                                  .withValues(alpha: 0.6),
-                              fontSize: 11,
-                            ),
-                      ),
-
-                      // Status indicator for current user messages
-                      if (isCurrentUser) ...[
-                        const SizedBox(width: 4),
-                        MessageStatusIndicator(status: message.status),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Avatar for current user (right side)
-          if (isCurrentUser) ...[
-            const SizedBox(width: 8),
-            UserProfileImage(
-              radius: 16,
-              profileImageUrl: _getProfileImageUrl(),
-            ),
-          ],
-        ],
       ),
     );
   }

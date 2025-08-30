@@ -1,4 +1,3 @@
-import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,9 +27,8 @@ class PostActionBar extends StatelessWidget {
     // Wrap entire action bar in RepaintBoundary
     return RepaintBoundary(
       child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: isPinned ? 0 : (isCompact ? 0 : 4)
-        ),
+        padding:
+            EdgeInsets.symmetric(vertical: isPinned ? 0 : (isCompact ? 0 : 4)),
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(

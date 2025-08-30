@@ -15,3 +15,5 @@ export 'enums/status_privacy.dart';
 
 // Repositories
 export 'repositories/chat_repository.dart';
+export 'repositories/message_repository.dart';
+export 'repositories/chat_messaging_providers.dart';

@@ -267,11 +267,11 @@ class MessageRepository {
     final data = doc.data();
     return MessageModel(
       id: doc.id,
-      chatId: data['chatId'] as String,
-      senderId: data['senderId'] as String,
+      chatId: data['chatId'] as String? ?? '', // Handle null chatId
+      senderId: data['senderId'] as String? ?? '', // Handle null senderId
       senderName: data['senderName'] as String?,
       senderProfileImage: data['senderProfileImage'] as String?,
-      content: data['content'] as String,
+      content: data['content'] as String? ?? '', // Handle null content
       type: _parseMessageType(data['type'] as String?),
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       editedAt: (data['editedAt'] as Timestamp?)?.toDate(),
@@ -479,11 +479,66 @@ class MessageRepository {
           messageId: messageId, userId: userId, newContent: newContent);
 
   /// Backwards-compatible delete for legacy messages.
-  Future<void> deleteMessage({
+  Future<void> softDeleteMessage(String chatId, String messageId) async {
+    try {
+      await _firestore
+          .collection('chatMessages')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+        'isDeleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('✅ Message soft deleted successfully');
+    } catch (e) {
+      debugPrint('❌ Error soft deleting message: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a message with user validation.
+  Future<bool> deleteMessageWithValidation({
+    required String chatId,
     required String messageId,
     required String userId,
-  }) async =>
-      deletePlaintext(messageId: messageId, userId: userId);
+  }) async {
+    try {
+      final messageRef = _firestore
+          .collection('chatMessages')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId);
+
+      final messageDoc = await messageRef.get();
+
+      if (!messageDoc.exists) {
+        debugPrint('❌ Message not found');
+        return false;
+      }
+
+      final messageData = messageDoc.data()!;
+      final senderId = messageData['senderId'] as String?;
+
+      if (senderId != userId) {
+        debugPrint('❌ User $userId cannot delete message from $senderId');
+        return false;
+      }
+
+      await messageRef.update({
+        'isDeleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'deletedBy': userId,
+      });
+
+      debugPrint('✅ Message deleted successfully by $userId');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error deleting message: $e');
+      return false;
+    }
+  }
 
   /// Backwards-compatible search (legacy only for now).
   Future<List<MessageModel>> searchMessages({

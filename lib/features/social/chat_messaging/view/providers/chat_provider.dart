@@ -653,7 +653,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
   }
 
   /// Delete a message
-  Future<void> deleteMessage(String messageId) async {
+  Future<void> deleteMessage(String chatId, String messageId) async {
     try {
       final messagesRepo = _ref.read(messageRepositoryProvider);
       final authUser = _ref.read(authProvider);
@@ -662,10 +662,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
         throw Exception('User not authenticated');
       }
 
-      await messagesRepo.deleteMessage(
-        messageId: messageId,
-        userId: authUser.uid,
-      );
+      await messagesRepo.softDeleteMessage(chatId, messageId);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
