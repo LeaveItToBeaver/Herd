@@ -48,6 +48,24 @@ class ChatCryptoService {
     return base64Encode(pub.bytes);
   }
 
+  /// Check if identity keys are stored on device
+  Future<bool> hasStoredKeys() async {
+    final storedPriv = await _secureStorage.read(key: _identityPrivKeyKey);
+    final storedPub = await _secureStorage.read(key: _identityPubKeyKey);
+    return storedPriv != null && storedPub != null;
+  }
+
+  /// Delete stored identity keys from device
+  Future<void> deleteStoredKeys() async {
+    await _secureStorage.delete(key: _identityPrivKeyKey);
+    await _secureStorage.delete(key: _identityPubKeyKey);
+  }
+
+  /// Ensure key pair exists (creates if needed)
+  Future<void> ensureKeyPairExists() async {
+    await _loadOrCreateIdentityKeyPair();
+  }
+
   /// Returns the public key from the identity key pair
   Future<SimplePublicKey> getPublicIdentityKey() async {
     final kp = await _loadOrCreateIdentityKeyPair();
@@ -123,11 +141,13 @@ class ChatCryptoService {
     final pub864 = base64Encode(pub.bytes);
     final snap = await firestore.collection('userKeys').doc(userId).get();
 
-    if (!snap.exists || snap.data()?['identityPub'] != pub864) {
+    if (!snap.exists || snap.data()?['publicKey'] != pub864) {
       await firestore.collection('userKeys').doc(userId).set({
-        'identityPub': pub864,
+        'publicKey': pub864,
+        'userId': userId,
         'createdAt': FieldValue.serverTimestamp(),
-        'rotateAt': null,
+        'lastSyncedAt': FieldValue.serverTimestamp(),
+        'version': 1,
       }, SetOptions(merge: true));
     }
     return pub;
@@ -138,7 +158,7 @@ class ChatCryptoService {
     final cached = _peerCache[userId];
     if (cached != null) return cached;
     final snap = await firestore.collection('userKeys').doc(userId).get();
-    final b64 = snap.data()?['identityPub'];
+    final b64 = snap.data()?['publicKey'];
     if (b64 is String) {
       final bytes = base64Decode(b64);
       _peerCache[userId] = bytes;

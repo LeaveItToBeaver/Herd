@@ -137,13 +137,11 @@ class MessageInteractionNotifier
     }
   }
 
-  Future<String> deleteMessage(
-      String messageId, String currentUserId, WidgetRef ref) async {
+  Future<String> deleteMessage(String messageId, String currentUserId) async {
     try {
-      final messageRepo = ref.read(messageRepositoryProvider);
-
       // Use soft delete instead of hard delete
-      await messageRepo.softDeleteMessage(chatId, messageId, currentUserId);
+      await _messageRepository.softDeleteMessage(
+          chatId, messageId, currentUserId);
 
       return 'Message deleted successfully';
     } catch (e) {

@@ -2,10 +2,15 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
+import 'package:cryptography/cryptography.dart'; // For SecretKey caching
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/crypto/chat_crypto_service.dart';
 import 'package:herdapp/features/user/user_profile/data/repositories/user_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
+
+// Verbose logging toggle for message repository (non-error info). Set true for diagnostics.
+const bool _verboseMessages = false;
+void _v(String msg) { if (_verboseMessages && kDebugMode) debugPrint(msg); }
 
 /// Handles all message CRUD, encryption, and search logic.
 class MessageRepository {
@@ -20,6 +25,9 @@ class MessageRepository {
   final Map<String, List<String>> _participantsCache = {};
   final Map<String, String?> _userKeysCache = {};
   final Map<String, bool> _encryptionCapabilityCache = {};
+  // Simple in-memory cache for derived direct chat symmetric keys to avoid
+  // re-running X25519 + HKDF every message decrypt. Keyed by chatId:peerId (peerId = other user).
+  final Map<String, SecretKey> _directChatKeyCache = {};
 
   MessageRepository(this._firestore, this._users, this._crypto, this._chats);
 
@@ -38,7 +46,7 @@ class MessageRepository {
         if (parts.length == 2) {
           final participants = [parts[0], parts[1]];
           _participantsCache[key] = participants;
-          debugPrint('✅ Derived participants from chatId: $participants');
+          _v('✅ Derived participants from chatId: $participants');
           // Clear cache after 5 minutes to prevent stale data
           Future.delayed(
               const Duration(minutes: 5), () => _participantsCache.remove(key));
@@ -60,7 +68,7 @@ class MessageRepository {
       if (chatId.contains('_')) {
         final parts = chatId.split('_');
         if (parts.length == 2) {
-          debugPrint('🔄 Using emergency fallback for chatId: $chatId');
+          _v('🔄 Using emergency fallback for chatId: $chatId');
           return [parts[0], parts[1]];
         }
       }
@@ -70,20 +78,30 @@ class MessageRepository {
   }
 
   Future<String?> _getCachedUserKey(String userId) async {
+  _v('🔑 Getting cached key for user: $userId');
     if (_userKeysCache.containsKey(userId)) {
-      return _userKeysCache[userId];
+      final cached = _userKeysCache[userId];
+  _v('✅ Using cached key for $userId: ${cached != null ? 'found' : 'null'}');
+      return cached;
     }
 
     try {
-      final keyDoc = await _firestore.collection('userKeys').doc(userId).get();
-      final key = keyDoc.data()?['identityPub'] as String?;
-      _userKeysCache[userId] = key;
-      // Clear cache after 10 minutes
-      Future.delayed(
-          const Duration(minutes: 10), () => _userKeysCache.remove(userId));
-      return key;
+  _v('🔍 Fetching key from Firestore for user: $userId');
+      final snap = await _firestore.collection('userKeys').doc(userId).get();
+      if (snap.exists && snap.data() != null) {
+        final publicKey = snap.data()!['publicKey'] as String?;
+  _v('✅ Key retrieved for $userId: ${publicKey != null ? 'found' : 'null'}');
+        _userKeysCache[userId] = publicKey;
+        Future.delayed(
+            const Duration(minutes: 10), () => _userKeysCache.remove(userId));
+        return publicKey;
+      } else {
+        debugPrint('❌ No key document found for user: $userId');
+        _userKeysCache[userId] = null;
+        return null;
+      }
     } catch (e) {
-      debugPrint('❌ Failed to get cached user key: $e');
+      debugPrint('❌ Failed to get cached user key for $userId: $e');
       _userKeysCache[userId] = null;
       return null;
     }
@@ -91,20 +109,29 @@ class MessageRepository {
 
   Future<bool> _getCachedEncryptionCapability(List<String> participants) async {
     final key = participants.join('_');
+  _v('🔍 Checking encryption capability for participants: $participants');
+
     if (_encryptionCapabilityCache.containsKey(key)) {
-      return _encryptionCapabilityCache[key]!;
+      final cached = _encryptionCapabilityCache[key]!;
+  _v('✅ Using cached encryption capability: $cached');
+      return cached;
     }
 
     try {
       for (final userId in participants) {
+  _v('🔑 Checking key for user: $userId');
         final userKey = await _getCachedUserKey(userId);
         if (userKey == null) {
+          _v('❌ No key found for user: $userId');
           _encryptionCapabilityCache[key] = false;
           Future.delayed(const Duration(minutes: 2),
               () => _encryptionCapabilityCache.remove(key));
           return false;
+        } else {
+          _v('✅ Key found for user: $userId');
         }
       }
+  _v('✅ All participants have keys - encryption enabled');
       _encryptionCapabilityCache[key] = true;
       Future.delayed(const Duration(minutes: 5),
           () => _encryptionCapabilityCache.remove(key));
@@ -163,12 +190,6 @@ class MessageRepository {
 
     final plaintext = <String, dynamic>{
       'content': content,
-      'senderName':
-          senderName ?? '${sender.firstName} ${sender.lastName}'.trim(),
-      'senderProfileImage': sender.profileImageURL,
-      'type': type.toString().split('.').last,
-      'replyToMessageId': replyToMessageId,
-      'media': media,
     };
     if (replyToMessageId != null) {
       final replySnap = await _chatMessages(chatId).doc(replyToMessageId).get();
@@ -182,9 +203,25 @@ class MessageRepository {
 
     final batch = _firestore.batch();
     batch.set(messageRef, {
+      'id': messageRef.id,
+      'chatId': chatId,
       'senderId': senderId,
-      'timestamp': FieldValue.serverTimestamp(), // normalized field name
-      ...encrypted,
+      'senderName':
+          senderName ?? '${sender.firstName} ${sender.lastName}'.trim(),
+      'senderProfileImage': sender.profileImageURL,
+      'type': type.toString().split('.').last,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isEdited': false,
+      'isDeleted': false,
+      'isPinned': false,
+      'isStarred': false,
+      'isForwarded': false,
+      'isSelfDestructing': false,
+      'reactions': <String, dynamic>{},
+      'readReceipts': <String, dynamic>{},
+      'replyToMessageId': replyToMessageId,
+      'media': media,
+      ...encrypted, // Add encryption metadata (ciphertext, nonce, mac, alg, v)
     });
     // Update userChats for all participants (single collection architecture)
     for (final uid in participants) {
@@ -202,8 +239,8 @@ class MessageRepository {
       id: messageRef.id,
       chatId: chatId,
       senderId: senderId,
-      senderName: plaintext['senderName'],
-      senderProfileImage: plaintext['senderProfileImage'],
+      senderName: senderName ?? '${sender.firstName} ${sender.lastName}'.trim(),
+      senderProfileImage: sender.profileImageURL,
       content: content,
       type: type,
       timestamp: now,
@@ -239,24 +276,30 @@ class MessageRepository {
 
     return q.snapshots().asyncMap((snap) async {
       final List<MessageModel> messages = [];
+  _v('📥 Processing ${snap.docs.length} message documents from Firestore');
       for (final doc in snap.docs) {
         try {
           final data = doc.data();
+          _v('📄 Message ${doc.id}: keys=${data.keys.toList()}');
 
           // Check if message is encrypted (has ciphertext field)
           if (data.containsKey('ciphertext')) {
+            _v('🔐 Processing encrypted message: ${doc.id}');
             // Encrypted message - try to decrypt it
             final decrypted = await _decodeEncrypted(chatId, doc.id, data);
             messages.add(decrypted);
           } else {
+            _v('📝 Processing plaintext message: ${doc.id}');
             // Plaintext message - convert directly
             messages.add(_fromHierarchicalDoc(doc));
           }
         } catch (e) {
+          debugPrint('❌ Failed to process message ${doc.id}: $e');
           // Skip messages that can't be processed
           continue;
         }
       }
+  _v('✅ Processed ${messages.length} messages successfully');
       return messages;
     });
   }
@@ -265,6 +308,8 @@ class MessageRepository {
   MessageModel _fromHierarchicalDoc(
       QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
+  _v('🔍 Parsing message ${doc.id} with data: ${data.keys.toList()}');
+  _v('📝 Content field: "${data['content']}" (type: ${data['content'].runtimeType})');
     return MessageModel(
       id: doc.id,
       chatId: data['chatId'] as String? ?? '', // Handle null chatId
@@ -402,12 +447,16 @@ class MessageRepository {
     }
 
     final isDirect = participants.length == 2;
+  _v('📱 Chat type: ${isDirect ? 'Direct' : 'Group'}, participants: $participants');
 
     if (isDirect) {
       // Check if both users have identity keys for E2EE (cached)
+  _v('🔐 Checking E2EE capability for direct chat...');
       final hasEncryption = await _getCachedEncryptionCapability(participants);
+  _v('🔐 E2EE capability result: $hasEncryption');
       if (hasEncryption) {
         // Both users have keys - use encrypted path
+  _v('✅ Using encrypted messaging path');
         return sendEncryptedDirect(
           chatId: chatId,
           senderId: senderId,
@@ -417,6 +466,8 @@ class MessageRepository {
           media: mediaData,
           senderName: senderName,
         );
+      } else {
+        debugPrint('⚠️ Falling back to plaintext messaging - missing keys');
       }
     }
 
@@ -619,26 +670,80 @@ class MessageRepository {
     // Only decrypt direct chats (2 participants)
     if (participants.length != 2) return _empty(chatId, id, data, ts);
 
+    // Optimization: Determine the single peer (other participant) and try once.
+    // Only fallback to sender key if MAC/auth failure occurs. This removes the
+    // always-two-attempts pattern from before.
+    final senderId = data['senderId'] as String?;
+    final otherId = participants.firstWhere(
+      (p) => p != senderId,
+      orElse: () => senderId ?? participants.first,
+    );
+
     Map<String, dynamic>? decrypted;
-    for (final pid in participants) {
+    String? usedPeer;
+
+    Future<SecretKey?> _getOrDeriveKey(String peerId) async {
+      final cacheKey = '$chatId:$peerId';
+      final cached = _directChatKeyCache[cacheKey];
+      if (cached != null) return cached;
+      final pub = await _getCachedUserKey(peerId);
+      if (pub == null) return null;
+      final key = await _crypto.deriveDirectChatKey(
+        otherPublicKeyBytes: base64Decode(pub),
+        chatId: chatId,
+      );
+      _directChatKeyCache[cacheKey] = key;
+      // Lightweight TTL eviction
+      Future.delayed(const Duration(minutes: 10), () {
+        _directChatKeyCache.remove(cacheKey);
+      });
+      return key;
+    }
+
+    Future<Map<String, dynamic>?> _attempt(String peerId) async {
       try {
-        final pub = await _getCachedUserKey(pid);
-        if (pub == null) continue;
-        final key = await _crypto.deriveDirectChatKey(
-          otherPublicKeyBytes: base64Decode(pub),
-          chatId: chatId,
-        );
-        final d = await _crypto.decryptPayload(key: key, encrypted: data);
-        if (d['content'] != null || d['senderName'] != null) {
-          decrypted = d;
-          break;
+        debugPrint('🔐 Attempting decrypt for message $id using peer $peerId');
+        final key = await _getOrDeriveKey(peerId);
+        if (key == null) {
+          debugPrint('⚠️ No public key for peer $peerId');
+          return null;
         }
-      } catch (_) {
-        // continue
+        final d = await _crypto.decryptPayload(key: key, encrypted: data);
+        if (d['content'] != null) {
+          debugPrint(
+              '✅ Decryption succeeded for message $id with peer $peerId');
+          return d;
+        }
+        debugPrint('⚠️ Decryption produced no content for $id with $peerId');
+        return null;
+      } catch (e) {
+        debugPrint('❌ Decryption failed for message $id with peer $peerId: $e');
+        return null;
       }
     }
-    if (decrypted == null) return _empty(chatId, id, data, ts);
-    final typeStr = decrypted['type'] as String?;
+
+    // First attempt with other participant (normal case on receiver side).
+    decrypted = await _attempt(otherId);
+    usedPeer = otherId;
+
+    // Fallback: if failed and senderId differs, try senderId once.
+    if (decrypted == null && senderId != null && senderId != otherId) {
+      decrypted = await _attempt(senderId);
+      if (decrypted != null) usedPeer = senderId;
+    }
+
+    if (decrypted == null) {
+      debugPrint(
+          '🚫 Decryption failed for $id (attempted ${senderId == otherId ? 1 : 2} peer(s))');
+      return _empty(chatId, id, data, ts, placeholder: '[Encrypted message]');
+    }
+
+    if (kDebugMode) {
+      debugPrint('🔓 Decrypted message $id using peer $usedPeer');
+    }
+
+    // Get type from plaintext metadata (not encrypted)
+    final typeStr = data['type'] as String?;
     final msgType = typeStr == null
         ? MessageType.text
         : MessageType.values.firstWhere(
@@ -649,8 +754,11 @@ class MessageRepository {
       id: id,
       chatId: chatId,
       senderId: data['senderId'] as String? ?? '',
-      senderName: decrypted['senderName'] as String?,
-      senderProfileImage: decrypted['senderProfileImage'] as String?,
+      // Prefer plaintext metadata; fallback to decrypted (older messages encrypted full payload)
+      senderName: (data['senderName'] as String?) ??
+          (decrypted['senderName'] as String?),
+      senderProfileImage: (data['senderProfileImage'] as String?) ??
+          (decrypted['senderProfileImage'] as String?),
       content: decrypted['content'] as String?,
       type: msgType,
       timestamp: ts,
@@ -660,11 +768,13 @@ class MessageRepository {
   }
 
   MessageModel _empty(
-      String chatId, String id, Map<String, dynamic> data, DateTime ts) {
+      String chatId, String id, Map<String, dynamic> data, DateTime ts,
+      {String? placeholder}) {
     return MessageModel(
       id: id,
       chatId: chatId,
       senderId: data['senderId'] as String? ?? '',
+      content: placeholder,
       timestamp: ts,
       reactions: const {},
       readReceipts: const {},
@@ -863,13 +973,35 @@ class MessageRepository {
           .get();
 
       final messages = <MessageModel>[];
+      int encryptedCount = 0;
+      int plaintextCount = 0;
+      int decryptSuccess = 0;
+      int decryptFailed = 0;
       for (final doc in snapshot.docs) {
         try {
-          messages.add(_fromHierarchicalDoc(doc));
+          final data = doc.data();
+          debugPrint(
+              '📄 [fetchAll] Message ${doc.id} keys=${data.keys.toList()}');
+          if (data.containsKey('ciphertext')) {
+            // Decrypt encrypted message
+            encryptedCount++;
+            final decrypted = await _decodeEncrypted(chatId, doc.id, data);
+            if (decrypted.content != null && decrypted.content!.isNotEmpty) {
+              decryptSuccess++;
+            } else {
+              decryptFailed++;
+            }
+            messages.add(decrypted);
+          } else {
+            plaintextCount++;
+            messages.add(_fromHierarchicalDoc(doc));
+          }
         } catch (e) {
           debugPrint('❌ Failed to parse message ${doc.id}: $e');
         }
       }
+      debugPrint(
+          '📊 fetchAllMessages summary for chat $chatId: total=${messages.length}, encrypted=$encryptedCount (ok=$decryptSuccess, failedOrEmpty=$decryptFailed), plaintext=$plaintextCount');
       return messages;
     } catch (e) {
       debugPrint('❌ Failed to fetch all messages: $e');
@@ -895,17 +1027,203 @@ class MessageRepository {
       final snapshot = await query.limit(limit).get();
 
       final messages = <MessageModel>[];
+      int encryptedCount = 0;
+      int plaintextCount = 0;
+      int decryptSuccess = 0;
+      int decryptFailed = 0;
+      // Separate encrypted vs plaintext first for potential batch decrypt.
+      final encryptedDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
       for (final doc in snapshot.docs) {
-        try {
-          messages.add(_fromHierarchicalDoc(doc));
-        } catch (e) {
-          debugPrint('❌ Failed to parse message ${doc.id}: $e');
+        final data = doc.data();
+        debugPrint(
+            '📄 [fetchLatest] Message ${doc.id} keys=${data.keys.toList()}');
+        if (data.containsKey('ciphertext')) {
+          encryptedDocs.add(doc);
+        } else {
+          try {
+            plaintextCount++;
+            messages.add(_fromHierarchicalDoc(doc));
+          } catch (e) {
+            debugPrint('❌ Failed to parse plaintext message ${doc.id}: $e');
+          }
         }
       }
+
+      // Attempt batch decrypt for direct chat encrypted messages.
+      if (encryptedDocs.isNotEmpty) {
+        debugPrint(
+            '🧵 Batch decrypting ${encryptedDocs.length} messages off main thread');
+        // Determine participants (use first senderId available).
+        final firstSender =
+            encryptedDocs.first.data()['senderId'] as String? ?? '';
+        List<String> participants = [];
+        try {
+          participants = await _getCachedParticipants(chatId, firstSender);
+        } catch (_) {}
+
+        // Only batch decrypt for direct chats (2 participants).
+        if (participants.length == 2) {
+          final senderId = firstSender;
+          final otherId = participants.firstWhere(
+            (p) => p != senderId,
+            orElse: () => senderId,
+          );
+          // Derive (or reuse cached) key once for chosen peer.
+          final otherPub = await _getCachedUserKey(otherId);
+          SecretKey? secret;
+          if (otherPub != null) {
+            final cacheKey = '$chatId:$otherId';
+            secret = _directChatKeyCache[cacheKey];
+            if (secret == null) {
+              secret = await _crypto.deriveDirectChatKey(
+                otherPublicKeyBytes: base64Decode(otherPub),
+                chatId: chatId,
+              );
+              _directChatKeyCache[cacheKey] = secret;
+              Future.delayed(const Duration(minutes: 10),
+                  () => _directChatKeyCache.remove(cacheKey));
+            }
+          }
+
+          if (secret != null) {
+            final keyBytes = await secret.extractBytes();
+            // Launch compute jobs.
+            final futures = <Future<Map<String, dynamic>?>>[];
+            for (final doc in encryptedDocs) {
+              futures.add(compute(_decryptPayloadIsolate, {
+                'key': keyBytes,
+                'ciphertext': doc.data()['ciphertext'],
+                'nonce': doc.data()['nonce'],
+                'mac': doc.data()['mac'],
+              }));
+            }
+            final results = await Future.wait(futures);
+            for (var i = 0; i < encryptedDocs.length; i++) {
+              final doc = encryptedDocs[i];
+              final data = doc.data();
+              encryptedCount++;
+              final res = results[i];
+              if (res != null && res['content'] != null) {
+                decryptSuccess++;
+                // Build MessageModel (type is outside encryption)
+                final typeStr = data['type'] as String?;
+                final msgType = typeStr == null
+                    ? MessageType.text
+                    : MessageType.values.firstWhere(
+                        (e) => e.toString().split('.').last == typeStr,
+                        orElse: () => MessageType.text,
+                      );
+                messages.add(MessageModel(
+                  id: doc.id,
+                  chatId: chatId,
+                  senderId: data['senderId'] as String? ?? '',
+                  senderName: data['senderName'] as String?,
+                  senderProfileImage: data['senderProfileImage'] as String?,
+                  content: res['content'] as String?,
+                  type: msgType,
+                  timestamp: (data['timestamp'] as Timestamp?)?.toDate() ??
+                      DateTime.now(),
+                  reactions: const {},
+                  readReceipts: const {},
+                ));
+              } else {
+                // Fallback to existing per-message decrypt (may try alternate peer or yield placeholder)
+                try {
+                  final fallback = await _decodeEncrypted(chatId, doc.id, data);
+                  if (fallback.content != null &&
+                      fallback.content!.isNotEmpty) {
+                    decryptSuccess++;
+                  } else {
+                    decryptFailed++;
+                  }
+                  messages.add(fallback);
+                } catch (e) {
+                  decryptFailed++;
+                  debugPrint('❌ Fallback decrypt failed for ${doc.id}: $e');
+                  messages.add(_empty(
+                      chatId,
+                      doc.id,
+                      data,
+                      (data['timestamp'] as Timestamp?)?.toDate() ??
+                          DateTime.now(),
+                      placeholder: '[Encrypted message]'));
+                }
+              }
+            }
+          } else {
+            // No key -> fallback sequential decrypt (will log issues)
+            for (final doc in encryptedDocs) {
+              try {
+                encryptedCount++;
+                final decrypted =
+                    await _decodeEncrypted(chatId, doc.id, doc.data());
+                if (decrypted.content != null &&
+                    decrypted.content!.isNotEmpty) {
+                  decryptSuccess++;
+                } else {
+                  decryptFailed++;
+                }
+                messages.add(decrypted);
+              } catch (e) {
+                decryptFailed++;
+                debugPrint('❌ Failed to decrypt (no key path) ${doc.id}: $e');
+              }
+            }
+          }
+        } else {
+          // Not a direct chat -> fallback sequential decrypt
+          for (final doc in encryptedDocs) {
+            try {
+              encryptedCount++;
+              final decrypted =
+                  await _decodeEncrypted(chatId, doc.id, doc.data());
+              if (decrypted.content != null && decrypted.content!.isNotEmpty) {
+                decryptSuccess++;
+              } else {
+                decryptFailed++;
+              }
+              messages.add(decrypted);
+            } catch (e) {
+              decryptFailed++;
+              debugPrint('❌ Failed to decrypt group/unknown ${doc.id}: $e');
+            }
+          }
+        }
+      }
+      debugPrint(
+          '📊 fetchLatestMessages summary for chat $chatId: total=${messages.length}, encrypted=$encryptedCount (ok=$decryptSuccess, failedOrEmpty=$decryptFailed), plaintext=$plaintextCount, after=${afterTimestamp?.toIso8601String()}');
       return messages;
     } catch (e) {
       debugPrint('❌ Failed to fetch latest messages: $e');
       return [];
     }
+  }
+}
+
+/// Top-level isolate entry for decrypting a single payload with ChaCha20-Poly1305.
+/// Expects map: { 'key': List<int>, 'ciphertext': String(base64), 'nonce': String(base64), 'mac': String(base64) }
+Future<Map<String, dynamic>?> _decryptPayloadIsolate(
+    Map<String, dynamic> args) async {
+  try {
+    final keyBytes = (args['key'] as List).cast<int>();
+    final cipherTextB64 = args['ciphertext'] as String?;
+    final nonceB64 = args['nonce'] as String?;
+    final macB64 = args['mac'] as String?;
+    if (cipherTextB64 == null || nonceB64 == null || macB64 == null)
+      return null;
+    final cipher = Chacha20.poly1305Aead();
+    final secretKey = SecretKey(keyBytes);
+    final clear = await cipher.decrypt(
+      SecretBox(
+        base64Decode(cipherTextB64),
+        nonce: base64Decode(nonceB64),
+        mac: Mac(base64Decode(macB64)),
+      ),
+      secretKey: secretKey,
+    );
+    final decoded = jsonDecode(utf8.decode(clear)) as Map<String, dynamic>;
+    return decoded;
+  } catch (_) {
+    return null; // caller decides fallback
   }
 }

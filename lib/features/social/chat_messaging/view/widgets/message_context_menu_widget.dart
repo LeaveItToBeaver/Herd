@@ -126,8 +126,29 @@ class MessageContextMenu extends ConsumerWidget {
         if (context.mounted) {
           final confirmed = await _showDeleteConfirmation(context);
           if (confirmed) {
-            result = await interactionNotifier.deleteMessage(
-                message.id, currentUser.uid, ref);
+            // Close the context menu first
+            onDismiss();
+
+            // Perform deletion without passing ref
+            try {
+              await interactionNotifier.deleteMessage(
+                  message.id, currentUser.uid);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Message deleted successfully')),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete message: $e'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+              }
+            }
+            return; // Don't set result since we handle the snackbar above
           }
         }
         break;
@@ -262,6 +283,14 @@ void showMessageContextMenu({
 }) {
   final overlay = Overlay.of(context);
   late OverlayEntry overlayEntry;
+  bool isRemoved = false;
+
+  void safeRemove() {
+    if (!isRemoved) {
+      isRemoved = true;
+      overlayEntry.remove();
+    }
+  }
 
   overlayEntry = OverlayEntry(
     builder: (context) {
@@ -284,7 +313,7 @@ void showMessageContextMenu({
           children: [
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => overlayEntry.remove(),
+                onTap: safeRemove,
                 child: Container(
                   color: Colors.transparent,
                 ),
@@ -297,7 +326,7 @@ void showMessageContextMenu({
               child: MessageContextMenu(
                 message: message,
                 isCurrentUser: isCurrentUser,
-                onDismiss: () => overlayEntry.remove(),
+                onDismiss: safeRemove,
                 onReply: onReply,
               ),
             ),

@@ -10,10 +10,38 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/state/chat_state.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
-import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
+
+// Verbose logging toggle for chat provider (non-error informational logs)
+const bool _verboseChatProvider = false;
+void _vc(String msg) { if (_verboseChatProvider && kDebugMode) debugPrint(msg); }
+
+// Added back providers lost during refactor
+final currentChatProvider =
+    FutureProvider.family<ChatModel?, String>((ref, bubbleId) async {
+  final repo = ref.watch(chatRepositoryProvider);
+  final currentUserAsync = ref.watch(currentUserProvider);
+  final currentUser = currentUserAsync.when(
+    data: (u) => u,
+    loading: () => null,
+    error: (_, __) => null,
+  );
+  if (currentUser == null) throw Exception('User not authenticated');
+  return repo.getChatByBubbleId(bubbleId, currentUser.id);
+});
+
+final optimisticMessagesProvider = StateNotifierProvider.family<
+    OptimisticMessagesNotifier,
+    Map<String, MessageModel>,
+    String>((ref, chatId) => OptimisticMessagesNotifier(chatId));
+
+final messagesProvider =
+    StateNotifierProvider.family<MessagesNotifier, MessagesState, String>(
+        (ref, chatId) {
+  return MessagesNotifier(ref, chatId);
+});
 
 /// Manages optimistic messages for a specific chat
 class OptimisticMessagesNotifier
@@ -22,15 +50,13 @@ class OptimisticMessagesNotifier
 
   OptimisticMessagesNotifier(this.chatId) : super({});
 
-  /// Add an optimistic message that will be sent in background
   void addOptimisticMessage(MessageModel message) {
     final newState = Map<String, MessageModel>.from(state);
     newState[message.id] = message;
     state = newState;
-    debugPrint('➕ Added optimistic message: ${message.id}');
+  _vc('➕ Added optimistic message: ${message.id}');
   }
 
-  /// Update status of an optimistic message
   void updateMessageStatus(String messageId, MessageStatus status,
       {String? errorMessage}) {
     final message = state[messageId];
@@ -39,11 +65,7 @@ class OptimisticMessagesNotifier
       final newState = Map<String, MessageModel>.from(state);
       newState[messageId] = updatedMessage;
       state = newState;
-
-      debugPrint('🔄 Updated message $messageId status: ${status.displayText}');
-
-      // Keep delivered messages in optimistic state briefly for visual feedback
-      // Then remove them to avoid duplicates when Firebase sync occurs
+  _vc('🔄 Updated message $messageId status: ${status.displayText}');
       if (status == MessageStatus.delivered) {
         Future.delayed(const Duration(milliseconds: 800), () {
           removeOptimisticMessage(messageId);
@@ -52,58 +74,25 @@ class OptimisticMessagesNotifier
     }
   }
 
-  /// Remove an optimistic message (when delivered or failed and handled)
   void removeOptimisticMessage(String messageId) {
     if (state.containsKey(messageId)) {
-      final newState = Map<String, MessageModel>.from(state);
-      newState.remove(messageId);
+      final newState = Map<String, MessageModel>.from(state)..remove(messageId);
       state = newState;
-      debugPrint('➖ Removed optimistic message: $messageId');
+  _vc('➖ Removed optimistic message: $messageId');
     }
   }
 
-  /// Clear all optimistic messages
   void clearAll() {
     state = {};
-    debugPrint('🧹 Cleared all optimistic messages for chat: $chatId');
+  _vc('🧹 Cleared all optimistic messages for chat: $chatId');
   }
 
-  /// Get count of pending messages
   int get pendingCount =>
       state.values.where((msg) => msg.status.isPending).length;
-
-  /// Get count of failed messages
   int get failedCount => state.values.where((msg) => msg.status.isError).length;
 }
 
-// Provider for current chat based on bubble ID
-final currentChatProvider =
-    FutureProvider.family<ChatModel?, String>((ref, bubbleId) async {
-  final repository = ref.watch(chatRepositoryProvider);
-  final currentUser = ref.watch(currentUserProvider);
-
-  if (currentUser == null) {
-    throw Exception('User not authenticated');
-  }
-
-  return await repository.getChatByBubbleId(bubbleId, currentUser.userId);
-});
-
-// State for optimistic messages (pending/sending messages)
-final optimisticMessagesProvider = StateNotifierProvider.family<
-    OptimisticMessagesNotifier,
-    Map<String, MessageModel>,
-    String>((ref, chatId) {
-  return OptimisticMessagesNotifier(chatId);
-});
-
-// Combined messages provider with cache-first loading and stable state
-final messagesProvider =
-    StateNotifierProvider.family<MessagesNotifier, MessagesState, String>(
-        (ref, chatId) {
-  return MessagesNotifier(ref, chatId);
-});
-
+// State for combined messages (cache + incremental fetch)
 class MessagesState {
   final List<MessageModel> messages;
   final bool isLoading;
@@ -119,143 +108,107 @@ class MessagesState {
     List<MessageModel>? messages,
     bool? isLoading,
     bool? hasLoadedFromCache,
-  }) {
-    return MessagesState(
-      messages: messages ?? this.messages,
-      isLoading: isLoading ?? this.isLoading,
-      hasLoadedFromCache: hasLoadedFromCache ?? this.hasLoadedFromCache,
-    );
-  }
+  }) =>
+      MessagesState(
+        messages: messages ?? this.messages,
+        isLoading: isLoading ?? this.isLoading,
+        hasLoadedFromCache: hasLoadedFromCache ?? this.hasLoadedFromCache,
+      );
 }
 
 class MessagesNotifier extends StateNotifier<MessagesState> {
   final Ref _ref;
   final String _chatId;
-  StreamSubscription<List<MessageModel>>? _streamSubscription;
-  Timer? _deltaCheckTimer;
+  Timer? _pollTimer; // periodic lightweight poll
+  DateTime? _lastFetchedTimestamp; // high-watermark
 
   MessagesNotifier(this._ref, this._chatId) : super(const MessagesState()) {
     _initializeCacheFirst();
   }
 
-  void _initializeCacheFirst() async {
+  Future<void> _initializeCacheFirst() async {
     final cache = _ref.read(messageCacheServiceProvider);
-    final messagesRepo = _ref.read(messageRepositoryProvider);
-
-    // Initialize cache service first
     await cache.initialize();
 
-    // 1. Load from cache FIRST (immediate, no loading state)
     try {
       final cached = await cache.getCachedMessages(_chatId);
       if (cached.isNotEmpty) {
+        final sorted = _sortMessages(cached);
         state = state.copyWith(
-          messages: _sortMessages(cached),
+          messages: sorted,
           hasLoadedFromCache: true,
         );
+        _lastFetchedTimestamp = sorted.last.timestamp;
         debugPrint(
-            '📱 Loaded ${cached.length} cached messages for chat: $_chatId');
+            '📱 Loaded ${sorted.length} cached messages for chat: $_chatId');
       }
     } catch (e) {
       debugPrint('⚠️ Cache load failed: $e');
     }
 
-    // 2. Check for new messages using count-based delta sync
-    await _performDeltaSync();
+    // Initial incremental fetch (will fetch all if no cache watermark)
+    await _fetchNewMessages();
 
-    // 3. Set up periodic delta sync instead of continuous stream
-    _deltaCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _performDeltaSync();
+    // Periodic poll (adjust interval as needed)
+    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) async {
+      await _fetchNewMessages();
     });
   }
 
-  Future<void> _performDeltaSync() async {
+  Future<void> _fetchNewMessages() async {
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
+      final repo = _ref.read(messageRepositoryProvider);
       final cache = _ref.read(messageCacheServiceProvider);
+      final latestTs = _lastFetchedTimestamp;
 
-      // Get current cached count
-      final cachedCount = state.messages.length;
+      final newMessages = await repo.fetchLatestMessages(
+        _chatId,
+        afterTimestamp: latestTs,
+        limit: 50,
+      );
 
-      // Get server count
-      final serverCount = await messagesRepo.getMessageCount(_chatId);
+      if (newMessages.isEmpty) return;
 
-      debugPrint('🔢 Delta sync: cached=$cachedCount, server=$serverCount');
-
-      if (serverCount > cachedCount) {
-        // Only fetch the difference
-        final missingCount = serverCount - cachedCount;
-        debugPrint('📥 Fetching $missingCount new messages');
-
-        // Get the latest timestamp from cache to fetch only newer messages
-        final latestCachedTimestamp =
-            state.messages.isNotEmpty ? state.messages.last.timestamp : null;
-
-        final newMessages = await messagesRepo.fetchLatestMessages(
-          _chatId,
-          afterTimestamp: latestCachedTimestamp,
-          limit: 50,
-        );
-
-        if (newMessages.isNotEmpty) {
-          // Check for optimistic message matches and remove them immediately
-          final optimisticMessages =
-              _ref.read(optimisticMessagesProvider(_chatId));
-          final optimisticNotifier =
-              _ref.read(optimisticMessagesProvider(_chatId).notifier);
-
-          final messagesToRemove = <String>[];
-          for (final serverMsg in newMessages) {
-            for (final entry in optimisticMessages.entries) {
-              if (_messagesMatch(entry.value, serverMsg)) {
-                messagesToRemove.add(entry.key);
-                debugPrint(
-                    '� Removing optimistic ${entry.key} -> server ${serverMsg.id}');
-              }
-            }
+      // Remove replaced optimistic messages
+      final optimistic = _ref.read(optimisticMessagesProvider(_chatId));
+      final optimisticNotifier =
+          _ref.read(optimisticMessagesProvider(_chatId).notifier);
+      final toRemove = <String>[];
+      for (final serverMsg in newMessages) {
+        for (final entry in optimistic.entries) {
+          if (_messagesMatch(entry.value, serverMsg)) {
+            toRemove.add(entry.key);
           }
-
-          // Remove optimistic messages BEFORE adding server messages
-          for (final id in messagesToRemove) {
-            optimisticNotifier.removeOptimisticMessage(id);
-          }
-
-          // Add new messages to state and cache
-          final updatedMessages = [...state.messages, ...newMessages];
-          final sortedMessages = _sortMessages(updatedMessages);
-
-          state = state.copyWith(messages: sortedMessages);
-
-          // Update cache
-          await cache.putMessages(_chatId, sortedMessages);
-
-          debugPrint(
-              '✅ Added ${newMessages.length} new messages via delta sync');
         }
-      } else if (serverCount < cachedCount) {
-        // Handle case where messages were deleted on server
-        debugPrint('⚠️ Server has fewer messages than cache - refetching all');
-        await _refetchAllMessages();
       }
+      for (final id in toRemove) {
+        optimisticNotifier.removeOptimisticMessage(id);
+      }
+
+      final merged = [...state.messages, ...newMessages];
+      final sorted = _sortMessages(merged);
+      state = state.copyWith(messages: sorted);
+      await cache.putMessages(_chatId, sorted);
+      _lastFetchedTimestamp = sorted.last.timestamp;
+  _vc('✅ Added ${newMessages.length} new messages (watermark=${_lastFetchedTimestamp!.toIso8601String()})');
     } catch (e) {
-      debugPrint('❌ Delta sync error: $e');
+      debugPrint('❌ Incremental fetch error: $e');
     }
   }
 
-  Future<void> _refetchAllMessages() async {
+  // Full refetch no longer automatically triggered; provide manual method if diagnostic needed.
+  Future<void> refetchAllMessagesForDebug() async {
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
+      final repo = _ref.read(messageRepositoryProvider);
       final cache = _ref.read(messageCacheServiceProvider);
-
-      final allMessages = await messagesRepo.fetchAllMessages(_chatId);
-      state = state.copyWith(messages: _sortMessages(allMessages));
-
-      // Update cache with fresh data
-      await cache.putMessages(_chatId, allMessages);
-
-      debugPrint('🔄 Refetched all ${allMessages.length} messages');
+      final all = await repo.fetchAllMessages(_chatId);
+      final sorted = _sortMessages(all);
+      state = state.copyWith(messages: sorted);
+      await cache.putMessages(_chatId, sorted);
+      _lastFetchedTimestamp = sorted.isNotEmpty ? sorted.last.timestamp : null;
+  _vc('🔄 Manual refetch loaded ${sorted.length} messages');
     } catch (e) {
-      debugPrint('❌ Refetch error: $e');
+      debugPrint('❌ Manual refetch error: $e');
     }
   }
 
@@ -323,8 +276,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
 
   @override
   void dispose() {
-    _streamSubscription?.cancel();
-    _deltaCheckTimer?.cancel();
+    _pollTimer?.cancel();
     super.dispose();
   }
 }
@@ -418,7 +370,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
       final messagesRepo = _ref.read(messageRepositoryProvider);
       await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
 
-      debugPrint('✅ Marked chat $chatId as read for user ${authUser.uid}');
+  _vc('✅ Marked chat $chatId as read for user ${authUser.uid}');
     } catch (e) {
       debugPrint('❌ Failed to mark chat as read: $e');
     }
@@ -429,7 +381,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
     try {
       final cache = _ref.read(messageCacheServiceProvider);
       await cache.clearAllCaches();
-      debugPrint('🗑️ Cleared all message caches');
+  _vc('🗑️ Cleared all message caches');
     } catch (e) {
       debugPrint('❌ Failed to clear caches: $e');
     }
@@ -556,7 +508,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
       // Replace temp ID with server ID (no UI disruption)
       messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
 
-      debugPrint('✅ Message sent successfully: ${sentMessage.id}');
+  _vc('✅ Message sent successfully: ${sentMessage.id}');
     } catch (error) {
       // Mark as failed if sending failed
       messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);

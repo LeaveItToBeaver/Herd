@@ -33,6 +33,15 @@ class InteractiveMessageWidget extends ConsumerWidget {
     final isStatusVisible =
         interactionState.hiddenStatusMessages.contains(message.id);
 
+    // If message is deleted, show a deleted message placeholder
+    if (message.isDeleted) {
+      return _DeletedMessageWidget(
+        isCurrentUser: isCurrentUser,
+        timestamp: message.timestamp,
+        deletedAt: message.deletedAt,
+      );
+    }
+
     return GestureDetector(
       onTap: () {
         // Toggle status visibility on tap
@@ -372,6 +381,84 @@ class _MessageStatusRow extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DeletedMessageWidget extends StatelessWidget {
+  final bool isCurrentUser;
+  final DateTime timestamp;
+  final DateTime? deletedAt;
+
+  const _DeletedMessageWidget({
+    required this.isCurrentUser,
+    required this.timestamp,
+    this.deletedAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: isCurrentUser ? 50.0 : 0.0,
+        right: isCurrentUser ? 0.0 : 50.0,
+      ),
+      child: Row(
+        mainAxisAlignment:
+            isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.5),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isCurrentUser ? 20 : 4),
+                  bottomRight: Radius.circular(isCurrentUser ? 4 : 20),
+                ),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.delete_outline,
+                    size: 16,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Message was deleted',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: 0.7),
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

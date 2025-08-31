@@ -66,6 +66,13 @@ class MessageCacheService {
     final existing = List<MessageModel>.from(_memory[chatId] ?? []);
     final existingMap = {for (final m in existing) m.id: m};
 
+    // NEW: Remove orphaned optimistic temp_* messages that have been replaced
+    // by real server messages (their IDs will not appear in the incoming list).
+    // This fixes duplicate outgoing messages after a cold restart.
+    final incomingIds = messages.map((m) => m.id).toSet();
+    existingMap.removeWhere(
+        (id, m) => id.startsWith('temp_') && !incomingIds.contains(id));
+
     // Only add messages that aren't already cached or have newer timestamps
     for (final message in messages) {
       final existingMessage = existingMap[message.id];

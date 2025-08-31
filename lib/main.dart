@@ -9,7 +9,8 @@ import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/themes/app_colors.dart';
 import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
-import 'package:herdapp/features/ui/customization/view/providers/ui_customization_provider.dart';
+import 'features/ui/customization/view/providers/ui_customization_provider.dart';
+import 'features/social/chat_messaging/view/providers/e2ee_auto_init_provider.dart';
 import 'package:herdapp/core/services/app_check_service.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -107,6 +108,9 @@ class MyApp extends ConsumerWidget {
 
     final customTheme = ref.watch(currentThemeProvider);
     final customizationAsync = ref.watch(uiCustomizationProvider);
+
+    // Initialize E2EE keys when user is authenticated
+    ref.watch(e2eeAutoInitProvider);
 
     // Get theme mode from customization or default to system
     final themeMode = customizationAsync.maybeWhen(
