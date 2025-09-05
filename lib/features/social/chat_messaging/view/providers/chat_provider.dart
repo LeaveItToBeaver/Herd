@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,10 +14,13 @@ import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
+import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
 
 // Verbose logging toggle for chat provider (non-error informational logs)
 const bool _verboseChatProvider = false;
-void _vc(String msg) { if (_verboseChatProvider && kDebugMode) debugPrint(msg); }
+void _vc(String msg) {
+  if (_verboseChatProvider && kDebugMode) debugPrint(msg);
+}
 
 // Added back providers lost during refactor
 final currentChatProvider =
@@ -54,7 +58,7 @@ class OptimisticMessagesNotifier
     final newState = Map<String, MessageModel>.from(state);
     newState[message.id] = message;
     state = newState;
-  _vc('➕ Added optimistic message: ${message.id}');
+    _vc('➕ Added optimistic message: ${message.id}');
   }
 
   void updateMessageStatus(String messageId, MessageStatus status,
@@ -65,7 +69,7 @@ class OptimisticMessagesNotifier
       final newState = Map<String, MessageModel>.from(state);
       newState[messageId] = updatedMessage;
       state = newState;
-  _vc('🔄 Updated message $messageId status: ${status.displayText}');
+      _vc('🔄 Updated message $messageId status: ${status.displayText}');
       if (status == MessageStatus.delivered) {
         Future.delayed(const Duration(milliseconds: 800), () {
           removeOptimisticMessage(messageId);
@@ -78,13 +82,13 @@ class OptimisticMessagesNotifier
     if (state.containsKey(messageId)) {
       final newState = Map<String, MessageModel>.from(state)..remove(messageId);
       state = newState;
-  _vc('➖ Removed optimistic message: $messageId');
+      _vc('➖ Removed optimistic message: $messageId');
     }
   }
 
   void clearAll() {
     state = {};
-  _vc('🧹 Cleared all optimistic messages for chat: $chatId');
+    _vc('🧹 Cleared all optimistic messages for chat: $chatId');
   }
 
   int get pendingCount =>
@@ -190,7 +194,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       state = state.copyWith(messages: sorted);
       await cache.putMessages(_chatId, sorted);
       _lastFetchedTimestamp = sorted.last.timestamp;
-  _vc('✅ Added ${newMessages.length} new messages (watermark=${_lastFetchedTimestamp!.toIso8601String()})');
+      _vc('✅ Added ${newMessages.length} new messages (watermark=${_lastFetchedTimestamp!.toIso8601String()})');
     } catch (e) {
       debugPrint('❌ Incremental fetch error: $e');
     }
@@ -206,7 +210,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       state = state.copyWith(messages: sorted);
       await cache.putMessages(_chatId, sorted);
       _lastFetchedTimestamp = sorted.isNotEmpty ? sorted.last.timestamp : null;
-  _vc('🔄 Manual refetch loaded ${sorted.length} messages');
+      _vc('🔄 Manual refetch loaded ${sorted.length} messages');
     } catch (e) {
       debugPrint('❌ Manual refetch error: $e');
     }
@@ -370,7 +374,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
       final messagesRepo = _ref.read(messageRepositoryProvider);
       await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
 
-  _vc('✅ Marked chat $chatId as read for user ${authUser.uid}');
+      _vc('✅ Marked chat $chatId as read for user ${authUser.uid}');
     } catch (e) {
       debugPrint('❌ Failed to mark chat as read: $e');
     }
@@ -381,7 +385,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
     try {
       final cache = _ref.read(messageCacheServiceProvider);
       await cache.clearAllCaches();
-  _vc('🗑️ Cleared all message caches');
+      _vc('🗑️ Cleared all message caches');
     } catch (e) {
       debugPrint('❌ Failed to clear caches: $e');
     }
@@ -508,7 +512,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
       // Replace temp ID with server ID (no UI disruption)
       messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
 
-  _vc('✅ Message sent successfully: ${sentMessage.id}');
+      _vc('✅ Message sent successfully: ${sentMessage.id}');
     } catch (error) {
       // Mark as failed if sending failed
       messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
@@ -658,16 +662,19 @@ final chatPaginationProvider = StateNotifierProvider.family<
     ChatPaginationNotifier, ChatPaginationState, String>((ref, chatId) {
   final repo = ref.watch(messageRepositoryProvider);
   final cache = ref.watch(messageCacheServiceProvider);
-  return ChatPaginationNotifier(chatId: chatId, repo: repo, cache: cache);
+  final mediaHandler = ref.watch(encryptedMediaHandlerProvider);
+  return ChatPaginationNotifier(chatId: chatId, repo: repo, cache: cache, mediaHandler: mediaHandler);
 });
 
 class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   final String chatId;
   final MessageRepository repo;
   final MessageCacheService cache;
+  final EncryptedMediaMessageHandler _mediaHandler;
   ChatPaginationNotifier(
-      {required this.chatId, required this.repo, required this.cache})
-      : super(ChatPaginationState.initial()) {
+      {required this.chatId, required this.repo, required this.cache, required EncryptedMediaMessageHandler mediaHandler})
+      : _mediaHandler = mediaHandler,
+        super(ChatPaginationState.initial()) {
     _loadInitial();
   }
 
@@ -691,6 +698,27 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     state =
         state.copyWith(messages: merged, hasMore: page.length == repo.pageSize);
     _initialLoaded = true;
+  }
+
+  /// Get cached participants for a chat
+  Future<List<String>> _getCachedParticipants(String chatId, String currentUserId) async {
+    // Use the MessageRepository's existing _getCachedParticipants method through reflection or expose it
+    // For now, let's implement a simple version that works with direct chats
+    try {
+      // For direct chats, we can derive participants from chatId format
+      if (chatId.contains('_')) {
+        final parts = chatId.split('_');
+        if (parts.length == 2) {
+          return [parts[0], parts[1]];
+        }
+      }
+      
+      // Fallback - at minimum we know the current user is a participant
+      return [currentUserId];
+    } catch (e) {
+      // Fallback - at minimum we know the current user is a participant
+      return [currentUserId];
+    }
   }
 
   List<MessageModel> _mergeAscending(
@@ -733,5 +761,55 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     } catch (e) {
       state = state.copyWith(isLoadingMore: false, hasMore: false);
     }
+  }
+
+  Future<MessageModel> sendEncryptedMedia({
+    required String chatId,
+    required String senderId,
+    required File mediaFile,
+    required MessageType mediaType,
+    String? caption,
+    String? replyToMessageId,
+    String? senderName,
+    Function(double)? onProgress,
+  }) async {
+    final participants = await _getCachedParticipants(chatId, senderId);
+
+    return await _mediaHandler.sendEncryptedMediaMessage(
+      chatId: chatId,
+      senderId: senderId,
+      mediaFile: mediaFile,
+      mediaType: mediaType,
+      participants: participants,
+      caption: caption,
+      replyToMessageId: replyToMessageId,
+      senderName: senderName,
+      onUploadProgress: onProgress,
+    );
+  }
+
+  /// Decrypt and download media
+  Future<File?> getDecryptedMedia({
+    required MessageModel message,
+    required String currentUserId,
+    Function(double)? onProgress,
+  }) async {
+    final participants =
+        await _getCachedParticipants(message.chatId, currentUserId);
+
+    final mediaInfo = await _mediaHandler.decryptMediaMessage(
+      message: message,
+      currentUserId: currentUserId,
+      participants: participants,
+    );
+
+    if (mediaInfo != null) {
+      return await _mediaHandler.downloadDecryptedMedia(
+        mediaInfo: mediaInfo,
+        onProgress: onProgress,
+      );
+    }
+
+    return null;
   }
 }

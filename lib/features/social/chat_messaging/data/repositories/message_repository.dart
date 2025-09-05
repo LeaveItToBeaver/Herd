@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:cryptography/cryptography.dart'; // For SecretKey caching
+import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/crypto/chat_crypto_service.dart';
 import 'package:herdapp/features/user/user_profile/data/repositories/user_repository.dart';
@@ -10,7 +13,9 @@ import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_re
 
 // Verbose logging toggle for message repository (non-error info). Set true for diagnostics.
 const bool _verboseMessages = false;
-void _v(String msg) { if (_verboseMessages && kDebugMode) debugPrint(msg); }
+void _v(String msg) {
+  if (_verboseMessages && kDebugMode) debugPrint(msg);
+}
 
 /// Handles all message CRUD, encryption, and search logic.
 class MessageRepository {
@@ -29,7 +34,10 @@ class MessageRepository {
   // re-running X25519 + HKDF every message decrypt. Keyed by chatId:peerId (peerId = other user).
   final Map<String, SecretKey> _directChatKeyCache = {};
 
-  MessageRepository(this._firestore, this._users, this._crypto, this._chats);
+  final EncryptedMediaMessageHandler _mediaHandler;
+
+  MessageRepository(this._firestore, this._users, this._crypto, this._chats,
+      this._mediaHandler);
 
   // Cached methods to prevent excessive calls
   Future<List<String>> _getCachedParticipants(
@@ -78,19 +86,19 @@ class MessageRepository {
   }
 
   Future<String?> _getCachedUserKey(String userId) async {
-  _v('🔑 Getting cached key for user: $userId');
+    _v('🔑 Getting cached key for user: $userId');
     if (_userKeysCache.containsKey(userId)) {
       final cached = _userKeysCache[userId];
-  _v('✅ Using cached key for $userId: ${cached != null ? 'found' : 'null'}');
+      _v('✅ Using cached key for $userId: ${cached != null ? 'found' : 'null'}');
       return cached;
     }
 
     try {
-  _v('🔍 Fetching key from Firestore for user: $userId');
+      _v('🔍 Fetching key from Firestore for user: $userId');
       final snap = await _firestore.collection('userKeys').doc(userId).get();
       if (snap.exists && snap.data() != null) {
         final publicKey = snap.data()!['publicKey'] as String?;
-  _v('✅ Key retrieved for $userId: ${publicKey != null ? 'found' : 'null'}');
+        _v('✅ Key retrieved for $userId: ${publicKey != null ? 'found' : 'null'}');
         _userKeysCache[userId] = publicKey;
         Future.delayed(
             const Duration(minutes: 10), () => _userKeysCache.remove(userId));
@@ -109,17 +117,17 @@ class MessageRepository {
 
   Future<bool> _getCachedEncryptionCapability(List<String> participants) async {
     final key = participants.join('_');
-  _v('🔍 Checking encryption capability for participants: $participants');
+    _v('🔍 Checking encryption capability for participants: $participants');
 
     if (_encryptionCapabilityCache.containsKey(key)) {
       final cached = _encryptionCapabilityCache[key]!;
-  _v('✅ Using cached encryption capability: $cached');
+      _v('✅ Using cached encryption capability: $cached');
       return cached;
     }
 
     try {
       for (final userId in participants) {
-  _v('🔑 Checking key for user: $userId');
+        _v('🔑 Checking key for user: $userId');
         final userKey = await _getCachedUserKey(userId);
         if (userKey == null) {
           _v('❌ No key found for user: $userId');
@@ -131,7 +139,7 @@ class MessageRepository {
           _v('✅ Key found for user: $userId');
         }
       }
-  _v('✅ All participants have keys - encryption enabled');
+      _v('✅ All participants have keys - encryption enabled');
       _encryptionCapabilityCache[key] = true;
       Future.delayed(const Duration(minutes: 5),
           () => _encryptionCapabilityCache.remove(key));
@@ -249,6 +257,57 @@ class MessageRepository {
     );
   }
 
+  /// Send encrypted media message
+  Future<MessageModel> sendEncryptedMedia({
+    required String chatId,
+    required String senderId,
+    required File mediaFile,
+    required MessageType mediaType,
+    String? caption,
+    String? replyToMessageId,
+    String? senderName,
+    Function(double)? onProgress,
+  }) async {
+    final participants = await _getCachedParticipants(chatId, senderId);
+
+    return await _mediaHandler.sendEncryptedMediaMessage(
+      chatId: chatId,
+      senderId: senderId,
+      mediaFile: mediaFile,
+      mediaType: mediaType,
+      participants: participants,
+      caption: caption,
+      replyToMessageId: replyToMessageId,
+      senderName: senderName,
+      onUploadProgress: onProgress,
+    );
+  }
+
+  /// Decrypt and download media
+  Future<File?> getDecryptedMedia({
+    required MessageModel message,
+    required String currentUserId,
+    Function(double)? onProgress,
+  }) async {
+    final participants =
+        await _getCachedParticipants(message.chatId, currentUserId);
+
+    final mediaInfo = await _mediaHandler.decryptMediaMessage(
+      message: message,
+      currentUserId: currentUserId,
+      participants: participants,
+    );
+
+    if (mediaInfo != null) {
+      return await _mediaHandler.downloadDecryptedMedia(
+        mediaInfo: mediaInfo,
+        onProgress: onProgress,
+      );
+    }
+
+    return null;
+  }
+
   // ---------- Unified (Public) API moved from ChatRepository ----------
   // These methods retain their original names/signatures for backwards compatibility.
 
@@ -276,7 +335,7 @@ class MessageRepository {
 
     return q.snapshots().asyncMap((snap) async {
       final List<MessageModel> messages = [];
-  _v('📥 Processing ${snap.docs.length} message documents from Firestore');
+      _v('📥 Processing ${snap.docs.length} message documents from Firestore');
       for (final doc in snap.docs) {
         try {
           final data = doc.data();
@@ -299,7 +358,7 @@ class MessageRepository {
           continue;
         }
       }
-  _v('✅ Processed ${messages.length} messages successfully');
+      _v('✅ Processed ${messages.length} messages successfully');
       return messages;
     });
   }
@@ -308,8 +367,8 @@ class MessageRepository {
   MessageModel _fromHierarchicalDoc(
       QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
-  _v('🔍 Parsing message ${doc.id} with data: ${data.keys.toList()}');
-  _v('📝 Content field: "${data['content']}" (type: ${data['content'].runtimeType})');
+    _v('🔍 Parsing message ${doc.id} with data: ${data.keys.toList()}');
+    _v('📝 Content field: "${data['content']}" (type: ${data['content'].runtimeType})');
     return MessageModel(
       id: doc.id,
       chatId: data['chatId'] as String? ?? '', // Handle null chatId
@@ -447,25 +506,29 @@ class MessageRepository {
     }
 
     final isDirect = participants.length == 2;
-  _v('📱 Chat type: ${isDirect ? 'Direct' : 'Group'}, participants: $participants');
+    _v('📱 Chat type: ${isDirect ? 'Direct' : 'Group'}, participants: $participants');
 
     if (isDirect) {
       // Check if both users have identity keys for E2EE (cached)
-  _v('🔐 Checking E2EE capability for direct chat...');
+      _v('🔐 Checking E2EE capability for direct chat...');
       final hasEncryption = await _getCachedEncryptionCapability(participants);
-  _v('🔐 E2EE capability result: $hasEncryption');
+      _v('🔐 E2EE capability result: $hasEncryption');
       if (hasEncryption) {
-        // Both users have keys - use encrypted path
-  _v('✅ Using encrypted messaging path');
-        return sendEncryptedDirect(
-          chatId: chatId,
-          senderId: senderId,
-          content: content,
-          type: type,
-          replyToMessageId: replyToMessageId,
-          media: mediaData,
-          senderName: senderName,
-        );
+        try {
+          _v('✅ Using encrypted messaging path');
+          return await sendEncryptedDirect(
+            chatId: chatId,
+            senderId: senderId,
+            content: content,
+            type: type,
+            replyToMessageId: replyToMessageId,
+            media: mediaData,
+            senderName: senderName,
+          );
+        } catch (e) {
+          debugPrint(
+              '❌ Encrypted send failed ($e) – falling back to plaintext once');
+        }
       } else {
         debugPrint('⚠️ Falling back to plaintext messaging - missing keys');
       }
@@ -759,9 +822,24 @@ class MessageRepository {
           (decrypted['senderName'] as String?),
       senderProfileImage: (data['senderProfileImage'] as String?) ??
           (decrypted['senderProfileImage'] as String?),
-      content: decrypted['content'] as String?,
+      // If this is an encrypted media payload, decrypted['media'] will exist.
+      // We still set `content` to the (possibly empty) caption so text bubbles aren't shown when caption empty.
+      content: (decrypted['media'] != null)
+          ? (decrypted['media']['caption'] as String?)
+          : decrypted['content'] as String?,
       type: msgType,
       timestamp: ts,
+      // Populate media related fields (these are needed by UI to know it's a media message BEFORE on-demand decryption).
+      // We intentionally expose the encrypted download_url so the on-demand decrypt flow can fetch it.
+      mediaUrl: decrypted['media'] != null
+          ? decrypted['media']['download_url'] as String?
+          : (data['mediaUrl'] as String?),
+      fileName: decrypted['media'] != null
+          ? (decrypted['media']['metadata']?['originalName'] as String?)
+          : data['fileName'] as String?,
+      fileSize: decrypted['media'] != null
+          ? (decrypted['media']['metadata']?['size'] as int?)
+          : data['fileSize'] as int?,
       reactions: const {},
       readReceipts: const {},
     );

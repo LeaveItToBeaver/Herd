@@ -4,6 +4,10 @@ import 'package:herdapp/features/social/chat_messaging/data/models/message/messa
 import 'package:herdapp/features/social/chat_messaging/view/providers/message_interaction_provider.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/message_context_menu_widget.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/message_status_indicator_widget.dart';
+import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
+import 'package:herdapp/features/social/chat_messaging/view/widgets/encrypted_media_widget.dart';
+import 'dart:io';
+import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 
 /// Enhanced message widget that handles tap and long press interactions
 class InteractiveMessageWidget extends ConsumerWidget {
@@ -184,11 +188,22 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMediaMessage = (message.type == MessageType.image ||
+        message.type == MessageType.video ||
+        message.type == MessageType.gif ||
+        message.type == MessageType.file);
+    // Treat as needing media widget only if we have a mediaUrl (populated after decryption mapping) or ciphertext meta present.
+    final bool isOptimisticLocal = isMediaMessage &&
+        message.status == MessageStatus.sending &&
+        message.mediaUrl != null &&
+        File(message.mediaUrl!).existsSync();
+    final bool shouldShowMedia = isMediaMessage && (message.mediaUrl != null);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 10,
+      padding: EdgeInsets.symmetric(
+        horizontal: shouldShowMedia ? 8 : 16,
+        vertical: shouldShowMedia ? 8 : 10,
       ),
       decoration: BoxDecoration(
         color: isCurrentUser
@@ -272,15 +287,45 @@ class _MessageBubble extends StatelessWidget {
               ),
             ),
 
-          // Message content
-          Text(
-            message.content ?? '',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isCurrentUser
-                      ? Theme.of(context).colorScheme.onPrimary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
+          if (shouldShowMedia) ...[
+            // Optimistic local preview (no decrypt yet)
+            if (isOptimisticLocal)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  File(message.mediaUrl!),
+                  height: 200,
+                  width: 200,
+                  fit: BoxFit.cover,
                 ),
-          ),
+              )
+            else
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: EncryptedMediaWidget(message: message),
+              ),
+            if ((message.content ?? '').isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                message.content!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isCurrentUser
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ] else ...[
+            // Standard text content (fallback)
+            Text(
+              message.content ?? '',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: isCurrentUser
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
 
           // Reactions if any
           if (message.reactions.isNotEmpty)

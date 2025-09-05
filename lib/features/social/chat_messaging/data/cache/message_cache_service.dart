@@ -62,13 +62,8 @@ class MessageCacheService {
 
   Future<void> putMessages(String chatId, List<MessageModel> messages) async {
     if (!_initialized) await initialize();
-    // Enhanced deduplication: merge existing and new messages by ID and content similarity
     final existing = List<MessageModel>.from(_memory[chatId] ?? []);
     final existingMap = {for (final m in existing) m.id: m};
-
-    // NEW: Remove orphaned optimistic temp_* messages that have been replaced
-    // by real server messages (their IDs will not appear in the incoming list).
-    // This fixes duplicate outgoing messages after a cold restart.
     final incomingIds = messages.map((m) => m.id).toSet();
     existingMap.removeWhere(
         (id, m) => id.startsWith('temp_') && !incomingIds.contains(id));
@@ -77,10 +72,6 @@ class MessageCacheService {
     for (final message in messages) {
       final existingMessage = existingMap[message.id];
 
-      // For content duplicate check, only flag as duplicate if:
-      // 1. Same content AND sender
-      // 2. Timestamps are very close (within 5 seconds)
-      // 3. AND it's not a temp/optimistic message being replaced by server message
       final isDuplicateContent = existing.any((existingMsg) =>
           existingMsg.id != message.id &&
           existingMsg.content == message.content &&

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart'; // For PlatformException BAD_DECRYPT handling
 
 /// Provides identity key management and symmetric encryption helpers
 /// for end-to-end encrypted chat messages.
@@ -20,18 +21,38 @@ class ChatCryptoService {
 
   /// Returns (and creates if needed) the long-lived identity key pair.
   Future<SimpleKeyPair> _loadOrCreateIdentityKeyPair() async {
-    final storedPriv = await _secureStorage.read(key: _identityPrivKeyKey);
-    final storedPub = await _secureStorage.read(key: _identityPubKeyKey);
+    try {
+      final storedPriv = await _secureStorage.read(key: _identityPrivKeyKey);
+      final storedPub = await _secureStorage.read(key: _identityPubKeyKey);
 
-    if (storedPriv != null && storedPub != null) {
-      final privBytes = base64Decode(storedPriv);
-      // X25519 private key uses 32 byte seed
-      final keyPair =
-          await _x25519.newKeyPairFromSeed(privBytes.sublist(0, 32));
-      // (Optional) sanity check public
-      return keyPair;
+      if (storedPriv != null && storedPub != null) {
+        final privBytes = base64Decode(storedPriv);
+        // X25519 private key uses 32 byte seed
+        final keyPair =
+            await _x25519.newKeyPairFromSeed(privBytes.sublist(0, 32));
+        return keyPair;
+      }
+    } on PlatformException catch (e) {
+      // Handle Android keystore BAD_DECRYPT (corrupted / reset secure storage)
+      final msg = e.message ?? '';
+      if (msg.contains('BAD_DECRYPT') || msg.contains('Cipher')) {
+        // Attempt recovery: purge and regenerate keys
+        try {
+          await deleteStoredKeys();
+        } catch (_) {}
+        // Logging recovery (not gated; rare critical event)
+        // ignore: avoid_print
+        print(
+            '🔐 Identity key corruption detected (BAD_DECRYPT). Regenerating keys.');
+        // fall through to regeneration below
+      } else {
+        rethrow; // unrelated platform exception
+      }
+    } catch (_) {
+      // Non-platform errors fall through to regeneration
     }
 
+    // Regenerate fresh identity key pair
     final keyPair = await _x25519.newKeyPair();
     final priv = await keyPair.extractPrivateKeyBytes();
     final pub = await keyPair.extractPublicKey();

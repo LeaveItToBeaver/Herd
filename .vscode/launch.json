@@ -44,30 +44,6 @@
             "request": "launch",
             "type": "dart",
             "deviceId": "00008101-000938821A52001E"
-        },
-        {
-            "name": "herd_riverpod release (Flutter SM F731U1)",
-            "program": "lib/main.dart",
-            "deviceId": "192.168.50.27:40097",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "release"
-        },
-        {
-            "name": "herd_riverpod profile (Flutter SM F731U1)",
-            "program": "lib/main.dart",
-            "deviceId": "192.168.50.27:40097",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "herd_riverpod debug (Flutter SM F731U1)",
-            "program": "lib/main.dart",
-            "deviceId": "192.168.50.27:40097",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "debug"
         }
     ]
 }

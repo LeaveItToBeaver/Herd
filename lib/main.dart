@@ -17,6 +17,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/bootstrap/app_bootstraps.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'firebase_options.dart';
+import 'features/user/auth/view/providers/auth_provider.dart';
 
 /// Background message handler - MUST be a top-level function
 @pragma('vm:entry-point')
@@ -37,7 +38,7 @@ void main() async {
     );
     debugPrint('✅ Firebase initialized');
 
-    // Thi should automatically run the correct code for mobile or web.
+    // This should automatically run the correct code for mobile or web.
     await setupPlatformSpecificFirebase();
 
     // You can still have kIsWeb checks for things that don't need separate files.
@@ -62,7 +63,9 @@ void main() async {
   runApp(
     const ProviderScope(
       child: BootstrapWrapper(
-        child: MyApp(),
+        child: AuthGate(
+          child: MyApp(),
+        ),
       ),
     ),
   );
@@ -111,6 +114,10 @@ class MyApp extends ConsumerWidget {
 
     // Initialize E2EE keys when user is authenticated
     ref.watch(e2eeAutoInitProvider);
+
+    final authReady = ref.watch(authReadyProvider);
+    final user = ref.watch(authProvider);
+    debugPrint('🧪 Building MyApp: authReady=$authReady user=${user?.uid}');
 
     // Get theme mode from customization or default to system
     final themeMode = customizationAsync.maybeWhen(
@@ -208,5 +215,28 @@ class MyApp extends ConsumerWidget {
     return hsl
         .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
         .toColor();
+  }
+}
+
+/// Gate that waits for the first Firebase Auth event before showing the router.
+class AuthGate extends ConsumerWidget {
+  final Widget child;
+  const AuthGate({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ready = ref.watch(authReadyProvider);
+    final user = ref.watch(authProvider);
+    if (!ready) {
+      return const MaterialApp(
+        home: Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+    debugPrint('🔓 Auth ready. Current user: ${user?.uid ?? 'null'}');
+    return child; // Router will redirect to /login if user null
   }
 }

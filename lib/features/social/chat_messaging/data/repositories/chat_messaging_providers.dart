@@ -6,15 +6,30 @@ import 'package:herdapp/features/social/chat_messaging/data/crypto/e2ee_key_mana
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
 import 'package:herdapp/features/user/user_profile/data/repositories/user_repository.dart';
+import 'package:herdapp/features/social/chat_messaging/data/crypto/media_crypto_service.dart';
+import 'package:herdapp/features/social/chat_messaging/utils/secure_media_service.dart';
+import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
 
 final chatCryptoServiceProvider = Provider<ChatCryptoService>((ref) {
-  return ChatCryptoService(const FlutterSecureStorage());
+  // Use more stable Android options for secure storage
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
+  return ChatCryptoService(secureStorage);
 });
 
 final e2eeKeyManagerProvider = Provider<E2EEKeyManager>((ref) {
   final cryptoService = ref.watch(chatCryptoServiceProvider);
+  // Use same secure storage configuration
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
   return E2EEKeyManager(
-    const FlutterSecureStorage(),
+    secureStorage,
     cryptoService,
     FirebaseFirestore.instance,
   );
@@ -25,10 +40,30 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   return ChatRepository(FirebaseFirestore.instance, userRepo);
 });
 
+final mediaCryptoServiceProvider = Provider<MediaCryptoService>((ref) {
+  return MediaCryptoService();
+});
+
+final secureMediaServiceProvider = Provider<SecureMediaService>((ref) {
+  return SecureMediaService();
+});
+
+final encryptedMediaHandlerProvider =
+    Provider<EncryptedMediaMessageHandler>((ref) {
+  final cryptoService = ref.watch(chatCryptoServiceProvider);
+  final mediaService = ref.watch(secureMediaServiceProvider);
+  return EncryptedMediaMessageHandler(
+    cryptoService,
+    mediaService,
+    FirebaseFirestore.instance,
+  );
+});
+
 final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   final userRepo = ref.watch(userRepositoryProvider);
   final crypto = ref.watch(chatCryptoServiceProvider);
   final chatRepo = ref.watch(chatRepositoryProvider);
+  final mediaHandler = ref.watch(encryptedMediaHandlerProvider);
   return MessageRepository(
-      FirebaseFirestore.instance, userRepo, crypto, chatRepo);
+      FirebaseFirestore.instance, userRepo, crypto, chatRepo, mediaHandler);
 });

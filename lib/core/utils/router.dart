@@ -29,6 +29,7 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(authProvider);
+  final authReady = ref.watch(authReadyProvider);
   final currentFeed = ref.watch(currentFeedProvider);
   // Create a key for the navigator inside ShellRoute
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -44,6 +45,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final user = ref.read(authProvider);
+      final ready = ref.read(authReadyProvider);
       final currentPath = state.uri.path;
       final isAuthRoute = [
         '/login',
@@ -53,22 +55,46 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         '/splash',
       ].contains(currentPath);
 
+      // Wait for auth readiness before making any decision.
+      if (!ready) {
+        if (kDebugMode) {
+          debugPrint(
+              '⏳ Router redirect deferred (auth not ready). path=$currentPath');
+        }
+        return null; // Do nothing until first auth event
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+            '🧭 Router evaluating redirect: path=$currentPath user=${user?.uid ?? 'null'}');
+      }
+
       // 1) Not signed in → must go to login/signup
       if (user == null) {
-        return isAuthRoute ? null : '/login';
+        if (!isAuthRoute) {
+          if (kDebugMode) debugPrint('➡️ Redirecting to /login (no user)');
+          return '/login';
+        }
+        // Stay on auth route (login/signup/etc.)
+        return null;
       }
 
       // 2) Signed in but email *not* verified → force /emailVerification
       if (!user.emailVerified) {
-        return (currentPath == '/emailVerification')
-            ? null
-            : '/emailVerification';
+        if (currentPath != '/emailVerification') {
+          if (kDebugMode)
+            debugPrint('➡️ Redirecting to /emailVerification (unverified)');
+          return '/emailVerification';
+        }
+        return null;
       }
       //    (e.g. redirect "/" → either /publicFeed or /altFeed)
       if (currentPath == '/') {
-        return ref.read(currentFeedProvider) == FeedType.alt
+        final target = ref.read(currentFeedProvider) == FeedType.alt
             ? '/altFeed'
             : '/publicFeed';
+        if (kDebugMode) debugPrint('➡️ Root redirect -> $target');
+        return target;
       }
 
       return null; // all other routes permitted
@@ -822,7 +848,8 @@ class _TabScaffold extends ConsumerWidget {
     ref.watch(e2eeStatusProvider);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Prevent scaffold from moving with keyboard
+      resizeToAvoidBottomInset:
+          false, // Prevent scaffold from moving with keyboard
       body: GlobalOverlayManager(
         showBottomNav: true,
         showSideBubbles: false,
