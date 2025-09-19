@@ -158,23 +158,23 @@ class MockMessageRepository extends _i1.Mock implements _i3.MessageRepository {
         returnValue: _i4.Future<_i6.File?>.value(),
       ) as _i4.Future<_i6.File?>);
 
-  @override
-  _i4.Stream<List<_i2.MessageModel>> getChatMessages(
-    String? chatId, {
-    int? limit = 50,
-    _i7.DocumentSnapshot<Object?>? lastDocument,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getChatMessages,
-          [chatId],
-          {
-            #limit: limit,
-            #lastDocument: lastDocument,
-          },
-        ),
-        returnValue: _i4.Stream<List<_i2.MessageModel>>.empty(),
-      ) as _i4.Stream<List<_i2.MessageModel>>);
+  // @override
+  // _i4.Stream<List<_i2.MessageModel>> getChatMessages(
+  //   String? chatId, {
+  //   int? limit = 50,
+  //   _i7.DocumentSnapshot<Object?>? lastDocument,
+  // }) =>
+  //     (super.noSuchMethod(
+  //       Invocation.method(
+  //         #getChatMessages,
+  //         [chatId],
+  //         {
+  //           #limit: limit,
+  //           #lastDocument: lastDocument,
+  //         },
+  //       ),
+  //       returnValue: _i4.Stream<List<_i2.MessageModel>>.empty(),
+  //     ) as _i4.Stream<List<_i2.MessageModel>>);
 
   @override
   _i4.Future<List<_i2.MessageModel>> fetchMessagePage({
@@ -558,33 +558,33 @@ class MockMessageRepository extends _i1.Mock implements _i3.MessageRepository {
         returnValue: _i4.Future<int>.value(0),
       ) as _i4.Future<int>);
 
-  @override
-  _i4.Future<List<_i2.MessageModel>> fetchAllMessages(String? chatId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #fetchAllMessages,
-          [chatId],
-        ),
-        returnValue:
-            _i4.Future<List<_i2.MessageModel>>.value(<_i2.MessageModel>[]),
-      ) as _i4.Future<List<_i2.MessageModel>>);
+  // @override
+  // _i4.Future<List<_i2.MessageModel>> fetchAllMessages(String? chatId) =>
+  //     (super.noSuchMethod(
+  //       Invocation.method(
+  //         #fetchAllMessages,
+  //         [chatId],
+  //       ),
+  //       returnValue:
+  //           _i4.Future<List<_i2.MessageModel>>.value(<_i2.MessageModel>[]),
+  //     ) as _i4.Future<List<_i2.MessageModel>>);
 
-  @override
-  _i4.Future<List<_i2.MessageModel>> fetchLatestMessages(
-    String? chatId, {
-    required int? limit,
-    DateTime? afterTimestamp,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #fetchLatestMessages,
-          [chatId],
-          {
-            #limit: limit,
-            #afterTimestamp: afterTimestamp,
-          },
-        ),
-        returnValue:
-            _i4.Future<List<_i2.MessageModel>>.value(<_i2.MessageModel>[]),
-      ) as _i4.Future<List<_i2.MessageModel>>);
+  // @override
+  // _i4.Future<List<_i2.MessageModel>> fetchLatestMessages(
+  //   String? chatId, {
+  //   required int? limit,
+  //   DateTime? afterTimestamp,
+  // }) =>
+  //     (super.noSuchMethod(
+  //       Invocation.method(
+  //         #fetchLatestMessages,
+  //         [chatId],
+  //         {
+  //           #limit: limit,
+  //           #afterTimestamp: afterTimestamp,
+  //         },
+  //       ),
+  //       returnValue:
+  //           _i4.Future<List<_i2.MessageModel>>.value(<_i2.MessageModel>[]),
+  //     ) as _i4.Future<List<_i2.MessageModel>>);
 }
