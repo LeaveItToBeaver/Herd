@@ -4,14 +4,14 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
+import 'dart:io' as _i6;
 
-import 'package:cloud_firestore/cloud_firestore.dart' as _i6;
+import 'package:cloud_firestore/cloud_firestore.dart' as _i7;
+import 'package:herdapp/core/barrels/providers.dart' as _i3;
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart'
     as _i5;
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart'
     as _i2;
-import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart'
-    as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 
 // ignore_for_file: type=lint
@@ -95,10 +95,74 @@ class MockMessageRepository extends _i1.Mock implements _i3.MessageRepository {
       ) as _i4.Future<_i2.MessageModel>);
 
   @override
+  _i4.Future<_i2.MessageModel> sendEncryptedMedia({
+    required String? chatId,
+    required String? senderId,
+    required _i6.File? mediaFile,
+    required _i5.MessageType? mediaType,
+    String? caption,
+    String? replyToMessageId,
+    String? senderName,
+    dynamic Function(double)? onProgress,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #sendEncryptedMedia,
+          [],
+          {
+            #chatId: chatId,
+            #senderId: senderId,
+            #mediaFile: mediaFile,
+            #mediaType: mediaType,
+            #caption: caption,
+            #replyToMessageId: replyToMessageId,
+            #senderName: senderName,
+            #onProgress: onProgress,
+          },
+        ),
+        returnValue: _i4.Future<_i2.MessageModel>.value(_FakeMessageModel_0(
+          this,
+          Invocation.method(
+            #sendEncryptedMedia,
+            [],
+            {
+              #chatId: chatId,
+              #senderId: senderId,
+              #mediaFile: mediaFile,
+              #mediaType: mediaType,
+              #caption: caption,
+              #replyToMessageId: replyToMessageId,
+              #senderName: senderName,
+              #onProgress: onProgress,
+            },
+          ),
+        )),
+      ) as _i4.Future<_i2.MessageModel>);
+
+  @override
+  _i4.Future<_i6.File?> getDecryptedMedia({
+    required _i2.MessageModel? message,
+    required String? currentUserId,
+    dynamic Function(double)? onProgress,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getDecryptedMedia,
+          [],
+          {
+            #message: message,
+            #currentUserId: currentUserId,
+            #onProgress: onProgress,
+          },
+        ),
+        returnValue: _i4.Future<_i6.File?>.value(),
+      ) as _i4.Future<_i6.File?>);
+
+  @override
   _i4.Stream<List<_i2.MessageModel>> getChatMessages(
     String? chatId, {
     int? limit = 50,
-    _i6.DocumentSnapshot<Object?>? lastDocument,
+    _i7.DocumentSnapshot<Object?>? lastDocument,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -115,7 +179,7 @@ class MockMessageRepository extends _i1.Mock implements _i3.MessageRepository {
   @override
   _i4.Future<List<_i2.MessageModel>> fetchMessagePage({
     required String? chatId,
-    _i6.DocumentSnapshot<Object?>? lastDocument,
+    _i7.DocumentSnapshot<Object?>? lastDocument,
     int? limit = 50,
   }) =>
       (super.noSuchMethod(
@@ -309,7 +373,7 @@ class MockMessageRepository extends _i1.Mock implements _i3.MessageRepository {
   _i4.Stream<List<_i2.MessageModel>> encryptedMessagesStream(
     String? chatId, {
     int? limit = 50,
-    _i6.DocumentSnapshot<Object?>? last,
+    _i7.DocumentSnapshot<Object?>? last,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -343,7 +407,7 @@ class MockMessageRepository extends _i1.Mock implements _i3.MessageRepository {
   _i4.Stream<List<_i2.MessageModel>> legacyMessagesStream(
     String? chatId, {
     int? limit = 50,
-    _i6.DocumentSnapshot<Object?>? last,
+    _i7.DocumentSnapshot<Object?>? last,
   }) =>
       (super.noSuchMethod(
         Invocation.method(

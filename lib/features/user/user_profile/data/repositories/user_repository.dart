@@ -885,4 +885,224 @@ class UserRepository {
       return false;
     }
   }
+
+  // Account deletion methods
+
+  /// Mark user account for deletion
+  Future<void> markAccountForDeletion(String userId) async {
+    try {
+      await updateUser(userId, {
+        'markedForDeleteAt': FieldValue.serverTimestamp(),
+        'accountStatus': 'marked_for_deletion',
+        'altAccountStatus': 'marked_for_deletion',
+        'isActive': false,
+        'altIsActive': false,
+      });
+    } catch (e) {
+      debugPrint('Error marking account for deletion: $e');
+      rethrow;
+    }
+  }
+
+  /// Cancel account deletion (restore account within 30-day period)
+  Future<void> cancelAccountDeletion(String userId) async {
+    try {
+      await updateUser(userId, {
+        'markedForDeleteAt': null,
+        'accountStatus': 'active',
+        'altAccountStatus': 'active',
+        'isActive': true,
+        'altIsActive': true,
+      });
+    } catch (e) {
+      debugPrint('Error canceling account deletion: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if account is marked for deletion
+  Future<bool> isAccountMarkedForDeletion(String userId) async {
+    try {
+      final user = await getUserById(userId);
+      return user?.isMarkedForDeletion ?? false;
+    } catch (e) {
+      debugPrint('Error checking account deletion status: $e');
+      return false;
+    }
+  }
+
+  /// Get deletion date for account (when it will be permanently deleted)
+  Future<DateTime?> getAccountDeletionDate(String userId) async {
+    try {
+      final user = await getUserById(userId);
+      return user?.permanentDeletionDate;
+    } catch (e) {
+      debugPrint('Error getting account deletion date: $e');
+      return null;
+    }
+  }
+
+  /// Get days remaining until permanent deletion
+  Future<int?> getDaysUntilPermanentDeletion(String userId) async {
+    try {
+      final user = await getUserById(userId);
+      return user?.daysUntilDeletion;
+    } catch (e) {
+      debugPrint('Error getting days until deletion: $e');
+      return null;
+    }
+  }
+
+  /// Request data export for user
+  Future<void> requestDataExport(String userId) async {
+    try {
+      // Create a data export request document
+      await _firestore.collection('dataExportRequests').doc(userId).set({
+        'userId': userId,
+        'requestedAt': FieldValue.serverTimestamp(),
+        'status': 'pending',
+        'exportType': 'full_account_data',
+      });
+    } catch (e) {
+      debugPrint('Error requesting data export: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if user has a pending data export request
+  Future<bool> hasPendingDataExport(String userId) async {
+    try {
+      final doc =
+          await _firestore.collection('dataExportRequests').doc(userId).get();
+
+      if (!doc.exists) return false;
+
+      final data = doc.data()!;
+      return data['status'] == 'pending' || data['status'] == 'processing';
+    } catch (e) {
+      debugPrint('Error checking data export status: $e');
+      return false;
+    }
+  }
+
+  /// Get user's complete data for export (this would be used by admin/backend processes)
+  Future<Map<String, dynamic>> getUserExportData(String userId) async {
+    try {
+      final user = await getUserById(userId);
+      if (user == null) throw Exception('User not found');
+
+      // Collect all user data
+      final exportData = <String, dynamic>{
+        'profile': user.toJson(),
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      // Note: In a real implementation, you would collect data from all relevant collections:
+      // - posts
+      // - comments
+      // - messages
+      // - connections
+      // - saved posts
+      // - etc.
+
+      return exportData;
+    } catch (e) {
+      debugPrint('Error getting user export data: $e');
+      rethrow;
+    }
+  }
+
+  /// Permanently delete user account and all associated data
+  /// This should only be called by automated cleanup processes after 30-day retention period
+  Future<void> permanentlyDeleteAccount(String userId) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Delete user document
+      batch.delete(_users.doc(userId));
+
+      // Clean up following/followers relationships
+      final followingSnapshot =
+          await _following.doc(userId).collection('userFollowing').get();
+      for (final doc in followingSnapshot.docs) {
+        final followedUserId = doc.id;
+        batch.delete(_followers
+            .doc(followedUserId)
+            .collection('userFollowers')
+            .doc(userId));
+        batch.update(_users.doc(followedUserId),
+            {'followers': FieldValue.increment(-1)});
+        batch.delete(doc.reference);
+      }
+
+      final followersSnapshot =
+          await _followers.doc(userId).collection('userFollowers').get();
+      for (final doc in followersSnapshot.docs) {
+        final followerId = doc.id;
+        batch.delete(
+            _following.doc(followerId).collection('userFollowing').doc(userId));
+        batch.update(
+            _users.doc(followerId), {'following': FieldValue.increment(-1)});
+        batch.delete(doc.reference);
+      }
+
+      // Clean up alt connections
+      final altConnectionsSnapshot = await _firestore
+          .collection('altConnections')
+          .doc(userId)
+          .collection('userConnections')
+          .get();
+
+      for (final doc in altConnectionsSnapshot.docs) {
+        final connectionId = doc.id;
+        // Remove this user from other user's connections
+        batch.delete(_firestore
+            .collection('altConnections')
+            .doc(connectionId)
+            .collection('userConnections')
+            .doc(userId));
+        // Update connection count
+        batch.update(
+            _users.doc(connectionId), {'altFriends': FieldValue.increment(-1)});
+        // Delete this user's connection
+        batch.delete(doc.reference);
+      }
+
+      // Delete connection requests
+      batch.delete(_firestore.collection('altConnectionRequests').doc(userId));
+
+      // Delete data export requests
+      batch.delete(_firestore.collection('dataExportRequests').doc(userId));
+
+      // TODO: Also delete from other collections:
+      // - posts collection
+      // - comments collection
+      // - messages collection
+      // - notifications collection
+      // - any other user-related data
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Error permanently deleting account: $e');
+      rethrow;
+    }
+  }
+
+  /// Get list of accounts marked for deletion past 30 days (for cleanup jobs)
+  Future<List<String>> getAccountsReadyForDeletion() async {
+    try {
+      final cutoffDate = DateTime.now().subtract(const Duration(days: 30));
+
+      final snapshot = await _users
+          .where('markedForDeleteAt',
+              isLessThan: Timestamp.fromDate(cutoffDate))
+          .where('accountStatus', isEqualTo: 'marked_for_deletion')
+          .get();
+
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      debugPrint('Error getting accounts ready for deletion: $e');
+      return [];
+    }
+  }
 }

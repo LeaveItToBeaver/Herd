@@ -79,8 +79,9 @@ class _EncryptedMediaWidgetState extends ConsumerState<EncryptedMediaWidget> {
     } catch (e) {
       debugPrint('Failed to load encrypted media: $e');
     } finally {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

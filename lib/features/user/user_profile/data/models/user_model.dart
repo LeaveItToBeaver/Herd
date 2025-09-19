@@ -117,6 +117,9 @@ abstract class UserModel with _$UserModel {
     // Pinned posts (max 5 each)
     @Default([]) List<String> pinnedPosts, // Public profile pinned posts
     @Default([]) List<String> altPinnedPosts, // Alt profile pinned posts
+
+    // Account deletion
+    DateTime? markedForDeleteAt, // When account was marked for deletion
   }) = _UserModel;
 
   // Factory constructor to create a UserModel from Firebase User
@@ -230,6 +233,7 @@ abstract class UserModel with _$UserModel {
       walletBalance: map['walletBalance'] ?? 0,
       pinnedPosts: _parseStringList(map['pinnedPosts']),
       altPinnedPosts: _parseStringList(map['altPinnedPosts']),
+      markedForDeleteAt: _parseDateTime(map['markedForDeleteAt']),
     );
   }
 
@@ -361,6 +365,9 @@ abstract class UserModel with _$UserModel {
       'walletBalance': walletBalance,
       'pinnedPosts': pinnedPosts,
       'altPinnedPosts': altPinnedPosts,
+      'markedForDeleteAt': markedForDeleteAt != null
+          ? Timestamp.fromDate(markedForDeleteAt!)
+          : null,
     };
   }
 
@@ -524,5 +531,23 @@ abstract class UserModel with _$UserModel {
     }
 
     return incomplete;
+  }
+
+  // Check if account is marked for deletion
+  bool get isMarkedForDeletion => markedForDeleteAt != null;
+
+  // Get days remaining until permanent deletion (assuming 30-day retention)
+  int? get daysUntilDeletion {
+    if (markedForDeleteAt == null) return null;
+    final deletionDate = markedForDeleteAt!.add(const Duration(days: 30));
+    final now = DateTime.now();
+    if (deletionDate.isBefore(now)) return 0;
+    return deletionDate.difference(now).inDays;
+  }
+
+  // Get the permanent deletion date
+  DateTime? get permanentDeletionDate {
+    if (markedForDeleteAt == null) return null;
+    return markedForDeleteAt!.add(const Duration(days: 30));
   }
 }

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
@@ -165,10 +164,15 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       final cache = _ref.read(messageCacheServiceProvider);
       final latestTs = _lastFetchedTimestamp;
 
+      // Get current user ID for message filtering
+      final currentUser = _ref.read(authProvider);
+      final currentUserId = currentUser?.uid;
+      
       final newMessages = await repo.fetchLatestMessages(
         _chatId,
         afterTimestamp: latestTs,
         limit: 50,
+        currentUserId: currentUserId,
       );
 
       if (newMessages.isEmpty) return;
@@ -663,7 +667,8 @@ final chatPaginationProvider = StateNotifierProvider.family<
   final repo = ref.watch(messageRepositoryProvider);
   final cache = ref.watch(messageCacheServiceProvider);
   final mediaHandler = ref.watch(encryptedMediaHandlerProvider);
-  return ChatPaginationNotifier(chatId: chatId, repo: repo, cache: cache, mediaHandler: mediaHandler);
+  return ChatPaginationNotifier(
+      chatId: chatId, repo: repo, cache: cache, mediaHandler: mediaHandler);
 });
 
 class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
@@ -672,7 +677,10 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   final MessageCacheService cache;
   final EncryptedMediaMessageHandler _mediaHandler;
   ChatPaginationNotifier(
-      {required this.chatId, required this.repo, required this.cache, required EncryptedMediaMessageHandler mediaHandler})
+      {required this.chatId,
+      required this.repo,
+      required this.cache,
+      required EncryptedMediaMessageHandler mediaHandler})
       : _mediaHandler = mediaHandler,
         super(ChatPaginationState.initial()) {
     _loadInitial();
@@ -701,7 +709,8 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   }
 
   /// Get cached participants for a chat
-  Future<List<String>> _getCachedParticipants(String chatId, String currentUserId) async {
+  Future<List<String>> _getCachedParticipants(
+      String chatId, String currentUserId) async {
     // Use the MessageRepository's existing _getCachedParticipants method through reflection or expose it
     // For now, let's implement a simple version that works with direct chats
     try {
@@ -712,7 +721,7 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
           return [parts[0], parts[1]];
         }
       }
-      
+
       // Fallback - at minimum we know the current user is a participant
       return [currentUserId];
     } catch (e) {

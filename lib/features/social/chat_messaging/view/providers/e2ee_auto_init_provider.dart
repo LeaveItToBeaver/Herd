@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:flutter/foundation.dart';
 

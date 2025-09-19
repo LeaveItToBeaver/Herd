@@ -9,6 +9,7 @@ import 'package:herdapp/features/user/user_profile/data/repositories/user_reposi
 import 'package:herdapp/features/social/chat_messaging/data/crypto/media_crypto_service.dart';
 import 'package:herdapp/features/social/chat_messaging/utils/secure_media_service.dart';
 import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
+import 'package:herdapp/features/user_management/data/repositories/user_block_repository.dart';
 
 final chatCryptoServiceProvider = Provider<ChatCryptoService>((ref) {
   // Use more stable Android options for secure storage
@@ -59,11 +60,16 @@ final encryptedMediaHandlerProvider =
   );
 });
 
+final userBlockRepositoryProvider = Provider<UserBlockRepository>((ref) {
+  return UserBlockRepository(FirebaseFirestore.instance);
+});
+
 final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   final userRepo = ref.watch(userRepositoryProvider);
   final crypto = ref.watch(chatCryptoServiceProvider);
   final chatRepo = ref.watch(chatRepositoryProvider);
   final mediaHandler = ref.watch(encryptedMediaHandlerProvider);
+  final userBlockRepo = ref.watch(userBlockRepositoryProvider);
   return MessageRepository(
-      FirebaseFirestore.instance, userRepo, crypto, chatRepo, mediaHandler);
+      FirebaseFirestore.instance, userRepo, crypto, chatRepo, mediaHandler, userBlockRepo);
 });

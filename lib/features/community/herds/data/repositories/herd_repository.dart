@@ -50,6 +50,7 @@ class HerdRepository {
       });
 
       final docRef = await _herds.add(herd.toMap());
+
       final herdId = docRef.id;
 
       await docRef.update({'id': herdId});

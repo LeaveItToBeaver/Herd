@@ -622,10 +622,11 @@ class _FullscreenMediaItemState extends ConsumerState<_FullscreenMediaItem> {
     } catch (_) {
       _error = true;
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
     }
   }
 
@@ -696,15 +697,19 @@ class _MessageItem extends ConsumerWidget {
         error: (_, __) => 'You',
       );
     } else {
-      // Use sender name from message or fallback to chat info
+      // For alt profiles, NEVER show usernames - only use first name from senderName
+      // senderName should contain "firstName lastName" format, not username
       if (message.senderName != null && message.senderName!.isNotEmpty) {
-        return message.senderName!.split(' ').first; // Get first name only
+        final nameParts = message.senderName!.trim().split(' ');
+        // Only return the first part and ensure it's not a username (doesn't start with @)
+        final firstName = nameParts.first.trim();
+        if (firstName.isNotEmpty && !firstName.startsWith('@')) {
+          return firstName;
+        }
       }
-      return currentChat.when(
-        data: (chat) => chat?.otherUserName?.split(' ').first ?? 'User',
-        loading: () => 'User',
-        error: (_, __) => 'User',
-      );
+      
+      // Fallback to generic "User" - never expose username information
+      return 'User';
     }
   }
 

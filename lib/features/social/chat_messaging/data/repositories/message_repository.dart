@@ -8,8 +8,7 @@ import 'package:cryptography/cryptography.dart'; // For SecretKey caching
 import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/crypto/chat_crypto_service.dart';
-import 'package:herdapp/features/user/user_profile/data/repositories/user_repository.dart';
-import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
+import 'package:herdapp/features/user_management/data/repositories/user_block_repository.dart';
 
 // Verbose logging toggle for message repository (non-error info). Set true for diagnostics.
 const bool _verboseMessages = false;
@@ -23,6 +22,7 @@ class MessageRepository {
   final UserRepository _users;
   final ChatCryptoService _crypto;
   final ChatRepository _chats;
+  final UserBlockRepository _userBlockRepository;
   static const int _fetchLimit = 50;
   int get pageSize => _fetchLimit;
 
@@ -37,7 +37,31 @@ class MessageRepository {
   final EncryptedMediaMessageHandler _mediaHandler;
 
   MessageRepository(this._firestore, this._users, this._crypto, this._chats,
-      this._mediaHandler);
+      this._mediaHandler, this._userBlockRepository);
+
+  // Helper method to check if two users can interact (not blocking each other)
+  Future<bool> _canUsersInteract(String userId1, String userId2) async {
+    try {
+      // Check if userId1 blocks userId2
+      final user1BlocksUser2 = await _userBlockRepository.isUserBlocked(
+        currentUserId: userId1,
+        targetUserId: userId2,
+      );
+
+      // Check if userId2 blocks userId1
+      final user2BlocksUser1 = await _userBlockRepository.isUserBlocked(
+        currentUserId: userId2,
+        targetUserId: userId1,
+      );
+
+      // Users can interact if neither blocks the other
+      return !user1BlocksUser2 && !user2BlocksUser1;
+    } catch (e) {
+      debugPrint('Error checking if users can interact: $e');
+      // SECURITY: Default to blocking interaction if there's an error (fail closed)
+      return false;
+    }
+  }
 
   // Cached methods to prevent excessive calls
   Future<List<String>> _getCachedParticipants(
@@ -183,8 +207,16 @@ class MessageRepository {
     // Ensure chat exists
     final chatExists = await _chats.chatExists(chatId, senderId);
     if (!chatExists) throw Exception('Chat not found');
+
     final otherId =
         participants.firstWhere((p) => p != senderId, orElse: () => senderId);
+
+    // Check if users can interact (not blocking each other)
+    final canInteract = await _canUsersInteract(senderId, otherId);
+    if (!canInteract) {
+      throw Exception(
+          'Cannot send encrypted message: user interaction blocked');
+    }
     final otherPub = await _getCachedUserKey(otherId);
     if (otherPub == null) throw Exception('Missing other user public key');
 
@@ -270,6 +302,15 @@ class MessageRepository {
   }) async {
     final participants = await _getCachedParticipants(chatId, senderId);
 
+    // For direct chats, check if users can interact (not blocking each other)
+    if (participants.length == 2) {
+      final otherUserId = participants.firstWhere((id) => id != senderId);
+      final canInteract = await _canUsersInteract(senderId, otherUserId);
+      if (!canInteract) {
+        throw Exception('Cannot send media: user interaction blocked');
+      }
+    }
+
     return await _mediaHandler.sendEncryptedMediaMessage(
       chatId: chatId,
       senderId: senderId,
@@ -312,14 +353,35 @@ class MessageRepository {
   // These methods retain their original names/signatures for backwards compatibility.
 
   /// Stream of messages for a chat (unified hierarchical structure).
+  /// Filters out messages from blocked users for security
   Stream<List<MessageModel>> getChatMessages(
     String chatId, {
     int limit = _fetchLimit,
     DocumentSnapshot? lastDocument,
+    String? currentUserId,
   }) async* {
     // All messages now use hierarchical structure chatMessages/{chatId}/messages
     // The difference is whether they're encrypted or plaintext within that structure
-    yield* _unifiedMessagesStream(chatId, limit: limit, last: lastDocument);
+    await for (final messages in _unifiedMessagesStream(chatId, limit: limit, last: lastDocument)) {
+      // Filter out messages from blocked users if currentUserId is provided
+      if (currentUserId != null) {
+        final filteredMessages = <MessageModel>[];
+        for (final message in messages) {
+          // Skip messages from users who are blocked by current user
+          // or who have blocked the current user
+          if (message.senderId != currentUserId) {
+            final canInteract = await _canUsersInteract(currentUserId, message.senderId);
+            if (!canInteract) {
+              continue; // Skip this message - user is blocked
+            }
+          }
+          filteredMessages.add(message);
+        }
+        yield filteredMessages;
+      } else {
+        yield messages; // No filtering if no current user
+      }
+    }
   }
 
   /// Unified stream that handles both encrypted and plaintext messages from hierarchical structure
@@ -359,6 +421,7 @@ class MessageRepository {
         }
       }
       _v('✅ Processed ${messages.length} messages successfully');
+
       return messages;
     });
   }
@@ -506,6 +569,15 @@ class MessageRepository {
     }
 
     final isDirect = participants.length == 2;
+
+    // For direct chats, check if users can interact (not blocking each other)
+    if (isDirect) {
+      final otherUserId = participants.firstWhere((id) => id != senderId);
+      final canInteract = await _canUsersInteract(senderId, otherUserId);
+      if (!canInteract) {
+        throw Exception('Cannot send message: user interaction blocked');
+      }
+    }
     _v('📱 Chat type: ${isDirect ? 'Direct' : 'Group'}, participants: $participants');
 
     if (isDirect) {
@@ -1044,7 +1116,8 @@ class MessageRepository {
   }
 
   /// Fetch all messages for a chat (fallback when cache is inconsistent)
-  Future<List<MessageModel>> fetchAllMessages(String chatId) async {
+  /// Filters out messages from blocked users for security  
+  Future<List<MessageModel>> fetchAllMessages(String chatId, {String? currentUserId}) async {
     try {
       final snapshot = await _chatMessages(chatId)
           .orderBy('timestamp', descending: false)
@@ -1080,6 +1153,25 @@ class MessageRepository {
       }
       debugPrint(
           '📊 fetchAllMessages summary for chat $chatId: total=${messages.length}, encrypted=$encryptedCount (ok=$decryptSuccess, failedOrEmpty=$decryptFailed), plaintext=$plaintextCount');
+      
+      // Filter out messages from blocked users if currentUserId is provided
+      if (currentUserId != null) {
+        final filteredMessages = <MessageModel>[];
+        for (final message in messages) {
+          // Skip messages from users who are blocked by current user
+          // or who have blocked the current user
+          if (message.senderId != currentUserId) {
+            final canInteract = await _canUsersInteract(currentUserId, message.senderId);
+            if (!canInteract) {
+              continue; // Skip this message - user is blocked
+            }
+          }
+          filteredMessages.add(message);
+        }
+        debugPrint('🔒 Filtered ${messages.length - filteredMessages.length} messages from blocked users (fetchAll)');
+        return filteredMessages;
+      }
+      
       return messages;
     } catch (e) {
       debugPrint('❌ Failed to fetch all messages: $e');
@@ -1088,10 +1180,12 @@ class MessageRepository {
   }
 
   /// Fetch latest messages after a certain timestamp (for delta sync)
+  /// Filters out messages from blocked users for security
   Future<List<MessageModel>> fetchLatestMessages(
     String chatId, {
     required int limit,
     DateTime? afterTimestamp,
+    String? currentUserId,
   }) async {
     try {
       Query<Map<String, dynamic>> query =
@@ -1270,6 +1364,25 @@ class MessageRepository {
       }
       debugPrint(
           '📊 fetchLatestMessages summary for chat $chatId: total=${messages.length}, encrypted=$encryptedCount (ok=$decryptSuccess, failedOrEmpty=$decryptFailed), plaintext=$plaintextCount, after=${afterTimestamp?.toIso8601String()}');
+      
+      // Filter out messages from blocked users if currentUserId is provided
+      if (currentUserId != null) {
+        final filteredMessages = <MessageModel>[];
+        for (final message in messages) {
+          // Skip messages from users who are blocked by current user
+          // or who have blocked the current user
+          if (message.senderId != currentUserId) {
+            final canInteract = await _canUsersInteract(currentUserId, message.senderId);
+            if (!canInteract) {
+              continue; // Skip this message - user is blocked
+            }
+          }
+          filteredMessages.add(message);
+        }
+        debugPrint('🔒 Filtered ${messages.length - filteredMessages.length} messages from blocked users');
+        return filteredMessages;
+      }
+      
       return messages;
     } catch (e) {
       debugPrint('❌ Failed to fetch latest messages: $e');
@@ -1287,8 +1400,9 @@ Future<Map<String, dynamic>?> _decryptPayloadIsolate(
     final cipherTextB64 = args['ciphertext'] as String?;
     final nonceB64 = args['nonce'] as String?;
     final macB64 = args['mac'] as String?;
-    if (cipherTextB64 == null || nonceB64 == null || macB64 == null)
+    if (cipherTextB64 == null || nonceB64 == null || macB64 == null) {
       return null;
+    }
     final cipher = Chacha20.poly1305Aead();
     final secretKey = SecretKey(keyBytes);
     final clear = await cipher.decrypt(

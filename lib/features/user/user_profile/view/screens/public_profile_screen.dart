@@ -6,6 +6,8 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/user_management/utils/user_block_utils.dart';
+import 'package:herdapp/features/user_management/view/providers/user_block_providers.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -140,6 +142,54 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                             ref.read(authProvider.notifier).signOut(),
                       ),
                     ],
+                    if (!profile.isCurrentUser) ...[
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) async {
+                          switch (value) {
+                            case 'block':
+                              await UserBlockUtils.showBlockUserDialog(
+                                context,
+                                ref,
+                                userId: profile.user!.id,
+                                displayName: '${profile.user!.firstName} ${profile.user!.lastName}'.trim(),
+                                username: profile.user!.username,
+                                firstName: profile.user!.firstName,
+                                lastName: profile.user!.lastName,
+                              );
+                              break;
+                            case 'report':
+                              // TODO: Implement report functionality
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Report functionality coming soon')),
+                              );
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'block',
+                            child: Row(
+                              children: [
+                                Icon(Icons.block),
+                                SizedBox(width: 8),
+                                Text('Block User'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'report',
+                            child: Row(
+                              children: [
+                                Icon(Icons.report),
+                                SizedBox(width: 8),
+                                Text('Report User'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
 
@@ -248,100 +298,83 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen>
                                 ),
                               ),
                             if (!profile.isCurrentUser)
-                              // SizedBox(
-                              //   width: double.infinity,
-                              //   child: OutlinedButton.icon(
-                              //     icon: const Icon(Icons.message),
-                              //     label: const Text('Message'),
-                              //     onPressed: () async {
-                              //       final chatRepo =
-                              //           ref.read(chatRepositoryProvider);
-                              //       final currentUserId =
-                              //           ref.read(authProvider)?.uid;
-
-                              //       if (currentUserId != null) {
-                              //         final chat =
-                              //             await chatRepo.getOrCreateDirectChat(
-                              //                 currentUserId: currentUserId,
-                              //                 otherUserId: profile.user!.id);
-
-                              //         // Add the chat bubble to active chats
-                              //         if (chat != null) {
-                              //           ref
-                              //               .read(activeChatBubblesProvider
-                              //                   .notifier)
-                              //               .addChatBubble(chat);
-                              //         }
-                              //       }
-                              //     },
-                              //   ),
-                              // )
-                              // In public_profile_screen.dart, update the Message button onPressed:
-
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.message),
-                                  label: const Text('Message'),
-                                  onPressed: () async {
-                                    final chatRepo =
-                                        ref.read(chatRepositoryProvider);
-                                    final currentUserId =
-                                        ref.read(authProvider)?.uid;
-                                    final currentUserAsync =
-                                        ref.read(currentUserProvider);
-                                    final currentUserData =
-                                        currentUserAsync.userOrNull;
-
-                                    if (currentUserId != null &&
-                                        currentUserData != null) {
-                                      // Determine if we're in alt feed context
-                                      final isAltContext =
-                                          ref.read(currentFeedProvider) ==
-                                              FeedType.alt;
-
-                                      // Create chat with complete user information
-                                      final chat =
-                                          await chatRepo.getOrCreateDirectChat(
-                                        currentUserId: currentUserId,
-                                        otherUserId: profile.user!.id,
-                                        otherUserName:
-                                            '${profile.user!.firstName} ${profile.user!.lastName}'
-                                                .trim(),
-                                        otherUserUsername:
-                                            profile.user!.username,
-                                        otherUserProfileImage:
-                                            profile.user!.profileImageURL,
-                                        otherUserAltProfileImage:
-                                            profile.user!.altProfileImageURL,
-                                        isAlt: isAltContext,
-                                        // Include current user info for the other person's view
-                                        currentUserName:
-                                            '${currentUserData.firstName} ${currentUserData.lastName}'
-                                                .trim(),
-                                        currentUserProfileImage:
-                                            currentUserData.profileImageURL,
-                                        currentUserAltProfileImage:
-                                            currentUserData.altProfileImageURL,
-                                      );
-
-                                      // Add the chat bubble to active chats
-                                      if (chat != null) {
-                                        // Force refresh the active chats
-                                        ref
-                                            .read(activeChatBubblesProvider
-                                                .notifier)
-                                            .addChatBubble(chat);
-
-                                        context.pushNamed(
-                                          'chat',
-                                          queryParameters: {'chatId': chat.id},
-                                        );
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final isBlockedAsync = ref.watch(isUserBlockedProvider(profile.user!.id));
+                                  
+                                  return isBlockedAsync.when(
+                                    loading: () => const SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton(
+                                        onPressed: null,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.hourglass_empty),
+                                            SizedBox(width: 8),
+                                            Text('Loading...'),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    error: (_, __) => const SizedBox.shrink(),
+                                    data: (isBlocked) {
+                                      // Don't show message button if user is blocked
+                                      if (isBlocked) {
+                                        return const SizedBox.shrink();
                                       }
-                                    }
-                                  },
-                                ),
-                              )
+                                      
+                                      return SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton.icon(
+                                          icon: const Icon(Icons.message),
+                                          label: const Text('Message'),
+                                          onPressed: () async {
+                                            final chatRepo = ref.read(chatRepositoryProvider);
+                                            final currentUserId = ref.read(authProvider)?.uid;
+                                            final currentUserAsync = ref.read(currentUserProvider);
+                                            final currentUserData = currentUserAsync.userOrNull;
+
+                                            if (currentUserId != null &&
+                                                currentUserData != null) {
+                                              // Determine if we're in alt feed context
+                                              final isAltContext =
+                                                  ref.read(currentFeedProvider) == FeedType.alt;
+
+                                              // Create chat with complete user information
+                                              final chat = await chatRepo.getOrCreateDirectChat(
+                                                currentUserId: currentUserId,
+                                                otherUserId: profile.user!.id,
+                                                otherUserName:
+                                                    '${profile.user!.firstName} ${profile.user!.lastName}'
+                                                        .trim(),
+                                                otherUserUsername: profile.user!.username,
+                                                otherUserProfileImage: profile.user!.profileImageURL,
+                                                otherUserAltProfileImage: profile.user!.altProfileImageURL,
+                                                isAlt: isAltContext,
+                                                currentUserName:
+                                                    '${currentUserData.firstName} ${currentUserData.lastName}'
+                                                        .trim(),
+                                                currentUserProfileImage: currentUserData.profileImageURL,
+                                                currentUserAltProfileImage: currentUserData.altProfileImageURL,
+                                              );
+
+                                              // Add the chat bubble to active chats
+                                              if (chat != null && context.mounted) {
+                                                ref.read(activeChatBubblesProvider.notifier).addChatBubble(chat);
+                                                context.pushNamed(
+                                                  'chat',
+                                                  queryParameters: {'chatId': chat.id},
+                                                );
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
                           ],
                         ),
                       ),

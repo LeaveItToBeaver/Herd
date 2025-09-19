@@ -82,8 +82,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // 2) Signed in but email *not* verified → force /emailVerification
       if (!user.emailVerified) {
         if (currentPath != '/emailVerification') {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint('➡️ Redirecting to /emailVerification (unverified)');
+          }
           return '/emailVerification';
         }
         return null;

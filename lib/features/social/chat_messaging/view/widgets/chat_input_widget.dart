@@ -7,6 +7,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
+import 'package:herdapp/features/user_management/view/providers/user_block_providers.dart';
 
 class ChatInputWidget extends ConsumerStatefulWidget {
   final String chatId;
@@ -79,6 +80,20 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
     _captionController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  String? _getOtherUserId() {
+    final currentUserId = ref.read(authProvider)?.uid;
+    if (currentUserId == null || !widget.chatId.contains('_')) {
+      return null;
+    }
+
+    final parts = widget.chatId.split('_');
+    if (parts.length == 2) {
+      return parts[0] == currentUserId ? parts[1] : parts[0];
+    }
+
+    return null;
   }
 
   void _sendMessage() async {
@@ -166,8 +181,172 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
     if (mounted) setState(() => _picking = false);
   }
 
+  Widget _buildBlockedInputMessage(String message, {bool showIcon = true}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                if (showIcon) ...[
+                  Icon(
+                    Icons.block,
+                    color: Theme.of(context).colorScheme.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDisabledInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const TextField(
+                    enabled: false,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      hintText: 'Message...',
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.send,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.3),
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final otherUserId = _getOtherUserId();
+
+    // If not a direct chat, show normal input
+    if (otherUserId == null) {
+      return _buildNormalInput();
+    }
+
+    // For direct chats, check blocking status using bi-directional provider
+    final canInteractAsync = ref.watch(canUsersInteractProvider(otherUserId));
+
+    return canInteractAsync.when(
+      loading: () => Container(
+        padding: const EdgeInsets.all(16),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => _buildNormalInput(),
+      data: (canInteract) {
+        if (!canInteract) {
+          // Users are blocked - determine which message to show
+          final currentUserId = ref.watch(authProvider)?.uid;
+          if (currentUserId == null) {
+            return const SizedBox.shrink();
+          }
+
+          // Check if current user blocked the other user to show appropriate message
+          final currentUserBlockedOtherAsync = 
+              ref.watch(isUserBlockedProvider(otherUserId));
+          
+          return currentUserBlockedOtherAsync.when(
+            loading: () => _buildDisabledInput(),
+            error: (_, __) => _buildDisabledInput(),
+            data: (currentUserBlockedOther) {
+              if (currentUserBlockedOther) {
+                // Current user blocked the other user - show explicit message
+                return _buildBlockedInputMessage(
+                  'You have blocked this user. You cannot send them any messages.',
+                );
+              } else {
+                // Other user blocked current user - show disabled input without explanation
+                return _buildDisabledInput();
+              }
+            },
+          );
+        }
+
+        // Users can interact - show normal input
+        return _buildNormalInput();
+      },
+    );
+  }
+
+  Widget _buildNormalInput() {
     // Wrap entire input widget in RepaintBoundary
     return RepaintBoundary(
       child: Container(
@@ -583,11 +762,12 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
           debugPrint('❌ Failed to send media: $e');
           messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
         } finally {
-          if (!mounted) return;
-          setState(() {
-            _isUploading = false;
-            _uploadProgress = 0.0;
-          });
+          if (mounted) {
+            setState(() {
+              _isUploading = false;
+              _uploadProgress = 0.0;
+            });
+          }
         }
       }();
     } catch (e) {

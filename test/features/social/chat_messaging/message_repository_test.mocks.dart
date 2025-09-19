@@ -9,7 +9,7 @@ import 'dart:typed_data' as _i8;
 
 import 'package:cloud_firestore/cloud_firestore.dart' as _i9;
 import 'package:cryptography/cryptography.dart' as _i2;
-import 'package:flutter/material.dart' as _i4;
+import 'package:flutter/services.dart' as _i4;
 import 'package:herdapp/features/social/chat_messaging/data/crypto/chat_crypto_service.dart'
     as _i5;
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart'
@@ -98,6 +98,35 @@ class MockChatCryptoService extends _i1.Mock implements _i5.ChatCryptoService {
           ),
         )),
       ) as _i6.Future<String>);
+
+  @override
+  _i6.Future<bool> hasStoredKeys() => (super.noSuchMethod(
+        Invocation.method(
+          #hasStoredKeys,
+          [],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<void> deleteStoredKeys() => (super.noSuchMethod(
+        Invocation.method(
+          #deleteStoredKeys,
+          [],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> ensureKeyPairExists() => (super.noSuchMethod(
+        Invocation.method(
+          #ensureKeyPairExists,
+          [],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
 
   @override
   _i6.Future<_i2.SimplePublicKey> getPublicIdentityKey() => (super.noSuchMethod(
@@ -797,6 +826,107 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
         ),
         returnValue: _i6.Future<bool>.value(false),
       ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<void> markAccountForDeletion(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #markAccountForDeletion,
+          [userId],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> cancelAccountDeletion(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #cancelAccountDeletion,
+          [userId],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<bool> isAccountMarkedForDeletion(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isAccountMarkedForDeletion,
+          [userId],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<DateTime?> getAccountDeletionDate(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAccountDeletionDate,
+          [userId],
+        ),
+        returnValue: _i6.Future<DateTime?>.value(),
+      ) as _i6.Future<DateTime?>);
+
+  @override
+  _i6.Future<int?> getDaysUntilPermanentDeletion(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getDaysUntilPermanentDeletion,
+          [userId],
+        ),
+        returnValue: _i6.Future<int?>.value(),
+      ) as _i6.Future<int?>);
+
+  @override
+  _i6.Future<void> requestDataExport(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #requestDataExport,
+          [userId],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<bool> hasPendingDataExport(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #hasPendingDataExport,
+          [userId],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<Map<String, dynamic>> getUserExportData(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserExportData,
+          [userId],
+        ),
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
+
+  @override
+  _i6.Future<void> permanentlyDeleteAccount(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #permanentlyDeleteAccount,
+          [userId],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<List<String>> getAccountsReadyForDeletion() => (super.noSuchMethod(
+        Invocation.method(
+          #getAccountsReadyForDeletion,
+          [],
+        ),
+        returnValue: _i6.Future<List<String>>.value(<String>[]),
+      ) as _i6.Future<List<String>>);
 }
 
 /// A class which mocks [ChatRepository].
