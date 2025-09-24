@@ -43,6 +43,8 @@ class BannedUsersScreen extends ConsumerWidget {
           );
         }
 
+        // Tip: heavy debug calls removed from build to avoid repeated queries
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Banned Users'),
@@ -92,8 +94,28 @@ class BannedUsersScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, herd, bool isOwner) {
     return ref.watch(bannedUsersProvider(herdId)).when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, st) =>
-              Center(child: Text('Error loading banned users: $err')),
+          error: (err, st) {
+            // Handle permission errors gracefully
+            if (err.toString().contains('permission-denied')) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.lock, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('Access Denied'),
+                    SizedBox(height: 8),
+                    Text(
+                      'You do not have permission to view banned users for this herd',
+                      style: TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Center(child: Text('Error loading banned users: $err'));
+          },
           data: (bannedUsers) {
             if (bannedUsers.isEmpty) {
               return const Center(

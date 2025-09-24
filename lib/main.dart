@@ -36,7 +36,7 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    debugPrint('✅ Firebase initialized');
+    debugPrint('Firebase initialized');
 
     // This should automatically run the correct code for mobile or web.
     await setupPlatformSpecificFirebase();
@@ -45,7 +45,7 @@ void main() async {
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
-      debugPrint('✅ Background message handler registered');
+      debugPrint('Background message handler registered');
 
       unawaited(MobileAds.instance.initialize());
       debugPrint('🚀 Mobile ads initialization started');
@@ -54,7 +54,7 @@ void main() async {
       debugPrint('🚀 Cache bootstrap started');
     }
 
-    debugPrint('✅ Main initialization complete');
+    debugPrint('Main initialization complete');
   } catch (e, stackTrace) {
     debugPrint('❌ Error in main initialization: $e');
     debugPrint(stackTrace.toString());

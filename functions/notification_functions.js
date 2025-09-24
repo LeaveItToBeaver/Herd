@@ -65,7 +65,7 @@ module.exports = function (admin) {
 
                 try {
                     const response = await admin.messaging().send(testMessage);
-                    console.log('✅ Test message sent successfully:', response);
+                    console.log('Test message sent successfully:', response);
 
                     return {
                         success: true,
@@ -242,7 +242,7 @@ module.exports = function (admin) {
 
             // Send message
             const response = await admin.messaging().send(message);
-            logger.log(`✅ Successfully sent notification: ${response}`);
+            logger.log(` Successfully sent notification: ${response}`);
 
             // Log the message structure for debugging
             logger.log(`📱 Message structure: ${JSON.stringify(message, null, 2)}`);
@@ -359,7 +359,7 @@ module.exports = function (admin) {
 
             // Save notification to Firestore
             await notificationRef.set(notificationData);
-            logger.log(`✅ Notification saved to Firestore: ${notificationId}`);
+            logger.log(` Notification saved to Firestore: ${notificationId}`);
 
             // Prepare push notification data (ensure all values are strings)
             const pushData = removeUndefinedValues({
@@ -702,7 +702,7 @@ module.exports = function (admin) {
                 fcmTokenUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            logger.log(`✅ Updated FCM token for user ${userId}`);
+            logger.log(` Updated FCM token for user ${userId}`);
             return { success: true };
         } catch (error) {
             logger.error(`❌ Error updating FCM token for user ${userId}:`, error);
@@ -782,7 +782,7 @@ module.exports = function (admin) {
                 await Promise.all(notificationPromises);
             }
 
-            logger.log(`✅ Post notifications sent for ${postId}`);
+            logger.log(` Post notifications sent for ${postId}`);
         }),
 
         onPostLike: onDocumentCreated("likes/{postId}/userInteractions/{userId}",
@@ -925,7 +925,7 @@ module.exports = function (admin) {
                     const userId = event.params.userId;
                     const requesterId = event.params.requesterId;
 
-                    logger.log(`✅ Connection accepted: ${userId} accepted ${requesterId}`);
+                    logger.log(` Connection accepted: ${userId} accepted ${requesterId}`);
 
                     await createNotification({
                         recipientId: requesterId,
@@ -942,40 +942,40 @@ module.exports = function (admin) {
                 const chatId = event.params.chatId;
                 const messageId = event.params.messageId;
                 const messageData = event.data.data();
-                
+
                 logger.log(`💬 New chat message: ${messageId} in chat ${chatId}`);
-                
+
                 const senderId = messageData.senderId;
                 const content = messageData.content || '';
                 const timestamp = messageData.timestamp;
-                
+
                 // Get chat participants using new single collection architecture
                 // For direct chats, chatId format is "userId1_userId2"
                 const chatIdParts = chatId.split('_');
-                
+
                 if (chatIdParts.length !== 2) {
                     logger.log(`⚠️ Unsupported chat format: ${chatId} (group chats not yet supported)`);
                     return;
                 }
-                
+
                 // For direct chats, determine recipient from chatId
                 const [user1, user2] = chatIdParts;
                 const recipientId = user1 === senderId ? user2 : user1;
-                
+
                 if (!recipientId || recipientId === senderId) {
                     logger.log(`⚠️ Could not determine recipient for chat ${chatId}`);
                     return;
                 }
-                
+
                 logger.log(`💬 Sending notification to recipient: ${recipientId}`);
-                
+
                 // Don't notify if recipient is currently in the chat (you can enhance this with presence detection)
-                
+
                 // Get sender info
                 const senderSnapshot = await firestore.collection('users').doc(senderId).get();
                 const senderData = senderSnapshot.exists ? senderSnapshot.data() : null;
                 const senderName = senderData ? `${senderData.firstName || ''} ${senderData.lastName || ''}`.trim() || 'Someone' : 'Someone';
-                
+
                 // Create notification
                 await createNotification({
                     recipientId: recipientId,
@@ -1063,7 +1063,7 @@ module.exports = function (admin) {
                 });
 
                 await batch.commit();
-                logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
+                logger.log(` Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
             } catch (error) {
                 logger.error('❌ Error cleaning up old notifications:', error);
             }

@@ -75,6 +75,9 @@ enum ModActionType {
   // User actions
   banUser,
   unbanUser,
+  suspendUser,
+  unsuspendUser,
+  removeMemberFromHerd,
   warnUser,
 
   // Post actions
@@ -123,6 +126,12 @@ extension ModActionTypeExtension on ModActionType {
         return 'Banned User';
       case ModActionType.unbanUser:
         return 'Unbanned User';
+      case ModActionType.suspendUser:
+        return 'Suspended User';
+      case ModActionType.unsuspendUser:
+        return 'Unsuspended User';
+      case ModActionType.removeMemberFromHerd:
+        return 'Removed Member';
       case ModActionType.warnUser:
         return 'Warned User';
       case ModActionType.removePost:
@@ -169,6 +178,11 @@ extension ModActionTypeExtension on ModActionType {
       case ModActionType.banUser:
       case ModActionType.unbanUser:
         return Icons.block;
+      case ModActionType.suspendUser:
+      case ModActionType.unsuspendUser:
+        return Icons.schedule;
+      case ModActionType.removeMemberFromHerd:
+        return Icons.person_remove;
       case ModActionType.warnUser:
         return Icons.warning;
       case ModActionType.removePost:
@@ -207,11 +221,15 @@ extension ModActionTypeExtension on ModActionType {
       case ModActionType.banUser:
       case ModActionType.removePost:
       case ModActionType.removeComment:
+      case ModActionType.removeMemberFromHerd:
         return Colors.red;
       case ModActionType.unbanUser:
       case ModActionType.restorePost:
       case ModActionType.restoreComment:
+      case ModActionType.unsuspendUser:
         return Colors.green;
+      case ModActionType.suspendUser:
+        return Colors.deepOrange;
       case ModActionType.warnUser:
         return Colors.orange;
       case ModActionType.pinPost:

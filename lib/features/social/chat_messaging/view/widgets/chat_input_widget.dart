@@ -320,9 +320,9 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
           }
 
           // Check if current user blocked the other user to show appropriate message
-          final currentUserBlockedOtherAsync = 
+          final currentUserBlockedOtherAsync =
               ref.watch(isUserBlockedProvider(otherUserId));
-          
+
           return currentUserBlockedOtherAsync.when(
             loading: () => _buildDisabledInput(),
             error: (_, __) => _buildDisabledInput(),
@@ -757,7 +757,7 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
 
           // Replace optimistic with server message (will have remote mediaUrl encrypted metadata)
           messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
-          debugPrint('✅ Media sent & replaced: ${sentMessage.id}');
+          debugPrint('Media sent & replaced: ${sentMessage.id}');
         } catch (e) {
           debugPrint('❌ Failed to send media: $e');
           messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);

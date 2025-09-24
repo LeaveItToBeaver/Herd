@@ -628,10 +628,12 @@ class HerdRepository {
       if (herd.moderatorIds.contains(userId)) {
         await _herds.doc(herdId).update({
           'moderatorIds': FieldValue.arrayRemove([userId]),
+          'bannedUserIds': FieldValue.arrayUnion([userId]),
           'memberCount': FieldValue.increment(-1),
         });
       } else {
         await _herds.doc(herdId).update({
+          'bannedUserIds': FieldValue.arrayUnion([userId]),
           'memberCount': FieldValue.increment(-1),
         });
       }
@@ -677,48 +679,65 @@ class HerdRepository {
 
   Future<List<BannedUserInfo>> getBannedUsers(String herdId) async {
     try {
-      final snapshot = await _firestore
-          .collection('herdBans')
-          .doc(herdId)
-          .collection('banned')
-          .get();
+      debugPrint('HerdRepository: Fetching banned users for herd: $herdId');
 
-      List<BannedUserInfo> bannedUsers = [];
+      // IMPORTANT: Avoid collection queries here to bypass Firestore 'list' rule constraints.
+      // Instead, load banned user IDs from the herd doc, then fetch each ban doc via get().
+      final herdDoc = await _herds.doc(herdId).get();
+      if (!herdDoc.exists) return [];
 
-      for (var doc in snapshot.docs) {
-        final userId = doc.id;
-        final banData = doc.data();
+      final herdData = herdDoc.data()!;
+      final bannedIds = List<String>.from(herdData['bannedUserIds'] ?? []);
+      if (bannedIds.isEmpty) {
+        debugPrint('HerdRepository: No banned users');
+        return [];
+      }
 
+      final List<BannedUserInfo> bannedUsers = [];
+
+      // Fetch each banned user's ban record and profile
+      for (final userId in bannedIds) {
         try {
+          final banDoc = await _firestore
+              .collection('herdBans')
+              .doc(herdId)
+              .collection('banned')
+              .doc(userId)
+              .get();
+          if (!banDoc.exists) {
+            // Skip if ban record missing (data drift)
+            continue;
+          }
+          final banData = banDoc.data()!;
+
           final userDoc =
               await _firestore.collection('users').doc(userId).get();
+          if (!userDoc.exists) continue;
+          final userData = userDoc.data()!;
 
-          if (userDoc.exists) {
-            final userData = userDoc.data()!;
-
-            String? bannedByUsername;
-            if (banData['bannedBy'] != null) {
-              final bannedByDoc = await _firestore
-                  .collection('users')
-                  .doc(banData['bannedBy'])
-                  .get();
-              if (bannedByDoc.exists) {
-                bannedByUsername = bannedByDoc.data()?['username'];
-              }
+          String? bannedByUsername;
+          final bannedBy = banData['bannedBy'];
+          if (bannedBy is String && bannedBy.isNotEmpty) {
+            final bannedByDoc =
+                await _firestore.collection('users').doc(bannedBy).get();
+            if (bannedByDoc.exists) {
+              bannedByUsername = bannedByDoc.data()?['username'];
             }
-
-            bannedUsers.add(BannedUserInfo.fromMap(
-              userId: userId,
-              userData: userData,
-              banData: banData,
-              bannedByUsername: bannedByUsername,
-            ));
           }
+
+          bannedUsers.add(BannedUserInfo.fromMap(
+            userId: userId,
+            userData: userData,
+            banData: banData,
+            bannedByUsername: bannedByUsername,
+          ));
         } catch (e) {
           debugPrint('Error fetching banned user data for $userId: $e');
         }
       }
 
+      debugPrint(
+          'HerdRepository: Assembled ${bannedUsers.length} banned users');
       return bannedUsers;
     } catch (e, stackTrace) {
       logError('getBannedUsers', e, stackTrace);
