@@ -61,7 +61,7 @@ class SecureMediaService {
       final taskSnapshot = await uploadTask;
       final downloadUrl = await taskSnapshot.ref.getDownloadURL();
 
-      debugPrint('✅ Media upload completed: $downloadUrl');
+      debugPrint('Media upload completed: $downloadUrl');
 
       return SecureMediaUploadResult(
         downloadUrl: downloadUrl,
@@ -72,7 +72,7 @@ class SecureMediaService {
         uploadSize: encryptedResult.encryptedData.length,
       );
     } catch (e) {
-      debugPrint('❌ Secure media upload failed: $e');
+      debugPrint('Secure media upload failed: $e');
       rethrow;
     }
   }
@@ -118,11 +118,11 @@ class SecureMediaService {
       );
 
       debugPrint(
-          '✅ Media download and decryption completed: ${decryptedFile.path}');
+          'Media download and decryption completed: ${decryptedFile.path}');
 
       return decryptedFile;
     } catch (e) {
-      debugPrint('❌ Secure media download failed: $e');
+      debugPrint('Secure media download failed: $e');
       rethrow;
     }
   }
@@ -137,7 +137,7 @@ class SecureMediaService {
 
       return metadata.customMetadata;
     } catch (e) {
-      debugPrint('❌ Failed to get media metadata: $e');
+      debugPrint('Failed to get media metadata: $e');
       return null;
     }
   }
@@ -149,9 +149,9 @@ class SecureMediaService {
     try {
       final storageRef = _storage.refFromURL(downloadUrl);
       await storageRef.delete();
-      debugPrint('🗑️ Encrypted media deleted: $downloadUrl');
+      debugPrint('Encrypted media deleted: $downloadUrl');
     } catch (e) {
-      debugPrint('❌ Failed to delete encrypted media: $e');
+      debugPrint('Failed to delete encrypted media: $e');
       rethrow;
     }
   }
@@ -173,11 +173,11 @@ class SecureMediaService {
           await file.delete();
           debugPrint('🧹 Cleaned up temp file: ${file.path}');
         } catch (e) {
-          debugPrint('⚠️ Failed to delete temp file ${file.path}: $e');
+          debugPrint('Failed to delete temp file ${file.path}: $e');
         }
       }
     } catch (e) {
-      debugPrint('❌ Temp file cleanup failed: $e');
+      debugPrint('Temp file cleanup failed: $e');
     }
   }
 
@@ -201,7 +201,7 @@ class SecureMediaService {
       const maxFileSize = 50 * 1024 * 1024; // 50MB
       return estimatedSize <= maxFileSize;
     } catch (e) {
-      debugPrint('⚠️ Storage quota check failed: $e');
+      debugPrint('Storage quota check failed: $e');
       return true; // Allow by default if check fails
     }
   }

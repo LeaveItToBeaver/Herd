@@ -20,7 +20,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
       String userId, List<PostModel> posts) async {
     if (posts.isEmpty || userId.isEmpty) return;
 
-    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+    debugPrint('Batch initializing interactions for ${posts.length} posts');
 
     for (final post in posts) {
       // Initialize each post's interaction state proactively
@@ -31,7 +31,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
           .initializeState(userId);
     }
 
-    debugPrint('✅ Interactions batch initialization complete');
+    debugPrint('Interactions batch initialization complete');
   }
 
   Future<void> loadProfile(String userId, {bool? isAltView}) async {
@@ -129,9 +129,9 @@ class ProfileController extends AsyncNotifier<ProfileState> {
 
     // Check if state has a value first
     if (!state.hasValue) {
-      debugPrint('❌ Cannot load more posts - state has no value');
+      debugPrint('Cannot load more posts - state has no value');
       if (state.hasError) {
-        debugPrint('❌ State error: ${state.error}');
+        debugPrint('State error: ${state.error}');
       }
       return;
     }
@@ -148,7 +148,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
     if (!currentState.hasMorePosts ||
         currentState.isLoading ||
         currentState.lastPost == null) {
-      debugPrint('❌ Cannot load more posts - conditions not met');
+      debugPrint('Cannot load more posts - conditions not met');
       return;
     }
 
@@ -194,7 +194,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
 
       await _batchInitializePostInteractions(currentUserId, newPosts);
     } catch (e) {
-      debugPrint("❌ Error loading more posts: $e");
+      debugPrint("Error loading more posts: $e");
       // Keep the current posts but set loading to false
       if (state.hasValue) {
         final currentState = state.value!;

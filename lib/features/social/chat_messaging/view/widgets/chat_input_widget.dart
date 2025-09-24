@@ -759,7 +759,7 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
           messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
           debugPrint('Media sent & replaced: ${sentMessage.id}');
         } catch (e) {
-          debugPrint('❌ Failed to send media: $e');
+          debugPrint('Failed to send media: $e');
           messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
         } finally {
           if (mounted) {
@@ -771,7 +771,7 @@ class _ChatInputWidgetState extends ConsumerState<ChatInputWidget> {
         }
       }();
     } catch (e) {
-      debugPrint('❌ Media send setup failed: $e');
+      debugPrint('Media send setup failed: $e');
       if (mounted) {
         setState(() {
           _isUploading = false;

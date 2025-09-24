@@ -25,7 +25,7 @@ class NotificationService {
             localNotifications ?? FlutterLocalNotificationsPlugin();
 
   Future<void> testLocalNotification() async {
-    debugPrint('🧪 Testing local notification...');
+    debugPrint('Testing local notification...');
 
     try {
       const androidDetails = AndroidNotificationDetails(
@@ -59,15 +59,15 @@ class NotificationService {
         details,
       );
 
-      debugPrint('✅ Local notification sent');
+      debugPrint('Local notification sent');
     } catch (e) {
-      debugPrint('❌ Error sending local notification: $e');
+      debugPrint('Error sending local notification: $e');
     }
   }
 
   /// Complete FCM debug test combining repository and service
   Future<Map<String, dynamic>> fullFCMDebugTest() async {
-    debugPrint('🧪 Running full FCM debug test...');
+    debugPrint('Running full FCM debug test...');
 
     try {
       // Test 1: Repository debug
@@ -89,7 +89,7 @@ class NotificationService {
             _generateDebugRecommendations(repoResult, permissionsEnabled),
       };
     } catch (e) {
-      debugPrint('❌ Full debug test failed: $e');
+      debugPrint('Full debug test failed: $e');
       return {
         'error': e.toString(),
         'recommendations': [
@@ -106,26 +106,25 @@ class NotificationService {
     final recommendations = <String>[];
 
     if (!permissionsEnabled) {
-      recommendations.add('❌ Enable notification permissions');
+      recommendations.add('Enable notification permissions');
     }
 
     if (repoResult.containsKey('error')) {
-      recommendations
-          .add('❌ Fix Firebase configuration: ${repoResult['error']}');
+      recommendations.add('Fix Firebase configuration: ${repoResult['error']}');
     } else if (repoResult['cloudFunctionResult']?['success'] == false) {
       final error =
           repoResult['cloudFunctionResult']?['error'] ?? 'Unknown error';
       if (error.contains('INVALID_REGISTRATION_TOKEN')) {
         recommendations
-            .add('❌ FCM token is invalid - check google-services.json');
+            .add('FCM token is invalid - check google-services.json');
       } else if (error.contains('SENDER_ID_MISMATCH')) {
-        recommendations.add(
-            '❌ Sender ID mismatch - verify Firebase project configuration');
+        recommendations
+            .add('Sender ID mismatch - verify Firebase project configuration');
       } else {
-        recommendations.add('❌ Cloud function error: $error');
+        recommendations.add('Cloud function error: $error');
       }
     } else if (repoResult['cloudFunctionResult']?['messageSent'] == true) {
-      recommendations.add('✅ FCM is working correctly!');
+      recommendations.add('FCM is working correctly!');
       recommendations.add('💡 If you still don\'t see notifications, check:');
       recommendations.add('  - App is in background during test');
       recommendations.add('  - Notification channel is created correctly');
@@ -133,7 +132,7 @@ class NotificationService {
     }
 
     if (recommendations.isEmpty) {
-      recommendations.add('✅ All tests passed - FCM should be working');
+      recommendations.add('All tests passed - FCM should be working');
     }
 
     return recommendations;
@@ -153,7 +152,7 @@ class NotificationService {
       // Step 2: Initialize FCM and get token
       final token = await _repository.initializeFCM();
       if (token == null) {
-        debugPrint('⚠️ FCM initialization failed - no token received');
+        debugPrint('FCM initialization failed - no token received');
         return false;
       }
 
@@ -168,14 +167,14 @@ class NotificationService {
       final testResult = await _repository.testCloudFunctionConnectivity();
       if (!testResult['success']) {
         debugPrint(
-            '⚠️ Cloud function connectivity test failed: ${testResult['error']}');
+            'Cloud function connectivity test failed: ${testResult['error']}');
         return false;
       }
 
-      debugPrint('✅ Notification service initialized successfully');
+      debugPrint('Notification service initialized successfully');
       return true;
     } catch (e) {
-      debugPrint('❌ Error initializing notification service: $e');
+      debugPrint('Error initializing notification service: $e');
       return false;
     }
   }
@@ -286,9 +285,9 @@ class NotificationService {
         payload: payload,
       );
 
-      debugPrint('✅ Local notification shown: $title');
+      debugPrint('Local notification shown: $title');
     } catch (e) {
-      debugPrint('❌ Error showing local notification: $e');
+      debugPrint('Error showing local notification: $e');
     }
   }
 
@@ -315,7 +314,7 @@ class NotificationService {
         final data = jsonDecode(response.payload!) as Map<String, dynamic>;
         _processNotificationTap(data, onNotificationTap);
       } catch (e) {
-        debugPrint('❌ Error parsing notification payload: $e');
+        debugPrint('Error parsing notification payload: $e');
       }
     }
   }
@@ -329,7 +328,7 @@ class NotificationService {
       final notificationId = data['notificationId'] as String?;
 
       if (notificationId == null || notificationId.isEmpty) {
-        debugPrint('⚠️ No notification ID in tap data');
+        debugPrint('No notification ID in tap data');
         return;
       }
 
@@ -353,11 +352,11 @@ class NotificationService {
 
       // Mark as read via cloud function (fire and forget)
       _repository.markAsRead(notificationIds: [notificationId]).catchError((e) {
-        debugPrint('⚠️ Failed to mark notification as read: $e');
+        debugPrint('Failed to mark notification as read: $e');
         return <String, dynamic>{}; // Return empty map to satisfy return type
       });
     } catch (e) {
-      debugPrint('❌ Error processing notification tap: $e');
+      debugPrint('Error processing notification tap: $e');
     }
   }
 
@@ -381,13 +380,13 @@ class NotificationService {
   Future<void> clearAllNotifications() async {
     try {
       await _localNotifications.cancelAll();
-      
+
       // Clear iOS app badge
       await _clearIOSBadge();
-      
-      debugPrint('✅ All local notifications cleared');
+
+      debugPrint('All local notifications cleared');
     } catch (e) {
-      debugPrint('❌ Error clearing notifications: $e');
+      debugPrint('Error clearing notifications: $e');
     }
   }
 
@@ -397,23 +396,24 @@ class NotificationService {
       // Clear badge using flutter_local_notifications
       final iosImpl = _localNotifications.resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin>();
-      
+
       if (iosImpl != null) {
         await iosImpl.requestPermissions(
           alert: true,
-          badge: true, 
+          badge: true,
           sound: true,
         );
       }
 
       // Set badge to 0 to clear it
-      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
         sound: true,
       );
     } catch (e) {
-      debugPrint('⚠️ Could not clear iOS badge: $e');
+      debugPrint('Could not clear iOS badge: $e');
     }
   }
 
@@ -424,7 +424,7 @@ class NotificationService {
       // with the proper badge count in the APNS payload
       debugPrint('📱 Badge count should be: $unreadCount');
     } catch (e) {
-      debugPrint('❌ Error updating badge count: $e');
+      debugPrint('Error updating badge count: $e');
     }
   }
 
@@ -433,7 +433,7 @@ class NotificationService {
     try {
       return await _localNotifications.pendingNotificationRequests();
     } catch (e) {
-      debugPrint('❌ Error getting pending notifications: $e');
+      debugPrint('Error getting pending notifications: $e');
       return [];
     }
   }
@@ -455,7 +455,7 @@ class NotificationService {
           await FirebaseMessaging.instance.getNotificationSettings();
       return settings.authorizationStatus == AuthorizationStatus.authorized;
     } catch (e) {
-      debugPrint('❌ Error checking notification permissions: $e');
+      debugPrint('Error checking notification permissions: $e');
       return false;
     }
   }
@@ -476,12 +476,12 @@ class NotificationService {
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized;
       debugPrint(granted
-          ? '✅ Notification permissions granted'
-          : '❌ Notification permissions denied');
+          ? 'Notification permissions granted'
+          : 'Notification permissions denied');
 
       return granted;
     } catch (e) {
-      debugPrint('❌ Error requesting notification permissions: $e');
+      debugPrint('Error requesting notification permissions: $e');
       return false;
     }
   }

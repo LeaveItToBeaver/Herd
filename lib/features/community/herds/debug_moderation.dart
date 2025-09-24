@@ -57,7 +57,7 @@ class ModerationDebugger {
       bool canAccessBannedUsers = false;
       String? bannedUsersError;
       try {
-        debugPrint('🧪 Testing banned users access...');
+        debugPrint('Testing banned users access...');
         final bannedQuery = await _firestore
             .collection('herdBans')
             .doc(herdId)
@@ -76,7 +76,7 @@ class ModerationDebugger {
       bool canAccessHerdBansDoc = false;
       String? herdBansDocError;
       try {
-        debugPrint('🧪 Testing herdBans document access...');
+        debugPrint('Testing herdBans document access...');
         final herdBansDoc =
             await _firestore.collection('herdBans').doc(herdId).get();
         canAccessHerdBansDoc = true;
@@ -120,7 +120,7 @@ class ModerationDebugger {
   static Future<void> testSpecificPermissions(String herdId) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
-      debugPrint('❌ No authenticated user');
+      debugPrint('No authenticated user');
       return;
     }
 

@@ -78,7 +78,7 @@ class MessageRepository {
         if (parts.length == 2) {
           final participants = [parts[0], parts[1]];
           _participantsCache[key] = participants;
-          _v('✅ Derived participants from chatId: $participants');
+          _v('Derived participants from chatId: $participants');
           // Clear cache after 5 minutes to prevent stale data
           Future.delayed(
               const Duration(minutes: 5), () => _participantsCache.remove(key));
@@ -94,13 +94,13 @@ class MessageRepository {
           const Duration(minutes: 5), () => _participantsCache.remove(key));
       return participants;
     } catch (e) {
-      debugPrint('❌ Failed to get cached participants: $e');
+      debugPrint('Failed to get cached participants: $e');
 
       // Emergency fallback: derive from chatId for direct chats
       if (chatId.contains('_')) {
         final parts = chatId.split('_');
         if (parts.length == 2) {
-          _v('🔄 Using emergency fallback for chatId: $chatId');
+          _v('Using emergency fallback for chatId: $chatId');
           return [parts[0], parts[1]];
         }
       }
@@ -113,7 +113,7 @@ class MessageRepository {
     _v('🔑 Getting cached key for user: $userId');
     if (_userKeysCache.containsKey(userId)) {
       final cached = _userKeysCache[userId];
-      _v('✅ Using cached key for $userId: ${cached != null ? 'found' : 'null'}');
+      _v('Using cached key for $userId: ${cached != null ? 'found' : 'null'}');
       return cached;
     }
 
@@ -122,18 +122,18 @@ class MessageRepository {
       final snap = await _firestore.collection('userKeys').doc(userId).get();
       if (snap.exists && snap.data() != null) {
         final publicKey = snap.data()!['publicKey'] as String?;
-        _v('✅ Key retrieved for $userId: ${publicKey != null ? 'found' : 'null'}');
+        _v('Key retrieved for $userId: ${publicKey != null ? 'found' : 'null'}');
         _userKeysCache[userId] = publicKey;
         Future.delayed(
             const Duration(minutes: 10), () => _userKeysCache.remove(userId));
         return publicKey;
       } else {
-        debugPrint('❌ No key document found for user: $userId');
+        debugPrint('No key document found for user: $userId');
         _userKeysCache[userId] = null;
         return null;
       }
     } catch (e) {
-      debugPrint('❌ Failed to get cached user key for $userId: $e');
+      debugPrint('Failed to get cached user key for $userId: $e');
       _userKeysCache[userId] = null;
       return null;
     }
@@ -145,7 +145,7 @@ class MessageRepository {
 
     if (_encryptionCapabilityCache.containsKey(key)) {
       final cached = _encryptionCapabilityCache[key]!;
-      _v('✅ Using cached encryption capability: $cached');
+      _v('Using cached encryption capability: $cached');
       return cached;
     }
 
@@ -154,22 +154,22 @@ class MessageRepository {
         _v('🔑 Checking key for user: $userId');
         final userKey = await _getCachedUserKey(userId);
         if (userKey == null) {
-          _v('❌ No key found for user: $userId');
+          _v('No key found for user: $userId');
           _encryptionCapabilityCache[key] = false;
           Future.delayed(const Duration(minutes: 2),
               () => _encryptionCapabilityCache.remove(key));
           return false;
         } else {
-          _v('✅ Key found for user: $userId');
+          _v('Key found for user: $userId');
         }
       }
-      _v('✅ All participants have keys - encryption enabled');
+      _v('All participants have keys - encryption enabled');
       _encryptionCapabilityCache[key] = true;
       Future.delayed(const Duration(minutes: 5),
           () => _encryptionCapabilityCache.remove(key));
       return true;
     } catch (e) {
-      debugPrint('❌ Failed to check cached encryption capability: $e');
+      debugPrint('Failed to check cached encryption capability: $e');
       _encryptionCapabilityCache[key] = false;
       return false;
     }
@@ -362,7 +362,8 @@ class MessageRepository {
   }) async* {
     // All messages now use hierarchical structure chatMessages/{chatId}/messages
     // The difference is whether they're encrypted or plaintext within that structure
-    await for (final messages in _unifiedMessagesStream(chatId, limit: limit, last: lastDocument)) {
+    await for (final messages
+        in _unifiedMessagesStream(chatId, limit: limit, last: lastDocument)) {
       // Filter out messages from blocked users if currentUserId is provided
       if (currentUserId != null) {
         final filteredMessages = <MessageModel>[];
@@ -370,7 +371,8 @@ class MessageRepository {
           // Skip messages from users who are blocked by current user
           // or who have blocked the current user
           if (message.senderId != currentUserId) {
-            final canInteract = await _canUsersInteract(currentUserId, message.senderId);
+            final canInteract =
+                await _canUsersInteract(currentUserId, message.senderId);
             if (!canInteract) {
               continue; // Skip this message - user is blocked
             }
@@ -415,12 +417,12 @@ class MessageRepository {
             messages.add(_fromHierarchicalDoc(doc));
           }
         } catch (e) {
-          debugPrint('❌ Failed to process message ${doc.id}: $e');
+          debugPrint('Failed to process message ${doc.id}: $e');
           // Skip messages that can't be processed
           continue;
         }
       }
-      _v('✅ Processed ${messages.length} messages successfully');
+      _v('Processed ${messages.length} messages successfully');
 
       return messages;
     });
@@ -587,7 +589,7 @@ class MessageRepository {
       _v('🔐 E2EE capability result: $hasEncryption');
       if (hasEncryption) {
         try {
-          _v('✅ Using encrypted messaging path');
+          _v('Using encrypted messaging path');
           return await sendEncryptedDirect(
             chatId: chatId,
             senderId: senderId,
@@ -599,10 +601,10 @@ class MessageRepository {
           );
         } catch (e) {
           debugPrint(
-              '❌ Encrypted send failed ($e) – falling back to plaintext once');
+              'Encrypted send failed ($e) – falling back to plaintext once');
         }
       } else {
-        debugPrint('⚠️ Falling back to plaintext messaging - missing keys');
+        debugPrint('Falling back to plaintext messaging - missing keys');
       }
     }
 
@@ -691,9 +693,9 @@ class MessageRepository {
         'deletedBy': currentUserId,
       });
 
-      debugPrint('✅ Message soft deleted successfully');
+      debugPrint('Message soft deleted successfully');
     } catch (e) {
-      debugPrint('❌ Error soft deleting message: $e');
+      debugPrint('Error soft deleting message: $e');
       rethrow;
     }
   }
@@ -714,7 +716,7 @@ class MessageRepository {
       final messageDoc = await messageRef.get();
 
       if (!messageDoc.exists) {
-        debugPrint('❌ Message not found');
+        debugPrint('Message not found');
         return false;
       }
 
@@ -722,7 +724,7 @@ class MessageRepository {
       final senderId = messageData['senderId'] as String?;
 
       if (senderId != userId) {
-        debugPrint('❌ User $userId cannot delete message from $senderId');
+        debugPrint('User $userId cannot delete message from $senderId');
         return false;
       }
 
@@ -732,10 +734,10 @@ class MessageRepository {
         'deletedBy': userId,
       });
 
-      debugPrint('✅ Message deleted successfully by $userId');
+      debugPrint('Message deleted successfully by $userId');
       return true;
     } catch (e) {
-      debugPrint('❌ Error deleting message: $e');
+      debugPrint('Error deleting message: $e');
       return false;
     }
   }
@@ -775,7 +777,7 @@ class MessageRepository {
 
     // If no ciphertext, this shouldn't have been called - return plaintext message
     if (data['ciphertext'] == null) {
-      debugPrint('⚠️ _decodeEncrypted called for plaintext message: $id');
+      debugPrint('_decodeEncrypted called for plaintext message: $id');
       final legacyTypeStr = data['type'] as String?;
       final legacyType = legacyTypeStr == null
           ? MessageType.text
@@ -840,19 +842,18 @@ class MessageRepository {
         debugPrint('🔐 Attempting decrypt for message $id using peer $peerId');
         final key = await _getOrDeriveKey(peerId);
         if (key == null) {
-          debugPrint('⚠️ No public key for peer $peerId');
+          debugPrint('No public key for peer $peerId');
           return null;
         }
         final d = await _crypto.decryptPayload(key: key, encrypted: data);
         if (d['content'] != null) {
-          debugPrint(
-              '✅ Decryption succeeded for message $id with peer $peerId');
+          debugPrint('Decryption succeeded for message $id with peer $peerId');
           return d;
         }
-        debugPrint('⚠️ Decryption produced no content for $id with $peerId');
+        debugPrint('Decryption produced no content for $id with $peerId');
         return null;
       } catch (e) {
-        debugPrint('❌ Decryption failed for message $id with peer $peerId: $e');
+        debugPrint('Decryption failed for message $id with peer $peerId: $e');
         return null;
       }
     }
@@ -1110,14 +1111,15 @@ class MessageRepository {
       final snapshot = await _chatMessages(chatId).count().get();
       return snapshot.count ?? 0;
     } catch (e) {
-      debugPrint('❌ Failed to get message count: $e');
+      debugPrint('Failed to get message count: $e');
       return 0;
     }
   }
 
   /// Fetch all messages for a chat (fallback when cache is inconsistent)
-  /// Filters out messages from blocked users for security  
-  Future<List<MessageModel>> fetchAllMessages(String chatId, {String? currentUserId}) async {
+  /// Filters out messages from blocked users for security
+  Future<List<MessageModel>> fetchAllMessages(String chatId,
+      {String? currentUserId}) async {
     try {
       final snapshot = await _chatMessages(chatId)
           .orderBy('timestamp', descending: false)
@@ -1148,12 +1150,12 @@ class MessageRepository {
             messages.add(_fromHierarchicalDoc(doc));
           }
         } catch (e) {
-          debugPrint('❌ Failed to parse message ${doc.id}: $e');
+          debugPrint('Failed to parse message ${doc.id}: $e');
         }
       }
       debugPrint(
           '📊 fetchAllMessages summary for chat $chatId: total=${messages.length}, encrypted=$encryptedCount (ok=$decryptSuccess, failedOrEmpty=$decryptFailed), plaintext=$plaintextCount');
-      
+
       // Filter out messages from blocked users if currentUserId is provided
       if (currentUserId != null) {
         final filteredMessages = <MessageModel>[];
@@ -1161,20 +1163,22 @@ class MessageRepository {
           // Skip messages from users who are blocked by current user
           // or who have blocked the current user
           if (message.senderId != currentUserId) {
-            final canInteract = await _canUsersInteract(currentUserId, message.senderId);
+            final canInteract =
+                await _canUsersInteract(currentUserId, message.senderId);
             if (!canInteract) {
               continue; // Skip this message - user is blocked
             }
           }
           filteredMessages.add(message);
         }
-        debugPrint('🔒 Filtered ${messages.length - filteredMessages.length} messages from blocked users (fetchAll)');
+        debugPrint(
+            '🔒 Filtered ${messages.length - filteredMessages.length} messages from blocked users (fetchAll)');
         return filteredMessages;
       }
-      
+
       return messages;
     } catch (e) {
-      debugPrint('❌ Failed to fetch all messages: $e');
+      debugPrint('Failed to fetch all messages: $e');
       return [];
     }
   }
@@ -1216,7 +1220,7 @@ class MessageRepository {
             plaintextCount++;
             messages.add(_fromHierarchicalDoc(doc));
           } catch (e) {
-            debugPrint('❌ Failed to parse plaintext message ${doc.id}: $e');
+            debugPrint('Failed to parse plaintext message ${doc.id}: $e');
           }
         }
       }
@@ -1311,7 +1315,7 @@ class MessageRepository {
                   messages.add(fallback);
                 } catch (e) {
                   decryptFailed++;
-                  debugPrint('❌ Fallback decrypt failed for ${doc.id}: $e');
+                  debugPrint('Fallback decrypt failed for ${doc.id}: $e');
                   messages.add(_empty(
                       chatId,
                       doc.id,
@@ -1338,7 +1342,7 @@ class MessageRepository {
                 messages.add(decrypted);
               } catch (e) {
                 decryptFailed++;
-                debugPrint('❌ Failed to decrypt (no key path) ${doc.id}: $e');
+                debugPrint('Failed to decrypt (no key path) ${doc.id}: $e');
               }
             }
           }
@@ -1357,14 +1361,14 @@ class MessageRepository {
               messages.add(decrypted);
             } catch (e) {
               decryptFailed++;
-              debugPrint('❌ Failed to decrypt group/unknown ${doc.id}: $e');
+              debugPrint('Failed to decrypt group/unknown ${doc.id}: $e');
             }
           }
         }
       }
       debugPrint(
           '📊 fetchLatestMessages summary for chat $chatId: total=${messages.length}, encrypted=$encryptedCount (ok=$decryptSuccess, failedOrEmpty=$decryptFailed), plaintext=$plaintextCount, after=${afterTimestamp?.toIso8601String()}');
-      
+
       // Filter out messages from blocked users if currentUserId is provided
       if (currentUserId != null) {
         final filteredMessages = <MessageModel>[];
@@ -1372,20 +1376,22 @@ class MessageRepository {
           // Skip messages from users who are blocked by current user
           // or who have blocked the current user
           if (message.senderId != currentUserId) {
-            final canInteract = await _canUsersInteract(currentUserId, message.senderId);
+            final canInteract =
+                await _canUsersInteract(currentUserId, message.senderId);
             if (!canInteract) {
               continue; // Skip this message - user is blocked
             }
           }
           filteredMessages.add(message);
         }
-        debugPrint('🔒 Filtered ${messages.length - filteredMessages.length} messages from blocked users');
+        debugPrint(
+            '🔒 Filtered ${messages.length - filteredMessages.length} messages from blocked users');
         return filteredMessages;
       }
-      
+
       return messages;
     } catch (e) {
-      debugPrint('❌ Failed to fetch latest messages: $e');
+      debugPrint('Failed to fetch latest messages: $e');
       return [];
     }
   }

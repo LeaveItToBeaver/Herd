@@ -93,13 +93,13 @@ Expand the existing "Block/Mute end-to-end" P0 item with comprehensive technical
 
 ## Current State Analysis
 
-### ✅ Already Exists
+### Already Exists
 - **UserModel**: `blockedUsers` and `altBlockedUsers` fields are present
 - **Chat System**: Robust messaging infrastructure with participant management
 - **Feed System**: Post filtering capabilities exist
 - **Settings UI**: Placeholder blocked users dialog exists
 
-### ❌ Missing Implementation
+### Missing Implementation
 - No repository methods to manage blocked users
 - No blocking validation in chat messaging
 - No feed filtering based on blocked users

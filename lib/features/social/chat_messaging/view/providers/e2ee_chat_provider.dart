@@ -41,9 +41,9 @@ final initializeE2eeProvider =
   try {
     // Ensure identity key is published to Firestore
     await crypto.ensureIdentityKeyPublished(FirebaseFirestore.instance, userId);
-    debugPrint('✅ E2EE identity key published for user: $userId');
+    debugPrint('E2EE identity key published for user: $userId');
   } catch (e) {
-    debugPrint('❌ Failed to initialize E2EE for user $userId: $e');
+    debugPrint('Failed to initialize E2EE for user $userId: $e');
     // Re-throw to let the calling code know E2EE setup failed
     throw Exception('E2EE initialization failed: $e');
   }

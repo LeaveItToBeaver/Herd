@@ -76,7 +76,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
   Future<void> _batchInitializePostInteractions(List<PostModel> posts) async {
     if (posts.isEmpty) return;
 
-    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+    debugPrint('Batch initializing interactions for ${posts.length} posts');
 
     for (final post in posts) {
       // Initialize each post's interaction state proactively
@@ -87,7 +87,7 @@ class PublicFeedController extends StateNotifier<PublicFeedState> {
           .initializeState(userId);
     }
 
-    debugPrint('✅ Interactions batch initialization complete');
+    debugPrint('Interactions batch initialization complete');
   }
 
   /// Load initial public feed posts

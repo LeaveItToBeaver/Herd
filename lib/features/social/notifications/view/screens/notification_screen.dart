@@ -36,7 +36,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         final notificationService = ref.read(notificationServiceProvider);
         await notificationService.clearAllNotifications();
       } catch (e) {
-        debugPrint('⚠️ Could not clear local notifications: $e');
+        debugPrint('Could not clear local notifications: $e');
       }
 
       // Load and mark notifications as read
@@ -342,7 +342,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       // Fallback to type-based navigation (legacy)
       _handleLegacyNotificationNavigation(notification, router);
     } catch (e) {
-      debugPrint('❌ Error handling notification tap: $e');
+      debugPrint('Error handling notification tap: $e');
       // Fallback: navigate to notifications screen
       final router = ref.read(goRouterProvider);
       router.push('/notifications');

@@ -31,9 +31,9 @@ class E2EEKeyManager {
           key: _lastSyncTimestampKey,
           value: DateTime.now().millisecondsSinceEpoch.toString());
 
-      debugPrint('✅ E2EE key initialization completed for user: $userId');
+      debugPrint('E2EE key initialization completed for user: $userId');
     } catch (e) {
-      debugPrint('❌ E2EE key initialization failed for user $userId: $e');
+      debugPrint('E2EE key initialization failed for user $userId: $e');
       rethrow;
     }
   }
@@ -47,7 +47,7 @@ class E2EEKeyManager {
   /// Force re-initialization of keys (for manual reset)
   Future<void> resetAndReinitializeKeys(String userId) async {
     try {
-      debugPrint('🔄 Resetting E2EE keys for user: $userId');
+      debugPrint('Resetting E2EE keys for user: $userId');
 
       // Clear local storage
       await _secureStorage.delete(key: _keyInitializedKey);
@@ -59,9 +59,9 @@ class E2EEKeyManager {
       // Reinitialize
       await initializeUserKeys(userId);
 
-      debugPrint('✅ E2EE keys reset and reinitialized for user: $userId');
+      debugPrint('E2EE keys reset and reinitialized for user: $userId');
     } catch (e) {
-      debugPrint('❌ E2EE key reset failed for user $userId: $e');
+      debugPrint('E2EE key reset failed for user $userId: $e');
       rethrow;
     }
   }
@@ -120,10 +120,10 @@ class E2EEKeyManager {
         final remoteKey = userKeyDoc.data()?['publicKey'] as String?;
 
         if (remoteKey != null && remoteKey == localKey) {
-          debugPrint('✅ Local and remote keys match - no sync needed');
+          debugPrint('Local and remote keys match - no sync needed');
           return;
         } else {
-          debugPrint('🔄 Keys don\'t match - updating remote key');
+          debugPrint('Keys don\'t match - updating remote key');
           await _updateRemoteKey(userId, localKey);
         }
       } else {
@@ -131,7 +131,7 @@ class E2EEKeyManager {
         await _updateRemoteKey(userId, localKey);
       }
     } catch (e) {
-      debugPrint('❌ Failed to sync with Firestore: $e');
+      debugPrint('Failed to sync with Firestore: $e');
       rethrow;
     }
   }
@@ -146,7 +146,7 @@ class E2EEKeyManager {
       'version': 1,
     }, SetOptions(merge: true));
 
-    debugPrint('✅ Remote key updated for user: $userId');
+    debugPrint('Remote key updated for user: $userId');
   }
 
   /// Check if user has a remote key in Firestore

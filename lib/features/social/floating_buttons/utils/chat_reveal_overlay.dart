@@ -96,7 +96,7 @@ class ChatRevealOverlay extends CustomPainter {
     canvas.restore();
 
     debugPrint(
-        "🎨 Drew reveal effect: progress=$animationProgress, effectiveProgress=$effectiveProgress, radius=$currentRadius, maxRadius=$maxRadius");
+        "Drew reveal effect: progress=$animationProgress, effectiveProgress=$effectiveProgress, radius=$currentRadius, maxRadius=$maxRadius");
   }
 
   void _drawRippleRings(Canvas canvas, Size size, double progress) {

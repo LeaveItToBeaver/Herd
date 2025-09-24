@@ -15,7 +15,7 @@ Future<void> setupPlatformSpecificFirebase() async {
       androidProvider: AndroidProvider.debug,
       appleProvider: appleProvider,
     );
-    debugPrint('✅ Firebase App Check configured for mobile');
+    debugPrint('Firebase App Check configured for mobile');
 
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(
@@ -28,6 +28,6 @@ Future<void> setupPlatformSpecificFirebase() async {
       sound: true,
     );
   } catch (e) {
-    debugPrint('⚠️ Firebase App Check setup error: $e');
+    debugPrint('Firebase App Check setup error: $e');
   }
 }

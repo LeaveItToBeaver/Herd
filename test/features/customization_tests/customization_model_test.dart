@@ -171,7 +171,7 @@ void main() {
       expect(slow.getAnimationDuration(), const Duration(milliseconds: 500));
     });
 
-    // ✅ Remove the getAnimationCurve test since the method doesn't exist
+    // Remove the getAnimationCurve test since the method doesn't exist
     test('should handle animation curve preferences', () {
       final customization = UICustomizationModel.defaultForUser('test');
 

@@ -12,10 +12,10 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
   }) : super(PostInteractionState.initial());
   Future<void> initializeState(String userId) async {
     debugPrint(
-        '🔄 Initializing interaction state for post: $postId, user: $userId');
+        'Initializing interaction state for post: $postId, user: $userId');
     final result = await loadInteractionStatus(userId);
     debugPrint(
-        '✅ Interaction loaded for post: $postId, isLiked: ${state.isLiked}');
+        'Interaction loaded for post: $postId, isLiked: ${state.isLiked}');
     return result;
   }
 

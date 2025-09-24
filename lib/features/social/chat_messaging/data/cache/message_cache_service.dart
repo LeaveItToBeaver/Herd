@@ -87,13 +87,13 @@ class MessageCacheService {
             message.timestamp.isAfter(existingMessage.timestamp)) {
           existingMap[message.id] = message;
           if (existingMessage == null) {
-            debugPrint('➕ Caching new message: ${message.id}');
+            debugPrint('Caching new message: ${message.id}');
           } else {
-            debugPrint('🔄 Updating cached message: ${message.id}');
+            debugPrint('Updating cached message: ${message.id}');
           }
         }
       } else {
-        debugPrint('⚠️ Skipping duplicate content for message: ${message.id}');
+        debugPrint('Skipping duplicate content for message: ${message.id}');
       }
     }
 
@@ -246,10 +246,10 @@ class MessageCacheService {
       final file = File('${_messagesDir!.path}/$chatId.json');
       if (await file.exists()) {
         await file.delete();
-        debugPrint('🗑️ Cleared cache for chat: $chatId');
+        debugPrint('Cleared cache for chat: $chatId');
       }
     } catch (e) {
-      debugPrint('❌ Error clearing chat cache ($chatId): $e');
+      debugPrint('Error clearing chat cache ($chatId): $e');
     }
   }
 
@@ -269,7 +269,7 @@ class MessageCacheService {
         for (final file in messageFiles) {
           await file.delete();
         }
-        debugPrint('🗑️ Cleared all message cache files');
+        debugPrint('Cleared all message cache files');
       }
 
       // Clear media cache files
@@ -278,12 +278,12 @@ class MessageCacheService {
         for (final file in mediaFiles) {
           await file.delete();
         }
-        debugPrint('🗑️ Cleared all media cache files');
+        debugPrint('Cleared all media cache files');
       }
 
-      debugPrint('✅ All chat caches cleared successfully');
+      debugPrint('All chat caches cleared successfully');
     } catch (e) {
-      debugPrint('❌ Error clearing all caches: $e');
+      debugPrint('Error clearing all caches: $e');
     }
   }
 
@@ -294,7 +294,7 @@ class MessageCacheService {
     // For now, clear all caches since we don't track per-user
     // In the future, we could implement per-user cache directories
     await clearAllCaches();
-    debugPrint('🔄 Cleared cache for user: $userId');
+    debugPrint('Cleared cache for user: $userId');
   }
 
   /// Get cache statistics for debugging
@@ -322,7 +322,7 @@ class MessageCacheService {
         stats['totalDiskSize'] = totalSize;
         stats['totalDiskSizeFormatted'] = _formatBytes(totalSize);
       } catch (e) {
-        debugPrint('❌ Error getting cache stats: $e');
+        debugPrint('Error getting cache stats: $e');
       }
     }
 

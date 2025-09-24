@@ -75,7 +75,7 @@ module.exports = function (admin) {
                         messageId: response
                     };
                 } catch (sendError) {
-                    console.log('❌ Error sending test message:', sendError);
+                    console.log('Error sending test message:', sendError);
 
                     return {
                         success: false,
@@ -95,7 +95,7 @@ module.exports = function (admin) {
             }
 
         } catch (error) {
-            console.log('❌ Error in FCM debug:', error);
+            console.log('Error in FCM debug:', error);
             throw new functions.https.HttpsError('internal', error.message);
         }
     });
@@ -126,7 +126,7 @@ module.exports = function (admin) {
             const userData = userSnapshot.data();
 
             if (!userData || !userData.fcmToken) {
-                logger.log(`❌ No FCM token found for user ${userId}`);
+                logger.log(`No FCM token found for user ${userId}`);
                 return;
             }
 
@@ -248,13 +248,13 @@ module.exports = function (admin) {
             logger.log(`📱 Message structure: ${JSON.stringify(message, null, 2)}`);
 
         } catch (error) {
-            logger.error(`❌ Error sending notification: ${error}`);
-            logger.error(`❌ Error details: ${JSON.stringify(error, null, 2)}`);
+            logger.error(`Error sending notification: ${error}`);
+            logger.error(`Error details: ${JSON.stringify(error, null, 2)}`);
 
             // If token is invalid, remove it from user document
             if (error.code === 'messaging/invalid-registration-token' ||
                 error.code === 'messaging/registration-token-not-registered') {
-                logger.log(`🔄 Removing invalid FCM token for user ${userId}`);
+                logger.log(`Removing invalid FCM token for user ${userId}`);
                 await firestore.collection('users').doc(userId).update({
                     fcmToken: admin.firestore.FieldValue.delete()
                 });
@@ -305,7 +305,7 @@ module.exports = function (admin) {
 
             // Don't create notifications for self-actions
             if (senderId === recipientId) {
-                logger.log(`⚠️ Skipping self-notification for user ${senderId}`);
+                logger.log(`Skipping self-notification for user ${senderId}`);
                 return null;
             }
 
@@ -384,7 +384,7 @@ module.exports = function (admin) {
 
             return notificationData;
         } catch (error) {
-            logger.error(`❌ Error creating notification: ${error}`);
+            logger.error(`Error creating notification: ${error}`);
             throw error;
         }
     }
@@ -676,7 +676,7 @@ module.exports = function (admin) {
                 };
             }
         } catch (error) {
-            logger.error('❌ Error marking notifications as read:', error);
+            logger.error('Error marking notifications as read:', error);
             throw new functions.https.HttpsError('internal', error.message);
         }
     });
@@ -705,7 +705,7 @@ module.exports = function (admin) {
             logger.log(` Updated FCM token for user ${userId}`);
             return { success: true };
         } catch (error) {
-            logger.error(`❌ Error updating FCM token for user ${userId}:`, error);
+            logger.error(`Error updating FCM token for user ${userId}:`, error);
             throw new functions.https.HttpsError('internal', error.message);
         }
     });
@@ -804,7 +804,7 @@ module.exports = function (admin) {
                 }
 
                 if (!postSnapshot.exists) {
-                    logger.error(`❌ Post ${postId} not found for like notification`);
+                    logger.error(`Post ${postId} not found for like notification`);
                     return;
                 }
 
@@ -954,7 +954,7 @@ module.exports = function (admin) {
                 const chatIdParts = chatId.split('_');
 
                 if (chatIdParts.length !== 2) {
-                    logger.log(`⚠️ Unsupported chat format: ${chatId} (group chats not yet supported)`);
+                    logger.log(`Unsupported chat format: ${chatId} (group chats not yet supported)`);
                     return;
                 }
 
@@ -963,7 +963,7 @@ module.exports = function (admin) {
                 const recipientId = user1 === senderId ? user2 : user1;
 
                 if (!recipientId || recipientId === senderId) {
-                    logger.log(`⚠️ Could not determine recipient for chat ${chatId}`);
+                    logger.log(`Could not determine recipient for chat ${chatId}`);
                     return;
                 }
 
@@ -1033,7 +1033,7 @@ module.exports = function (admin) {
                 await batch.commit();
                 return { success: true, count: verifiedIds.length };
             } catch (error) {
-                logger.error('❌ Error deleting notifications:', error);
+                logger.error('Error deleting notifications:', error);
                 throw new functions.https.HttpsError('internal', error.message);
             }
         }),
@@ -1065,7 +1065,7 @@ module.exports = function (admin) {
                 await batch.commit();
                 logger.log(` Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
             } catch (error) {
-                logger.error('❌ Error cleaning up old notifications:', error);
+                logger.error('Error cleaning up old notifications:', error);
             }
         })
     };

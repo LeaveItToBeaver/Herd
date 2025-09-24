@@ -114,7 +114,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   Future<void> _batchInitializePostInteractions(List<PostModel> posts) async {
     if (posts.isEmpty || userId == null) return;
 
-    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+    debugPrint('Batch initializing interactions for ${posts.length} posts');
 
     for (final post in posts) {
       // Initialize each post's interaction state proactively
@@ -125,7 +125,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
           .initializeState(userId!);
     }
 
-    debugPrint('✅ Interactions batch initialization complete');
+    debugPrint('Interactions batch initialization complete');
   }
 
   void _handlePostUpdates(List<PostModel> updatedPosts) {

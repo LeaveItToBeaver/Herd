@@ -25,9 +25,9 @@ class KeystoreRecoveryHelper {
       await prefs.setBool(_authSessionRestoredKey, true);
       await prefs.remove(
           _keystoreCorruptionDetectedKey); // Clear any previous corruption flag
-      debugPrint('✅ Marked successful auth and session restoration');
+      debugPrint('Marked successful auth and session restoration');
     } catch (e) {
-      debugPrint('⚠️ Failed to mark successful auth: $e');
+      debugPrint('Failed to mark successful auth: $e');
     }
   }
 
@@ -36,9 +36,9 @@ class KeystoreRecoveryHelper {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_authSessionRestoredKey, true);
-      debugPrint('✅ Marked auth session as restored');
+      debugPrint('Marked auth session as restored');
     } catch (e) {
-      debugPrint('⚠️ Failed to mark session restored: $e');
+      debugPrint('Failed to mark session restored: $e');
     }
   }
 
@@ -58,7 +58,7 @@ class KeystoreRecoveryHelper {
       // If last auth was within 30 days and session was previously restored
       return timeSinceAuth.inDays <= 30 && wasRestored;
     } catch (e) {
-      debugPrint('⚠️ Failed to check auth session expectation: $e');
+      debugPrint('Failed to check auth session expectation: $e');
       return false;
     }
   }
@@ -77,7 +77,7 @@ class KeystoreRecoveryHelper {
 
       return false;
     } catch (e) {
-      debugPrint('⚠️ Failed to detect keystore corruption: $e');
+      debugPrint('Failed to detect keystore corruption: $e');
       return false;
     }
   }
@@ -90,7 +90,7 @@ class KeystoreRecoveryHelper {
       await prefs.setBool(_authSessionRestoredKey, false);
       debugPrint('🚨 Marked keystore corruption detected');
     } catch (e) {
-      debugPrint('⚠️ Failed to mark keystore corruption: $e');
+      debugPrint('Failed to mark keystore corruption: $e');
     }
   }
 
@@ -100,7 +100,7 @@ class KeystoreRecoveryHelper {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_keystoreCorruptionDetectedKey) ?? false;
     } catch (e) {
-      debugPrint('⚠️ Failed to check keystore corruption status: $e');
+      debugPrint('Failed to check keystore corruption status: $e');
       return false;
     }
   }
@@ -114,7 +114,7 @@ class KeystoreRecoveryHelper {
       await prefs.remove(_authSessionRestoredKey);
       debugPrint('🧹 Cleared all stored auth state');
     } catch (e) {
-      debugPrint('⚠️ Failed to clear auth state: $e');
+      debugPrint('Failed to clear auth state: $e');
     }
   }
 
@@ -153,7 +153,7 @@ You'll need to log in again, but your account and data are safe.
         debugPrint('  - Time since last auth: ${timeSinceAuth.inDays} days');
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to log keystore corruption details: $e');
+      debugPrint('Failed to log keystore corruption details: $e');
     }
   }
 }

@@ -46,7 +46,7 @@ class ChatRepository {
           await _userChats(currentUserId).doc(chatId).get();
 
       if (currentUserChatDoc.exists) {
-        debugPrint('✅ Chat exists, updating info if provided');
+        debugPrint('Chat exists, updating info if provided');
 
         // Chat exists - optionally update other user's info in current user's document
         final updates = <String, dynamic>{};
@@ -145,11 +145,11 @@ class ChatRepository {
       });
 
       await batch.commit();
-      debugPrint('✅ Chat documents created successfully');
+      debugPrint('Chat documents created successfully');
 
       return getChatByBubbleId(chatId, currentUserId);
     } catch (e) {
-      debugPrint('❌ Error creating/getting direct chat: $e');
+      debugPrint('Error creating/getting direct chat: $e');
       return null;
     }
   }
@@ -166,7 +166,7 @@ class ChatRepository {
         if (parts.length == 2) {
           final participants = [parts[0], parts[1]];
           debugPrint(
-              '✅ Derived participants from chatId directly: $participants');
+              'Derived participants from chatId directly: $participants');
           return participants;
         }
       }
@@ -175,12 +175,12 @@ class ChatRepository {
       final userChatDoc = await _userChats(userId).doc(chatId).get();
 
       if (!userChatDoc.exists) {
-        debugPrint('❌ User chat document not found: $chatId for user: $userId');
+        debugPrint('User chat document not found: $chatId for user: $userId');
         // Emergency fallback: try to derive from chatId
         if (chatId.contains('_')) {
           final parts = chatId.split('_');
           if (parts.length == 2) {
-            debugPrint('🔄 Emergency fallback to chatId derivation');
+            debugPrint('Emergency fallback to chatId derivation');
             return [parts[0], parts[1]];
           }
         }
@@ -194,30 +194,30 @@ class ChatRepository {
         // Direct chat: participants are [userId, otherParticipantId]
         final otherParticipantId = data['otherParticipantId'] as String?;
         if (otherParticipantId == null) {
-          debugPrint('❌ No otherParticipantId found in direct chat: $chatId');
+          debugPrint('No otherParticipantId found in direct chat: $chatId');
           return [userId]; // Return at least the current user
         }
 
         final participants = [userId, otherParticipantId];
-        debugPrint('✅ Direct chat participants: $participants');
+        debugPrint('Direct chat participants: $participants');
         return participants;
       } else if (chatType == 'group') {
         // Group chat: participants are stored in the participants array
         final participants = List<String>.from(data['participants'] ?? []);
-        debugPrint('✅ Group chat participants: $participants');
+        debugPrint('Group chat participants: $participants');
         return participants;
       } else {
-        debugPrint('❌ Unknown chat type: $chatType for chat: $chatId');
+        debugPrint('Unknown chat type: $chatType for chat: $chatId');
         return [userId]; // Return at least the current user
       }
     } catch (e) {
-      debugPrint('❌ Error getting chat participants: $e');
+      debugPrint('Error getting chat participants: $e');
 
       // Emergency fallback: derive from chatId for direct chats
       if (chatId.contains('_')) {
         final parts = chatId.split('_');
         if (parts.length == 2) {
-          debugPrint('🔄 Using emergency fallback for chatId: $chatId');
+          debugPrint('Using emergency fallback for chatId: $chatId');
           return [parts[0], parts[1]];
         }
       }
@@ -232,7 +232,7 @@ class ChatRepository {
       final doc = await _userChats(userId).doc(chatId).get();
       return doc.exists;
     } catch (e) {
-      debugPrint('❌ Error checking if chat exists: $e');
+      debugPrint('Error checking if chat exists: $e');
       return false;
     }
   }
@@ -279,13 +279,13 @@ class ChatRepository {
         );
       }).toList();
 
-      debugPrint('✅ Returning ${chatModels.length} chat models');
+      debugPrint('Returning ${chatModels.length} chat models');
 
       // Check for duplicate chat IDs at the source
       final chatIds = chatModels.map((c) => c.id).toList();
       final uniqueIds = chatIds.toSet();
       if (chatIds.length != uniqueIds.length) {
-        debugPrint('⚠️ WARNING: Repository returning duplicate chat IDs!');
+        debugPrint('WARNING: Repository returning duplicate chat IDs!');
         debugPrint('All IDs: $chatIds');
         debugPrint('Unique IDs: $uniqueIds');
       }
@@ -402,7 +402,7 @@ class ChatRepository {
       String bubbleId, String? currentUserId) async {
     try {
       if (currentUserId == null) {
-        debugPrint('❌ Cannot get chat: currentUserId is null');
+        debugPrint('Cannot get chat: currentUserId is null');
         return null;
       }
 
@@ -418,7 +418,7 @@ class ChatRepository {
       final userChatDoc = await _userChats(currentUserId).doc(chatId).get();
 
       if (!userChatDoc.exists) {
-        debugPrint('❌ User chat document not found: $chatId');
+        debugPrint('User chat document not found: $chatId');
         return null;
       }
 
@@ -444,10 +444,10 @@ class ChatRepository {
         groupId: data['type'] == 'group' ? chatId : null,
       );
 
-      debugPrint('✅ User chat found and parsed successfully: ${chatModel.id}');
+      debugPrint('User chat found and parsed successfully: ${chatModel.id}');
       return chatModel;
     } catch (e) {
-      debugPrint('❌ Error in getChatByBubbleId: $e');
+      debugPrint('Error in getChatByBubbleId: $e');
       throw Exception('Failed to get chat by bubble ID: $e');
     }
   }

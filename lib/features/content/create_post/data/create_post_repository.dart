@@ -148,9 +148,9 @@ class CreatePostRepository {
       await batch.commit();
 
       debugPrint(
-          "✅ Post created successfully with ${mediaItems.length} media items and ${mentions?.length ?? 0} mentions");
+          "Post created successfully with ${mediaItems.length} media items and ${mentions?.length ?? 0} mentions");
     } catch (e) {
-      debugPrint("❌ ERROR creating post: $e");
+      debugPrint("ERROR creating post: $e");
       rethrow;
     }
   }

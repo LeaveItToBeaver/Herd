@@ -117,7 +117,7 @@ class CacheManager {
       debugPrint('🔍 Bootstrapping cache...');
       final cacheManager = CacheManager();
       await cacheManager.initialize();
-      debugPrint('✅ Cache bootstrap complete');
+      debugPrint('Cache bootstrap complete');
 
       // Log cache statistics in debug mode
       if (kDebugMode) {
@@ -129,11 +129,11 @@ class CacheManager {
           debugPrint('- Data cache posts: ${cacheStats['postCount'] ?? 0}');
           debugPrint('- Data cache feeds: ${cacheStats['feedCount'] ?? 0}');
         } catch (e) {
-          debugPrint('⚠️ Failed to get cache stats: $e');
+          debugPrint('Failed to get cache stats: $e');
         }
       }
     } catch (e) {
-      debugPrint('❌ Error bootstrapping cache: $e');
+      debugPrint('Error bootstrapping cache: $e');
       // Continue despite error to prevent app startup failure
     }
   }

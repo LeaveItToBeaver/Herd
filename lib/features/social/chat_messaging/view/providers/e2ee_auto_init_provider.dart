@@ -16,12 +16,12 @@ final e2eeAutoInitProvider = FutureProvider<void>((ref) async {
     if (!isInitialized) {
       debugPrint('🔐 Auto-initializing E2EE keys for authenticated user');
       await keyManager.initializeUserKeys(auth.uid);
-      debugPrint('✅ E2EE keys auto-initialized successfully');
+      debugPrint('E2EE keys auto-initialized successfully');
     } else {
-      debugPrint('✅ E2EE keys already initialized for user');
+      debugPrint('E2EE keys already initialized for user');
     }
   } catch (e) {
-    debugPrint('❌ E2EE auto-initialization failed: $e');
+    debugPrint('E2EE auto-initialization failed: $e');
     // Don't throw - allow app to continue without E2EE
   }
 });

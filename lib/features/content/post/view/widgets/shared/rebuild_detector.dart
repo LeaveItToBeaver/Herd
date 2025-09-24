@@ -16,7 +16,7 @@ class RebuildDetector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Log every build
-    debugPrint('🔄 RebuildDetector [$name] building');
+    debugPrint('RebuildDetector [$name] building');
     onRebuild?.call();
 
     // Capture key context data that might be causing rebuilds
@@ -25,7 +25,7 @@ class RebuildDetector extends StatelessWidget {
 
     debugPrint('  📱 MediaQuery - viewInsets: ${mediaQuery.viewInsets}');
     debugPrint('  📱 MediaQuery - size: ${mediaQuery.size}');
-    debugPrint('  🎨 Theme brightness: ${theme.brightness}');
+    debugPrint('  Theme brightness: ${theme.brightness}');
 
     return child;
   }

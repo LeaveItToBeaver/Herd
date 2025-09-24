@@ -11,25 +11,25 @@ class ChatStateCleaner {
   static Future<void> clearAllChatState(WidgetRef ref) async {
     try {
       debugPrint('🧹 Starting manual chat state cleanup...');
-      
+
       // Clear message caches
       final messageCache = ref.read(messageCacheServiceProvider);
       await messageCache.clearAllCaches();
-      
+
       // Reset chat providers
       ref.invalidate(chatStateProvider);
       ref.invalidate(chatPaginationProvider);
-      
+
       // Reset bubble states
       ref.invalidate(chatBubblesEnabledProvider);
       ref.invalidate(chatClosingAnimationProvider);
       ref.invalidate(herdClosingAnimationProvider);
       ref.invalidate(bubbleAnimationCallbackProvider);
       ref.invalidate(explosionRevealProvider);
-      
-      debugPrint('✅ Manual chat state cleanup completed');
+
+      debugPrint('Manual chat state cleanup completed');
     } catch (e) {
-      debugPrint('❌ Error during manual chat state cleanup: $e');
+      debugPrint('Error during manual chat state cleanup: $e');
       rethrow;
     }
   }
@@ -38,13 +38,13 @@ class ChatStateCleaner {
   static Future<void> clearChatCache(WidgetRef ref, String chatId) async {
     try {
       debugPrint('🧹 Clearing cache for chat: $chatId');
-      
+
       final messageCache = ref.read(messageCacheServiceProvider);
       await messageCache.clearChatCache(chatId);
-      
-      debugPrint('✅ Cache cleared for chat: $chatId');
+
+      debugPrint('Cache cleared for chat: $chatId');
     } catch (e) {
-      debugPrint('❌ Error clearing cache for chat $chatId: $e');
+      debugPrint('Error clearing cache for chat $chatId: $e');
       rethrow;
     }
   }
@@ -55,7 +55,7 @@ class ChatStateCleaner {
       final messageCache = ref.read(messageCacheServiceProvider);
       return await messageCache.getCacheStats();
     } catch (e) {
-      debugPrint('❌ Error getting cache stats: $e');
+      debugPrint('Error getting cache stats: $e');
       return {'error': e.toString()};
     }
   }

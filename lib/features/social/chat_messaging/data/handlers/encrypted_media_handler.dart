@@ -69,7 +69,7 @@ class EncryptedMediaMessageHandler {
               otherPubKeyBytes = await _cryptoService.getPeerPublicKeyBytes(
                   _firestore, otherId);
             } catch (re) {
-              debugPrint('❌ Identity key regeneration failed: $re');
+              debugPrint('Identity key regeneration failed: $re');
             }
           } else {
             rethrow;
@@ -170,7 +170,7 @@ class EncryptedMediaMessageHandler {
 
       await batch.commit();
 
-      debugPrint('✅ Encrypted media message sent successfully');
+      debugPrint('Encrypted media message sent successfully');
 
       return MessageModel(
         id: messageRef.id,
@@ -186,7 +186,7 @@ class EncryptedMediaMessageHandler {
         fileSize: uploadResult.originalMetadata['size'],
       );
     } catch (e) {
-      debugPrint('❌ Failed to send encrypted media message: $e');
+      debugPrint('Failed to send encrypted media message: $e');
       rethrow;
     }
   }
@@ -270,7 +270,7 @@ class EncryptedMediaMessageHandler {
         uploadSize: mediaInfo['upload_size'] as int,
       );
     } catch (e) {
-      debugPrint('❌ Failed to decrypt media message: $e');
+      debugPrint('Failed to decrypt media message: $e');
       return null;
     }
   }
@@ -289,7 +289,7 @@ class EncryptedMediaMessageHandler {
         onProgress: onProgress,
       );
     } catch (e) {
-      debugPrint('❌ Failed to download decrypted media: $e');
+      debugPrint('Failed to download decrypted media: $e');
       return null;
     }
   }

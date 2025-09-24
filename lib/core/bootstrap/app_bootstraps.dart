@@ -48,13 +48,12 @@ class AppBootstrap {
 
       if (success) {
         _notificationsInitialized = true;
-        debugPrint(
-            '✅ Notifications initialized successfully for user: $userId');
+        debugPrint('Notifications initialized successfully for user: $userId');
       } else {
-        debugPrint('⚠️ Notification initialization failed for user: $userId');
+        debugPrint('Notification initialization failed for user: $userId');
       }
     } catch (e) {
-      debugPrint('❌ Error initializing notifications: $e');
+      debugPrint('Error initializing notifications: $e');
     }
   }
 
@@ -69,7 +68,7 @@ class AppBootstrap {
       // The notification will also be displayed as a local notification
       // by the NotificationService automatically
     } catch (e) {
-      debugPrint('❌ Error handling foreground message: $e');
+      debugPrint('Error handling foreground message: $e');
     }
   }
 
@@ -85,10 +84,10 @@ class AppBootstrap {
         _notificationsInitialized = false;
         _currentUserId = null;
 
-        debugPrint('✅ Notifications cleaned up');
+        debugPrint('Notifications cleaned up');
       }
     } catch (e) {
-      debugPrint('❌ Error cleaning up notifications: $e');
+      debugPrint('Error cleaning up notifications: $e');
     }
   }
 
@@ -142,7 +141,7 @@ class AppBootstrap {
       // Fallback to type-based navigation (legacy)
       _handleLegacyNotificationNavigation(notification, router);
     } catch (e) {
-      debugPrint('❌ Error handling notification tap: $e');
+      debugPrint('Error handling notification tap: $e');
       // Fallback: navigate to notifications screen
       final router = ref.read(goRouterProvider);
       router.push('/notifications');
@@ -213,12 +212,12 @@ class AppBootstrap {
   /// Test notification functionality (for debugging)
   Future<void> testNotifications(WidgetRef ref) async {
     if (!_notificationsInitialized) {
-      debugPrint('⚠️ Notifications not initialized');
+      debugPrint('Notifications not initialized');
       return;
     }
 
     try {
-      debugPrint('🧪 Testing notification functionality...');
+      debugPrint('Testing notification functionality...');
 
       final notificationService = ref.read(notificationServiceProvider);
 
@@ -234,9 +233,9 @@ class AppBootstrap {
 
       // Show test notification
       await notificationService.showTestNotification();
-      debugPrint('✅ Test notification sent');
+      debugPrint('Test notification sent');
     } catch (e) {
-      debugPrint('❌ Error testing notifications: $e');
+      debugPrint('Error testing notifications: $e');
     }
   }
 
@@ -268,14 +267,14 @@ class AppBootstrap {
       // but we don't need to store anything immediately.
       // This is just to ensure it's ready for use later
       // when needed.
-      debugPrint('✅ Shared preferences initialized');
+      debugPrint('Shared preferences initialized');
 
       // Initialize media cache with better error handling
       try {
         await MediaCacheService().initialize();
-        debugPrint('✅ Media cache service initialized');
+        debugPrint('Media cache service initialized');
       } catch (e) {
-        debugPrint('⚠️ Media cache initialization error: $e');
+        debugPrint('Media cache initialization error: $e');
         // Continue despite error
       }
 
@@ -283,7 +282,7 @@ class AppBootstrap {
       try {
         final cacheManager = CacheManager();
         await cacheManager.initialize();
-        debugPrint('✅ Cache manager initialized');
+        debugPrint('Cache manager initialized');
 
         // Log cache statistics
         if (kDebugMode) {
@@ -297,18 +296,18 @@ class AppBootstrap {
             debugPrint('- Post count: ${cacheStats['postCount'] ?? 0}');
             debugPrint('- Feed count: ${cacheStats['feedCount'] ?? 0}');
           } catch (e) {
-            debugPrint('⚠️ Failed to get cache stats: $e');
+            debugPrint('Failed to get cache stats: $e');
           }
         }
       } catch (e) {
-        debugPrint('⚠️ Cache manager initialization error: $e');
+        debugPrint('Cache manager initialization error: $e');
         // Continue despite error
       }
 
       _isInitialized = true;
-      debugPrint('✅ App initialization complete');
+      debugPrint('App initialization complete');
     } catch (e, stackTrace) {
-      debugPrint('❌ Error during app initialization: $e');
+      debugPrint('Error during app initialization: $e');
       debugPrint(stackTrace.toString());
       // Continue without fatal error
     } finally {
@@ -331,7 +330,7 @@ class AppBootstrap {
   void resetNotifications() {
     _notificationsInitialized = false;
     _currentUserId = null;
-    debugPrint('🔄 Notification state reset');
+    debugPrint('Notification state reset');
   }
 
   /// Check if notifications are initialized
@@ -410,7 +409,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
 
         // Handle initialization errors
         if (snapshot.hasError) {
-          debugPrint('⚠️ Initialization error: ${snapshot.error}');
+          debugPrint('Initialization error: ${snapshot.error}');
           // Continue anyway, but log the error
         }
 

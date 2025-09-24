@@ -60,7 +60,7 @@ class MediaCryptoService {
       final hash = sha256.convert([...keyBytes, ...nonce]).toString();
       final obfuscatedName = '${hash.substring(0, 32)}.enc';
 
-      debugPrint('✅ Media encryption completed');
+      debugPrint('Media encryption completed');
 
       return EncryptedMediaResult(
         encryptedData: Uint8List.fromList(encryptedBox.cipherText),
@@ -70,7 +70,7 @@ class MediaCryptoService {
         originalMetadata: metadata,
       );
     } catch (e) {
-      debugPrint('❌ Media encryption failed: $e');
+      debugPrint('Media encryption failed: $e');
       rethrow;
     }
   }
@@ -106,14 +106,14 @@ class MediaCryptoService {
       // Extract file data
       final fileData = decryptedPayload.sublist(4 + metadataLength);
 
-      debugPrint('✅ Media decryption completed: ${metadata['originalName']}');
+      debugPrint('Media decryption completed: ${metadata['originalName']}');
 
       return DecryptedMediaResult(
         fileData: Uint8List.fromList(fileData),
         metadata: MediaMetadata.fromJson(metadata),
       );
     } catch (e) {
-      debugPrint('❌ Media decryption failed: $e');
+      debugPrint('Media decryption failed: $e');
       rethrow;
     }
   }

@@ -378,7 +378,7 @@ class _NotificationSettingsScreenState
 
   String _formatTokenDebugResult(Map<String, dynamic> result) {
     if (result.containsKey('error')) {
-      return '❌ Error: ${result['error']}';
+      return 'Error: ${result['error']}';
     }
 
     final buffer = StringBuffer();
@@ -397,18 +397,18 @@ class _NotificationSettingsScreenState
 
     if (tokenSaved && messageSent) {
       buffer.writeln('\n🎉 SUCCESS: FCM is working perfectly!');
-      buffer.writeln('✅ Token saved to Firestore');
-      buffer.writeln('✅ Test notification sent');
+      buffer.writeln('Token saved to Firestore');
+      buffer.writeln('Test notification sent');
       buffer.writeln('📱 Check your device notification tray');
       buffer.writeln('\n💡 If you don\'t see the notification:');
       buffer.writeln('  • Make sure app is in background');
       buffer.writeln('  • Check device notification settings');
       buffer.writeln('  • Try "Test Local Notification" button');
     } else if (tokenSaved && !messageSent) {
-      buffer.writeln('\n⚠️ PARTIAL SUCCESS: Token saved but message failed');
+      buffer.writeln('\nPARTIAL SUCCESS: Token saved but message failed');
       buffer.writeln('🔍 Check cloud function logs for send errors');
     } else {
-      buffer.writeln('\n❌ ISSUE: Token not saved to Firestore');
+      buffer.writeln('\nISSUE: Token not saved to Firestore');
       buffer.writeln('🔍 Check updateFCMToken cloud function logs');
     }
 
@@ -597,9 +597,9 @@ class _NotificationSettingsScreenState
                       children: [
                         Text(
                           rec.startsWith('✅')
-                              ? '✅ '
+                              ? ''
                               : rec.startsWith('❌')
-                                  ? '❌ '
+                                  ? ''
                                   : rec.startsWith('💡')
                                       ? '💡 '
                                       : '• ',

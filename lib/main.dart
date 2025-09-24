@@ -56,7 +56,7 @@ void main() async {
 
     debugPrint('Main initialization complete');
   } catch (e, stackTrace) {
-    debugPrint('❌ Error in main initialization: $e');
+    debugPrint('Error in main initialization: $e');
     debugPrint(stackTrace.toString());
   }
 
@@ -97,7 +97,7 @@ void main() async {
 //     debugPrint(
 //         '🔔 Firebase Messaging permission status: ${settings.authorizationStatus}');
 //   } catch (e) {
-//     debugPrint('⚠️ Firebase App Check setup error: $e');
+//     debugPrint('Firebase App Check setup error: $e');
 //     // Continue without App Check in case of errors
 //   }
 // }
@@ -117,7 +117,7 @@ class MyApp extends ConsumerWidget {
 
     final authReady = ref.watch(authReadyProvider);
     final user = ref.watch(authProvider);
-    debugPrint('🧪 Building MyApp: authReady=$authReady user=${user?.uid}');
+    debugPrint('Building MyApp: authReady=$authReady user=${user?.uid}');
 
     // Get theme mode from customization or default to system
     final themeMode = customizationAsync.maybeWhen(

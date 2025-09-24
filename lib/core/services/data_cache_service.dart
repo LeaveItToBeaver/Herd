@@ -145,9 +145,9 @@ class DataCacheService {
       // Update metadata
       await _saveFeedMetadata(feedKey, userId, isAlt, herdId);
 
-      debugPrint('✅ Cached feed for user $userId with ${posts.length} posts');
+      debugPrint('Cached feed for user $userId with ${posts.length} posts');
     } catch (e) {
-      debugPrint('❌ Error caching feed: $e');
+      debugPrint('Error caching feed: $e');
     }
   }
 
@@ -419,7 +419,7 @@ class DataCacheService {
             prefs.getStringList('data_cache_post_access_list');
         debugPrint('Found ${postAccessList?.length ?? 0} posts in access list');
       } catch (e) {
-        debugPrint('⚠️ Error reading post access list: $e');
+        debugPrint('Error reading post access list: $e');
         resetPostAccessList = true;
       }
 
@@ -428,7 +428,7 @@ class DataCacheService {
             prefs.getStringList('data_cache_feed_access_list');
         debugPrint('Found ${feedAccessList?.length ?? 0} feeds in access list');
       } catch (e) {
-        debugPrint('⚠️ Error reading feed access list: $e');
+        debugPrint('Error reading feed access list: $e');
         resetFeedAccessList = true;
       }
 
@@ -436,13 +436,13 @@ class DataCacheService {
       if (resetPostAccessList) {
         await prefs.remove('data_cache_post_access_list');
         await prefs.setStringList('data_cache_post_access_list', []);
-        debugPrint('✅ Reset post access list');
+        debugPrint('Reset post access list');
       }
 
       if (resetFeedAccessList) {
         await prefs.remove('data_cache_feed_access_list');
         await prefs.setStringList('data_cache_feed_access_list', []);
-        debugPrint('✅ Reset feed access list');
+        debugPrint('Reset feed access list');
       }
 
       // Load post metadata with better error handling

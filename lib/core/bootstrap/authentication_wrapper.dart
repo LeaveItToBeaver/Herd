@@ -489,9 +489,9 @@ class _NotificationSettingsScreenState
                       children: [
                         Text(
                           rec.startsWith('✅')
-                              ? '✅ '
+                              ? ''
                               : rec.startsWith('❌')
-                                  ? '❌ '
+                                  ? ''
                                   : rec.startsWith('💡')
                                       ? '💡 '
                                       : '• ',

@@ -31,7 +31,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
   Future<void> loadUserChats() async {
     final currentUser = ref.read(authProvider);
     if (currentUser == null) {
-      debugPrint('❌ No current user, clearing chats');
+      debugPrint('No current user, clearing chats');
       _currentUserId = null;
       state = [];
       return;
@@ -49,7 +49,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
     // Cancel previous subscription if exists
     _chatSubscription?.cancel();
 
-    debugPrint('🔄 Loading chats for user: ${currentUser.uid}');
+    debugPrint('Loading chats for user: ${currentUser.uid}');
 
     // Listen to user's chats with real-time updates
     _chatSubscription = chatRepo.getUserChats(currentUser.uid).listen(
@@ -61,7 +61,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
         final uniqueIds = chatIds.toSet();
 
         if (chatIds.length != uniqueIds.length) {
-          debugPrint('⚠️ WARNING: Duplicate chat IDs detected!');
+          debugPrint('WARNING: Duplicate chat IDs detected!');
           debugPrint('All IDs: $chatIds');
           debugPrint('Unique IDs: $uniqueIds');
 
@@ -76,23 +76,23 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
           state = chats;
         }
 
-        debugPrint('✅ Updated state with ${state.length} unique chats');
+        debugPrint('Updated state with ${state.length} unique chats');
       },
       onError: (error) {
-        debugPrint('❌ Error loading chats: $error');
+        debugPrint('Error loading chats: $error');
         // Don't clear state on error, keep existing chats
       },
     );
   }
 
   void addChatBubble(ChatModel chat) {
-    debugPrint('➕ Adding chat bubble: ${chat.id}');
+    debugPrint('Adding chat bubble: ${chat.id}');
 
     // Check if chat already exists
     final existingIndex = state.indexWhere((c) => c.id == chat.id);
 
     if (existingIndex >= 0) {
-      debugPrint('🔄 Updating existing chat: ${chat.id}');
+      debugPrint('Updating existing chat: ${chat.id}');
       // Update existing chat
       final updatedChats = [...state];
       updatedChats[existingIndex] = chat;

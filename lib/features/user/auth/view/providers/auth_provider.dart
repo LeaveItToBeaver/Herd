@@ -48,16 +48,16 @@ class AuthNotifier extends StateNotifier<User?> {
         }
         if (state?.uid != user?.uid) {
           debugPrint(
-              '🔄 Auth state change: ${state?.uid ?? 'null'} -> ${user?.uid ?? 'null'}');
+              'Auth state change: ${state?.uid ?? 'null'} -> ${user?.uid ?? 'null'}');
           if (user != null) {
             debugPrint(
-                '🔄 User details - email: ${user.email}, verified: ${user.emailVerified}');
+                'User details - email: ${user.email}, verified: ${user.emailVerified}');
           }
         }
         state = user;
       }
     }, onError: (err, stack) {
-      debugPrint('❌ Auth stream error: $err');
+      debugPrint('Auth stream error: $err');
       // Still mark as ready even if there's an error - don't block the UI
       if (!_initialEventReceived) {
         _initialEventReceived = true;
@@ -72,7 +72,7 @@ class AuthNotifier extends StateNotifier<User?> {
       if (user != null) {
         // User was restored from persistence - mark this success
         await KeystoreRecoveryHelper.markSessionRestored();
-        debugPrint('✅ Auth session restored successfully');
+        debugPrint('Auth session restored successfully');
       } else {
         // No user restored - check if we should have expected one
         final shouldExpectAuth =
@@ -88,7 +88,7 @@ class AuthNotifier extends StateNotifier<User?> {
         }
       }
     } catch (e) {
-      debugPrint('⚠️ Error in auth state restoration handling: $e');
+      debugPrint('Error in auth state restoration handling: $e');
     }
   }
 
@@ -98,13 +98,13 @@ class AuthNotifier extends StateNotifier<User?> {
       // setPersistence() is only for web platforms
       if (kIsWeb) {
         await _auth.setPersistence(Persistence.LOCAL);
-        debugPrint('✅ Firebase Auth web persistence set to LOCAL');
+        debugPrint('Firebase Auth web persistence set to LOCAL');
       } else {
         // On mobile, check if we have a current user from persistence
         final currentUser = _auth.currentUser;
         if (currentUser != null) {
           debugPrint(
-              '✅ Firebase Auth mobile persistence working - user: ${currentUser.uid}');
+              'Firebase Auth mobile persistence working - user: ${currentUser.uid}');
         } else {
           debugPrint('ℹ️ Firebase Auth mobile persistence - no stored user');
 
@@ -119,7 +119,7 @@ class AuthNotifier extends StateNotifier<User?> {
         }
       }
     } catch (e) {
-      debugPrint('⚠️ Could not configure auth persistence: $e');
+      debugPrint('Could not configure auth persistence: $e');
       // Check if this error is keystore-related
       if (e.toString().toLowerCase().contains('keystore') ||
           e.toString().toLowerCase().contains('keysetmanager')) {
@@ -142,14 +142,14 @@ class AuthNotifier extends StateNotifier<User?> {
             '� No stored Firebase Auth user found, no keystore corruption detected');
       }
     } catch (e) {
-      debugPrint('⚠️ Error checking for keystore issues: $e');
+      debugPrint('Error checking for keystore issues: $e');
     }
   }
 
   void _handleKeystoreAuthIssue() {
     debugPrint('🔧 Handling keystore-related auth issue');
     debugPrint(
-        '🔄 Firebase Auth persistence may be affected by keystore corruption');
+        'Firebase Auth persistence may be affected by keystore corruption');
     debugPrint('💡 User will need to log in again');
 
     // In a production app, you might want to:
@@ -174,7 +174,7 @@ class AuthNotifier extends StateNotifier<User?> {
         password: password,
       );
 
-      debugPrint('✅ Sign in successful for user: ${userCredential.user?.uid}');
+      debugPrint('Sign in successful for user: ${userCredential.user?.uid}');
 
       // Mark successful authentication for keystore recovery tracking
       await KeystoreRecoveryHelper.markSuccessfulAuth();
@@ -184,10 +184,10 @@ class AuthNotifier extends StateNotifier<User?> {
         final currentUser = _auth.currentUser;
         if (currentUser != null) {
           debugPrint(
-              '✅ Post-login persistence check: user ${currentUser.uid} is persisted');
+              'Post-login persistence check: user ${currentUser.uid} is persisted');
         } else {
           debugPrint(
-              '⚠️ Post-login persistence check: user not persisted (keystore issue)');
+              'Post-login persistence check: user not persisted (keystore issue)');
         }
       });
 
@@ -250,7 +250,7 @@ class AuthNotifier extends StateNotifier<User?> {
 
   Future<void> signOut() async {
     try {
-      debugPrint('🔄 Starting logout process...');
+      debugPrint('Starting logout process...');
 
       // 1. Clear chat message caches
       final messageCache = _ref.read(messageCacheServiceProvider);
@@ -275,9 +275,9 @@ class AuthNotifier extends StateNotifier<User?> {
       await _auth.signOut();
       state = null;
 
-      debugPrint('✅ Logout completed successfully');
+      debugPrint('Logout completed successfully');
     } catch (e) {
-      debugPrint('❌ Error during logout: $e');
+      debugPrint('Error during logout: $e');
       // Still try to sign out even if cleanup fails
       await _auth.signOut();
       state = null;

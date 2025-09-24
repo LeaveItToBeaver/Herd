@@ -42,7 +42,8 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
       // Check if this is a different user than before
       final currentUserId = firebaseUser.uid;
       if (_lastUserId != null && _lastUserId != currentUserId) {
-        debugPrint('🔄 User changed from $_lastUserId to $currentUserId - clearing caches');
+        debugPrint(
+            'User changed from $_lastUserId to $currentUserId - clearing caches');
         await _clearCachesForUserChange(_lastUserId!, currentUserId);
       }
       _lastUserId = currentUserId;
@@ -64,7 +65,8 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   /// Clear caches when switching between users
-  Future<void> _clearCachesForUserChange(String oldUserId, String newUserId) async {
+  Future<void> _clearCachesForUserChange(
+      String oldUserId, String newUserId) async {
     try {
       // Clear message caches
       final messageCache = _ref.read(messageCacheServiceProvider);
@@ -73,14 +75,14 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
       // Reset chat providers
       _ref.invalidate(chatStateProvider);
       _ref.invalidate(chatPaginationProvider);
-      
+
       // Note: We don't invalidate family providers like messagesProvider, currentChatProvider
       // and messageInputProvider because they are chat-specific and will be cleaned up
       // when the cache is cleared. They will refresh with new data when needed.
 
-      debugPrint('✅ Caches cleared for user switch: $oldUserId → $newUserId');
+      debugPrint('Caches cleared for user switch: $oldUserId → $newUserId');
     } catch (e) {
-      debugPrint('❌ Error clearing caches during user switch: $e');
+      debugPrint('Error clearing caches during user switch: $e');
     }
   }
 
@@ -97,9 +99,9 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
       // Update FCM token for this user
       await notificationRepo.updateFCMToken(fcmToken);
 
-      debugPrint('✅ FCM token initialized for user: $userId');
+      debugPrint('FCM token initialized for user: $userId');
     } catch (e) {
-      debugPrint('❌ Error initializing FCM for user $userId: $e');
+      debugPrint('Error initializing FCM for user $userId: $e');
     }
   }
 }

@@ -57,7 +57,7 @@ class OptimisticMessagesNotifier
     final newState = Map<String, MessageModel>.from(state);
     newState[message.id] = message;
     state = newState;
-    _vc('➕ Added optimistic message: ${message.id}');
+    _vc('Added optimistic message: ${message.id}');
   }
 
   void updateMessageStatus(String messageId, MessageStatus status,
@@ -68,7 +68,7 @@ class OptimisticMessagesNotifier
       final newState = Map<String, MessageModel>.from(state);
       newState[messageId] = updatedMessage;
       state = newState;
-      _vc('🔄 Updated message $messageId status: ${status.displayText}');
+      _vc('Updated message $messageId status: ${status.displayText}');
       if (status == MessageStatus.delivered) {
         Future.delayed(const Duration(milliseconds: 800), () {
           removeOptimisticMessage(messageId);
@@ -146,7 +146,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
             '📱 Loaded ${sorted.length} cached messages for chat: $_chatId');
       }
     } catch (e) {
-      debugPrint('⚠️ Cache load failed: $e');
+      debugPrint('Cache load failed: $e');
     }
 
     // Initial incremental fetch (will fetch all if no cache watermark)
@@ -167,7 +167,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       // Get current user ID for message filtering
       final currentUser = _ref.read(authProvider);
       final currentUserId = currentUser?.uid;
-      
+
       final newMessages = await repo.fetchLatestMessages(
         _chatId,
         afterTimestamp: latestTs,
@@ -198,9 +198,9 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       state = state.copyWith(messages: sorted);
       await cache.putMessages(_chatId, sorted);
       _lastFetchedTimestamp = sorted.last.timestamp;
-      _vc('✅ Added ${newMessages.length} new messages (watermark=${_lastFetchedTimestamp!.toIso8601String()})');
+      _vc('Added ${newMessages.length} new messages (watermark=${_lastFetchedTimestamp!.toIso8601String()})');
     } catch (e) {
-      debugPrint('❌ Incremental fetch error: $e');
+      debugPrint('Incremental fetch error: $e');
     }
   }
 
@@ -214,9 +214,9 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       state = state.copyWith(messages: sorted);
       await cache.putMessages(_chatId, sorted);
       _lastFetchedTimestamp = sorted.isNotEmpty ? sorted.last.timestamp : null;
-      _vc('🔄 Manual refetch loaded ${sorted.length} messages');
+      _vc('Manual refetch loaded ${sorted.length} messages');
     } catch (e) {
-      debugPrint('❌ Manual refetch error: $e');
+      debugPrint('Manual refetch error: $e');
     }
   }
 
@@ -239,7 +239,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     final cache = _ref.read(messageCacheServiceProvider);
     await cache.putMessages(_chatId, sortedMessages);
 
-    debugPrint('➕ Added optimistic message locally: ${message.id}');
+    debugPrint('Added optimistic message locally: ${message.id}');
   }
 
   // Update message status without removing it
@@ -253,7 +253,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
 
     state = state.copyWith(messages: updatedMessages);
     debugPrint(
-        '🔄 Updated message status locally: $messageId -> ${status.displayText}');
+        'Updated message status locally: $messageId -> ${status.displayText}');
   }
 
   // Replace temporary ID with server ID (when server responds)
@@ -272,8 +272,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     final cache = _ref.read(messageCacheServiceProvider);
     await cache.putMessages(_chatId, updatedMessages);
 
-    debugPrint(
-        '🔄 Replaced optimistic message: $tempId -> ${serverMessage.id}');
+    debugPrint('Replaced optimistic message: $tempId -> ${serverMessage.id}');
   }
 
   List<MessageModel> _sortMessages(List<MessageModel> messages) {
@@ -378,9 +377,9 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
       final messagesRepo = _ref.read(messageRepositoryProvider);
       await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
 
-      _vc('✅ Marked chat $chatId as read for user ${authUser.uid}');
+      _vc('Marked chat $chatId as read for user ${authUser.uid}');
     } catch (e) {
-      debugPrint('❌ Failed to mark chat as read: $e');
+      debugPrint('Failed to mark chat as read: $e');
     }
   }
 
@@ -389,9 +388,9 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
     try {
       final cache = _ref.read(messageCacheServiceProvider);
       await cache.clearAllCaches();
-      _vc('🗑️ Cleared all message caches');
+      _vc('Cleared all message caches');
     } catch (e) {
-      debugPrint('❌ Failed to clear caches: $e');
+      debugPrint('Failed to clear caches: $e');
     }
   }
 }
@@ -516,12 +515,12 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
       // Replace temp ID with server ID (no UI disruption)
       messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
 
-      _vc('✅ Message sent successfully: ${sentMessage.id}');
+      _vc('Message sent successfully: ${sentMessage.id}');
     } catch (error) {
       // Mark as failed if sending failed
       messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
 
-      debugPrint('❌ Failed to send message: $error');
+      debugPrint('Failed to send message: $error');
 
       // Show error in input state for user awareness
       state = state.copyWith(error: 'Failed to send message. Tap to retry.');
@@ -558,7 +557,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     } catch (error) {
       // Mark as failed again
       messagesNotifier.updateMessageStatus(messageId, MessageStatus.failed);
-      debugPrint('❌ Retry failed: $error');
+      debugPrint('Retry failed: $error');
     }
   }
 
@@ -711,10 +710,7 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   /// Get cached participants for a chat
   Future<List<String>> _getCachedParticipants(
       String chatId, String currentUserId) async {
-    // Use the MessageRepository's existing _getCachedParticipants method through reflection or expose it
-    // For now, let's implement a simple version that works with direct chats
     try {
-      // For direct chats, we can derive participants from chatId format
       if (chatId.contains('_')) {
         final parts = chatId.split('_');
         if (parts.length == 2) {
@@ -725,7 +721,6 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
       // Fallback - at minimum we know the current user is a participant
       return [currentUserId];
     } catch (e) {
-      // Fallback - at minimum we know the current user is a participant
       return [currentUserId];
     }
   }
@@ -747,12 +742,9 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     try {
       // Determine last snapshot by querying one doc (inefficient placeholder) – improvement: retain snapshots in state.
       // For legacy path we need lastDocument; for now we re-query last N messages and use startAfter.
-      // Simplification: not maintaining DocumentSnapshot chain here -> scope for future enhancement.
-      final page = await repo.fetchMessagePage(
-          chatId: chatId,
-          limit: repo.pageSize); // currently always first page again
+      final page =
+          await repo.fetchMessagePage(chatId: chatId, limit: repo.pageSize);
       // TODO: Implement real pagination using retained last DocumentSnapshot.
-      // For now, pretend exhausted if page smaller than size OR no new IDs.
       final existingIds = state.messages.map((m) => m.id).toSet();
       final newOnes = page.where((m) => !existingIds.contains(m.id)).toList();
       if (newOnes.isEmpty) {
