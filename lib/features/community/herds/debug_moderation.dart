@@ -48,7 +48,7 @@ class ModerationDebugger {
 
       if (memberDoc.exists) {
         memberData = memberDoc.data();
-        debugPrint('Member Document: ${memberData}');
+        debugPrint('Member Document: $memberData');
       } else {
         debugPrint('Member Document: Not found');
       }

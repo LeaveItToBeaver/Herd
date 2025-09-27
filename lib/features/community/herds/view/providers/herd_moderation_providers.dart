@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -13,13 +14,14 @@ final bannedUsersProvider =
   } on FirebaseException catch (e) {
     if (e.code == 'permission-denied') {
       // Log the specific permission error
-      print('Permission denied when fetching banned users for herd: $herdId');
+      debugPrint(
+          'Permission denied when fetching banned users for herd: $herdId');
       // Return empty list instead of throwing
       return <BannedUserInfo>[];
     }
     rethrow;
   } catch (e) {
-    print('Error in bannedUsersProvider: $e');
+    debugPrint('Error in bannedUsersProvider: $e');
     rethrow;
   }
 });

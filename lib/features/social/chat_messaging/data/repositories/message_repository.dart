@@ -1398,7 +1398,7 @@ class MessageRepository {
 }
 
 /// Top-level isolate entry for decrypting a single payload with ChaCha20-Poly1305.
-/// Expects map: { 'key': List<int>, 'ciphertext': String(base64), 'nonce': String(base64), 'mac': String(base64) }
+/// Expects map: { 'key': List< int >, 'ciphertext': String(base64), 'nonce': String(base64), 'mac': String(base64) }
 Future<Map<String, dynamic>?> _decryptPayloadIsolate(
     Map<String, dynamic> args) async {
   try {
