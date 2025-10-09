@@ -64,6 +64,9 @@ class FloatingButtonsColumn extends ConsumerWidget {
             ref.read(activeOverlayTypeProvider.notifier).state = null;
             navigate();
           }
+
+          // Potential logic bug here. We might need to investigate this later.
+          // Ideally, the
         } else if (activeOverlay == OverlayType.herd) {
           final herdBubbleId = ref.read(herdTriggeredByBubbleProvider);
           ref.read(herdOverlayOpenProvider.notifier).state = false;

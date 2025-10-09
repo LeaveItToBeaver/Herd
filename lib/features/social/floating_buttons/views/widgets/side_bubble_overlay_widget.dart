@@ -175,27 +175,35 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       // Register close animation callbacks for herd bubbles
       final currentUser = ref.read(authProvider);
       if (currentUser != null) {
+        // FIX: Use ref.read instead of ref.watch in update function
         final userHerdsAsync =
-            ref.watch(profileUserHerdsProvider(currentUser.uid));
+            ref.read(profileUserHerdsProvider(currentUser.uid));
         if (userHerdsAsync.hasValue && userHerdsAsync.value != null) {
           final herds = userHerdsAsync.value!;
+          debugPrint('Registering callbacks for ${herds.length} herds');
           for (final herd in herds) {
             final herdBubbleId = 'herd_${herd.id}';
             newState[herdBubbleId] =
                 () => _startCloseAnimation(herdBubbleId, true); // true = herd
             newState['${herdBubbleId}_snapback'] =
                 () => _snapBackAfterCloseHerd(); // Snap back callback
+            debugPrint('Registered callback for herd bubble: $herdBubbleId');
           }
+        } else {
+          debugPrint(
+              'No herds available yet (hasValue: ${userHerdsAsync.hasValue}, value: ${userHerdsAsync.value})');
         }
       }
 
+      debugPrint(
+          'Total callbacks registered: ${newState.length}, keys: ${newState.keys.toList()}');
       return newState;
     });
   }
 
   /// Unified close animation method for both chat and herd bubbles
   void _startCloseAnimation(String bubbleId, bool isHerd) {
-    debugPrint("🎆 _startCloseAnimation called for $bubbleId, isHerd: $isHerd");
+    debugPrint("_startCloseAnimation called for $bubbleId, isHerd: $isHerd");
 
     // Check if animation is already in progress to prevent duplicate calls
     final currentReveal = ref.read(explosionRevealProvider);
@@ -203,7 +211,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         currentReveal.isActive &&
         currentReveal.isClosing) {
       debugPrint(
-          "🎆 Close animation already in progress, ignoring duplicate call");
+          "Close animation already in progress, ignoring duplicate call");
       return;
     }
 
@@ -216,7 +224,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
     }
 
     if (_dragState == null) {
-      debugPrint("🎆 No drag state, closing overlay directly");
+      debugPrint("No drag state, closing overlay directly");
       // No animation, just close directly
       if (isHerd) {
         ref.read(herdOverlayOpenProvider.notifier).state = false;
@@ -241,7 +249,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       // Reuse the opening animation's center for perfect symmetry
       bubbleGlobalCenter = existingReveal.center;
       debugPrint(
-          "🎆 Reusing opening animation center for CLOSING: $bubbleGlobalCenter, bubbleId: $bubbleId");
+          "Reusing opening animation center for CLOSING: $bubbleGlobalCenter, bubbleId: $bubbleId");
     } else if (containerRenderBox != null) {
       // Fallback to calculating center from current position
       final containerGlobalPos = containerRenderBox.localToGlobal(Offset.zero);
@@ -250,14 +258,14 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           Offset(_dragState!.bubbleConfig.effectiveSize / 2,
               _dragState!.bubbleConfig.effectiveSize / 2);
       debugPrint(
-          "🎆 Calculated new center for CLOSING animation: $bubbleGlobalCenter, bubbleId: $bubbleId");
+          "Calculated new center for CLOSING animation: $bubbleGlobalCenter, bubbleId: $bubbleId");
     } else {
-      debugPrint("🎆 Could not determine bubble center for closing animation");
+      debugPrint("Could not determine bubble center for closing animation");
       return;
     }
 
     debugPrint(
-        "🎆 Setting explosion reveal for CLOSING animation at center: $bubbleGlobalCenter, bubbleId: $bubbleId");
+        "Setting explosion reveal for CLOSING animation at center: $bubbleGlobalCenter, bubbleId: $bubbleId");
 
     // Set the closing animation state BEFORE any overlay state changes
     // This ensures AnimatedRevealOverlay will handle the animation properly
@@ -274,7 +282,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   }
 
   void _snapBackAfterCloseHerd() {
-    debugPrint("🎆 _snapBackAfterCloseHerd called - closing overlay states");
+    debugPrint("_snapBackAfterCloseHerd called - closing overlay states");
 
     // Close overlay states
     ref.read(herdOverlayOpenProvider.notifier).state = false;
@@ -532,7 +540,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
               _dragState!.bubbleConfig.effectiveSize / 2);
 
       debugPrint(
-          "🎆 Setting explosion reveal for chat at center: $bubbleGlobalCenter, bubbleId: ${_dragState!.bubbleId}");
+          "Setting explosion reveal for chat at center: $bubbleGlobalCenter, bubbleId: ${_dragState!.bubbleId}");
       ref.read(explosionRevealProvider.notifier).state = (
         isActive: true,
         center: bubbleGlobalCenter,
@@ -628,7 +636,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         // DO NOT clear explosion reveal state here - keep it active for potential closing animation
         // The closing animation will handle clearing it when appropriate
         debugPrint(
-            "🎆 Opening animation completed, keeping explosion reveal active for closing");
+            "Opening animation completed, keeping explosion reveal active for closing");
       }
     });
 
@@ -693,7 +701,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   }
 
   void _snapBackAfterClose() {
-    debugPrint("🎆 _snapBackAfterClose called - closing overlay states");
+    debugPrint("_snapBackAfterClose called - closing overlay states");
 
     // Close overlay states
     ref.read(chatOverlayOpenProvider.notifier).state = false;
@@ -736,7 +744,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         (previous, chatClosingBubbleId) {
       if (chatClosingBubbleId != null && chatClosingBubbleId != previous) {
         debugPrint(
-            '🎆 Chat closing animation triggered for: $chatClosingBubbleId');
+            'Chat closing animation triggered for: $chatClosingBubbleId');
 
         ref.read(chatClosingAnimationProvider.notifier).state = null;
 
@@ -744,7 +752,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         final callback = callbacks[chatClosingBubbleId];
         if (callback != null) {
           debugPrint(
-              '🎆 Starting reveal animation for $chatClosingBubbleId, isClosing: true');
+              'Starting reveal animation for $chatClosingBubbleId, isClosing: true');
           callback(); // This calls _startCloseAnimation, AnimatedRevealOverlay will handle the rest
         } else {
           debugPrint('No callback found for bubble ID: $chatClosingBubbleId');
@@ -757,7 +765,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         (previous, herdClosingBubbleId) {
       if (herdClosingBubbleId != null && herdClosingBubbleId != previous) {
         debugPrint(
-            '🎆 Herd closing animation triggered for: $herdClosingBubbleId');
+            'Herd closing animation triggered for: $herdClosingBubbleId');
 
         ref.read(herdClosingAnimationProvider.notifier).state = null;
 
@@ -765,7 +773,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         final callback = callbacks[herdClosingBubbleId];
         if (callback != null) {
           debugPrint(
-              '🎆 Starting reveal animation for $herdClosingBubbleId, isClosing: true');
+              'Starting reveal animation for $herdClosingBubbleId, isClosing: true');
           callback(); // This calls _startCloseAnimation, AnimatedRevealOverlay will handle the rest
         } else {
           debugPrint('No callback found for bubble ID: $herdClosingBubbleId');
@@ -782,6 +790,23 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         });
       }
     });
+
+    // Listen for herd data changes to register callbacks
+    // This ensures callbacks are registered when herds load asynchronously
+    if (currentUser != null &&
+        widget.showHerdBubbles &&
+        feedType == FeedType.alt) {
+      ref.listen(profileUserHerdsProvider(currentUser.uid), (previous, next) {
+        if (previous != next) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              debugPrint('Herds data changed, updating animation callbacks');
+              _updateAnimationCallbacks();
+            }
+          });
+        }
+      });
+    }
 
     final configs = _createBubbleConfigs(
         context, ref, feedType, appTheme, activeChats, userHerdsAsync);
