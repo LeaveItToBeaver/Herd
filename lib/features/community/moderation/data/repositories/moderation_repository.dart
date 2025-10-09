@@ -46,6 +46,7 @@ class ModerationRepository {
       // Update herd document
       await _firestore.collection('herds').doc(herdId).update({
         'bannedUserIds': FieldValue.arrayUnion([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       // Append to moderation log collection

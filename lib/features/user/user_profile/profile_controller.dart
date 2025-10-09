@@ -121,7 +121,7 @@ class ProfileController extends AsyncNotifier<ProfileState> {
   }
 
   Future<void> loadMorePosts(String userId) async {
-    debugPrint('🚀 loadMorePosts called for userId: $userId');
+    debugPrint(' loadMorePosts called for userId: $userId');
     debugPrint('🔍 Current state type: ${state.runtimeType}');
     debugPrint('🔍 Has value: ${state.hasValue}');
     debugPrint('🔍 Has error: ${state.hasError}');
@@ -139,11 +139,11 @@ class ProfileController extends AsyncNotifier<ProfileState> {
     final currentState = state.value!;
 
     debugPrint('🔍 Current state details:');
-    debugPrint('   posts.length: ${currentState.posts.length}');
-    debugPrint('   hasMorePosts: ${currentState.hasMorePosts}');
-    debugPrint('   isLoading: ${currentState.isLoading}');
-    debugPrint('   lastPost: ${currentState.lastPost?.id}');
-    debugPrint('   isAltView: ${currentState.isAltView}');
+    debugPrint('  posts.length: ${currentState.posts.length}');
+    debugPrint('  hasMorePosts: ${currentState.hasMorePosts}');
+    debugPrint('  isLoading: ${currentState.isLoading}');
+    debugPrint('  lastPost: ${currentState.lastPost?.id}');
+    debugPrint('  isAltView: ${currentState.isAltView}');
 
     if (!currentState.hasMorePosts ||
         currentState.isLoading ||

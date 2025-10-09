@@ -48,10 +48,10 @@ void main() async {
       debugPrint('Background message handler registered');
 
       unawaited(MobileAds.instance.initialize());
-      debugPrint('🚀 Mobile ads initialization started');
+      debugPrint(' Mobile ads initialization started');
 
       unawaited(CacheManager.bootstrapCache());
-      debugPrint('🚀 Cache bootstrap started');
+      debugPrint(' Cache bootstrap started');
     }
 
     debugPrint('Main initialization complete');

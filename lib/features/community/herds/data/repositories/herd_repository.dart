@@ -629,11 +629,13 @@ class HerdRepository {
         await _herds.doc(herdId).update({
           'moderatorIds': FieldValue.arrayRemove([userId]),
           'bannedUserIds': FieldValue.arrayUnion([userId]),
+          'updatedAt': FieldValue.serverTimestamp(),
           'memberCount': FieldValue.increment(-1),
         });
       } else {
         await _herds.doc(herdId).update({
           'bannedUserIds': FieldValue.arrayUnion([userId]),
+          'updatedAt': FieldValue.serverTimestamp(),
           'memberCount': FieldValue.increment(-1),
         });
       }

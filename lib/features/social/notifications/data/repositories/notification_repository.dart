@@ -37,16 +37,16 @@ class NotificationRepository {
     try {
       debugPrint('🔔 ========== STARTING getNotifications ==========');
       debugPrint('🔔 Parameters received:');
-      debugPrint('   - limit: $limit');
-      debugPrint('   - markAsRead: $markAsRead');
-      debugPrint('   - onlyUnread: $onlyUnread');
-      debugPrint('   - filterType: $filterType');
-      debugPrint('   - lastNotificationId: $lastNotificationId');
+      debugPrint('  - limit: $limit');
+      debugPrint('  - markAsRead: $markAsRead');
+      debugPrint('  - onlyUnread: $onlyUnread');
+      debugPrint('  - filterType: $filterType');
+      debugPrint('  - lastNotificationId: $lastNotificationId');
 
       // Test Firebase Functions connection
       debugPrint('🔧 Testing Firebase Functions connection...');
-      debugPrint('   - Functions instance: $_functions');
-      debugPrint('   - App name: ${_functions.app.name}');
+      debugPrint('  - Functions instance: $_functions');
+      debugPrint('  - App name: ${_functions.app.name}');
 
       final callable = _functions.httpsCallable('getNotifications');
       debugPrint('Created callable for: getNotifications');
@@ -62,7 +62,7 @@ class NotificationRepository {
 
       debugPrint('📤 Calling cloud function with parameters:');
       callParams.forEach((key, value) {
-        debugPrint('   - $key: $value (${value.runtimeType})');
+        debugPrint('  - $key: $value (${value.runtimeType})');
       });
 
       // Make the call
@@ -72,22 +72,22 @@ class NotificationRepository {
 
       // Analyze the response
       debugPrint('📥 ========== ANALYZING RESPONSE ==========');
-      debugPrint('   - Result type: ${result.runtimeType}');
-      debugPrint('   - Result.data type: ${result.data.runtimeType}');
-      debugPrint('   - Result.data: ${result.data}');
+      debugPrint('  - Result type: ${result.runtimeType}');
+      debugPrint('  - Result.data type: ${result.data.runtimeType}');
+      debugPrint('  - Result.data: ${result.data}');
 
       final data = result.data as Map<String, dynamic>;
       debugPrint('📊 Response data structure:');
       data.forEach((key, value) {
         debugPrint(
-            '   - $key: ${value.runtimeType} = ${value is List ? '(List with ${value.length} items)' : value.toString().substring(0, value.toString().length > 100 ? 100 : value.toString().length)}');
+            '  - $key: ${value.runtimeType} = ${value is List ? '(List with ${value.length} items)' : value.toString().substring(0, value.toString().length > 100 ? 100 : value.toString().length)}');
       });
 
       // Check for notifications array
       final rawNotifications = data['notifications'];
       debugPrint('🔍 ========== PROCESSING NOTIFICATIONS ==========');
       debugPrint(
-          '   - Raw notifications type: ${rawNotifications.runtimeType}');
+          '  - Raw notifications type: ${rawNotifications.runtimeType}');
 
       if (rawNotifications == null) {
         debugPrint('ERROR: notifications field is null!');
@@ -120,38 +120,38 @@ class NotificationRepository {
       for (int i = 0; i < notificationsList.length; i++) {
         final rawNotification = notificationsList[i];
         debugPrint('========== PROCESSING NOTIFICATION $i ==========');
-        debugPrint('   - Raw type: ${rawNotification.runtimeType}');
+        debugPrint('  - Raw type: ${rawNotification.runtimeType}');
         debugPrint(
-            '   - Raw data: ${rawNotification.toString().substring(0, rawNotification.toString().length > 200 ? 200 : rawNotification.toString().length)}...');
+            '  - Raw data: ${rawNotification.toString().substring(0, rawNotification.toString().length > 200 ? 200 : rawNotification.toString().length)}...');
 
         try {
           final parsed = _parseNotificationFromCloudFunction(rawNotification);
           if (parsed != null) {
             notificationList.add(parsed);
-            debugPrint('   Successfully parsed notification $i: ${parsed.id}');
+            debugPrint('  Successfully parsed notification $i: ${parsed.id}');
           } else {
-            debugPrint('   Failed to parse notification $i (returned null)');
+            debugPrint('  Failed to parse notification $i (returned null)');
           }
         } catch (parseError, stackTrace) {
-          debugPrint('   Exception parsing notification $i: $parseError');
-          debugPrint('   📋 Stack trace: $stackTrace');
+          debugPrint('  Exception parsing notification $i: $parseError');
+          debugPrint('  📋 Stack trace: $stackTrace');
         }
       }
 
       debugPrint('📊 ========== FINAL RESULTS ==========');
-      debugPrint('   - Raw notifications count: ${notificationsList.length}');
-      debugPrint('   - Successfully parsed count: ${notificationList.length}');
+      debugPrint('  - Raw notifications count: ${notificationsList.length}');
+      debugPrint('  - Successfully parsed count: ${notificationList.length}');
       debugPrint(
-          '   - Failed to parse count: ${notificationsList.length - notificationList.length}');
-      debugPrint('   - Unread count: ${data['unreadCount']}');
-      debugPrint('   - Has more: ${data['hasMore']}');
-      debugPrint('   - Last notification ID: ${data['lastNotificationId']}');
+          '  - Failed to parse count: ${notificationsList.length - notificationList.length}');
+      debugPrint('  - Unread count: ${data['unreadCount']}');
+      debugPrint('  - Has more: ${data['hasMore']}');
+      debugPrint('  - Last notification ID: ${data['lastNotificationId']}');
 
       if (notificationList.isNotEmpty) {
         debugPrint(
-            '   - First notification: ${notificationList.first.id} (${notificationList.first.type})');
+            '  - First notification: ${notificationList.first.id} (${notificationList.first.type})');
         debugPrint(
-            '   - Last notification: ${notificationList.last.id} (${notificationList.last.type})');
+            '  - Last notification: ${notificationList.last.id} (${notificationList.last.type})');
       }
 
       final resultMap = {
@@ -162,15 +162,15 @@ class NotificationRepository {
       };
 
       debugPrint('========== RETURNING RESULT ==========');
-      debugPrint('   - Result map keys: ${resultMap.keys.toList()}');
-      debugPrint('   - Returning ${notificationList.length} notifications');
+      debugPrint('  - Result map keys: ${resultMap.keys.toList()}');
+      debugPrint('  - Returning ${notificationList.length} notifications');
 
       return resultMap;
     } catch (e, stackTrace) {
       debugPrint('========== ERROR IN getNotifications ==========');
-      debugPrint('   - Error type: ${e.runtimeType}');
-      debugPrint('   - Error message: $e');
-      debugPrint('   - Stack trace: $stackTrace');
+      debugPrint('  - Error type: ${e.runtimeType}');
+      debugPrint('  - Error message: $e');
+      debugPrint('  - Stack trace: $stackTrace');
 
       // Log additional context for specific error types
       if (e.toString().contains('PERMISSION_DENIED')) {
@@ -455,7 +455,7 @@ class NotificationRepository {
   /// Initialize FCM and get token
   Future<String?> initializeFCM() async {
     try {
-      debugPrint('🚀 ===== FCM INITIALIZATION START =====');
+      debugPrint(' ===== FCM INITIALIZATION START =====');
 
       // Request permissions
       debugPrint('🔐 Requesting FCM permissions...');

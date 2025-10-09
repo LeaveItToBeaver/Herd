@@ -255,8 +255,8 @@ class ChatRepository {
         final chatId = doc.id; // Use document ID as chat ID
 
         debugPrint('📄 Processing chat document: $chatId');
-        debugPrint('   - Other participant: ${data['otherParticipantId']}');
-        debugPrint('   - Chat type: ${data['type']}');
+        debugPrint('  - Other participant: ${data['otherParticipantId']}');
+        debugPrint('  - Chat type: ${data['type']}');
 
         // Convert userChat data to ChatModel using consistent structure
         return ChatModel(

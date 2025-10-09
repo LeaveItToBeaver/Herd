@@ -258,7 +258,7 @@ class AppBootstrap {
   /// Actual initialization implementation
   Future<void> _doInitialize() async {
     try {
-      debugPrint('🚀 Starting app initialization...');
+      debugPrint(' Starting app initialization...');
 
       // Initialize shared preferences
       final prefs = await SharedPreferences

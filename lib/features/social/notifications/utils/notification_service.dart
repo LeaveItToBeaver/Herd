@@ -126,9 +126,9 @@ class NotificationService {
     } else if (repoResult['cloudFunctionResult']?['messageSent'] == true) {
       recommendations.add('FCM is working correctly!');
       recommendations.add('💡 If you still don\'t see notifications, check:');
-      recommendations.add('  - App is in background during test');
-      recommendations.add('  - Notification channel is created correctly');
-      recommendations.add('  - Device notification settings');
+      recommendations.add(' - App is in background during test');
+      recommendations.add(' - Notification channel is created correctly');
+      recommendations.add(' - Device notification settings');
     }
 
     if (recommendations.isEmpty) {

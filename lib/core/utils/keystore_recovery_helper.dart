@@ -143,14 +143,14 @@ You'll need to log in again, but your account and data are safe.
 
       debugPrint('🔍 Keystore Corruption Analysis:');
       debugPrint(
-          '  - Last successful auth: ${lastAuth != null ? DateTime.fromMillisecondsSinceEpoch(lastAuth) : 'Never'}');
-      debugPrint('  - Session was restored: $wasRestored');
-      debugPrint('  - Corruption detected: $corruptionDetected');
+          ' - Last successful auth: ${lastAuth != null ? DateTime.fromMillisecondsSinceEpoch(lastAuth) : 'Never'}');
+      debugPrint(' - Session was restored: $wasRestored');
+      debugPrint(' - Corruption detected: $corruptionDetected');
 
       if (lastAuth != null) {
         final timeSinceAuth = DateTime.now()
             .difference(DateTime.fromMillisecondsSinceEpoch(lastAuth));
-        debugPrint('  - Time since last auth: ${timeSinceAuth.inDays} days');
+        debugPrint(' - Time since last auth: ${timeSinceAuth.inDays} days');
       }
     } catch (e) {
       debugPrint('Failed to log keystore corruption details: $e');

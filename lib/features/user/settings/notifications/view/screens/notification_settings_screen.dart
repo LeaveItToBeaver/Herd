@@ -401,9 +401,9 @@ class _NotificationSettingsScreenState
       buffer.writeln('Test notification sent');
       buffer.writeln('📱 Check your device notification tray');
       buffer.writeln('\n💡 If you don\'t see the notification:');
-      buffer.writeln('  • Make sure app is in background');
-      buffer.writeln('  • Check device notification settings');
-      buffer.writeln('  • Try "Test Local Notification" button');
+      buffer.writeln(' • Make sure app is in background');
+      buffer.writeln(' • Check device notification settings');
+      buffer.writeln(' • Try "Test Local Notification" button');
     } else if (tokenSaved && !messageSent) {
       buffer.writeln('\nPARTIAL SUCCESS: Token saved but message failed');
       buffer.writeln('🔍 Check cloud function logs for send errors');
