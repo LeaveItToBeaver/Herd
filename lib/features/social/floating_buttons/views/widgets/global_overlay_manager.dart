@@ -5,7 +5,7 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/view/widgets/herd_overlay_widget.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
+import 'package:herdapp/features/social/floating_buttons/views/widgets/animated_reveal_overlay.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
   final Widget child;
@@ -52,6 +52,8 @@ class GlobalOverlayManager extends ConsumerWidget {
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
     double navBarPositionRight = 10;
 
+    final bool isOverlayActive = activeOverlayType != null;
+
     return Container(
       color: Theme.of(context).colorScheme.primary,
       child: Material(
@@ -62,6 +64,70 @@ class GlobalOverlayManager extends ConsumerWidget {
             child,
 
             // Side Bubbles - only shown if explicitly enabled
+            if (showBottomNav)
+              Positioned(
+                left: 10,
+                right: showAnyButtons ? 70 : 10,
+                bottom: 20,
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeBottom: true, // Ignore keyboard padding
+                  child: SafeArea(
+                    top: false,
+                    child: BottomNavOverlay(currentFeedType: currentFeedType),
+                  ),
+                ),
+              ),
+
+            // Chat/Herd Overlay - Drawn before side bubbles
+            if (activeOverlayType != null)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                right: 70,
+                child: _buildOverlay(
+                  overlayType: activeOverlayType,
+                  bubbleId: activeOverlayType == OverlayType.chat
+                      ? chatTriggeredByBubble
+                      : herdTriggeredByBubble,
+                  explosionReveal: explosionReveal,
+                  backgroundColor: backgroundColor,
+                  ref: ref,
+                  onClose: () {
+                    final bubbleId = activeOverlayType == OverlayType.chat
+                        ? chatTriggeredByBubble
+                        : herdTriggeredByBubble;
+
+                    debugPrint(
+                        "🎆 GlobalOverlayManager onClose called for $bubbleId");
+
+                    // Immediately start closing animation by setting explosion reveal to closing state
+                    final currentReveal = ref.read(explosionRevealProvider);
+                    if (currentReveal != null && currentReveal.isActive) {
+                      // Update to closing state immediately for instant response
+                      ref.read(explosionRevealProvider.notifier).state = (
+                        isActive: true,
+                        center: currentReveal.center,
+                        progress: currentReveal.progress,
+                        bubbleId: currentReveal.bubbleId,
+                        isClosing: true, // Switch to closing mode instantly
+                      );
+                    } else {
+                      // No reveal animation, trigger direct close
+                      if (activeOverlayType == OverlayType.chat) {
+                        ref.read(chatClosingAnimationProvider.notifier).state =
+                            bubbleId;
+                      } else if (activeOverlayType == OverlayType.herd) {
+                        ref.read(herdClosingAnimationProvider.notifier).state =
+                            bubbleId;
+                      }
+                    }
+                  },
+                ),
+              ),
+
+            // Side Bubbles - Moved here to be drawn ON TOP of the chat overlay
             if (showSideBubbles)
               Positioned(
                 right: 0,
@@ -88,79 +154,6 @@ class GlobalOverlayManager extends ConsumerWidget {
                         showHerdBubbles: showHerdBubbles,
                       ),
                     );
-                  },
-                ),
-              ),
-
-            // Bottom Navigation - positioned before chat overlay so chat appears on top
-            if (showBottomNav)
-              Positioned(
-                left: 10,
-                right: showAnyButtons ? 70 : 10,
-                bottom: 20,
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeBottom: true, // Ignore keyboard padding
-                  child: SafeArea(
-                    top: false,
-                    child: BottomNavOverlay(currentFeedType: currentFeedType),
-                  ),
-                ),
-              ),
-
-            if (activeOverlayType != null)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                right: 70,
-                child: _buildOverlay(
-                  overlayType: activeOverlayType,
-                  bubbleId: activeOverlayType == OverlayType.chat
-                      ? chatTriggeredByBubble
-                      : herdTriggeredByBubble,
-                  explosionReveal: explosionReveal,
-                  backgroundColor: backgroundColor,
-                  ref: ref,
-                  onClose: () {
-                    final bubbleId = activeOverlayType == OverlayType.chat
-                        ? chatTriggeredByBubble
-                        : herdTriggeredByBubble;
-
-                    // Handle close for appropriate overlay type
-                    if (activeOverlayType == OverlayType.chat) {
-                      final callbacks =
-                          ref.read(bubbleAnimationCallbackProvider);
-                      final callback = callbacks[bubbleId];
-
-                      if (callback != null) {
-                        ref.read(chatClosingAnimationProvider.notifier).state =
-                            bubbleId;
-                      } else {
-                        ref.read(chatOverlayOpenProvider.notifier).state =
-                            false;
-                        ref.read(chatTriggeredByBubbleProvider.notifier).state =
-                            null;
-                        ref.read(activeOverlayTypeProvider.notifier).state =
-                            null;
-                      }
-                    } else if (activeOverlayType == OverlayType.herd) {
-                      final callbacks =
-                          ref.read(bubbleAnimationCallbackProvider);
-                      final callback = callbacks[bubbleId];
-
-                      if (callback != null) {
-                        ref.read(herdClosingAnimationProvider.notifier).state =
-                            bubbleId;
-                      } else {
-                        ref.read(herdOverlayOpenProvider.notifier).state =
-                            false;
-                        ref.read(herdTriggeredByBubbleProvider.notifier).state =
-                            null;
-                        ref.read(activeOverlayTypeProvider.notifier).state =
-                            null;
-                      }
-                    }
                   },
                 ),
               ),
@@ -192,38 +185,6 @@ class GlobalOverlayManager extends ConsumerWidget {
   }
 }
 
-// Widget that wraps chat overlay with explosion reveal effect
-class _ChatOverlayWithReveal extends StatelessWidget {
-  final ({
-    bool isActive,
-    Offset center,
-    double progress,
-    String bubbleId,
-  }) explosionReveal;
-  final Color backgroundColor;
-  final Widget child;
-
-  const _ChatOverlayWithReveal({
-    required this.explosionReveal,
-    required this.backgroundColor,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Create a circular reveal path
-    final revealRadius = explosionReveal.progress * 1000.0; // Max reveal radius
-
-    return ClipPath(
-      clipper: _CircularRevealClipper(
-        center: explosionReveal.center,
-        radius: revealRadius,
-      ),
-      child: child,
-    );
-  }
-}
-
 Widget _buildOverlay(
     {required OverlayType overlayType,
     required String? bubbleId,
@@ -233,83 +194,45 @@ Widget _buildOverlay(
     required WidgetRef ref}) {
   if (bubbleId == null) return const SizedBox.shrink();
 
-  // final overlayWidget = overlayType == OverlayType.chat
-  //     ? ChatOverlayWidget(bubbleId: bubbleId, onClose: onClose)
-  //     : HerdOverlayWidget(
-  //         herdId: bubbleId.replaceFirst('herd_', ''), onClose: onClose);
-
   final overlayWidget = overlayType == OverlayType.chat
       ? ChatOverlayWidget(
           bubbleId: bubbleId,
-          onClose: () {
-            // Use specific animation provider for chat
-            final callbacks = ref.read(bubbleAnimationCallbackProvider);
-            final callback = callbacks[bubbleId];
-
-            if (callback != null) {
-              ref.read(chatClosingAnimationProvider.notifier).state = bubbleId;
-            } else {
-              ref.read(chatOverlayOpenProvider.notifier).state = false;
-              ref.read(chatTriggeredByBubbleProvider.notifier).state = null;
-              ref.read(activeOverlayTypeProvider.notifier).state = null;
-            }
-          },
+          onClose: onClose, // Pass the callback directly
         )
       : HerdOverlayWidget(
           herdId: bubbleId.replaceFirst('herd_', ''),
-          onClose: () {
-            // Use specific animation provider for herd
-            final callbacks = ref.read(bubbleAnimationCallbackProvider);
-            final callback = callbacks[bubbleId];
-
-            if (callback != null) {
-              ref.read(herdClosingAnimationProvider.notifier).state = bubbleId;
-            } else {
-              ref.read(herdOverlayOpenProvider.notifier).state = false;
-              ref.read(herdTriggeredByBubbleProvider.notifier).state = null;
-              ref.read(activeOverlayTypeProvider.notifier).state = null;
-            }
-          },
+          onClose: onClose, // Pass the callback directly
         );
 
+  // ALWAYS use AnimatedRevealOverlay for consistent animation handling
+  // Check if we have explosion reveal data OR if this is a triggered overlay
   if (explosionReveal != null && explosionReveal.isActive) {
-    return _ChatOverlayWithReveal(
-      explosionReveal: explosionReveal,
+    final isClosing = explosionReveal.isClosing;
+    debugPrint(
+        "🎆 Creating AnimatedRevealOverlay for $bubbleId at center: ${explosionReveal.center}, isClosing: $isClosing");
+
+    return AnimatedRevealOverlay(
+      explosionCenter: explosionReveal.center,
       backgroundColor: backgroundColor,
+      isVisible: !isClosing, // true for opening, false for closing
+      isReversed: isClosing,
+      duration: const Duration(milliseconds: 800), // Consistent 800ms duration
+      onAnimationComplete: () {
+        debugPrint(
+            "🎆 Reveal animation completed for $bubbleId, isClosing: $isClosing");
+        if (isClosing) {
+          // Animation finished, now trigger snap back
+          final callbacks = ref.read(bubbleAnimationCallbackProvider);
+          final snapBackCallback = callbacks['${bubbleId}_snapback'];
+          if (snapBackCallback != null) {
+            snapBackCallback();
+          }
+        }
+      },
       child: overlayWidget,
     );
   }
 
+  debugPrint("🎆 Using overlay without reveal animation for $bubbleId");
   return overlayWidget;
-}
-
-// Custom clipper for circular reveal effect
-class _CircularRevealClipper extends CustomClipper<Path> {
-  final Offset center;
-  final double radius;
-
-  _CircularRevealClipper({
-    required this.center,
-    required this.radius,
-  });
-
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-
-    // Create a circular path at the explosion center
-    path.addOval(
-      Rect.fromCircle(
-        center: center,
-        radius: radius,
-      ),
-    );
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant _CircularRevealClipper oldClipper) {
-    return oldClipper.center != center || oldClipper.radius != radius;
-  }
 }

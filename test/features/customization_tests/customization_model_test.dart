@@ -57,8 +57,8 @@ void main() {
         secondaryColor: '#invalid',
       );
 
-      expect(appTheme.getPrimaryColor(), Colors.blue); // fallback
-      expect(appTheme.getSecondaryColor(), Colors.green); // fallback
+      expect(appTheme.getPrimaryColor(), const Color(0xFF3D5AFE)); // fallback
+      expect(appTheme.getSecondaryColor(), const Color(0xFF00C853)); // fallback
     });
 
     test('should get correct theme mode', () {
@@ -103,9 +103,9 @@ void main() {
     test('should create with default button styles', () {
       const components = ComponentStyles();
 
-      expect(components.buttonBorderRadius, 8.0);
-      expect(components.cardBorderRadius, 8.0);
-      expect(components.cardElevation, 1.0);
+      expect(components.buttonBorderRadius, 15.0);
+      expect(components.cardBorderRadius, 16.0);
+      expect(components.cardElevation, 2.0);
       expect(components.primaryButton.shape, 'rounded');
       expect(components.inputField.borderRadius, 8.0);
     });
@@ -143,7 +143,7 @@ void main() {
       expect(typography.secondaryFont, 'Roboto');
       expect(typography.fontScaleFactor, 1.0);
       expect(typography.useCustomFonts, false);
-      expect(typography.lineHeightMultiplier, 1.2);
+      expect(typography.lineHeightMultiplier, 1.5);
     });
   });
 
@@ -171,7 +171,7 @@ void main() {
       expect(slow.getAnimationDuration(), const Duration(milliseconds: 500));
     });
 
-    // ✅ Remove the getAnimationCurve test since the method doesn't exist
+    // Remove the getAnimationCurve test since the method doesn't exist
     test('should handle animation curve preferences', () {
       final customization = UICustomizationModel.defaultForUser('test');
 

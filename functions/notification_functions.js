@@ -65,7 +65,7 @@ module.exports = function (admin) {
 
                 try {
                     const response = await admin.messaging().send(testMessage);
-                    console.log('✅ Test message sent successfully:', response);
+                    console.log('Test message sent successfully:', response);
 
                     return {
                         success: true,
@@ -75,7 +75,7 @@ module.exports = function (admin) {
                         messageId: response
                     };
                 } catch (sendError) {
-                    console.log('❌ Error sending test message:', sendError);
+                    console.log('Error sending test message:', sendError);
 
                     return {
                         success: false,
@@ -95,7 +95,7 @@ module.exports = function (admin) {
             }
 
         } catch (error) {
-            console.log('❌ Error in FCM debug:', error);
+            console.log('Error in FCM debug:', error);
             throw new functions.https.HttpsError('internal', error.message);
         }
     });
@@ -126,7 +126,7 @@ module.exports = function (admin) {
             const userData = userSnapshot.data();
 
             if (!userData || !userData.fcmToken) {
-                logger.log(`❌ No FCM token found for user ${userId}`);
+                logger.log(`No FCM token found for user ${userId}`);
                 return;
             }
 
@@ -175,6 +175,9 @@ module.exports = function (admin) {
                         break;
                     case 'postMilestone':
                         typeEnabled = settings.milestoneNotifications !== false;
+                        break;
+                    case 'chatMessage':
+                        typeEnabled = settings.chatNotifications !== false;
                         break;
                 }
             }
@@ -239,19 +242,19 @@ module.exports = function (admin) {
 
             // Send message
             const response = await admin.messaging().send(message);
-            logger.log(`✅ Successfully sent notification: ${response}`);
+            logger.log(` Successfully sent notification: ${response}`);
 
             // Log the message structure for debugging
             logger.log(`📱 Message structure: ${JSON.stringify(message, null, 2)}`);
 
         } catch (error) {
-            logger.error(`❌ Error sending notification: ${error}`);
-            logger.error(`❌ Error details: ${JSON.stringify(error, null, 2)}`);
+            logger.error(`Error sending notification: ${error}`);
+            logger.error(`Error details: ${JSON.stringify(error, null, 2)}`);
 
             // If token is invalid, remove it from user document
             if (error.code === 'messaging/invalid-registration-token' ||
                 error.code === 'messaging/registration-token-not-registered') {
-                logger.log(`🔄 Removing invalid FCM token for user ${userId}`);
+                logger.log(`Removing invalid FCM token for user ${userId}`);
                 await firestore.collection('users').doc(userId).update({
                     fcmToken: admin.firestore.FieldValue.delete()
                 });
@@ -291,6 +294,8 @@ module.exports = function (admin) {
             body,
             postId,
             commentId,
+            chatId,
+            messageId,
             isAlt = false,
             count
         } = params;
@@ -300,7 +305,7 @@ module.exports = function (admin) {
 
             // Don't create notifications for self-actions
             if (senderId === recipientId) {
-                logger.log(`⚠️ Skipping self-notification for user ${senderId}`);
+                logger.log(`Skipping self-notification for user ${senderId}`);
                 return null;
             }
 
@@ -326,7 +331,7 @@ module.exports = function (admin) {
                 : senderData?.profileImageURL;
 
             // Generate path for navigation
-            const path = generateNavigationPath(type, senderId, postId, commentId, isAlt);
+            const path = generateNavigationPath(type, senderId, postId, commentId, isAlt, chatId);
 
             // Build notification data object, only including defined values
             const notificationData = {
@@ -336,7 +341,7 @@ module.exports = function (admin) {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 isRead: false,
                 title: title || generateTitle(type, senderName, count),
-                body: body || generateBody(type, senderName, count),
+                body: body || generateBody(type, senderName, count, body),
                 senderName: senderName,
                 isAlt,
                 path: path, // Add navigation path
@@ -345,6 +350,8 @@ module.exports = function (admin) {
             // Only add optional fields if they have values
             if (postId) notificationData.postId = postId;
             if (commentId) notificationData.commentId = commentId;
+            if (chatId) notificationData.chatId = chatId;
+            if (messageId) notificationData.messageId = messageId;
             if (senderData?.username) notificationData.senderUsername = senderData.username;
             if (senderProfileImage) notificationData.senderProfileImage = senderProfileImage;
             if (senderData?.altProfileImageURL) notificationData.senderAltProfileImage = senderData.altProfileImageURL;
@@ -352,7 +359,7 @@ module.exports = function (admin) {
 
             // Save notification to Firestore
             await notificationRef.set(notificationData);
-            logger.log(`✅ Notification saved to Firestore: ${notificationId}`);
+            logger.log(` Notification saved to Firestore: ${notificationId}`);
 
             // Prepare push notification data (ensure all values are strings)
             const pushData = removeUndefinedValues({
@@ -360,6 +367,8 @@ module.exports = function (admin) {
                 senderId,
                 postId: postId || '',
                 commentId: commentId || '',
+                chatId: chatId || '',
+                messageId: messageId || '',
                 isAlt: isAlt ? 'true' : 'false',
                 notificationId,
                 path: path || '',
@@ -375,7 +384,7 @@ module.exports = function (admin) {
 
             return notificationData;
         } catch (error) {
-            logger.error(`❌ Error creating notification: ${error}`);
+            logger.error(`Error creating notification: ${error}`);
             throw error;
         }
     }
@@ -383,7 +392,7 @@ module.exports = function (admin) {
     /**
      * Generate navigation path for notification
      */
-    function generateNavigationPath(type, senderId, postId, commentId, isAlt) {
+    function generateNavigationPath(type, senderId, postId, commentId, isAlt, chatId) {
         switch (type) {
             case 'follow':
                 // Use publicProfile as default for follow notifications
@@ -407,6 +416,10 @@ module.exports = function (admin) {
             case 'connectionAccepted':
                 // Connection accepted usually means alt profile interaction
                 return senderId ? `/altProfile/${senderId}` : null;
+
+            case 'chatMessage':
+                // Navigate directly to the specific chat
+                return chatId ? `/chat?chatId=${chatId}` : null;
 
             default:
                 return null;
@@ -434,6 +447,8 @@ module.exports = function (admin) {
                 return 'Connection Accepted';
             case 'postMilestone':
                 return `🎉 ${count} Likes!`;
+            case 'chatMessage':
+                return senderName;
             default:
                 return 'New Notification';
         }
@@ -442,7 +457,7 @@ module.exports = function (admin) {
     /**
      * Generate notification body based on type
      */
-    function generateBody(type, senderName = 'Someone', count = null) {
+    function generateBody(type, senderName = 'Someone', count = null, customBody = null) {
         switch (type) {
             case 'follow':
                 return `${senderName} started following you`;
@@ -460,6 +475,8 @@ module.exports = function (admin) {
                 return `${senderName} accepted your connection request`;
             case 'postMilestone':
                 return `Your post reached ${count} likes!`;
+            case 'chatMessage':
+                return customBody || `${senderName} sent you a message`;
             default:
                 return 'You have a new notification';
         }
@@ -659,7 +676,7 @@ module.exports = function (admin) {
                 };
             }
         } catch (error) {
-            logger.error('❌ Error marking notifications as read:', error);
+            logger.error('Error marking notifications as read:', error);
             throw new functions.https.HttpsError('internal', error.message);
         }
     });
@@ -685,10 +702,10 @@ module.exports = function (admin) {
                 fcmTokenUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            logger.log(`✅ Updated FCM token for user ${userId}`);
+            logger.log(` Updated FCM token for user ${userId}`);
             return { success: true };
         } catch (error) {
-            logger.error(`❌ Error updating FCM token for user ${userId}:`, error);
+            logger.error(`Error updating FCM token for user ${userId}:`, error);
             throw new functions.https.HttpsError('internal', error.message);
         }
     });
@@ -765,7 +782,7 @@ module.exports = function (admin) {
                 await Promise.all(notificationPromises);
             }
 
-            logger.log(`✅ Post notifications sent for ${postId}`);
+            logger.log(` Post notifications sent for ${postId}`);
         }),
 
         onPostLike: onDocumentCreated("likes/{postId}/userInteractions/{userId}",
@@ -787,7 +804,7 @@ module.exports = function (admin) {
                 }
 
                 if (!postSnapshot.exists) {
-                    logger.error(`❌ Post ${postId} not found for like notification`);
+                    logger.error(`Post ${postId} not found for like notification`);
                     return;
                 }
 
@@ -908,7 +925,7 @@ module.exports = function (admin) {
                     const userId = event.params.userId;
                     const requesterId = event.params.requesterId;
 
-                    logger.log(`✅ Connection accepted: ${userId} accepted ${requesterId}`);
+                    logger.log(` Connection accepted: ${userId} accepted ${requesterId}`);
 
                     await createNotification({
                         recipientId: requesterId,
@@ -917,6 +934,58 @@ module.exports = function (admin) {
                         isAlt: true,
                     });
                 }
+            }),
+
+        // Chat message notification trigger
+        onNewChatMessage: onDocumentCreated("chatMessages/{chatId}/messages/{messageId}",
+            async (event) => {
+                const chatId = event.params.chatId;
+                const messageId = event.params.messageId;
+                const messageData = event.data.data();
+
+                logger.log(`💬 New chat message: ${messageId} in chat ${chatId}`);
+
+                const senderId = messageData.senderId;
+                const content = messageData.content || '';
+                const timestamp = messageData.timestamp;
+
+                // Get chat participants using new single collection architecture
+                // For direct chats, chatId format is "userId1_userId2"
+                const chatIdParts = chatId.split('_');
+
+                if (chatIdParts.length !== 2) {
+                    logger.log(`Unsupported chat format: ${chatId} (group chats not yet supported)`);
+                    return;
+                }
+
+                // For direct chats, determine recipient from chatId
+                const [user1, user2] = chatIdParts;
+                const recipientId = user1 === senderId ? user2 : user1;
+
+                if (!recipientId || recipientId === senderId) {
+                    logger.log(`Could not determine recipient for chat ${chatId}`);
+                    return;
+                }
+
+                logger.log(`💬 Sending notification to recipient: ${recipientId}`);
+
+                // Don't notify if recipient is currently in the chat (you can enhance this with presence detection)
+
+                // Get sender info
+                const senderSnapshot = await firestore.collection('users').doc(senderId).get();
+                const senderData = senderSnapshot.exists ? senderSnapshot.data() : null;
+                const senderName = senderData ? `${senderData.firstName || ''} ${senderData.lastName || ''}`.trim() || 'Someone' : 'Someone';
+
+                // Create notification
+                await createNotification({
+                    recipientId: recipientId,
+                    senderId: senderId,
+                    type: 'chatMessage',
+                    title: senderName,
+                    body: content.length > 50 ? content.substring(0, 47) + '...' : content || 'Sent you a message',
+                    chatId: chatId,
+                    messageId: messageId
+                });
             }),
 
         // New Cloud Functions
@@ -964,7 +1033,7 @@ module.exports = function (admin) {
                 await batch.commit();
                 return { success: true, count: verifiedIds.length };
             } catch (error) {
-                logger.error('❌ Error deleting notifications:', error);
+                logger.error('Error deleting notifications:', error);
                 throw new functions.https.HttpsError('internal', error.message);
             }
         }),
@@ -994,9 +1063,9 @@ module.exports = function (admin) {
                 });
 
                 await batch.commit();
-                logger.log(`✅ Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
+                logger.log(` Cleaned up ${oldNotificationsSnapshot.size} old notifications`);
             } catch (error) {
-                logger.error('❌ Error cleaning up old notifications:', error);
+                logger.error('Error cleaning up old notifications:', error);
             }
         })
     };

@@ -109,3 +109,5 @@ export 'package:herdapp/features/social/chat_messaging/view/providers/state/chat
 export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
+
+export 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';

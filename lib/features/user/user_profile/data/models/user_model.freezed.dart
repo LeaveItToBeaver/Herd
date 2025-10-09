@@ -99,7 +99,9 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   DateTime? get premiumUntil;
   int get walletBalance; // Pinned posts (max 5 each)
   List<String> get pinnedPosts; // Public profile pinned posts
-  List<String> get altPinnedPosts;
+  List<String> get altPinnedPosts; // Alt profile pinned posts
+// Account deletion
+  DateTime? get markedForDeleteAt;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -199,7 +201,8 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('premiumUntil', premiumUntil))
       ..add(DiagnosticsProperty('walletBalance', walletBalance))
       ..add(DiagnosticsProperty('pinnedPosts', pinnedPosts))
-      ..add(DiagnosticsProperty('altPinnedPosts', altPinnedPosts));
+      ..add(DiagnosticsProperty('altPinnedPosts', altPinnedPosts))
+      ..add(DiagnosticsProperty('markedForDeleteAt', markedForDeleteAt));
   }
 
   @override
@@ -332,7 +335,8 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
             (identical(other.premiumUntil, premiumUntil) || other.premiumUntil == premiumUntil) &&
             (identical(other.walletBalance, walletBalance) || other.walletBalance == walletBalance) &&
             const DeepCollectionEquality().equals(other.pinnedPosts, pinnedPosts) &&
-            const DeepCollectionEquality().equals(other.altPinnedPosts, altPinnedPosts));
+            const DeepCollectionEquality().equals(other.altPinnedPosts, altPinnedPosts) &&
+            (identical(other.markedForDeleteAt, markedForDeleteAt) || other.markedForDeleteAt == markedForDeleteAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -422,12 +426,13 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
         premiumUntil,
         walletBalance,
         const DeepCollectionEquality().hash(pinnedPosts),
-        const DeepCollectionEquality().hash(altPinnedPosts)
+        const DeepCollectionEquality().hash(altPinnedPosts),
+        markedForDeleteAt
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, herdAndRole: $herdAndRole, role: $role, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, herdAndRole: $herdAndRole, role: $role, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts, markedForDeleteAt: $markedForDeleteAt)';
   }
 }
 
@@ -520,7 +525,8 @@ abstract mixin class $UserModelCopyWith<$Res> {
       DateTime? premiumUntil,
       int walletBalance,
       List<String> pinnedPosts,
-      List<String> altPinnedPosts});
+      List<String> altPinnedPosts,
+      DateTime? markedForDeleteAt});
 }
 
 /// @nodoc
@@ -619,6 +625,7 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? walletBalance = null,
     Object? pinnedPosts = null,
     Object? altPinnedPosts = null,
+    Object? markedForDeleteAt = freezed,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -957,6 +964,10 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.altPinnedPosts
           : altPinnedPosts // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      markedForDeleteAt: freezed == markedForDeleteAt
+          ? _self.markedForDeleteAt
+          : markedForDeleteAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }
@@ -1138,7 +1149,8 @@ extension UserModelPatterns on UserModel {
             DateTime? premiumUntil,
             int walletBalance,
             List<String> pinnedPosts,
-            List<String> altPinnedPosts)?
+            List<String> altPinnedPosts,
+            DateTime? markedForDeleteAt)?
         $default, {
     required TResult orElse(),
   }) {
@@ -1229,7 +1241,8 @@ extension UserModelPatterns on UserModel {
             _that.premiumUntil,
             _that.walletBalance,
             _that.pinnedPosts,
-            _that.altPinnedPosts);
+            _that.altPinnedPosts,
+            _that.markedForDeleteAt);
       case _:
         return orElse();
     }
@@ -1334,7 +1347,8 @@ extension UserModelPatterns on UserModel {
             DateTime? premiumUntil,
             int walletBalance,
             List<String> pinnedPosts,
-            List<String> altPinnedPosts)
+            List<String> altPinnedPosts,
+            DateTime? markedForDeleteAt)
         $default,
   ) {
     final _that = this;
@@ -1424,7 +1438,8 @@ extension UserModelPatterns on UserModel {
             _that.premiumUntil,
             _that.walletBalance,
             _that.pinnedPosts,
-            _that.altPinnedPosts);
+            _that.altPinnedPosts,
+            _that.markedForDeleteAt);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -1528,7 +1543,8 @@ extension UserModelPatterns on UserModel {
             DateTime? premiumUntil,
             int walletBalance,
             List<String> pinnedPosts,
-            List<String> altPinnedPosts)?
+            List<String> altPinnedPosts,
+            DateTime? markedForDeleteAt)?
         $default,
   ) {
     final _that = this;
@@ -1618,7 +1634,8 @@ extension UserModelPatterns on UserModel {
             _that.premiumUntil,
             _that.walletBalance,
             _that.pinnedPosts,
-            _that.altPinnedPosts);
+            _that.altPinnedPosts,
+            _that.markedForDeleteAt);
       case _:
         return null;
     }
@@ -1712,7 +1729,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       this.premiumUntil,
       this.walletBalance = 0,
       final List<String> pinnedPosts = const [],
-      final List<String> altPinnedPosts = const []})
+      final List<String> altPinnedPosts = const [],
+      this.markedForDeleteAt})
       : _friendsList = friendsList,
         _followersList = followersList,
         _followingList = followingList,
@@ -2149,6 +2167,11 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_altPinnedPosts);
   }
 
+// Alt profile pinned posts
+// Account deletion
+  @override
+  final DateTime? markedForDeleteAt;
+
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
   @override
@@ -2252,7 +2275,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('premiumUntil', premiumUntil))
       ..add(DiagnosticsProperty('walletBalance', walletBalance))
       ..add(DiagnosticsProperty('pinnedPosts', pinnedPosts))
-      ..add(DiagnosticsProperty('altPinnedPosts', altPinnedPosts));
+      ..add(DiagnosticsProperty('altPinnedPosts', altPinnedPosts))
+      ..add(DiagnosticsProperty('markedForDeleteAt', markedForDeleteAt));
   }
 
   @override
@@ -2385,7 +2409,8 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
             (identical(other.premiumUntil, premiumUntil) || other.premiumUntil == premiumUntil) &&
             (identical(other.walletBalance, walletBalance) || other.walletBalance == walletBalance) &&
             const DeepCollectionEquality().equals(other._pinnedPosts, _pinnedPosts) &&
-            const DeepCollectionEquality().equals(other._altPinnedPosts, _altPinnedPosts));
+            const DeepCollectionEquality().equals(other._altPinnedPosts, _altPinnedPosts) &&
+            (identical(other.markedForDeleteAt, markedForDeleteAt) || other.markedForDeleteAt == markedForDeleteAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2475,12 +2500,13 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
         premiumUntil,
         walletBalance,
         const DeepCollectionEquality().hash(_pinnedPosts),
-        const DeepCollectionEquality().hash(_altPinnedPosts)
+        const DeepCollectionEquality().hash(_altPinnedPosts),
+        markedForDeleteAt
       ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, herdAndRole: $herdAndRole, role: $role, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts)';
+    return 'UserModel(id: $id, firstName: $firstName, lastName: $lastName, username: $username, email: $email, createdAt: $createdAt, updatedAt: $updatedAt, followers: $followers, following: $following, friends: $friends, userPoints: $userPoints, friendsList: $friendsList, followersList: $followersList, followingList: $followingList, blockedUsers: $blockedUsers, herdAndRole: $herdAndRole, role: $role, altUserUID: $altUserUID, bio: $bio, profileImageURL: $profileImageURL, coverImageURL: $coverImageURL, acceptedLegal: $acceptedLegal, isVerified: $isVerified, isPrivateAccount: $isPrivateAccount, fcmToken: $fcmToken, preferences: $preferences, notifications: $notifications, savedPosts: $savedPosts, isNSFW: $isNSFW, allowNSFW: $allowNSFW, blurNSFW: $blurNSFW, showHerdPostsInAltFeed: $showHerdPostsInAltFeed, country: $country, city: $city, timezone: $timezone, totalPosts: $totalPosts, totalComments: $totalComments, totalLikes: $totalLikes, lastActive: $lastActive, altUsername: $altUsername, altBio: $altBio, altProfileImageURL: $altProfileImageURL, altCoverImageURL: $altCoverImageURL, altFollowers: $altFollowers, altFollowing: $altFollowing, altFriends: $altFriends, altUserPoints: $altUserPoints, altFriendsList: $altFriendsList, altFollowersList: $altFollowersList, altFollowingList: $altFollowingList, altBlockedUsers: $altBlockedUsers, altTotalPosts: $altTotalPosts, altTotalComments: $altTotalComments, altTotalLikes: $altTotalLikes, altSavedPosts: $altSavedPosts, altCreatedAt: $altCreatedAt, altUpdatedAt: $altUpdatedAt, dateOfBirth: $dateOfBirth, altConnections: $altConnections, altIsPrivateAccount: $altIsPrivateAccount, groups: $groups, moderatedGroups: $moderatedGroups, altGroups: $altGroups, altModeratedGroups: $altModeratedGroups, trustScore: $trustScore, altTrustScore: $altTrustScore, reportCount: $reportCount, altReportCount: $altReportCount, isActive: $isActive, altIsActive: $altIsActive, accountStatus: $accountStatus, altAccountStatus: $altAccountStatus, interests: $interests, altInterests: $altInterests, contentPreferences: $contentPreferences, altContentPreferences: $altContentPreferences, twoFactorEnabled: $twoFactorEnabled, lastPasswordChange: $lastPasswordChange, loginHistory: $loginHistory, isPremium: $isPremium, premiumUntil: $premiumUntil, walletBalance: $walletBalance, pinnedPosts: $pinnedPosts, altPinnedPosts: $altPinnedPosts, markedForDeleteAt: $markedForDeleteAt)';
   }
 }
 
@@ -2576,7 +2602,8 @@ abstract mixin class _$UserModelCopyWith<$Res>
       DateTime? premiumUntil,
       int walletBalance,
       List<String> pinnedPosts,
-      List<String> altPinnedPosts});
+      List<String> altPinnedPosts,
+      DateTime? markedForDeleteAt});
 }
 
 /// @nodoc
@@ -2675,6 +2702,7 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? walletBalance = null,
     Object? pinnedPosts = null,
     Object? altPinnedPosts = null,
+    Object? markedForDeleteAt = freezed,
   }) {
     return _then(_UserModel(
       id: null == id
@@ -3013,6 +3041,10 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self._altPinnedPosts
           : altPinnedPosts // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      markedForDeleteAt: freezed == markedForDeleteAt
+          ? _self.markedForDeleteAt
+          : markedForDeleteAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }

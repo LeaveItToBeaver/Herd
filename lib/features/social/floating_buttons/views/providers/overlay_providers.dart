@@ -12,6 +12,3 @@ final herdTriggeredByBubbleProvider = StateProvider<String?>((ref) => null);
 enum OverlayType { chat, herd }
 
 final activeOverlayTypeProvider = StateProvider<OverlayType?>((ref) => null);
-
-// Add separate closing animation providers
-final herdClosingAnimationProvider = StateProvider<String?>((ref) => null);

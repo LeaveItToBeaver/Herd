@@ -29,7 +29,7 @@ class UICustomizationRepository {
       // First, try to get from local cache
       final cached = await _getFromCache(userId);
       if (cached != null) {
-        debugPrint('🎨 Loaded UI customization from cache');
+        debugPrint('Loaded UI customization from cache');
         return cached;
       }
 
@@ -52,11 +52,11 @@ class UICustomizationRepository {
 
       // Cache the result
       await _saveToCache(customization);
-      debugPrint('🎨 Loaded UI customization from Firestore');
+      debugPrint('Loaded UI customization from Firestore');
 
       return customization;
     } catch (e, stackTrace) {
-      debugPrint('❌ Error loading UI customization: $e');
+      debugPrint('Error loading UI customization: $e');
       debugPrint('Stack trace: $stackTrace');
       // Return default on error instead of throwing
       return UICustomizationModel.defaultForUser(userId);
@@ -137,9 +137,9 @@ class UICustomizationRepository {
 
       // Update cache
       await _saveToCache(customization);
-      debugPrint('✅ UI customization saved');
+      debugPrint('UI customization saved');
     } catch (e, stackTrace) {
-      debugPrint('❌ Error saving UI customization: $e');
+      debugPrint('Error saving UI customization: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
@@ -156,7 +156,7 @@ class UICustomizationRepository {
       }
 
       if (updates.isEmpty) {
-        debugPrint('⚠️ No updates provided');
+        debugPrint('No updates provided');
         return;
       }
 
@@ -169,7 +169,7 @@ class UICustomizationRepository {
       }
 
       if (sanitizedUpdates.isEmpty) {
-        debugPrint('⚠️ All updates were null, skipping');
+        debugPrint('All updates were null, skipping');
         return;
       }
 
@@ -183,9 +183,9 @@ class UICustomizationRepository {
 
       // Clear cache to force reload
       await _clearCache(userId);
-      debugPrint('✅ UI customization updated');
+      debugPrint('UI customization updated');
     } catch (e, stackTrace) {
-      debugPrint('❌ Error updating UI customization: $e');
+      debugPrint('Error updating UI customization: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
@@ -213,17 +213,17 @@ class UICustomizationRepository {
 
         // Update cache whenever we get new data
         _saveToCache(customization).catchError((e) {
-          debugPrint('⚠️ Failed to cache customization: $e');
+          debugPrint('Failed to cache customization: $e');
         });
 
         return customization;
       } catch (e, stackTrace) {
-        debugPrint('❌ Error in stream customization: $e');
+        debugPrint('Error in stream customization: $e');
         debugPrint('Stack trace: $stackTrace');
         return UICustomizationModel.defaultForUser(userId);
       }
     }).handleError((error, stackTrace) {
-      debugPrint('❌ Stream error: $error');
+      debugPrint('Stream error: $error');
       debugPrint('Stack trace: $stackTrace');
     });
   }
@@ -237,9 +237,9 @@ class UICustomizationRepository {
 
       final defaultCustomization = UICustomizationModel.defaultForUser(userId);
       await saveUserCustomization(defaultCustomization);
-      debugPrint('✅ UI customization reset to default');
+      debugPrint('UI customization reset to default');
     } catch (e, stackTrace) {
-      debugPrint('❌ Error resetting UI customization: $e');
+      debugPrint('Error resetting UI customization: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
@@ -265,9 +265,9 @@ class UICustomizationRepository {
         'appTheme': preset.toJson(),
       });
 
-      debugPrint('✅ Preset theme applied: $presetId');
+      debugPrint('Preset theme applied: $presetId');
     } catch (e, stackTrace) {
-      debugPrint('❌ Error applying preset theme: $e');
+      debugPrint('Error applying preset theme: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
@@ -279,7 +279,7 @@ class UICustomizationRepository {
       final customization = await getUserCustomization(userId);
       return jsonEncode(customization.toJson());
     } catch (e, stackTrace) {
-      debugPrint('❌ Error exporting customization: $e');
+      debugPrint('Error exporting customization: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
@@ -303,9 +303,9 @@ class UICustomizationRepository {
       final customization = UICustomizationModel.fromJson(sanitizedData);
       await saveUserCustomization(customization);
 
-      debugPrint('✅ Customization imported successfully');
+      debugPrint('Customization imported successfully');
     } catch (e, stackTrace) {
-      debugPrint('❌ Error importing customization: $e');
+      debugPrint('Error importing customization: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
@@ -333,7 +333,7 @@ class UICustomizationRepository {
       final sanitizedData = _sanitizeCustomizationData(data, userId);
       return UICustomizationModel.fromJson(sanitizedData);
     } catch (e) {
-      debugPrint('⚠️ Cache read error: $e');
+      debugPrint('Cache read error: $e');
       return null;
     }
   }
@@ -350,7 +350,7 @@ class UICustomizationRepository {
 
       await prefs.setString(key, jsonEncode(cacheData));
     } catch (e) {
-      debugPrint('⚠️ Cache write error: $e');
+      debugPrint('Cache write error: $e');
     }
   }
 
@@ -360,7 +360,7 @@ class UICustomizationRepository {
       final key = '${_cacheKey}_$userId';
       await prefs.remove(key);
     } catch (e) {
-      debugPrint('⚠️ Cache clear error: $e');
+      debugPrint('Cache clear error: $e');
     }
   }
 

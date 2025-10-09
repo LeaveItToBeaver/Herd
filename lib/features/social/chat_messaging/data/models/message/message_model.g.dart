@@ -16,6 +16,8 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
       content: json['content'] as String?,
       type: $enumDecodeNullable(_$MessageTypeEnumMap, json['type']) ??
           MessageType.text,
+      status: $enumDecodeNullable(_$MessageStatusEnumMap, json['status']) ??
+          MessageStatus.delivered,
       timestamp: DateTime.parse(json['timestamp'] as String),
       editedAt: json['editedAt'] == null
           ? null
@@ -37,6 +39,10 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
           const {},
       isEdited: json['isEdited'] as bool? ?? false,
       isDeleted: json['isDeleted'] as bool? ?? false,
+      deletedAt: json['deletedAt'] == null
+          ? null
+          : DateTime.parse(json['deletedAt'] as String),
+      deletedBy: json['deletedBy'] as String?,
       isPinned: json['isPinned'] as bool? ?? false,
       isStarred: json['isStarred'] as bool? ?? false,
       isForwarded: json['isForwarded'] as bool? ?? false,
@@ -63,6 +69,7 @@ Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
       'senderProfileImage': instance.senderProfileImage,
       'content': instance.content,
       'type': _$MessageTypeEnumMap[instance.type]!,
+      'status': _$MessageStatusEnumMap[instance.status]!,
       'timestamp': instance.timestamp.toIso8601String(),
       'editedAt': instance.editedAt?.toIso8601String(),
       'mediaUrl': instance.mediaUrl,
@@ -77,6 +84,8 @@ Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
       'reactions': instance.reactions,
       'isEdited': instance.isEdited,
       'isDeleted': instance.isDeleted,
+      'deletedAt': instance.deletedAt?.toIso8601String(),
+      'deletedBy': instance.deletedBy,
       'isPinned': instance.isPinned,
       'isStarred': instance.isStarred,
       'isForwarded': instance.isForwarded,
@@ -103,4 +112,12 @@ const _$MessageTypeEnumMap = {
   MessageType.location: 'location',
   MessageType.contact: 'contact',
   MessageType.sticker: 'sticker',
+};
+
+const _$MessageStatusEnumMap = {
+  MessageStatus.draft: 'draft',
+  MessageStatus.sending: 'sending',
+  MessageStatus.delivered: 'delivered',
+  MessageStatus.failed: 'failed',
+  MessageStatus.read: 'read',
 };

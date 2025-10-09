@@ -21,6 +21,7 @@ mixin _$MessageModel {
   String? get senderProfileImage;
   String? get content;
   MessageType get type;
+  MessageStatus get status;
   DateTime get timestamp;
   DateTime? get editedAt;
   String? get mediaUrl;
@@ -35,6 +36,8 @@ mixin _$MessageModel {
   Map<String, String> get reactions;
   bool get isEdited;
   bool get isDeleted;
+  DateTime? get deletedAt;
+  String? get deletedBy;
   bool get isPinned;
   bool get isStarred;
   bool get isForwarded;
@@ -75,6 +78,7 @@ mixin _$MessageModel {
                 other.senderProfileImage == senderProfileImage) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
             (identical(other.editedAt, editedAt) ||
@@ -100,6 +104,10 @@ mixin _$MessageModel {
                 other.isEdited == isEdited) &&
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
+            (identical(other.deletedAt, deletedAt) ||
+                other.deletedAt == deletedAt) &&
+            (identical(other.deletedBy, deletedBy) ||
+                other.deletedBy == deletedBy) &&
             (identical(other.isPinned, isPinned) ||
                 other.isPinned == isPinned) &&
             (identical(other.isStarred, isStarred) ||
@@ -139,6 +147,7 @@ mixin _$MessageModel {
         senderProfileImage,
         content,
         type,
+        status,
         timestamp,
         editedAt,
         mediaUrl,
@@ -152,6 +161,8 @@ mixin _$MessageModel {
         const DeepCollectionEquality().hash(reactions),
         isEdited,
         isDeleted,
+        deletedAt,
+        deletedBy,
         isPinned,
         isStarred,
         isForwarded,
@@ -169,7 +180,7 @@ mixin _$MessageModel {
 
   @override
   String toString() {
-    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
+    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, status: $status, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, deletedAt: $deletedAt, deletedBy: $deletedBy, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
   }
 }
 
@@ -187,6 +198,7 @@ abstract mixin class $MessageModelCopyWith<$Res> {
       String? senderProfileImage,
       String? content,
       MessageType type,
+      MessageStatus status,
       DateTime timestamp,
       DateTime? editedAt,
       String? mediaUrl,
@@ -200,6 +212,8 @@ abstract mixin class $MessageModelCopyWith<$Res> {
       Map<String, String> reactions,
       bool isEdited,
       bool isDeleted,
+      DateTime? deletedAt,
+      String? deletedBy,
       bool isPinned,
       bool isStarred,
       bool isForwarded,
@@ -234,6 +248,7 @@ class _$MessageModelCopyWithImpl<$Res> implements $MessageModelCopyWith<$Res> {
     Object? senderProfileImage = freezed,
     Object? content = freezed,
     Object? type = null,
+    Object? status = null,
     Object? timestamp = null,
     Object? editedAt = freezed,
     Object? mediaUrl = freezed,
@@ -247,6 +262,8 @@ class _$MessageModelCopyWithImpl<$Res> implements $MessageModelCopyWith<$Res> {
     Object? reactions = null,
     Object? isEdited = null,
     Object? isDeleted = null,
+    Object? deletedAt = freezed,
+    Object? deletedBy = freezed,
     Object? isPinned = null,
     Object? isStarred = null,
     Object? isForwarded = null,
@@ -290,6 +307,10 @@ class _$MessageModelCopyWithImpl<$Res> implements $MessageModelCopyWith<$Res> {
           ? _self.type
           : type // ignore: cast_nullable_to_non_nullable
               as MessageType,
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as MessageStatus,
       timestamp: null == timestamp
           ? _self.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
@@ -342,6 +363,14 @@ class _$MessageModelCopyWithImpl<$Res> implements $MessageModelCopyWith<$Res> {
           ? _self.isDeleted
           : isDeleted // ignore: cast_nullable_to_non_nullable
               as bool,
+      deletedAt: freezed == deletedAt
+          ? _self.deletedAt
+          : deletedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      deletedBy: freezed == deletedBy
+          ? _self.deletedBy
+          : deletedBy // ignore: cast_nullable_to_non_nullable
+              as String?,
       isPinned: null == isPinned
           ? _self.isPinned
           : isPinned // ignore: cast_nullable_to_non_nullable
@@ -499,6 +528,7 @@ extension MessageModelPatterns on MessageModel {
             String? senderProfileImage,
             String? content,
             MessageType type,
+            MessageStatus status,
             DateTime timestamp,
             DateTime? editedAt,
             String? mediaUrl,
@@ -512,6 +542,8 @@ extension MessageModelPatterns on MessageModel {
             Map<String, String> reactions,
             bool isEdited,
             bool isDeleted,
+            DateTime? deletedAt,
+            String? deletedBy,
             bool isPinned,
             bool isStarred,
             bool isForwarded,
@@ -539,6 +571,7 @@ extension MessageModelPatterns on MessageModel {
             _that.senderProfileImage,
             _that.content,
             _that.type,
+            _that.status,
             _that.timestamp,
             _that.editedAt,
             _that.mediaUrl,
@@ -552,6 +585,8 @@ extension MessageModelPatterns on MessageModel {
             _that.reactions,
             _that.isEdited,
             _that.isDeleted,
+            _that.deletedAt,
+            _that.deletedBy,
             _that.isPinned,
             _that.isStarred,
             _that.isForwarded,
@@ -593,6 +628,7 @@ extension MessageModelPatterns on MessageModel {
             String? senderProfileImage,
             String? content,
             MessageType type,
+            MessageStatus status,
             DateTime timestamp,
             DateTime? editedAt,
             String? mediaUrl,
@@ -606,6 +642,8 @@ extension MessageModelPatterns on MessageModel {
             Map<String, String> reactions,
             bool isEdited,
             bool isDeleted,
+            DateTime? deletedAt,
+            String? deletedBy,
             bool isPinned,
             bool isStarred,
             bool isForwarded,
@@ -632,6 +670,7 @@ extension MessageModelPatterns on MessageModel {
             _that.senderProfileImage,
             _that.content,
             _that.type,
+            _that.status,
             _that.timestamp,
             _that.editedAt,
             _that.mediaUrl,
@@ -645,6 +684,8 @@ extension MessageModelPatterns on MessageModel {
             _that.reactions,
             _that.isEdited,
             _that.isDeleted,
+            _that.deletedAt,
+            _that.deletedBy,
             _that.isPinned,
             _that.isStarred,
             _that.isForwarded,
@@ -685,6 +726,7 @@ extension MessageModelPatterns on MessageModel {
             String? senderProfileImage,
             String? content,
             MessageType type,
+            MessageStatus status,
             DateTime timestamp,
             DateTime? editedAt,
             String? mediaUrl,
@@ -698,6 +740,8 @@ extension MessageModelPatterns on MessageModel {
             Map<String, String> reactions,
             bool isEdited,
             bool isDeleted,
+            DateTime? deletedAt,
+            String? deletedBy,
             bool isPinned,
             bool isStarred,
             bool isForwarded,
@@ -724,6 +768,7 @@ extension MessageModelPatterns on MessageModel {
             _that.senderProfileImage,
             _that.content,
             _that.type,
+            _that.status,
             _that.timestamp,
             _that.editedAt,
             _that.mediaUrl,
@@ -737,6 +782,8 @@ extension MessageModelPatterns on MessageModel {
             _that.reactions,
             _that.isEdited,
             _that.isDeleted,
+            _that.deletedAt,
+            _that.deletedBy,
             _that.isPinned,
             _that.isStarred,
             _that.isForwarded,
@@ -767,6 +814,7 @@ class _MessageModel extends MessageModel {
       this.senderProfileImage,
       this.content,
       this.type = MessageType.text,
+      this.status = MessageStatus.delivered,
       required this.timestamp,
       this.editedAt,
       this.mediaUrl,
@@ -780,6 +828,8 @@ class _MessageModel extends MessageModel {
       final Map<String, String> reactions = const {},
       this.isEdited = false,
       this.isDeleted = false,
+      this.deletedAt,
+      this.deletedBy,
       this.isPinned = false,
       this.isStarred = false,
       this.isForwarded = false,
@@ -814,6 +864,9 @@ class _MessageModel extends MessageModel {
   @override
   @JsonKey()
   final MessageType type;
+  @override
+  @JsonKey()
+  final MessageStatus status;
   @override
   final DateTime timestamp;
   @override
@@ -860,6 +913,10 @@ class _MessageModel extends MessageModel {
   @override
   @JsonKey()
   final bool isDeleted;
+  @override
+  final DateTime? deletedAt;
+  @override
+  final String? deletedBy;
   @override
   @JsonKey()
   final bool isPinned;
@@ -923,6 +980,7 @@ class _MessageModel extends MessageModel {
                 other.senderProfileImage == senderProfileImage) &&
             (identical(other.content, content) || other.content == content) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
             (identical(other.editedAt, editedAt) ||
@@ -949,6 +1007,10 @@ class _MessageModel extends MessageModel {
                 other.isEdited == isEdited) &&
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
+            (identical(other.deletedAt, deletedAt) ||
+                other.deletedAt == deletedAt) &&
+            (identical(other.deletedBy, deletedBy) ||
+                other.deletedBy == deletedBy) &&
             (identical(other.isPinned, isPinned) ||
                 other.isPinned == isPinned) &&
             (identical(other.isStarred, isStarred) ||
@@ -988,6 +1050,7 @@ class _MessageModel extends MessageModel {
         senderProfileImage,
         content,
         type,
+        status,
         timestamp,
         editedAt,
         mediaUrl,
@@ -1001,6 +1064,8 @@ class _MessageModel extends MessageModel {
         const DeepCollectionEquality().hash(_reactions),
         isEdited,
         isDeleted,
+        deletedAt,
+        deletedBy,
         isPinned,
         isStarred,
         isForwarded,
@@ -1018,7 +1083,7 @@ class _MessageModel extends MessageModel {
 
   @override
   String toString() {
-    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
+    return 'MessageModel(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImage: $senderProfileImage, content: $content, type: $type, status: $status, timestamp: $timestamp, editedAt: $editedAt, mediaUrl: $mediaUrl, thumbnailUrl: $thumbnailUrl, fileName: $fileName, fileSize: $fileSize, replyToMessageId: $replyToMessageId, forwardedFromUserId: $forwardedFromUserId, forwardedFromChatId: $forwardedFromChatId, readReceipts: $readReceipts, reactions: $reactions, isEdited: $isEdited, isDeleted: $isDeleted, deletedAt: $deletedAt, deletedBy: $deletedBy, isPinned: $isPinned, isStarred: $isStarred, isForwarded: $isForwarded, isSelfDestructing: $isSelfDestructing, selfDestructTime: $selfDestructTime, quotedMessageId: $quotedMessageId, quotedMessageContent: $quotedMessageContent, latitude: $latitude, longitude: $longitude, locationName: $locationName, contactName: $contactName, contactPhone: $contactPhone, contactEmail: $contactEmail)';
   }
 }
 
@@ -1038,6 +1103,7 @@ abstract mixin class _$MessageModelCopyWith<$Res>
       String? senderProfileImage,
       String? content,
       MessageType type,
+      MessageStatus status,
       DateTime timestamp,
       DateTime? editedAt,
       String? mediaUrl,
@@ -1051,6 +1117,8 @@ abstract mixin class _$MessageModelCopyWith<$Res>
       Map<String, String> reactions,
       bool isEdited,
       bool isDeleted,
+      DateTime? deletedAt,
+      String? deletedBy,
       bool isPinned,
       bool isStarred,
       bool isForwarded,
@@ -1086,6 +1154,7 @@ class __$MessageModelCopyWithImpl<$Res>
     Object? senderProfileImage = freezed,
     Object? content = freezed,
     Object? type = null,
+    Object? status = null,
     Object? timestamp = null,
     Object? editedAt = freezed,
     Object? mediaUrl = freezed,
@@ -1099,6 +1168,8 @@ class __$MessageModelCopyWithImpl<$Res>
     Object? reactions = null,
     Object? isEdited = null,
     Object? isDeleted = null,
+    Object? deletedAt = freezed,
+    Object? deletedBy = freezed,
     Object? isPinned = null,
     Object? isStarred = null,
     Object? isForwarded = null,
@@ -1142,6 +1213,10 @@ class __$MessageModelCopyWithImpl<$Res>
           ? _self.type
           : type // ignore: cast_nullable_to_non_nullable
               as MessageType,
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as MessageStatus,
       timestamp: null == timestamp
           ? _self.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
@@ -1194,6 +1269,14 @@ class __$MessageModelCopyWithImpl<$Res>
           ? _self.isDeleted
           : isDeleted // ignore: cast_nullable_to_non_nullable
               as bool,
+      deletedAt: freezed == deletedAt
+          ? _self.deletedAt
+          : deletedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      deletedBy: freezed == deletedBy
+          ? _self.deletedBy
+          : deletedBy // ignore: cast_nullable_to_non_nullable
+              as String?,
       isPinned: null == isPinned
           ? _self.isPinned
           : isPinned // ignore: cast_nullable_to_non_nullable

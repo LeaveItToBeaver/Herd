@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 
 class FloatingButtonsColumn extends ConsumerWidget {
   final bool showProfileBtn;
@@ -36,6 +35,48 @@ class FloatingButtonsColumn extends ConsumerWidget {
 
     final bool bothButtonsVisible = showProfileBtn && showSearchBtn;
 
+    void handleNavigationWithOverlayClose(VoidCallback navigate) {
+      if (isOverlayOpen) {
+        final callbacks = ref.read(bubbleAnimationCallbackProvider);
+        const callBackKey = '_navigation_pending';
+
+        ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
+          final newState = Map<String, VoidCallback>.from(state);
+          newState[callBackKey] = () {
+            ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
+              final cleanState = Map<String, VoidCallback>.from(state);
+              cleanState.remove(callBackKey);
+              return cleanState;
+            });
+            navigate();
+          };
+          return newState;
+        });
+
+        final activeOverlay = ref.read(activeOverlayTypeProvider);
+        if (activeOverlay == OverlayType.chat) {
+          final chatTriggeredByBubble = ref.read(chatTriggeredByBubbleProvider);
+          if (chatTriggeredByBubble != null) {
+            ref.read(chatClosingAnimationProvider.notifier).state =
+                chatTriggeredByBubble;
+          } else {
+            ref.read(chatOverlayOpenProvider.notifier).state = false;
+            ref.read(activeOverlayTypeProvider.notifier).state = null;
+            navigate();
+          }
+        } else if (activeOverlay == OverlayType.herd) {
+          final herdBubbleId = ref.read(herdTriggeredByBubbleProvider);
+          ref.read(herdOverlayOpenProvider.notifier).state = false;
+          ref.read(activeOverlayTypeProvider.notifier).state = null;
+          navigate();
+        } else {
+          // Handle other overlay types if needed
+        }
+      } else {
+        navigate();
+      }
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -60,23 +101,25 @@ class FloatingButtonsColumn extends ConsumerWidget {
                 if (!navService.canNavigate) return;
 
                 HapticFeedback.mediumImpact();
-                final currentUser = ref.read(authProvider);
-                if (currentUser?.uid != null) {
-                  // Navigate to the appropriate profile based on current feed
-                  if (currentFeed == FeedType.alt) {
-                    context.pushNamed(
-                      'altProfile',
-                      pathParameters: {'id': currentUser!.uid},
-                    );
+
+                handleNavigationWithOverlayClose(() {
+                  final currentUser = ref.read(authProvider);
+                  if (currentUser?.uid != null) {
+                    if (currentFeed == FeedType.alt) {
+                      context.pushNamed(
+                        'altProfile',
+                        pathParameters: {'id': currentUser!.uid},
+                      );
+                    } else {
+                      context.pushNamed(
+                        'publicProfile',
+                        pathParameters: {'id': currentUser!.uid},
+                      );
+                    }
                   } else {
-                    context.pushNamed(
-                      'publicProfile',
-                      pathParameters: {'id': currentUser!.uid},
-                    );
+                    context.go("/login");
                   }
-                } else {
-                  context.go("/login");
-                }
+                });
               },
             ),
           ),
@@ -99,7 +142,9 @@ class FloatingButtonsColumn extends ConsumerWidget {
                   : Icon(Icons.notifications, color: Colors.white),
               onPressed: () {
                 HapticFeedback.mediumImpact();
-                context.pushNamed('notifications');
+                handleNavigationWithOverlayClose(() {
+                  context.pushNamed('notifications');
+                });
               },
             ),
           ),
@@ -119,7 +164,9 @@ class FloatingButtonsColumn extends ConsumerWidget {
               child: const Icon(Icons.search, color: Colors.white),
               onPressed: () {
                 HapticFeedback.mediumImpact();
-                context.pushNamed('search');
+                handleNavigationWithOverlayClose(() {
+                  context.pushNamed('search');
+                });
               },
             ),
           ),

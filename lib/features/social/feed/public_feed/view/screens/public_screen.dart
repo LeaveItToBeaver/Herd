@@ -19,7 +19,8 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _refreshVisiblePostInteractions();
+    // Remove this to prevent rebuilds when keyboard appears
+    // _refreshVisiblePostInteractions();
   }
 
   void _refreshVisiblePostInteractions() {
@@ -70,6 +71,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   Widget build(BuildContext context) {
     final publicFeedState = ref.watch(publicFeedControllerProvider);
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
+    final isOverlayActive = ref.watch(activeOverlayTypeProvider) != null;
 
     return PopScope(
       canPop: false, // Disable swipe to close

@@ -9,13 +9,15 @@ import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/themes/app_colors.dart';
 import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
-import 'package:herdapp/features/ui/customization/view/providers/ui_customization_provider.dart';
+import 'features/ui/customization/view/providers/ui_customization_provider.dart';
+import 'features/social/chat_messaging/view/providers/e2ee_auto_init_provider.dart';
 import 'package:herdapp/core/services/app_check_service.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/bootstrap/app_bootstraps.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'firebase_options.dart';
+import 'features/user/auth/view/providers/auth_provider.dart';
 
 /// Background message handler - MUST be a top-level function
 @pragma('vm:entry-point')
@@ -34,34 +36,36 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    debugPrint('✅ Firebase initialized');
+    debugPrint('Firebase initialized');
 
-    // Thi should automatically run the correct code for mobile or web.
+    // This should automatically run the correct code for mobile or web.
     await setupPlatformSpecificFirebase();
 
     // You can still have kIsWeb checks for things that don't need separate files.
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
-      debugPrint('✅ Background message handler registered');
+      debugPrint('Background message handler registered');
 
       unawaited(MobileAds.instance.initialize());
-      debugPrint('🚀 Mobile ads initialization started');
+      debugPrint(' Mobile ads initialization started');
 
       unawaited(CacheManager.bootstrapCache());
-      debugPrint('🚀 Cache bootstrap started');
+      debugPrint(' Cache bootstrap started');
     }
 
-    debugPrint('✅ Main initialization complete');
+    debugPrint('Main initialization complete');
   } catch (e, stackTrace) {
-    debugPrint('❌ Error in main initialization: $e');
+    debugPrint('Error in main initialization: $e');
     debugPrint(stackTrace.toString());
   }
 
   runApp(
     const ProviderScope(
       child: BootstrapWrapper(
-        child: MyApp(),
+        child: AuthGate(
+          child: MyApp(),
+        ),
       ),
     ),
   );
@@ -93,7 +97,7 @@ void main() async {
 //     debugPrint(
 //         '🔔 Firebase Messaging permission status: ${settings.authorizationStatus}');
 //   } catch (e) {
-//     debugPrint('⚠️ Firebase App Check setup error: $e');
+//     debugPrint('Firebase App Check setup error: $e');
 //     // Continue without App Check in case of errors
 //   }
 // }
@@ -107,6 +111,13 @@ class MyApp extends ConsumerWidget {
 
     final customTheme = ref.watch(currentThemeProvider);
     final customizationAsync = ref.watch(uiCustomizationProvider);
+
+    // Initialize E2EE keys when user is authenticated
+    ref.watch(e2eeAutoInitProvider);
+
+    final authReady = ref.watch(authReadyProvider);
+    final user = ref.watch(authProvider);
+    debugPrint('Building MyApp: authReady=$authReady user=${user?.uid}');
 
     // Get theme mode from customization or default to system
     final themeMode = customizationAsync.maybeWhen(
@@ -204,5 +215,28 @@ class MyApp extends ConsumerWidget {
     return hsl
         .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
         .toColor();
+  }
+}
+
+/// Gate that waits for the first Firebase Auth event before showing the router.
+class AuthGate extends ConsumerWidget {
+  final Widget child;
+  const AuthGate({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ready = ref.watch(authReadyProvider);
+    final user = ref.watch(authProvider);
+    if (!ready) {
+      return const MaterialApp(
+        home: Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+    debugPrint('🔓 Auth ready. Current user: ${user?.uid ?? 'null'}');
+    return child; // Router will redirect to /login if user null
   }
 }

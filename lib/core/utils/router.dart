@@ -22,12 +22,14 @@ import '../../features/community/moderation/view/screens/pinned_post_management_
 import '../../features/user/user_profile/data/models/user_model.dart';
 import '../../features/user/user_profile/view/widgets/user_list_screen.dart';
 import '../../features/ui/navigation/utils/bottom_nav_route_observer.dart';
+import '../../features/social/chat_messaging/view/screens/chat_screen.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(authProvider);
+  final authReady = ref.watch(authReadyProvider);
   final currentFeed = ref.watch(currentFeedProvider);
   // Create a key for the navigator inside ShellRoute
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -43,6 +45,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final user = ref.read(authProvider);
+      final ready = ref.read(authReadyProvider);
       final currentPath = state.uri.path;
       final isAuthRoute = [
         '/login',
@@ -52,22 +55,47 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         '/splash',
       ].contains(currentPath);
 
+      // Wait for auth readiness before making any decision.
+      if (!ready) {
+        if (kDebugMode) {
+          debugPrint(
+              '⏳ Router redirect deferred (auth not ready). path=$currentPath');
+        }
+        return null; // Do nothing until first auth event
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+            '🧭 Router evaluating redirect: path=$currentPath user=${user?.uid ?? 'null'}');
+      }
+
       // 1) Not signed in → must go to login/signup
       if (user == null) {
-        return isAuthRoute ? null : '/login';
+        if (!isAuthRoute) {
+          if (kDebugMode) debugPrint('➡️ Redirecting to /login (no user)');
+          return '/login';
+        }
+        // Stay on auth route (login/signup/etc.)
+        return null;
       }
 
       // 2) Signed in but email *not* verified → force /emailVerification
       if (!user.emailVerified) {
-        return (currentPath == '/emailVerification')
-            ? null
-            : '/emailVerification';
+        if (currentPath != '/emailVerification') {
+          if (kDebugMode) {
+            debugPrint('➡️ Redirecting to /emailVerification (unverified)');
+          }
+          return '/emailVerification';
+        }
+        return null;
       }
       //    (e.g. redirect "/" → either /publicFeed or /altFeed)
       if (currentPath == '/') {
-        return ref.read(currentFeedProvider) == FeedType.alt
+        final target = ref.read(currentFeedProvider) == FeedType.alt
             ? '/altFeed'
             : '/publicFeed';
+        if (kDebugMode) debugPrint('➡️ Root redirect -> $target');
+        return target;
       }
 
       return null; // all other routes permitted
@@ -778,6 +806,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+
+      // Chat Route
+      GoRoute(
+        path: '/chat',
+        name: 'chat',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final chatId = state.uri.queryParameters['chatId'];
+
+          return NoTransitionPage(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: GlobalOverlayManager(
+                showBottomNav: false,
+                showSideBubbles: false,
+                showProfileBtn: false,
+                showSearchBtn: false,
+                showNotificationsBtn: false,
+                showChatToggle: false,
+                child: ChatScreen(chatId: chatId),
+              ),
+            ),
+          );
+        },
+      ),
     ],
   );
 });
@@ -796,7 +849,8 @@ class _TabScaffold extends ConsumerWidget {
     ref.watch(e2eeStatusProvider);
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Prevent scaffold from moving with keyboard
+      resizeToAvoidBottomInset:
+          false, // Prevent scaffold from moving with keyboard
       body: GlobalOverlayManager(
         showBottomNav: true,
         showSideBubbles: false,

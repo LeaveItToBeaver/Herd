@@ -13,7 +13,8 @@ enum NotificationType {
   commentReply,
   connectionRequest,
   connectionAccepted,
-  postMilestone // For reaching a threshold of likes/comments
+  postMilestone, // For reaching a threshold of likes/comments
+  chatMessage,
 }
 
 @freezed
@@ -33,6 +34,8 @@ abstract class NotificationModel with _$NotificationModel {
     // Fields for specific notification types
     String? postId,
     String? commentId,
+    String? chatId,
+    String? messageId,
     String? senderName,
     String? senderUsername,
     String? senderProfileImage,
@@ -65,6 +68,8 @@ abstract class NotificationModel with _$NotificationModel {
         body: data['body'],
         postId: data['postId'],
         commentId: data['commentId'],
+        chatId: data['chatId'],
+        messageId: data['messageId'],
         senderName: data['senderName'],
         senderUsername: data['senderUsername'],
         senderProfileImage: data['senderProfileImage'],
@@ -127,6 +132,7 @@ abstract class NotificationModel with _$NotificationModel {
     final senderId = data['senderId'];
     final postId = data['postId'];
     final commentId = data['commentId'];
+    final chatId = data['chatId'];
     final isAlt = data['isAlt'] ?? false;
 
     switch (type) {
@@ -155,6 +161,10 @@ abstract class NotificationModel with _$NotificationModel {
       case NotificationType.connectionAccepted:
         // Connection accepted usually means alt profile interaction
         return senderId != null ? '/altProfile/$senderId' : null;
+
+      case NotificationType.chatMessage:
+        // Navigate directly to the specific chat
+        return chatId != null ? '/chat?chatId=$chatId' : null;
     }
   }
 
@@ -168,6 +178,8 @@ abstract class NotificationModel with _$NotificationModel {
       'body': body,
       'postId': postId,
       'commentId': commentId,
+      'chatId': chatId,
+      'messageId': messageId,
       'senderName': senderName,
       'senderUsername': senderUsername,
       'senderProfileImage': senderProfileImage,
@@ -180,6 +192,7 @@ abstract class NotificationModel with _$NotificationModel {
             'senderId': senderId,
             'postId': postId,
             'commentId': commentId,
+            'chatId': chatId,
             'isAlt': isAlt,
           }),
       'data': data,
@@ -205,6 +218,8 @@ abstract class NotificationModel with _$NotificationModel {
         return '$senderName accepted your connection request';
       case NotificationType.postMilestone:
         return 'Your post reached $count likes';
+      case NotificationType.chatMessage:
+        return body ?? '$senderName sent you a message';
     }
   }
 
@@ -216,6 +231,7 @@ abstract class NotificationModel with _$NotificationModel {
           'senderId': senderId,
           'postId': postId,
           'commentId': commentId,
+          'chatId': chatId,
           'isAlt': isAlt,
         });
   }

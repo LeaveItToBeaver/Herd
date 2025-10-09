@@ -9,7 +9,7 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   // Get the test file path
   final testPath = Platform.environment['FLUTTER_TEST'] ?? '';
 
-  // ✅ Skip Firebase setup entirely for customization tests
+  // Skip Firebase setup entirely for customization tests
   final isCustomizationTest = testPath.contains('customization_tests');
 
   if (!isCustomizationTest) {

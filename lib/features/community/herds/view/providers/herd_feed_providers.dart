@@ -69,7 +69,7 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
       String userId, List<PostModel> posts) async {
     if (posts.isEmpty) return;
 
-    debugPrint('🔄 Batch initializing interactions for ${posts.length} posts');
+    debugPrint('Batch initializing interactions for ${posts.length} posts');
 
     for (final post in posts) {
       // Initialize each post's interaction state proactively
@@ -80,7 +80,7 @@ class HerdFeedController extends StateNotifier<HerdFeedState> {
           .initializeState(userId);
     }
 
-    debugPrint('✅ Interactions batch initialization complete');
+    debugPrint('Interactions batch initialization complete');
   }
 
   Future<void> loadMorePosts() async {

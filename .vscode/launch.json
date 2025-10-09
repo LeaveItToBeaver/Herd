@@ -45,28 +45,20 @@
             "deviceId": "00008101-000938821A52001E"
         },
         {
-            "name": "herd_riverpod release (Flutter SM F731U1)",
+            "name": "herd_riverpod (Flutter Pixel 9 debug)",
             "program": "lib/main.dart",
-            "deviceId": "192.168.50.27:37647",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "release"
-        },
-        {
-            "name": "herd_riverpod profile (Flutter SM F731U1)",
-            "program": "lib/main.dart",
-            "deviceId": "192.168.50.27:37647",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "herd_riverpod debug (Flutter SM F731U1)",
-            "program": "lib/main.dart",
-            "deviceId": "192.168.50.27:37647",
+            "deviceId": "48260DLAQ00062",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug"
+        },
+        {
+            "name": "herd_riverpod (Flutter Pixel 9 profile)",
+            "program": "lib/main.dart",
+            "deviceId": "48260DLAQ00062",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
         }
     ]
 }

@@ -6,6 +6,8 @@ import 'package:herdapp/features/content/rich_text_editing/view/widgets/read_onl
 enum RichTextSource {
   postWidget,
   postScreen,
+  postFeed, // Add this for the feed context
+  pinnedPost, // Add this for pinned posts
 }
 
 class QuillViewerWidget extends StatefulWidget {
@@ -24,10 +26,15 @@ class QuillViewerWidget extends StatefulWidget {
   State<QuillViewerWidget> createState() => _QuillViewerWidgetState();
 }
 
-class _QuillViewerWidgetState extends State<QuillViewerWidget> {
+class _QuillViewerWidgetState extends State<QuillViewerWidget>
+    with AutomaticKeepAliveClientMixin {
   late quill.QuillController _controller;
   bool _isLoading = true;
   String? _errorDetail; // To store detailed error information
+  String? _cachedJsonContent; // Cache the content to avoid rebuilds
+
+  @override
+  bool get wantKeepAlive => true; // Keep state alive during rebuilds
 
   @override
   void initState() {
@@ -40,21 +47,32 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
   @override
   void didUpdateWidget(covariant QuillViewerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.jsonContent != widget.jsonContent ||
-        oldWidget.isExpanded != widget.isExpanded) {
+    // Only reinitialize if content actually changed
+    if (oldWidget.jsonContent != widget.jsonContent) {
       debugPrint(
-          "[QuillViewerWidget-${widget.source}] didUpdateWidget: Content or expansion changed. Re-initializing.");
+          "[QuillViewerWidget-${widget.source}] didUpdateWidget: Content changed. Re-initializing.");
       // Dispose the old controller before creating a new one to avoid issues
       _controller.dispose();
       _initializeController();
+    } else if (oldWidget.isExpanded != widget.isExpanded) {
+      debugPrint(
+          "[QuillViewerWidget-${widget.source}] didUpdateWidget: Only expansion changed. Skipping controller recreation.");
+      // Just trigger a rebuild without recreating the controller
+      setState(() {});
     }
   }
 
   void _initializeController() {
+    // Check if we already processed this content
+    if (_cachedJsonContent == widget.jsonContent && !_isLoading) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorDetail = null;
     });
+
     try {
       if (widget.jsonContent.isEmpty) {
         debugPrint(
@@ -64,6 +82,7 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
           selection: const TextSelection.collapsed(offset: 0),
           readOnly: true,
         );
+        _cachedJsonContent = widget.jsonContent;
         setState(() {
           _isLoading = false;
         });
@@ -83,6 +102,7 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
         selection: const TextSelection.collapsed(offset: 0),
         readOnly: true,
       );
+      _cachedJsonContent = widget.jsonContent; // Cache the content
       setState(() {
         _isLoading = false;
       });
@@ -116,6 +136,8 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     debugPrint(
         "[QuillViewerWidget-${widget.source}] build: isLoading: $_isLoading, hasError: ${_errorDetail != null}");
 
@@ -181,10 +203,10 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
       customStyles: customStyles,
       autoFocus: false,
       expands: widget.source == RichTextSource.postScreen ||
-          (widget.source == RichTextSource.postWidget && widget.isExpanded),
+          (widget.source == RichTextSource.postFeed && widget.isExpanded),
       padding: EdgeInsets.zero,
       scrollable: widget.source == RichTextSource.postScreen ||
-          (widget.source == RichTextSource.postWidget && widget.isExpanded),
+          (widget.source == RichTextSource.postFeed && widget.isExpanded),
       showCursor: false,
       enableInteractiveSelection: widget.source == RichTextSource.postScreen,
       embedBuilders: [
@@ -196,7 +218,7 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
     Widget editor;
 
     if (widget.source == RichTextSource.postScreen ||
-        (widget.source == RichTextSource.postWidget && widget.isExpanded)) {
+        (widget.source == RichTextSource.postFeed && widget.isExpanded)) {
       // For PostScreen or expanded post widget: use the scroll controller from the parent
       // but don't set expands to true when inside a ScrollView
       final bool inPostScreen = widget.source == RichTextSource.postScreen;
@@ -220,6 +242,27 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
         controller: _controller,
         config: postScreenConfig,
       );
+    } else if (widget.source == RichTextSource.pinnedPost) {
+      // For pinned posts: non-scrollable, compact configuration
+      final pinnedConfig = quill.QuillEditorConfig(
+        customStyles: customStyles,
+        autoFocus: false,
+        expands: false,
+        padding: EdgeInsets.zero,
+        scrollable: false,
+        showCursor: false,
+        enableInteractiveSelection: false,
+        embedBuilders: [
+          ReadOnlyMentionEmbedBuilder(context),
+        ],
+      );
+
+      editor = quill.QuillEditor(
+        controller: _controller,
+        focusNode: FocusNode(canRequestFocus: false),
+        scrollController: ScrollController(),
+        config: pinnedConfig,
+      );
     } else {
       // For non-scrollable compact post widget preview
       final scrollController = ScrollController();
@@ -232,11 +275,21 @@ class _QuillViewerWidgetState extends State<QuillViewerWidget> {
     }
 
     // For post widget preview, we want to limit the height
-    if (widget.source == RichTextSource.postWidget && !widget.isExpanded) {
+    if (widget.source == RichTextSource.postFeed && !widget.isExpanded) {
       return Container(
         constraints: const BoxConstraints(
-          maxHeight: 100, // Adjust as needed for preview
+          maxHeight: 120, // Show more lines for better preview
         ),
+        width: double.infinity,
+        child: ClipRect(
+          child: editor,
+        ),
+      );
+    }
+
+    // For pinned posts, allow flexible height but constrain it
+    if (widget.source == RichTextSource.pinnedPost) {
+      return SizedBox(
         width: double.infinity,
         child: ClipRect(
           child: editor,

@@ -518,7 +518,7 @@ class PostRepository {
     double? lastHotScore,
     String? lastPostId,
   }) {
-    debugPrint('⚠️ Getting alt posts from userFeeds/$userId/feed');
+    debugPrint('Getting alt posts from userFeeds/$userId/feed');
     return FirebaseFirestore.instance
         .collection('userFeeds')
         .doc(userId)

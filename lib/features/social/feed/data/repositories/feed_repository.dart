@@ -619,7 +619,7 @@ class FeedRepository {
           cachedPosts = await CacheManager().getFeed(userId, isAlt: true);
           if (cachedPosts.isNotEmpty) {
             debugPrint(
-                '🔄 Returning ${cachedPosts.length} cached posts immediately');
+                'Returning ${cachedPosts.length} cached posts immediately');
 
             _fetchFromServerAndNotify(params, userId, feedType == 'alt');
 
@@ -629,7 +629,7 @@ class FeedRepository {
           cachedPosts = await CacheManager().getFeed(userId, isAlt: false);
           if (cachedPosts.isNotEmpty) {
             debugPrint(
-                '🔄 Returning ${cachedPosts.length} cached posts immediately');
+                'Returning ${cachedPosts.length} cached posts immediately');
 
             _fetchFromServerAndNotify(params, userId, feedType == 'alt');
 
@@ -640,7 +640,7 @@ class FeedRepository {
               await CacheManager().getFeed(userId, isAlt: feedType == 'herd');
           if (cachedPosts.isNotEmpty) {
             debugPrint(
-                '🔄 Returning ${cachedPosts.length} cached posts immediately');
+                'Returning ${cachedPosts.length} cached posts immediately');
 
             _fetchFromServerAndNotify(params, userId, feedType == 'herd');
 

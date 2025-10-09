@@ -25,6 +25,8 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
   String? get body; // Fields for specific notification types
   String? get postId;
   String? get commentId;
+  String? get chatId;
+  String? get messageId;
   String? get senderName;
   String? get senderUsername;
   String? get senderProfileImage;
@@ -60,6 +62,8 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('body', body))
       ..add(DiagnosticsProperty('postId', postId))
       ..add(DiagnosticsProperty('commentId', commentId))
+      ..add(DiagnosticsProperty('chatId', chatId))
+      ..add(DiagnosticsProperty('messageId', messageId))
       ..add(DiagnosticsProperty('senderName', senderName))
       ..add(DiagnosticsProperty('senderUsername', senderUsername))
       ..add(DiagnosticsProperty('senderProfileImage', senderProfileImage))
@@ -89,6 +93,9 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
             (identical(other.postId, postId) || other.postId == postId) &&
             (identical(other.commentId, commentId) ||
                 other.commentId == commentId) &&
+            (identical(other.chatId, chatId) || other.chatId == chatId) &&
+            (identical(other.messageId, messageId) ||
+                other.messageId == messageId) &&
             (identical(other.senderName, senderName) ||
                 other.senderName == senderName) &&
             (identical(other.senderUsername, senderUsername) ||
@@ -105,30 +112,33 @@ mixin _$NotificationModel implements DiagnosticableTreeMixin {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      recipientId,
-      senderId,
-      type,
-      timestamp,
-      isRead,
-      title,
-      body,
-      postId,
-      commentId,
-      senderName,
-      senderUsername,
-      senderProfileImage,
-      senderAltProfileImage,
-      isAlt,
-      count,
-      path,
-      const DeepCollectionEquality().hash(data));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        recipientId,
+        senderId,
+        type,
+        timestamp,
+        isRead,
+        title,
+        body,
+        postId,
+        commentId,
+        chatId,
+        messageId,
+        senderName,
+        senderUsername,
+        senderProfileImage,
+        senderAltProfileImage,
+        isAlt,
+        count,
+        path,
+        const DeepCollectionEquality().hash(data)
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, path: $path, data: $data)';
+    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, chatId: $chatId, messageId: $messageId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, path: $path, data: $data)';
   }
 }
 
@@ -149,6 +159,8 @@ abstract mixin class $NotificationModelCopyWith<$Res> {
       String? body,
       String? postId,
       String? commentId,
+      String? chatId,
+      String? messageId,
       String? senderName,
       String? senderUsername,
       String? senderProfileImage,
@@ -182,6 +194,8 @@ class _$NotificationModelCopyWithImpl<$Res>
     Object? body = freezed,
     Object? postId = freezed,
     Object? commentId = freezed,
+    Object? chatId = freezed,
+    Object? messageId = freezed,
     Object? senderName = freezed,
     Object? senderUsername = freezed,
     Object? senderProfileImage = freezed,
@@ -231,6 +245,14 @@ class _$NotificationModelCopyWithImpl<$Res>
       commentId: freezed == commentId
           ? _self.commentId
           : commentId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chatId: freezed == chatId
+          ? _self.chatId
+          : chatId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      messageId: freezed == messageId
+          ? _self.messageId
+          : messageId // ignore: cast_nullable_to_non_nullable
               as String?,
       senderName: freezed == senderName
           ? _self.senderName
@@ -372,6 +394,8 @@ extension NotificationModelPatterns on NotificationModel {
             String? body,
             String? postId,
             String? commentId,
+            String? chatId,
+            String? messageId,
             String? senderName,
             String? senderUsername,
             String? senderProfileImage,
@@ -397,6 +421,8 @@ extension NotificationModelPatterns on NotificationModel {
             _that.body,
             _that.postId,
             _that.commentId,
+            _that.chatId,
+            _that.messageId,
             _that.senderName,
             _that.senderUsername,
             _that.senderProfileImage,
@@ -436,6 +462,8 @@ extension NotificationModelPatterns on NotificationModel {
             String? body,
             String? postId,
             String? commentId,
+            String? chatId,
+            String? messageId,
             String? senderName,
             String? senderUsername,
             String? senderProfileImage,
@@ -460,6 +488,8 @@ extension NotificationModelPatterns on NotificationModel {
             _that.body,
             _that.postId,
             _that.commentId,
+            _that.chatId,
+            _that.messageId,
             _that.senderName,
             _that.senderUsername,
             _that.senderProfileImage,
@@ -498,6 +528,8 @@ extension NotificationModelPatterns on NotificationModel {
             String? body,
             String? postId,
             String? commentId,
+            String? chatId,
+            String? messageId,
             String? senderName,
             String? senderUsername,
             String? senderProfileImage,
@@ -522,6 +554,8 @@ extension NotificationModelPatterns on NotificationModel {
             _that.body,
             _that.postId,
             _that.commentId,
+            _that.chatId,
+            _that.messageId,
             _that.senderName,
             _that.senderUsername,
             _that.senderProfileImage,
@@ -551,6 +585,8 @@ class _NotificationModel extends NotificationModel
       this.body,
       this.postId,
       this.commentId,
+      this.chatId,
+      this.messageId,
       this.senderName,
       this.senderUsername,
       this.senderProfileImage,
@@ -588,6 +624,10 @@ class _NotificationModel extends NotificationModel
   final String? postId;
   @override
   final String? commentId;
+  @override
+  final String? chatId;
+  @override
+  final String? messageId;
   @override
   final String? senderName;
   @override
@@ -646,6 +686,8 @@ class _NotificationModel extends NotificationModel
       ..add(DiagnosticsProperty('body', body))
       ..add(DiagnosticsProperty('postId', postId))
       ..add(DiagnosticsProperty('commentId', commentId))
+      ..add(DiagnosticsProperty('chatId', chatId))
+      ..add(DiagnosticsProperty('messageId', messageId))
       ..add(DiagnosticsProperty('senderName', senderName))
       ..add(DiagnosticsProperty('senderUsername', senderUsername))
       ..add(DiagnosticsProperty('senderProfileImage', senderProfileImage))
@@ -675,6 +717,9 @@ class _NotificationModel extends NotificationModel
             (identical(other.postId, postId) || other.postId == postId) &&
             (identical(other.commentId, commentId) ||
                 other.commentId == commentId) &&
+            (identical(other.chatId, chatId) || other.chatId == chatId) &&
+            (identical(other.messageId, messageId) ||
+                other.messageId == messageId) &&
             (identical(other.senderName, senderName) ||
                 other.senderName == senderName) &&
             (identical(other.senderUsername, senderUsername) ||
@@ -691,30 +736,33 @@ class _NotificationModel extends NotificationModel
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      recipientId,
-      senderId,
-      type,
-      timestamp,
-      isRead,
-      title,
-      body,
-      postId,
-      commentId,
-      senderName,
-      senderUsername,
-      senderProfileImage,
-      senderAltProfileImage,
-      isAlt,
-      count,
-      path,
-      const DeepCollectionEquality().hash(_data));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        recipientId,
+        senderId,
+        type,
+        timestamp,
+        isRead,
+        title,
+        body,
+        postId,
+        commentId,
+        chatId,
+        messageId,
+        senderName,
+        senderUsername,
+        senderProfileImage,
+        senderAltProfileImage,
+        isAlt,
+        count,
+        path,
+        const DeepCollectionEquality().hash(_data)
+      ]);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, path: $path, data: $data)';
+    return 'NotificationModel(id: $id, recipientId: $recipientId, senderId: $senderId, type: $type, timestamp: $timestamp, isRead: $isRead, title: $title, body: $body, postId: $postId, commentId: $commentId, chatId: $chatId, messageId: $messageId, senderName: $senderName, senderUsername: $senderUsername, senderProfileImage: $senderProfileImage, senderAltProfileImage: $senderAltProfileImage, isAlt: $isAlt, count: $count, path: $path, data: $data)';
   }
 }
 
@@ -737,6 +785,8 @@ abstract mixin class _$NotificationModelCopyWith<$Res>
       String? body,
       String? postId,
       String? commentId,
+      String? chatId,
+      String? messageId,
       String? senderName,
       String? senderUsername,
       String? senderProfileImage,
@@ -770,6 +820,8 @@ class __$NotificationModelCopyWithImpl<$Res>
     Object? body = freezed,
     Object? postId = freezed,
     Object? commentId = freezed,
+    Object? chatId = freezed,
+    Object? messageId = freezed,
     Object? senderName = freezed,
     Object? senderUsername = freezed,
     Object? senderProfileImage = freezed,
@@ -819,6 +871,14 @@ class __$NotificationModelCopyWithImpl<$Res>
       commentId: freezed == commentId
           ? _self.commentId
           : commentId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chatId: freezed == chatId
+          ? _self.chatId
+          : chatId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      messageId: freezed == messageId
+          ? _self.messageId
+          : messageId // ignore: cast_nullable_to_non_nullable
               as String?,
       senderName: freezed == senderName
           ? _self.senderName

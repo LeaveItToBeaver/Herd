@@ -16,63 +16,118 @@ class ChatRevealOverlay extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Save the canvas state
+    canvas.save();
+
     if (animationProgress <= 0.0) {
       // Cover everything before animation starts
       final paint = Paint()
         ..style = PaintingStyle.fill
         ..color = backgroundColor;
       canvas.drawRect(Offset.zero & size, paint);
+      canvas.restore();
       return;
     }
 
-    // Create a path that covers the entire canvas
-    final fullPath = Path()..addRect(Offset.zero & size);
+    if (animationProgress >= 1.0) {
+      // Animation complete - don't draw anything (fully revealed)
+      canvas.restore();
+      return;
+    }
 
-    // Create expanding circles that will be cut out to reveal the content
+    // Calculate the maximum radius needed to cover the entire screen from any point
+    final maxRadius = math.sqrt(math.pow(
+                math.max(explosionCenter.dx, size.width - explosionCenter.dx),
+                2) +
+            math.pow(
+                math.max(explosionCenter.dy, size.height - explosionCenter.dy),
+                2)) +
+        50;
+
+    // Main reveal circle - use LIMITED range (0 → 0.6) so reveal completes earlier
+    // This makes the overlay fully visible by 60% of animation instead of 100%
+    final effectiveProgress = (animationProgress * 0.85).clamp(0.0, 0.85);
+    final currentRadius = maxRadius * effectiveProgress;
+
+    // Create the inverse clip path (everything EXCEPT the reveal area)
+    final maskPath = Path();
+    maskPath.addRect(Offset.zero & size); // Full screen rect
+
     final revealPath = Path();
+    revealPath.addOval(Rect.fromCircle(
+      center: explosionCenter,
+      radius: currentRadius,
+    ));
 
-    // Multiple expanding circles for smooth reveal effect
-    final circleCount = 3;
-    for (int i = 0; i < circleCount; i++) {
-      final staggerDelay = i * 0.2;
-      final adjustedProgress =
-          ((animationProgress - staggerDelay) / (1.0 - staggerDelay))
-              .clamp(0.0, 1.0);
+    // Add secondary ripple circles for more dramatic effect
+    if (animationProgress > 0.2) {
+      final secondaryProgress =
+          ((animationProgress - 0.2) / 0.8).clamp(0.0, 1.0);
+      // Use the same limited range for consistency
+      final secondaryEffectiveProgress =
+          (secondaryProgress * 0.6).clamp(0.0, 0.6);
+      final secondaryRadius = maxRadius * secondaryEffectiveProgress * 0.7;
 
-      if (adjustedProgress <= 0) continue;
-
-      // Calculate radius that will eventually cover the entire screen
-      final maxRadius =
-          math.sqrt(math.pow(size.width, 2) + math.pow(size.height, 2)) + 100;
-      final currentRadius = maxRadius * _easeOutQuart(adjustedProgress);
-
-      // Add circle to reveal path
       revealPath.addOval(Rect.fromCircle(
         center: explosionCenter,
-        radius: currentRadius,
+        radius: secondaryRadius,
       ));
     }
 
-    // Subtract the reveal circles from the full canvas to create holes
-    final maskPath =
-        Path.combine(PathOperation.difference, fullPath, revealPath);
+    // Subtract the reveal area from the full screen (inverse masking)
+    final maskWithHole =
+        Path.combine(PathOperation.difference, maskPath, revealPath);
 
-    // Draw the mask that covers everything except the revealed areas
-    final paint = Paint()..style = PaintingStyle.fill;
+    // Clip to the mask (everything except the revealed area)
+    canvas.clipPath(maskWithHole);
 
-    canvas.drawPath(maskPath, paint);
+    // Draw background that covers everything except the revealed area
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = backgroundColor;
+
+    canvas.drawRect(Offset.zero & size, paint);
+
+    canvas.restore();
+
+    // Draw ripple rings on top without clipping
+    canvas.save();
+    _drawRippleRings(canvas, size, animationProgress); // Use direct progress
+    canvas.restore();
 
     debugPrint(
-        "🎨 Drew mask path with ${revealPath.getBounds()} reveal bounds");
+        "Drew reveal effect: progress=$animationProgress, effectiveProgress=$effectiveProgress, radius=$currentRadius, maxRadius=$maxRadius");
+  }
 
-    // Add subtle glow around the reveal edges
-    if (animationProgress > 0.3) {
-      final glowPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+  void _drawRippleRings(Canvas canvas, Size size, double progress) {
+    if (progress < 0.1) return;
 
-      canvas.drawPath(revealPath, glowPaint);
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    // Draw multiple expanding rings
+    for (int i = 0; i < 3; i++) {
+      final ringDelay = i * 0.15;
+      final ringProgress =
+          ((progress - ringDelay) / (1.0 - ringDelay)).clamp(0.0, 1.0);
+
+      if (ringProgress <= 0) continue;
+
+      final maxRadius = math.sqrt(math.pow(
+              math.max(explosionCenter.dx, size.width - explosionCenter.dx),
+              2) +
+          math.pow(
+              math.max(explosionCenter.dy, size.height - explosionCenter.dy),
+              2));
+
+      final ringRadius =
+          maxRadius * _easeOutQuart(ringProgress) * (0.8 + i * 0.1);
+      final alpha = (1.0 - ringProgress) * 0.3;
+
+      ringPaint.color = backgroundColor.withValues(alpha: alpha);
+
+      canvas.drawCircle(explosionCenter, ringRadius, ringPaint);
     }
   }
 

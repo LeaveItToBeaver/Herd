@@ -33,7 +33,7 @@ class CreatePostScreen extends ConsumerStatefulWidget {
 class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
-  String _content = '';
+  final String _content = '';
   File? _postMedia;
   bool _isSubmitting = false;
   late bool _isAlt;

@@ -18,15 +18,15 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> testConnection() async {
     try {
       final testResult = await _repository.testCloudFunctionConnectivity();
-      debugPrint('🧪 Cloud function test result: $testResult');
+      debugPrint('Cloud function test result: $testResult');
     } catch (e) {
-      debugPrint('❌ Cloud function test failed: $e');
+      debugPrint('Cloud function test failed: $e');
     }
   }
 
   /// Refresh notifications using cloud function
   Future<void> refreshNotifications({bool markAsRead = true}) async {
-    debugPrint('🔄 Refreshing notifications (markAsRead: $markAsRead)');
+    debugPrint('Refreshing notifications (markAsRead: $markAsRead)');
 
     state = NotificationState.initial().copyWith(isLoading: true);
 
@@ -47,7 +47,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       final lastNotificationId = result['lastNotificationId'] as String?;
 
       debugPrint(
-          '✅ Fetched ${notifications.length} notifications, unread: $unreadCount');
+          'Fetched ${notifications.length} notifications, unread: $unreadCount');
 
       state = state.copyWith(
         notifications: notifications,
@@ -58,7 +58,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         error: null,
       );
     } catch (e) {
-      debugPrint('❌ Error refreshing notifications: $e');
+      debugPrint('Error refreshing notifications: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load notifications: ${e.toString()}',
@@ -89,7 +89,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       final hasMore = result['hasMore'] as bool;
       final lastNotificationId = result['lastNotificationId'] as String?;
 
-      debugPrint('✅ Loaded ${moreNotifications.length} more notifications');
+      debugPrint('Loaded ${moreNotifications.length} more notifications');
 
       final currentNotifications =
           List<NotificationModel>.from(state.notifications);
@@ -103,7 +103,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         error: null,
       );
     } catch (e) {
-      debugPrint('❌ Error loading more notifications: $e');
+      debugPrint('Error loading more notifications: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load more notifications: ${e.toString()}',
@@ -114,7 +114,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Mark specific notification as read using cloud function
   Future<void> markAsRead(String notificationId) async {
     try {
-      debugPrint('✅ Marking notification as read: $notificationId');
+      debugPrint('Marking notification as read: $notificationId');
 
       // Optimistically update UI first
       final notificationIndex =
@@ -132,7 +132,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           unreadCount: (state.unreadCount - 1).clamp(0, state.unreadCount),
         );
 
-        debugPrint('🔄 Optimistically updated UI');
+        debugPrint('Optimistically updated UI');
       }
 
       // Make the cloud function call
@@ -143,9 +143,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       state = state.copyWith(
           unreadCount: result['unreadCount'] ?? state.unreadCount);
 
-      debugPrint('✅ Notification marked as read successfully');
+      debugPrint('Notification marked as read successfully');
     } catch (e) {
-      debugPrint('❌ Error marking notification as read: $e');
+      debugPrint('Error marking notification as read: $e');
       // Refresh to get correct state on error
       refreshNotifications(markAsRead: false);
     }
@@ -154,7 +154,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Mark all notifications as read using cloud function
   Future<void> markAllAsRead() async {
     try {
-      debugPrint('✅ Marking all notifications as read...');
+      debugPrint('Marking all notifications as read...');
 
       // Optimistic UI update
       final updatedNotifications =
@@ -167,9 +167,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       // Make the cloud function call
       await _repository.markAsRead(); // No specific IDs = mark all as read
 
-      debugPrint('✅ All notifications marked as read successfully');
+      debugPrint('All notifications marked as read successfully');
     } catch (e) {
-      debugPrint('❌ Error marking all notifications as read: $e');
+      debugPrint('Error marking all notifications as read: $e');
       // Refresh to get correct state on error
       refreshNotifications(markAsRead: false);
     }
@@ -200,9 +200,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         error: null,
       );
 
-      debugPrint('✅ Filtered notifications loaded: ${notifications.length}');
+      debugPrint('Filtered notifications loaded: ${notifications.length}');
     } catch (e) {
-      debugPrint('❌ Error filtering notifications: $e');
+      debugPrint('Error filtering notifications: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to filter notifications: ${e.toString()}',
@@ -235,9 +235,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         error: null,
       );
 
-      debugPrint('✅ Unread notifications loaded: ${notifications.length}');
+      debugPrint('Unread notifications loaded: ${notifications.length}');
     } catch (e) {
-      debugPrint('❌ Error getting unread notifications: $e');
+      debugPrint('Error getting unread notifications: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to get unread notifications: ${e.toString()}',
@@ -253,16 +253,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       final unreadCount = await _repository.getUnreadCount();
 
       state = state.copyWith(unreadCount: unreadCount);
-      debugPrint('✅ Unread count updated: $unreadCount');
+      debugPrint('Unread count updated: $unreadCount');
     } catch (e) {
-      debugPrint('❌ Error refreshing unread count: $e');
+      debugPrint('Error refreshing unread count: $e');
     }
   }
 
   /// Delete a notification
   Future<void> deleteNotification(String notificationId) async {
     try {
-      debugPrint('🗑️ Deleting notification: $notificationId');
+      debugPrint('Deleting notification: $notificationId');
 
       // Optimistically remove from UI
       final updatedNotifications =
@@ -282,9 +282,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       // Make the cloud function call
       await _repository.deleteNotification(notificationId);
 
-      debugPrint('✅ Notification deleted successfully');
+      debugPrint('Notification deleted successfully');
     } catch (e) {
-      debugPrint('❌ Error deleting notification: $e');
+      debugPrint('Error deleting notification: $e');
       // Refresh to get correct state on error
       refreshNotifications(markAsRead: false);
     }
@@ -299,14 +299,14 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   /// Force refresh with error handling
   Future<void> forceRefresh() async {
-    debugPrint('🔄 Force refreshing notifications...');
+    debugPrint('Force refreshing notifications...');
     clearError();
     await refreshNotifications(markAsRead: true);
   }
 
   /// Reset state (useful for logout)
   void reset() {
-    debugPrint('🔄 Resetting notification state');
+    debugPrint('Resetting notification state');
     state = NotificationState.initial();
   }
 }

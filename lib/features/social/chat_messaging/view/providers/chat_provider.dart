@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
@@ -7,35 +10,283 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/state/chat_state.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
-import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
+import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
+import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
 
-// Provider for current chat based on bubble ID
+// Verbose logging toggle for chat provider (non-error informational logs)
+const bool _verboseChatProvider = false;
+void _vc(String msg) {
+  if (_verboseChatProvider && kDebugMode) debugPrint(msg);
+}
+
+// Added back providers lost during refactor
 final currentChatProvider =
     FutureProvider.family<ChatModel?, String>((ref, bubbleId) async {
-  final repository = ref.watch(chatRepositoryProvider);
-  final currentUser = ref.watch(currentUserProvider);
-
-  if (currentUser == null) {
-    throw Exception('User not authenticated');
-  }
-
-  return await repository.getChatByBubbleId(bubbleId, currentUser.userId);
+  final repo = ref.watch(chatRepositoryProvider);
+  final currentUserAsync = ref.watch(currentUserProvider);
+  final currentUser = currentUserAsync.when(
+    data: (u) => u,
+    loading: () => null,
+    error: (_, __) => null,
+  );
+  if (currentUser == null) throw Exception('User not authenticated');
+  return repo.getChatByBubbleId(bubbleId, currentUser.id);
 });
+
+final optimisticMessagesProvider = StateNotifierProvider.family<
+    OptimisticMessagesNotifier,
+    Map<String, MessageModel>,
+    String>((ref, chatId) => OptimisticMessagesNotifier(chatId));
 
 final messagesProvider =
-    StreamProvider.family<List<MessageModel>, String>((ref, chatId) {
-  final messagesRepo = ref.watch(messageRepositoryProvider);
-  final cache = ref.watch(messageCacheServiceProvider);
-  // Prime cache (async) – UI may show stale cached first then stream updates.
-  () async {
-    final cached = await cache.getCachedMessages(chatId);
-    if (cached.isNotEmpty) {
-      // Inject into state map if using ChatState later (optional hook)
-    }
-  }();
-  return messagesRepo.getChatMessages(chatId);
+    StateNotifierProvider.family<MessagesNotifier, MessagesState, String>(
+        (ref, chatId) {
+  return MessagesNotifier(ref, chatId);
 });
+
+/// Manages optimistic messages for a specific chat
+class OptimisticMessagesNotifier
+    extends StateNotifier<Map<String, MessageModel>> {
+  final String chatId;
+
+  OptimisticMessagesNotifier(this.chatId) : super({});
+
+  void addOptimisticMessage(MessageModel message) {
+    final newState = Map<String, MessageModel>.from(state);
+    newState[message.id] = message;
+    state = newState;
+    _vc('Added optimistic message: ${message.id}');
+  }
+
+  void updateMessageStatus(String messageId, MessageStatus status,
+      {String? errorMessage}) {
+    final message = state[messageId];
+    if (message != null) {
+      final updatedMessage = message.copyWith(status: status);
+      final newState = Map<String, MessageModel>.from(state);
+      newState[messageId] = updatedMessage;
+      state = newState;
+      _vc('Updated message $messageId status: ${status.displayText}');
+      if (status == MessageStatus.delivered) {
+        Future.delayed(const Duration(milliseconds: 800), () {
+          removeOptimisticMessage(messageId);
+        });
+      }
+    }
+  }
+
+  void removeOptimisticMessage(String messageId) {
+    if (state.containsKey(messageId)) {
+      final newState = Map<String, MessageModel>.from(state)..remove(messageId);
+      state = newState;
+      _vc('➖ Removed optimistic message: $messageId');
+    }
+  }
+
+  void clearAll() {
+    state = {};
+    _vc('🧹 Cleared all optimistic messages for chat: $chatId');
+  }
+
+  int get pendingCount =>
+      state.values.where((msg) => msg.status.isPending).length;
+  int get failedCount => state.values.where((msg) => msg.status.isError).length;
+}
+
+// State for combined messages (cache + incremental fetch)
+class MessagesState {
+  final List<MessageModel> messages;
+  final bool isLoading;
+  final bool hasLoadedFromCache;
+
+  const MessagesState({
+    this.messages = const [],
+    this.isLoading = false,
+    this.hasLoadedFromCache = false,
+  });
+
+  MessagesState copyWith({
+    List<MessageModel>? messages,
+    bool? isLoading,
+    bool? hasLoadedFromCache,
+  }) =>
+      MessagesState(
+        messages: messages ?? this.messages,
+        isLoading: isLoading ?? this.isLoading,
+        hasLoadedFromCache: hasLoadedFromCache ?? this.hasLoadedFromCache,
+      );
+}
+
+class MessagesNotifier extends StateNotifier<MessagesState> {
+  final Ref _ref;
+  final String _chatId;
+  Timer? _pollTimer; // periodic lightweight poll
+  DateTime? _lastFetchedTimestamp; // high-watermark
+
+  MessagesNotifier(this._ref, this._chatId) : super(const MessagesState()) {
+    _initializeCacheFirst();
+  }
+
+  Future<void> _initializeCacheFirst() async {
+    final cache = _ref.read(messageCacheServiceProvider);
+    await cache.initialize();
+
+    try {
+      final cached = await cache.getCachedMessages(_chatId);
+      if (cached.isNotEmpty) {
+        final sorted = _sortMessages(cached);
+        state = state.copyWith(
+          messages: sorted,
+          hasLoadedFromCache: true,
+        );
+        _lastFetchedTimestamp = sorted.last.timestamp;
+        debugPrint(
+            '📱 Loaded ${sorted.length} cached messages for chat: $_chatId');
+      }
+    } catch (e) {
+      debugPrint('Cache load failed: $e');
+    }
+
+    // Initial incremental fetch (will fetch all if no cache watermark)
+    await _fetchNewMessages();
+
+    // Periodic poll (adjust interval as needed)
+    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) async {
+      await _fetchNewMessages();
+    });
+  }
+
+  Future<void> _fetchNewMessages() async {
+    try {
+      final repo = _ref.read(messageRepositoryProvider);
+      final cache = _ref.read(messageCacheServiceProvider);
+      final latestTs = _lastFetchedTimestamp;
+
+      // Get current user ID for message filtering
+      final currentUser = _ref.read(authProvider);
+      final currentUserId = currentUser?.uid;
+
+      final newMessages = await repo.fetchLatestMessages(
+        _chatId,
+        afterTimestamp: latestTs,
+        limit: 50,
+        currentUserId: currentUserId,
+      );
+
+      if (newMessages.isEmpty) return;
+
+      // Remove replaced optimistic messages
+      final optimistic = _ref.read(optimisticMessagesProvider(_chatId));
+      final optimisticNotifier =
+          _ref.read(optimisticMessagesProvider(_chatId).notifier);
+      final toRemove = <String>[];
+      for (final serverMsg in newMessages) {
+        for (final entry in optimistic.entries) {
+          if (_messagesMatch(entry.value, serverMsg)) {
+            toRemove.add(entry.key);
+          }
+        }
+      }
+      for (final id in toRemove) {
+        optimisticNotifier.removeOptimisticMessage(id);
+      }
+
+      final merged = [...state.messages, ...newMessages];
+      final sorted = _sortMessages(merged);
+      state = state.copyWith(messages: sorted);
+      await cache.putMessages(_chatId, sorted);
+      _lastFetchedTimestamp = sorted.last.timestamp;
+      _vc('Added ${newMessages.length} new messages (watermark=${_lastFetchedTimestamp!.toIso8601String()})');
+    } catch (e) {
+      debugPrint('Incremental fetch error: $e');
+    }
+  }
+
+  // Full refetch no longer automatically triggered; provide manual method if diagnostic needed.
+  Future<void> refetchAllMessagesForDebug() async {
+    try {
+      final repo = _ref.read(messageRepositoryProvider);
+      final cache = _ref.read(messageCacheServiceProvider);
+      final all = await repo.fetchAllMessages(_chatId);
+      final sorted = _sortMessages(all);
+      state = state.copyWith(messages: sorted);
+      await cache.putMessages(_chatId, sorted);
+      _lastFetchedTimestamp = sorted.isNotEmpty ? sorted.last.timestamp : null;
+      _vc('Manual refetch loaded ${sorted.length} messages');
+    } catch (e) {
+      debugPrint('Manual refetch error: $e');
+    }
+  }
+
+  // Helper method to check if messages match (for optimistic -> server replacement)
+  bool _messagesMatch(MessageModel optimistic, MessageModel server) {
+    return optimistic.content == server.content &&
+        optimistic.senderId == server.senderId &&
+        optimistic.chatId == server.chatId &&
+        optimistic.timestamp.difference(server.timestamp).abs().inSeconds <
+            10; // Allow 10 sec difference
+  }
+
+  // Add message optimistically (like appending to todo list)
+  void addOptimisticMessage(MessageModel message) async {
+    final newMessages = [...state.messages, message];
+    final sortedMessages = _sortMessages(newMessages);
+    state = state.copyWith(messages: sortedMessages);
+
+    // Update cache with the optimistic message
+    final cache = _ref.read(messageCacheServiceProvider);
+    await cache.putMessages(_chatId, sortedMessages);
+
+    debugPrint('Added optimistic message locally: ${message.id}');
+  }
+
+  // Update message status without removing it
+  void updateMessageStatus(String messageId, MessageStatus status) {
+    final updatedMessages = state.messages.map((msg) {
+      if (msg.id == messageId) {
+        return msg.copyWith(status: status);
+      }
+      return msg;
+    }).toList();
+
+    state = state.copyWith(messages: updatedMessages);
+    debugPrint(
+        'Updated message status locally: $messageId -> ${status.displayText}');
+  }
+
+  // Replace temporary ID with server ID (when server responds)
+  void replaceOptimisticMessage(
+      String tempId, MessageModel serverMessage) async {
+    final updatedMessages = state.messages.map((msg) {
+      if (msg.id == tempId) {
+        return serverMessage;
+      }
+      return msg;
+    }).toList();
+
+    state = state.copyWith(messages: _sortMessages(updatedMessages));
+
+    // Update cache with the replaced message
+    final cache = _ref.read(messageCacheServiceProvider);
+    await cache.putMessages(_chatId, updatedMessages);
+
+    debugPrint('Replaced optimistic message: $tempId -> ${serverMessage.id}');
+  }
+
+  List<MessageModel> _sortMessages(List<MessageModel> messages) {
+    final sorted = [...messages];
+    sorted.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return sorted;
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+}
 
 // Provider for getting an individual message by ID
 // Use format "chatId:messageId" for the parameter
@@ -111,6 +362,36 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   void setCurrentChat(ChatModel? chat) {
     state = state.copyWith(currentChat: chat);
+
+    // Auto-mark messages as read when opening a chat
+    if (chat != null) {
+      _markChatAsRead(chat.id);
+    }
+  }
+
+  Future<void> _markChatAsRead(String chatId) async {
+    try {
+      final authUser = _ref.read(authProvider);
+      if (authUser == null) return;
+
+      final messagesRepo = _ref.read(messageRepositoryProvider);
+      await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
+
+      _vc('Marked chat $chatId as read for user ${authUser.uid}');
+    } catch (e) {
+      debugPrint('Failed to mark chat as read: $e');
+    }
+  }
+
+  /// Force clear all message caches for debugging
+  Future<void> clearAllMessageCaches() async {
+    try {
+      final cache = _ref.read(messageCacheServiceProvider);
+      await cache.clearAllCaches();
+      _vc('Cleared all message caches');
+    } catch (e) {
+      debugPrint('Failed to clear caches: $e');
+    }
   }
 }
 
@@ -137,45 +418,146 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     if (state.text.trim().isEmpty || state.isSending) return;
 
     final content = state.text.trim();
+
+    // Set sending state immediately
     state = state.copyWith(isSending: true, error: null);
 
     try {
       final messagesRepo = _ref.read(messageRepositoryProvider);
+      final messagesNotifier = _ref.read(messagesProvider(_chatId).notifier);
 
       // Get current authenticated user
       final authUser = _ref.read(authProvider);
-      final currentUser = _ref.read(currentUserProvider);
+      final currentUserAsync = _ref.read(currentUserProvider);
 
       if (authUser == null) {
         throw Exception('User not authenticated');
       }
 
+      // Handle AsyncValue properly
+      final currentUser = currentUserAsync.when(
+        data: (user) => user,
+        loading: () => null,
+        error: (_, __) => null,
+      );
+
       if (currentUser == null) {
-        throw Exception('User profile not found');
+        throw Exception('User profile not loaded. Please wait and try again.');
       }
 
-      // Send message with complete user data
-      await messagesRepo.sendMessage(
+      // 1. Create optimistic message with temporary ID
+      final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+      final senderName =
+          '${currentUser.firstName} ${currentUser.lastName}'.trim();
+
+      final optimisticMessage = MessageModel(
+        id: tempId,
         chatId: _chatId,
-        senderId: authUser.uid, // Use actual authenticated user ID
+        senderId: authUser.uid,
+        senderName: senderName,
+        senderProfileImage: currentUser.profileImageURL,
         content: content,
-        senderName: '${currentUser.firstName} ${currentUser.lastName}'.trim(),
+        type: MessageType.text,
+        status: MessageStatus.sending,
+        timestamp: DateTime.now(),
         replyToMessageId: state.replyToMessageId,
-        // Additional message data could include:
-        // type: MessageType.text, // Default type
-        // mediaData: null, // For future media messages
       );
 
+      // 2. Add to UI immediately (like appending to todo list)
+      messagesNotifier.addOptimisticMessage(optimisticMessage);
+
+      // 3. Clear input immediately for better UX - THIS IS KEY!
       state = state.copyWith(
         text: '',
-        isSending: false,
+        isSending: false, // Allow typing immediately
         replyToMessageId: null,
+        error: null,
+      );
+
+      // 4. Send to Firebase in background (don't await here to prevent blocking)
+      _sendMessageInBackground(
+        messagesRepo,
+        messagesNotifier,
+        tempId,
+        optimisticMessage,
+        authUser.uid,
+        content,
+        senderName,
       );
     } catch (error) {
+      // Handle initial setup errors (auth, user loading, etc.)
       state = state.copyWith(
         isSending: false,
         error: error.toString(),
       );
+    }
+  }
+
+  /// Send message in background without blocking UI
+  void _sendMessageInBackground(
+    MessageRepository messagesRepo,
+    MessagesNotifier messagesNotifier,
+    String tempId,
+    MessageModel optimisticMessage,
+    String senderId,
+    String content,
+    String senderName,
+  ) async {
+    try {
+      final sentMessage = await messagesRepo.sendMessage(
+        chatId: _chatId,
+        senderId: senderId,
+        content: content,
+        senderName: senderName,
+        replyToMessageId: optimisticMessage.replyToMessageId,
+      );
+
+      // Replace temp ID with server ID (no UI disruption)
+      messagesNotifier.replaceOptimisticMessage(tempId, sentMessage);
+
+      _vc('Message sent successfully: ${sentMessage.id}');
+    } catch (error) {
+      // Mark as failed if sending failed
+      messagesNotifier.updateMessageStatus(tempId, MessageStatus.failed);
+
+      debugPrint('Failed to send message: $error');
+
+      // Show error in input state for user awareness
+      state = state.copyWith(error: 'Failed to send message. Tap to retry.');
+    }
+  }
+
+  /// Retry sending a failed message
+  Future<void> retryMessage(String messageId) async {
+    final messagesNotifier = _ref.read(messagesProvider(_chatId).notifier);
+    final currentState = _ref.read(messagesProvider(_chatId));
+    final message =
+        currentState.messages.where((m) => m.id == messageId).firstOrNull;
+
+    if (message == null || message.status != MessageStatus.failed) {
+      return;
+    }
+
+    // Update status to sending
+    messagesNotifier.updateMessageStatus(messageId, MessageStatus.sending);
+
+    try {
+      final messagesRepo = _ref.read(messageRepositoryProvider);
+
+      final sentMessage = await messagesRepo.sendMessage(
+        chatId: message.chatId,
+        senderId: message.senderId,
+        content: message.content ?? '',
+        senderName: message.senderName,
+        replyToMessageId: message.replyToMessageId,
+      );
+
+      // Replace with server message
+      messagesNotifier.replaceOptimisticMessage(messageId, sentMessage);
+    } catch (error) {
+      // Mark as failed again
+      messagesNotifier.updateMessageStatus(messageId, MessageStatus.failed);
+      debugPrint('Retry failed: $error');
     }
   }
 
@@ -230,7 +612,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
   }
 
   /// Delete a message
-  Future<void> deleteMessage(String messageId) async {
+  Future<void> deleteMessage(String chatId, String messageId) async {
     try {
       final messagesRepo = _ref.read(messageRepositoryProvider);
       final authUser = _ref.read(authProvider);
@@ -239,10 +621,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
         throw Exception('User not authenticated');
       }
 
-      await messagesRepo.deleteMessage(
-        messageId: messageId,
-        userId: authUser.uid,
-      );
+      await messagesRepo.softDeleteMessage(chatId, messageId, authUser.uid);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -286,16 +665,23 @@ final chatPaginationProvider = StateNotifierProvider.family<
     ChatPaginationNotifier, ChatPaginationState, String>((ref, chatId) {
   final repo = ref.watch(messageRepositoryProvider);
   final cache = ref.watch(messageCacheServiceProvider);
-  return ChatPaginationNotifier(chatId: chatId, repo: repo, cache: cache);
+  final mediaHandler = ref.watch(encryptedMediaHandlerProvider);
+  return ChatPaginationNotifier(
+      chatId: chatId, repo: repo, cache: cache, mediaHandler: mediaHandler);
 });
 
 class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   final String chatId;
   final MessageRepository repo;
   final MessageCacheService cache;
+  final EncryptedMediaMessageHandler _mediaHandler;
   ChatPaginationNotifier(
-      {required this.chatId, required this.repo, required this.cache})
-      : super(ChatPaginationState.initial()) {
+      {required this.chatId,
+      required this.repo,
+      required this.cache,
+      required EncryptedMediaMessageHandler mediaHandler})
+      : _mediaHandler = mediaHandler,
+        super(ChatPaginationState.initial()) {
     _loadInitial();
   }
 
@@ -321,6 +707,24 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     _initialLoaded = true;
   }
 
+  /// Get cached participants for a chat
+  Future<List<String>> _getCachedParticipants(
+      String chatId, String currentUserId) async {
+    try {
+      if (chatId.contains('_')) {
+        final parts = chatId.split('_');
+        if (parts.length == 2) {
+          return [parts[0], parts[1]];
+        }
+      }
+
+      // Fallback - at minimum we know the current user is a participant
+      return [currentUserId];
+    } catch (e) {
+      return [currentUserId];
+    }
+  }
+
   List<MessageModel> _mergeAscending(
       List<MessageModel> current, List<MessageModel> incoming) {
     final map = {for (final m in current) m.id: m};
@@ -338,12 +742,9 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     try {
       // Determine last snapshot by querying one doc (inefficient placeholder) – improvement: retain snapshots in state.
       // For legacy path we need lastDocument; for now we re-query last N messages and use startAfter.
-      // Simplification: not maintaining DocumentSnapshot chain here -> scope for future enhancement.
-      final page = await repo.fetchMessagePage(
-          chatId: chatId,
-          limit: repo.pageSize); // currently always first page again
+      final page =
+          await repo.fetchMessagePage(chatId: chatId, limit: repo.pageSize);
       // TODO: Implement real pagination using retained last DocumentSnapshot.
-      // For now, pretend exhausted if page smaller than size OR no new IDs.
       final existingIds = state.messages.map((m) => m.id).toSet();
       final newOnes = page.where((m) => !existingIds.contains(m.id)).toList();
       if (newOnes.isEmpty) {
@@ -361,5 +762,55 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     } catch (e) {
       state = state.copyWith(isLoadingMore: false, hasMore: false);
     }
+  }
+
+  Future<MessageModel> sendEncryptedMedia({
+    required String chatId,
+    required String senderId,
+    required File mediaFile,
+    required MessageType mediaType,
+    String? caption,
+    String? replyToMessageId,
+    String? senderName,
+    Function(double)? onProgress,
+  }) async {
+    final participants = await _getCachedParticipants(chatId, senderId);
+
+    return await _mediaHandler.sendEncryptedMediaMessage(
+      chatId: chatId,
+      senderId: senderId,
+      mediaFile: mediaFile,
+      mediaType: mediaType,
+      participants: participants,
+      caption: caption,
+      replyToMessageId: replyToMessageId,
+      senderName: senderName,
+      onUploadProgress: onProgress,
+    );
+  }
+
+  /// Decrypt and download media
+  Future<File?> getDecryptedMedia({
+    required MessageModel message,
+    required String currentUserId,
+    Function(double)? onProgress,
+  }) async {
+    final participants =
+        await _getCachedParticipants(message.chatId, currentUserId);
+
+    final mediaInfo = await _mediaHandler.decryptMediaMessage(
+      message: message,
+      currentUserId: currentUserId,
+      participants: participants,
+    );
+
+    if (mediaInfo != null) {
+      return await _mediaHandler.downloadDecryptedMedia(
+        mediaInfo: mediaInfo,
+        onProgress: onProgress,
+      );
+    }
+
+    return null;
   }
 }

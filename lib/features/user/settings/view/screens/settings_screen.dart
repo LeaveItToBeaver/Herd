@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'cache_settings_screen.dart';
 import 'package:herdapp/core/widgets/markdown_dialog.dart';
+import 'package:herdapp/features/user_management/view/screens/blocked_users_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -610,50 +611,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showBlockedList(BuildContext context) {
-    // Show blocked users list or navigate to blocked users screen
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Blocked Users & Herds'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Manage users and herds you\'ve blocked',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  inherit: true,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Blocked Users'),
-              const SizedBox(height: 8),
-              const Text('You haven\'t blocked any users yet.'),
-              const SizedBox(height: 16),
-              const Text('Blocked Herds'),
-              const SizedBox(height: 8),
-              const Text('You haven\'t blocked any herds yet.'),
-              const SizedBox(height: 16),
-              const Text(
-                'When you block someone, they won\'t be able to see your posts or contact you. Blocking a herd will prevent its content from appearing in your feeds.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  inherit: true,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BlockedUsersScreen(),
       ),
     );
   }

@@ -5,6 +5,7 @@ class SwipeableMessage extends StatefulWidget {
   final MessageModel message;
   final bool isCurrentUser;
   final VoidCallback onReply;
+  final Function(String, String) onReplyCallback;
   final Widget child;
 
   const SwipeableMessage({
@@ -12,6 +13,7 @@ class SwipeableMessage extends StatefulWidget {
     required this.message,
     required this.isCurrentUser,
     required this.onReply,
+    required this.onReplyCallback,
     required this.child,
   });
 
@@ -91,7 +93,7 @@ class SwipeableMessageState extends State<SwipeableMessage>
 
           return Stack(
             children: [
-              // Reply icon indicator
+              // Reply icon indicator (for swipe)
               if (offset.abs() > 20)
                 Positioned.fill(
                   child: Align(

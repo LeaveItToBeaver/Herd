@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/community/moderation/data/models/moderation_action_model.dart';
 import '../models/report_model.dart';
 import '../../../herds/data/models/herd_model.dart';
+import '../../../herds/data/models/suspended_user_info.dart';
 import '../../../herds/data/repositories/herd_repository.dart';
 
 class ModerationRepository {
@@ -10,6 +11,15 @@ class ModerationRepository {
   final HerdRepository _herdRepository;
 
   ModerationRepository(this._firestore, this._herdRepository);
+  Future<void> _appendModerationAction(
+      String herdId, ModerationAction action) async {
+    await _firestore
+        .collection('moderationLogs')
+        .doc(herdId)
+        .collection('actions')
+        .doc(action.actionId)
+        .set(action.toMap());
+  }
 
   // === User Moderation ===
 
@@ -36,8 +46,11 @@ class ModerationRepository {
       // Update herd document
       await _firestore.collection('herds').doc(herdId).update({
         'bannedUserIds': FieldValue.arrayUnion([userId]),
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Append to moderation log collection
+      await _appendModerationAction(herdId, action);
 
       // Remove user from members
       await _herdRepository.leaveHerd(herdId, userId);
@@ -70,12 +83,132 @@ class ModerationRepository {
 
       await _firestore.collection('herds').doc(herdId).update({
         'bannedUserIds': FieldValue.arrayRemove([userId]),
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
       });
+
+      await _appendModerationAction(herdId, action);
 
       debugPrint('User $userId unbanned from herd $herdId');
     } catch (e) {
       debugPrint('Error unbanning user: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> suspendUserFromHerd({
+    required String herdId,
+    required String userId,
+    required String moderatorId,
+    required DateTime suspendedUntil,
+    String? reason,
+  }) async {
+    try {
+      final actionId = _firestore.collection('dummy').doc().id;
+      final action = ModerationAction(
+        actionId: actionId,
+        performedBy: moderatorId,
+        timestamp: DateTime.now(),
+        actionType: ModActionType.suspendUser,
+        targetId: userId,
+        targetType: ModTargetType.user,
+        reason: reason,
+        metadata: {
+          'herdId': herdId,
+          'suspendedUntil': suspendedUntil.toIso8601String(),
+        },
+      );
+
+      // Append to moderation log collection
+      await _appendModerationAction(herdId, action);
+
+      // Create suspension document
+      await _firestore
+          .collection('herdSuspensions')
+          .doc(herdId)
+          .collection('suspended')
+          .doc(userId)
+          .set({
+        'suspendedAt': FieldValue.serverTimestamp(),
+        'suspendedUntil': Timestamp.fromDate(suspendedUntil),
+        'suspendedBy': moderatorId,
+        'reason': reason,
+        'isActive': true,
+      });
+
+      debugPrint(
+          'User $userId suspended from herd $herdId until $suspendedUntil');
+    } catch (e) {
+      debugPrint('Error suspending user: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> unsuspendUserFromHerd({
+    required String herdId,
+    required String userId,
+    required String moderatorId,
+    String? reason,
+  }) async {
+    try {
+      final actionId = _firestore.collection('dummy').doc().id;
+      final action = ModerationAction(
+        actionId: actionId,
+        performedBy: moderatorId,
+        timestamp: DateTime.now(),
+        actionType: ModActionType.unsuspendUser,
+        targetId: userId,
+        targetType: ModTargetType.user,
+        reason: reason,
+        metadata: {'herdId': herdId},
+      );
+
+      await _appendModerationAction(herdId, action);
+
+      // Mark suspension as inactive
+      await _firestore
+          .collection('herdSuspensions')
+          .doc(herdId)
+          .collection('suspended')
+          .doc(userId)
+          .update({
+        'isActive': false,
+        'unsuspendedAt': FieldValue.serverTimestamp(),
+        'unsuspendedBy': moderatorId,
+      });
+
+      debugPrint('User $userId unsuspended from herd $herdId');
+    } catch (e) {
+      debugPrint('Error unsuspending user: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> removeMemberFromHerd({
+    required String herdId,
+    required String userId,
+    required String moderatorId,
+    String? reason,
+  }) async {
+    try {
+      final actionId = _firestore.collection('dummy').doc().id;
+      final action = ModerationAction(
+        actionId: actionId,
+        performedBy: moderatorId,
+        timestamp: DateTime.now(),
+        actionType: ModActionType.removeMemberFromHerd,
+        targetId: userId,
+        targetType: ModTargetType.user,
+        reason: reason,
+        metadata: {'herdId': herdId},
+      );
+
+      await _appendModerationAction(herdId, action);
+
+      // Remove user from herd members
+      await _herdRepository.leaveHerd(herdId, userId);
+
+      debugPrint('User $userId removed from herd $herdId by moderator');
+    } catch (e) {
+      debugPrint('Error removing member from herd: $e');
       rethrow;
     }
   }
@@ -108,8 +241,9 @@ class ModerationRepository {
 
       await _firestore.collection('herds').doc(herdId).update({
         'pinnedPosts': FieldValue.arrayUnion([postId]),
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
       });
+
+      await _appendModerationAction(herdId, action);
 
       // Update the post to mark it as pinned
       await _updatePostPinStatus(herdId, postId, true);
@@ -138,8 +272,9 @@ class ModerationRepository {
 
       await _firestore.collection('herds').doc(herdId).update({
         'pinnedPosts': FieldValue.arrayRemove([postId]),
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
       });
+
+      await _appendModerationAction(herdId, action);
 
       await _updatePostPinStatus(herdId, postId, false);
     } catch (e) {
@@ -167,10 +302,7 @@ class ModerationRepository {
         metadata: {'herdId': herdId},
       );
 
-      // Add to moderation log
-      await _firestore.collection('herds').doc(herdId).update({
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
-      });
+      await _appendModerationAction(herdId, action);
 
       // Mark post as removed (don't delete, just hide)
       await _firestore
@@ -211,8 +343,9 @@ class ModerationRepository {
 
       await _firestore.collection('herds').doc(herdId).update({
         'moderatorIds': FieldValue.arrayUnion([userId]),
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
       });
+
+      await _appendModerationAction(herdId, action);
     } catch (e) {
       debugPrint('Error adding moderator: $e');
       rethrow;
@@ -238,8 +371,9 @@ class ModerationRepository {
 
       await _firestore.collection('herds').doc(herdId).update({
         'moderatorIds': FieldValue.arrayRemove([userId]),
-        'moderationLog': FieldValue.arrayUnion([action.toMap()]),
       });
+
+      await _appendModerationAction(herdId, action);
     } catch (e) {
       debugPrint('Error removing moderator: $e');
       rethrow;
@@ -289,19 +423,14 @@ class ModerationRepository {
 
   Stream<List<ModerationAction>> streamModerationLog(String herdId) {
     return _firestore
-        .collection('herds')
+        .collection('moderationLogs')
         .doc(herdId)
+        .collection('actions')
+        .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) {
-      if (!snapshot.exists) return [];
-      final data = snapshot.data()!;
-      final logs = data['moderationLog'] as List<dynamic>? ?? [];
-      return logs
-          .map((log) => ModerationAction.fromMap(log as Map<String, dynamic>))
-          .toList()
-        ..sort(
-            (a, b) => b.timestamp.compareTo(a.timestamp)); // Most recent first
-    });
+        .map((snapshot) => snapshot.docs
+            .map((d) => ModerationAction.fromMap(d.data()))
+            .toList());
   }
 
   Future<List<ReportModel>> getPendingReports(String herdId) async {
@@ -352,6 +481,87 @@ class ModerationRepository {
     } catch (e) {
       debugPrint('Error checking ban status: $e');
       return false;
+    }
+  }
+
+  Future<bool> isUserSuspended(String herdId, String userId) async {
+    try {
+      final suspensionDoc = await _firestore
+          .collection('herdSuspensions')
+          .doc(herdId)
+          .collection('suspended')
+          .doc(userId)
+          .get();
+
+      if (!suspensionDoc.exists) return false;
+
+      final data = suspensionDoc.data()!;
+      final isActive = data['isActive'] ?? false;
+      final suspendedUntil = (data['suspendedUntil'] as Timestamp).toDate();
+
+      return isActive && DateTime.now().isBefore(suspendedUntil);
+    } catch (e) {
+      debugPrint('Error checking suspension status: $e');
+      return false;
+    }
+  }
+
+  Future<List<SuspendedUserInfo>> getSuspendedUsers(String herdId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('herdSuspensions')
+          .doc(herdId)
+          .collection('suspended')
+          .where('isActive', isEqualTo: true)
+          .orderBy('suspendedAt', descending: true)
+          .get();
+
+      List<SuspendedUserInfo> suspendedUsers = [];
+
+      for (final doc in snapshot.docs) {
+        try {
+          final userId = doc.id;
+          final suspensionData = doc.data();
+
+          // Get user data
+          final userDoc =
+              await _firestore.collection('users').doc(userId).get();
+          if (!userDoc.exists) continue;
+
+          final userData = userDoc.data()!;
+
+          // Get moderator username if available
+          final moderatorId = suspensionData['suspendedBy'];
+          String? moderatorUsername;
+          if (moderatorId != null) {
+            final modDoc =
+                await _firestore.collection('users').doc(moderatorId).get();
+            if (modDoc.exists) {
+              moderatorUsername = modDoc.data()!['username'];
+            }
+          }
+
+          final suspendedUser = SuspendedUserInfo.fromMap(
+            userId: userId,
+            userData: userData,
+            suspensionData: suspensionData,
+            suspendedByUsername: moderatorUsername,
+          );
+
+          // Only include if still suspended
+          if (suspendedUser.isCurrentlySuspended) {
+            suspendedUsers.add(suspendedUser);
+          }
+        } catch (e) {
+          debugPrint('Error processing suspended user ${doc.id}: $e');
+          continue;
+        }
+      }
+
+      return suspendedUsers;
+    } catch (e) {
+      debugPrint('Error getting suspended users: $e');
+      return [];
     }
   }
 }
