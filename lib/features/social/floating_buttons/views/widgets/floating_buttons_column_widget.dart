@@ -66,10 +66,11 @@ class FloatingButtonsColumn extends ConsumerWidget {
           }
         } else if (activeOverlay == OverlayType.herd) {
           final herdBubbleId = ref.read(herdTriggeredByBubbleProvider);
-        } else {
           ref.read(herdOverlayOpenProvider.notifier).state = false;
           ref.read(activeOverlayTypeProvider.notifier).state = null;
           navigate();
+        } else {
+          // Handle other overlay types if needed
         }
       } else {
         navigate();
