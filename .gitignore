@@ -52,3 +52,4 @@ node_modules
 
 firestore.rules
 firestore.indexes.json
+android/app/google-services.json

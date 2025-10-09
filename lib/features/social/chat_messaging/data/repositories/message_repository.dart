@@ -396,7 +396,6 @@ class MessageRepository {
         .orderBy('timestamp', descending: true)
         .limit(limit);
     if (last != null) q = q.startAfterDocument(last);
-
     return q.snapshots().asyncMap((snap) async {
       final List<MessageModel> messages = [];
       _v('📥 Processing ${snap.docs.length} message documents from Firestore');
@@ -515,7 +514,6 @@ class MessageRepository {
         continue;
       }
     }
-
     return messages;
   }
 
@@ -979,7 +977,7 @@ class MessageRepository {
 
     final data = {
       'id': messageRef.id,
-      'chatId': chatId, // FIXED: Add chatId field for _fromHierarchicalDoc
+      'chatId': chatId,
       'senderId': senderId,
       'senderName': '${sender.firstName} ${sender.lastName}'.trim(),
       'senderProfileImage': sender.profileImageURL,
@@ -1021,7 +1019,6 @@ class MessageRepository {
       batch.update(uc, upd);
     }
     await batch.commit();
-
     return MessageModel(
       id: messageRef.id,
       chatId: chatId,
