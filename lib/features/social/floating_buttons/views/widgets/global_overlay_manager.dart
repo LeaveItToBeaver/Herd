@@ -100,7 +100,7 @@ class GlobalOverlayManager extends ConsumerWidget {
                         : herdTriggeredByBubble;
 
                     debugPrint(
-                        "🎆 GlobalOverlayManager onClose called for $bubbleId");
+                        "GlobalOverlayManager onClose called for $bubbleId");
 
                     // Immediately start closing animation by setting explosion reveal to closing state
                     final currentReveal = ref.read(explosionRevealProvider);
@@ -209,7 +209,7 @@ Widget _buildOverlay(
   if (explosionReveal != null && explosionReveal.isActive) {
     final isClosing = explosionReveal.isClosing;
     debugPrint(
-        "🎆 Creating AnimatedRevealOverlay for $bubbleId at center: ${explosionReveal.center}, isClosing: $isClosing");
+        "Creating AnimatedRevealOverlay for $bubbleId at center: ${explosionReveal.center}, isClosing: $isClosing");
 
     return AnimatedRevealOverlay(
       explosionCenter: explosionReveal.center,
@@ -219,7 +219,7 @@ Widget _buildOverlay(
       duration: const Duration(milliseconds: 800), // Consistent 800ms duration
       onAnimationComplete: () {
         debugPrint(
-            "🎆 Reveal animation completed for $bubbleId, isClosing: $isClosing");
+            "Reveal animation completed for $bubbleId, isClosing: $isClosing");
         if (isClosing) {
           // Animation finished, now trigger snap back
           final callbacks = ref.read(bubbleAnimationCallbackProvider);
@@ -233,6 +233,6 @@ Widget _buildOverlay(
     );
   }
 
-  debugPrint("🎆 Using overlay without reveal animation for $bubbleId");
+  debugPrint("Using overlay without reveal animation for $bubbleId");
   return overlayWidget;
 }

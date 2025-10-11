@@ -35,9 +35,9 @@ class _AnimatedRevealOverlayState extends State<AnimatedRevealOverlay>
     super.initState();
 
     debugPrint(
-        "🎆 AnimatedRevealOverlay initState: isVisible=${widget.isVisible}, isReversed=${widget.isReversed}");
+        "AnimatedRevealOverlay initState: isVisible=${widget.isVisible}, isReversed=${widget.isReversed}");
     debugPrint(
-        "🎆 Animation setup: begin=${widget.isReversed ? 1.0 : 0.0}, end=${widget.isReversed ? 0.0 : 1.0}");
+        "Animation setup: begin=${widget.isReversed ? 1.0 : 0.0}, end=${widget.isReversed ? 0.0 : 1.0}");
 
     _controller = AnimationController(
       duration: widget.duration,
@@ -53,7 +53,7 @@ class _AnimatedRevealOverlayState extends State<AnimatedRevealOverlay>
     ));
 
     _controller.addStatusListener((status) {
-      debugPrint("🎆 Animation status changed: $status");
+      debugPrint("Animation status changed: $status");
       if (status == AnimationStatus.completed) {
         widget.onAnimationComplete?.call();
       }
@@ -61,14 +61,14 @@ class _AnimatedRevealOverlayState extends State<AnimatedRevealOverlay>
 
     // Start animation based on visibility and direction
     if (widget.isVisible && !widget.isReversed) {
-      debugPrint("🎆 Starting forward animation (opening)");
+      debugPrint("Starting forward animation (opening)");
       _controller.forward();
     } else if (!widget.isVisible && widget.isReversed) {
-      debugPrint("🎆 Starting reverse animation (closing)");
+      debugPrint("Starting reverse animation (closing)");
       _controller.forward(); // Forward goes from 1.0 to 0.0 for reverse
     } else if (widget.isReversed) {
       // Handle any closing animation case immediately
-      debugPrint("🎆 Starting immediate reverse animation (closing)");
+      debugPrint("Starting immediate reverse animation (closing)");
       _controller.forward();
     }
   }
@@ -81,12 +81,12 @@ class _AnimatedRevealOverlayState extends State<AnimatedRevealOverlay>
     if (widget.isVisible != oldWidget.isVisible ||
         widget.isReversed != oldWidget.isReversed) {
       debugPrint(
-          "🎆 Widget updated - isVisible: ${widget.isVisible}, isReversed: ${widget.isReversed}");
+          "Widget updated - isVisible: ${widget.isVisible}, isReversed: ${widget.isReversed}");
 
       // Only handle transitions, not recreate animations that should start in initState
       if (widget.isReversed && !widget.isVisible && !oldWidget.isReversed) {
         // Transition from opening to closing - start immediately
-        debugPrint("🎆 Transitioning to close animation");
+        debugPrint("Transitioning to close animation");
         _revealAnimation = Tween<double>(
           begin: _controller.value, // Start from current position
           end: 0.0,
