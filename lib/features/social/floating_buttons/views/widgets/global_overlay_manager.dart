@@ -115,12 +115,42 @@ class GlobalOverlayManager extends ConsumerWidget {
                       );
                     } else {
                       // No reveal animation, trigger direct close
-                      if (activeOverlayType == OverlayType.chat) {
-                        ref.read(chatClosingAnimationProvider.notifier).state =
-                            bubbleId;
-                      } else if (activeOverlayType == OverlayType.herd) {
-                        ref.read(herdClosingAnimationProvider.notifier).state =
-                            bubbleId;
+                      // DEFENSIVE: Check if callback exists before triggering animation provider
+                      final callbacks =
+                          ref.read(bubbleAnimationCallbackProvider);
+                      final hasCallback = callbacks.containsKey(bubbleId);
+
+                      if (hasCallback) {
+                        // Callback exists, use normal animation flow
+                        if (activeOverlayType == OverlayType.chat) {
+                          ref
+                              .read(chatClosingAnimationProvider.notifier)
+                              .state = bubbleId;
+                        } else if (activeOverlayType == OverlayType.herd) {
+                          ref
+                              .read(herdClosingAnimationProvider.notifier)
+                              .state = bubbleId;
+                        }
+                      } else {
+                        // No callback registered - close overlay directly (fallback)
+                        debugPrint(
+                            "⚠️ No callback found for $bubbleId, closing overlay directly");
+                        if (activeOverlayType == OverlayType.chat) {
+                          ref.read(chatOverlayOpenProvider.notifier).state =
+                              false;
+                          ref
+                              .read(chatTriggeredByBubbleProvider.notifier)
+                              .state = null;
+                        } else if (activeOverlayType == OverlayType.herd) {
+                          ref.read(herdOverlayOpenProvider.notifier).state =
+                              false;
+                          ref
+                              .read(herdTriggeredByBubbleProvider.notifier)
+                              .state = null;
+                        }
+                        ref.read(activeOverlayTypeProvider.notifier).state =
+                            null;
+                        ref.read(explosionRevealProvider.notifier).state = null;
                       }
                     }
                   },

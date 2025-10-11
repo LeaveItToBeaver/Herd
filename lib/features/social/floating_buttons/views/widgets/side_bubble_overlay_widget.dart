@@ -175,20 +175,28 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       // Register close animation callbacks for herd bubbles
       final currentUser = ref.read(authProvider);
       if (currentUser != null) {
+        // FIX: Use ref.read instead of ref.watch in update function
         final userHerdsAsync =
-            ref.watch(profileUserHerdsProvider(currentUser.uid));
+            ref.read(profileUserHerdsProvider(currentUser.uid));
         if (userHerdsAsync.hasValue && userHerdsAsync.value != null) {
           final herds = userHerdsAsync.value!;
+          debugPrint('Registering callbacks for ${herds.length} herds');
           for (final herd in herds) {
             final herdBubbleId = 'herd_${herd.id}';
             newState[herdBubbleId] =
                 () => _startCloseAnimation(herdBubbleId, true); // true = herd
             newState['${herdBubbleId}_snapback'] =
                 () => _snapBackAfterCloseHerd(); // Snap back callback
+            debugPrint('Registered callback for herd bubble: $herdBubbleId');
           }
+        } else {
+          debugPrint(
+              'No herds available yet (hasValue: ${userHerdsAsync.hasValue}, value: ${userHerdsAsync.value})');
         }
       }
 
+      debugPrint(
+          'Total callbacks registered: ${newState.length}, keys: ${newState.keys.toList()}');
       return newState;
     });
   }
@@ -782,6 +790,23 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
         });
       }
     });
+
+    // Listen for herd data changes to register callbacks
+    // This ensures callbacks are registered when herds load asynchronously
+    if (currentUser != null &&
+        widget.showHerdBubbles &&
+        feedType == FeedType.alt) {
+      ref.listen(profileUserHerdsProvider(currentUser.uid), (previous, next) {
+        if (previous != next) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              debugPrint('Herds data changed, updating animation callbacks');
+              _updateAnimationCallbacks();
+            }
+          });
+        }
+      });
+    }
 
     final configs = _createBubbleConfigs(
         context, ref, feedType, appTheme, activeChats, userHerdsAsync);
