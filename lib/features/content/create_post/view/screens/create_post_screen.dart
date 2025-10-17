@@ -176,7 +176,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final postState = ref.watch(postControllerProvider);
+    final postState = ref.watch(createPostControllerProvider);
     final currentUserAsync = ref.watch(currentUserProvider);
 
     return PopScope(
@@ -1174,22 +1174,23 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       final processedMedia = await _processMediaFiles();
 
-      ref.read(postControllerProvider.notifier).reset();
+      ref.read(createPostControllerProvider.notifier).reset();
 
-      final postId = await ref.read(postControllerProvider.notifier).createPost(
-            title: _title,
-            content: richTextContent,
-            processedMedia: processedMedia,
-            mediaFiles: _mediaFiles,
-            userId: currentUser.id,
-            isAlt: _isAlt,
-            isNSFW: _isNSFW,
-            herdId: _selectedHerdId ?? '',
-            herdName: _selectedHerdName ?? '',
-            herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
-            mentions: mentionIds,
-            tags: _postTags,
-          );
+      final postId =
+          await ref.read(createPostControllerProvider.notifier).createPost(
+                title: _title,
+                content: richTextContent,
+                processedMedia: processedMedia,
+                mediaFiles: _mediaFiles,
+                userId: currentUser.id,
+                isAlt: _isAlt,
+                isNSFW: _isNSFW,
+                herdId: _selectedHerdId ?? '',
+                herdName: _selectedHerdName ?? '',
+                herdProfileImageURL: _selectHerdProfileImageUrl ?? '',
+                mentions: mentionIds,
+                tags: _postTags,
+              );
 
       if (mounted && context.mounted) {
         context.go('/post/$postId?isAlt=${_isAlt.toString()}');

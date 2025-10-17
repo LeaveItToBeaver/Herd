@@ -3,20 +3,19 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/features/content/create_post/data/create_post_repository.dart';
 import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 
-class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
-  final UserRepository _userRepository;
-  final CreatePostRepository _createPostRepository;
-  final PostRepository _postRepository;
+part 'create_post_controller.g.dart';
 
-  CreatePostController(
-      this._userRepository, this._postRepository, this._createPostRepository)
-      : super(AsyncValue.data(CreatePostState.initial()));
+@riverpod
+class CreatePostController extends _$CreatePostController {
+  @override
+  AsyncValue<CreatePostState> build() {
+    return AsyncValue.data(CreatePostState.initial());
+  }
 
   Future<String> createPost({
     required String userId,
@@ -38,21 +37,30 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     try {
       state = const AsyncValue.loading();
 
-      final user = await _userRepository.getUserById(userId);
+      final userRepository = ref.read(userRepositoryProvider);
+      final createPostRepository = ref.read(createPostRepositoryProvider);
+      final postRepository = ref.read(postRepositoryProvider);
+
+      final user = await userRepository.getUserById(userId);
+
+      if (!ref.mounted) return '';
+
       if (user == null) throw Exception("User not found");
 
-      postId = _createPostRepository.generatePostId();
+      postId = createPostRepository.generatePostId();
 
       if (mediaFiles != null && mediaFiles.isNotEmpty) {
         debugPrint("Creating post with ${mediaFiles.length} media files");
         try {
           // Upload multiple media
-          mediaItems = await _createPostRepository.uploadMultipleMediaFiles(
+          mediaItems = await createPostRepository.uploadMultipleMediaFiles(
             mediaFiles: mediaFiles,
             postId: postId,
             userId: userId,
             isAlt: isAlt,
           );
+
+          if (!ref.mounted) return postId;
 
           debugPrint("Uploaded ${mediaItems.length} media items");
           for (var item in mediaItems) {
@@ -103,25 +111,33 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
         tags: tags ?? [],
         mentions: mentions ?? [],
       );
-      await _createPostRepository.createPost(
+      await createPostRepository.createPost(
         post,
         mentions: mentions,
       );
+
+      if (!ref.mounted) return postId;
 
       if (herdId.isNotEmpty) {
         final herdRepository = HerdRepository(FirebaseFirestore.instance);
         await herdRepository.addPostToHerd(herdId, post, userId);
 
+        if (!ref.mounted) return postId;
+
         await _waitForAltPostCreation(postId);
       }
 
-      await _postRepository.likePost(
+      if (!ref.mounted) return postId;
+
+      await postRepository.likePost(
         postId: postId,
         userId: userId,
         isAlt: isAlt,
         feedType: herdId.isNotEmpty ? 'herd' : (isAlt ? 'alt' : 'public'),
         herdId: herdId.isNotEmpty ? herdId : null,
       );
+
+      if (!ref.mounted) return postId;
 
       state = AsyncValue.data(CreatePostState(
         user: user,
@@ -131,6 +147,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
 
       return postId;
     } catch (e, stackTrace) {
+      if (!ref.mounted) return postId ?? '';
+
       state = AsyncValue.error(e, stackTrace);
 
       // Log error for debugging
@@ -183,8 +201,10 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   Future<void> _cleanupFailedPost(
       String postId, String userId, bool isAlt) async {
     try {
+      final postRepository = ref.read(postRepositoryProvider);
+
       // Try to delete the post document if it was created
-      await _postRepository.deletePost(postId, userId, isAlt: isAlt);
+      await postRepository.deletePost(postId, userId, isAlt: isAlt);
 
       // Try to delete any uploaded images
       final String basePath = isAlt
@@ -220,7 +240,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   Future<void> deletePost(String postId, String userId,
       {bool isAlt = false, String? herdId}) async {
     try {
-      await _postRepository.deletePost(postId, userId,
+      final postRepository = ref.read(postRepositoryProvider);
+      await postRepository.deletePost(postId, userId,
           isAlt: isAlt, herdId: herdId);
     } catch (e) {
       debugPrint('Error in delete post controller: $e');
@@ -238,7 +259,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     String? herdId,
   }) async {
     try {
-      await _postRepository.updatePost(
+      final postRepository = ref.read(postRepositoryProvider);
+      await postRepository.updatePost(
         postId: postId,
         userId: userId,
         title: title,
@@ -254,7 +276,8 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
   }
 
   void debugAltPosts(String userId) async {
-    final altPosts = await _postRepository.getFutureUserPublicPosts(userId);
+    final postRepository = ref.read(postRepositoryProvider);
+    final altPosts = await postRepository.getFutureUserPublicPosts(userId);
     debugPrint('Alt posts count: ${altPosts.length}');
     for (var post in altPosts) {
       debugPrint('Post ID: ${post.id}, isAlt: ${post.isAlt}');
@@ -265,14 +288,3 @@ class CreatePostController extends StateNotifier<AsyncValue<CreatePostState>> {
     state = AsyncValue.data(CreatePostState.initial());
   }
 }
-
-final postControllerProvider =
-    StateNotifierProvider<CreatePostController, AsyncValue<CreatePostState>>(
-        (ref) {
-  final userRepository = ref.watch(userRepositoryProvider);
-  final postRepository = ref.watch(postRepositoryProvider);
-  final createPostRepository = ref.watch(createPostRepositoryProvider);
-
-  return CreatePostController(
-      userRepository, postRepository, createPostRepository);
-});

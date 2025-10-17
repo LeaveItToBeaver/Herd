@@ -29,7 +29,7 @@ class Auth extends _$Auth {
   User? build() {
     _auth = FirebaseAuth.instance;
     _logger = ref.watch(exceptionLoggerProvider);
-
+    
     final currentUser = _auth.currentUser;
     debugPrint('🔐 AuthNotifier constructed. Initial currentUser: '
         '${currentUser?.uid ?? 'null'}');
@@ -41,7 +41,8 @@ class Auth extends _$Auth {
       if (!_initialEventReceived) {
         _initialEventReceived = true;
         _firstEventTime = DateTime.now();
-        debugPrint('🔐 First auth event received. user=${user?.uid ?? 'null'}');
+        debugPrint(
+            '🔐 First auth event received. user=${user?.uid ?? 'null'}');
         debugPrint(
             '🔐 Auth persistence check - emailVerified: ${user?.emailVerified}');
 
@@ -68,12 +69,12 @@ class Auth extends _$Auth {
         ref.read(authReadyProvider.notifier).markReady();
       }
     });
-
+    
     // Dispose callback
     ref.onDispose(() {
       _authStateSubscription?.cancel();
     });
-
+    
     return currentUser;
   }
 
@@ -146,11 +147,11 @@ class Auth extends _$Auth {
       final isCorrupted =
           await KeystoreRecoveryHelper.detectKeystoreCorruption();
       if (isCorrupted) {
-        debugPrint('🚨 Keystore corruption detected during auth check');
+        debugPrint('� Keystore corruption detected during auth check');
         await KeystoreRecoveryHelper.logKeystoreCorruptionDetails();
       } else {
         debugPrint(
-            '✅ No stored Firebase Auth user found, no keystore corruption detected');
+            '� No stored Firebase Auth user found, no keystore corruption detected');
       }
     } catch (e) {
       debugPrint('Error checking for keystore issues: $e');
@@ -230,7 +231,7 @@ class Auth extends _$Auth {
         email: email,
         password: password,
       );
-
+      
       if (!ref.mounted) return userCredential;
       state = userCredential.user;
       return userCredential;
@@ -282,7 +283,7 @@ class Auth extends _$Auth {
 
       // 5. Sign out from Firebase Auth
       await _auth.signOut();
-
+      
       if (!ref.mounted) return;
       state = null;
 
@@ -337,7 +338,7 @@ class Auth extends _$Auth {
 class AuthReady extends _$AuthReady {
   @override
   bool build() => false;
-
+  
   void markReady() {
     state = true;
   }
