@@ -30,7 +30,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     // Listen to tab changes and update search type
     _tabController.addListener(() {
       final searchType = _getSearchTypeFromTabIndex(_tabController.index);
-      ref.read(searchControllerProvider.notifier).setSearchType(searchType);
+      ref.read(searchProvider.notifier).setSearchType(searchType);
 
       // Re-perform search with new type if there's already a query
       if (_textController.text.isNotEmpty) {
@@ -65,31 +65,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   }
 
   void _performSearch(String query) {
-    final searchType = ref.read(searchControllerProvider).type;
+    final searchType = ref.read(searchProvider).type;
 
     switch (searchType) {
       case SearchType.users:
-        ref.read(searchControllerProvider.notifier).searchUsers(query);
+        ref.read(searchProvider.notifier).searchUsers(query);
         break;
       case SearchType.publicUsers:
-        ref.read(searchControllerProvider.notifier).searchPublicUsers(query);
+        ref.read(searchProvider.notifier).searchPublicUsers(query);
         break;
       case SearchType.altUsers:
-        ref.read(searchControllerProvider.notifier).searchAltUsers(query);
+        ref.read(searchProvider.notifier).searchAltUsers(query);
         break;
       case SearchType.herds:
-        ref.read(searchControllerProvider.notifier).searchHerds(query);
+        ref.read(searchProvider.notifier).searchHerds(query);
         break;
       case SearchType.all:
       default:
-        ref.read(searchControllerProvider.notifier).searchAll(query);
+        ref.read(searchProvider.notifier).searchAll(query);
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final searchState = ref.watch(searchControllerProvider);
+    final searchState = ref.watch(searchProvider);
     final currentFeedType = ref.watch(currentFeedProvider);
 
     return GestureDetector(
@@ -557,7 +557,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             ),
             onPressed: () {
               _textController.clear();
-              ref.read(searchControllerProvider.notifier).clearSearch();
+              ref.read(searchProvider.notifier).clearSearch();
             },
           ),
         ),
@@ -567,7 +567,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           if (value.trim().isNotEmpty) {
             _performSearch(value.trim());
           } else {
-            ref.read(searchControllerProvider.notifier).clearSearch();
+            ref.read(searchProvider.notifier).clearSearch();
           }
         },
       ),

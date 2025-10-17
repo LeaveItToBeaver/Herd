@@ -28,11 +28,9 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
     // Use a small delay to ensure widget is fully mounted before setting state
     Future.microtask(() {
       if (mounted) {
-        ref.read(currentHerdIdProvider.notifier).state = widget.herdId;
+        ref.read(currentHerdIdProvider.notifier).set(widget.herdId);
         // Initialize the feed controller here
-        ref
-            .read(herdFeedControllerProvider(widget.herdId).notifier)
-            .loadInitialPosts();
+        ref.read(herdFeedProvider(widget.herdId).notifier).loadInitialPosts();
       }
     });
   }
@@ -66,7 +64,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
     //final isCurrentUserMember = ref.watch(isHerdMemberProvider(widget.herdId));
     final isCurrentUserModerator =
         ref.watch(isHerdModeratorProvider(widget.herdId));
-    final herdFeedState = ref.watch(herdFeedControllerProvider(widget.herdId));
+    final herdFeedState = ref.watch(herdFeedProvider(widget.herdId));
     final isMember = memberAv.maybeWhen(data: (m) => m, orElse: () => false);
 
     return Scaffold(

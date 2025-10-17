@@ -4,60 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
-
-// Provider for pinned posts
-final herdPinnedPostsProvider =
-    FutureProvider.family<List<PostModel>, String>((ref, herdId) async {
-  final herd = await ref.watch(herdProvider(herdId).future);
-  if (herd == null || herd.pinnedPosts.isEmpty) return [];
-
-  final List<PostModel> pinnedPosts = [];
-  final firestore = FirebaseFirestore.instance;
-
-  for (final postId in herd.pinnedPosts) {
-    try {
-      // Try to fetch from herd posts first (most likely location for herd pinned posts)
-      final herdPostDoc = await firestore
-          .collection('herdPosts')
-          .doc(herdId)
-          .collection('posts')
-          .doc(postId)
-          .get();
-
-      if (herdPostDoc.exists) {
-        final post = PostModel.fromMap(herdPostDoc.id, herdPostDoc.data()!);
-        pinnedPosts.add(post);
-        continue;
-      }
-
-      // If not found in herd posts, try regular posts collection
-      final publicPostDoc =
-          await firestore.collection('posts').doc(postId).get();
-
-      if (publicPostDoc.exists) {
-        final post = PostModel.fromMap(publicPostDoc.id, publicPostDoc.data()!);
-        pinnedPosts.add(post);
-        continue;
-      }
-
-      // Finally, try alt posts collection
-      final altPostDoc =
-          await firestore.collection('altPosts').doc(postId).get();
-
-      if (altPostDoc.exists) {
-        final post = PostModel.fromMap(altPostDoc.id, altPostDoc.data()!);
-        pinnedPosts.add(post);
-        continue;
-      }
-
-      debugPrint('Pinned post $postId not found in any collection');
-    } catch (e) {
-      debugPrint('Error loading pinned post $postId: $e');
-    }
-  }
-
-  return pinnedPosts;
-});
+import 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
 
 // Alternative provider using batch reads for better performance
 final herdPinnedPostsBatchProvider =

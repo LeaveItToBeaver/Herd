@@ -33,10 +33,8 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
     // Initialize the herd feed
     Future.microtask(() {
       if (mounted) {
-        ref.read(currentHerdIdProvider.notifier).state = widget.herdId;
-        ref
-            .read(herdFeedControllerProvider(widget.herdId).notifier)
-            .loadInitialPosts();
+        ref.read(currentHerdIdProvider.notifier).set(widget.herdId);
+        ref.read(herdFeedProvider(widget.herdId).notifier).loadInitialPosts();
       }
     });
   }
@@ -262,7 +260,7 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
   }
 
   Widget _buildPostsTab(HerdModel herd) {
-    final herdFeedState = ref.watch(herdFeedControllerProvider(widget.herdId));
+    final herdFeedState = ref.watch(herdFeedProvider(widget.herdId));
 
     if (herdFeedState.isLoading && herdFeedState.posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -299,9 +297,8 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
     }
 
     return RefreshIndicator(
-      onRefresh: () => ref
-          .read(herdFeedControllerProvider(widget.herdId).notifier)
-          .refreshFeed(),
+      onRefresh: () =>
+          ref.read(herdFeedProvider(widget.herdId).notifier).refreshFeed(),
       child: ListView.builder(
         controller: _scrollController,
         itemCount:
@@ -309,9 +306,7 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
         itemBuilder: (context, index) {
           if (index == herdFeedState.posts.length) {
             // Load more trigger
-            ref
-                .read(herdFeedControllerProvider(widget.herdId).notifier)
-                .loadMorePosts();
+            ref.read(herdFeedProvider(widget.herdId).notifier).loadMorePosts();
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(16.0),

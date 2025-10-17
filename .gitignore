@@ -54,3 +54,4 @@ firestore.rules
 firestore.indexes.json
 android/app/google-services.json
 pubspec.lock
+riverpod-migration-guide.md
