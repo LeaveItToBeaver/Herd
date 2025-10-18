@@ -1,20 +1,23 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
-
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'state/post_interaction_state.dart';
+
+part 'post_provider.g.dart';
 
 // Repository provider
-final postRepositoryProvider = Provider<PostRepository>((ref) {
+@riverpod
+PostRepository postRepository(Ref ref) {
   return PostRepository();
-});
+}
 
 // User posts provider
-final userPostsProvider =
-    StreamProvider.family<List<PostModel>, String>((ref, userId) {
+@riverpod
+Stream<List<PostModel>> userPosts(Ref ref, String userId) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.getUserPosts(userId);
-});
+}
 
 // Creating a new post provider
 // final postControllerProvider =
@@ -26,10 +29,11 @@ final userPostsProvider =
 // });
 
 // Regular post provider - uses a plain String as parameter
-final postProvider = StreamProvider.family<PostModel?, String>((ref, postId) {
+@riverpod
+Stream<PostModel?> post(Ref ref, String postId) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.streamPost(postId);
-});
+}
 
 // Enhanced post provider - can specify isAlt
 // Use a class instead of a record for better compatibility
@@ -52,22 +56,22 @@ class PostParams {
   int get hashCode => id.hashCode ^ isAlt.hashCode;
 }
 
-final postProviderWithPrivacy =
-    StreamProvider.family<PostModel?, PostParams>((ref, params) {
+@riverpod
+Stream<PostModel?> postWithPrivacy(Ref ref, PostParams params) {
   final repository = ref.watch(postRepositoryProvider);
   return repository.streamPost(params.id, isAlt: params.isAlt);
-});
+}
 
-final staticPostProvider =
-    FutureProvider.family<PostModel?, PostParams>((ref, params) async {
+@riverpod
+Future<PostModel?> staticPost(Ref ref, PostParams params) async {
   final repository = ref.watch(postRepositoryProvider);
   // Fetch the post data a single time
   return repository.getPostById(params.id, isAlt: params.isAlt);
-});
+}
 
 // Providers for checking like/dislike status
-final isPostLikedByUserProvider =
-    FutureProvider.family<bool, String>((ref, postId) async {
+@riverpod
+Future<bool> isPostLikedByUser(Ref ref, String postId) async {
   final currentUserAsync = ref.read(currentUserProvider);
   final userId = currentUserAsync.userId;
 
@@ -77,10 +81,10 @@ final isPostLikedByUserProvider =
 
   final repository = ref.watch(postRepositoryProvider);
   return repository.isPostLikedByUser(postId: postId, userId: userId);
-});
+}
 
-final isPostDislikedByUserProvider =
-    FutureProvider.family<bool, String>((ref, postId) async {
+@riverpod
+Future<bool> isPostDislikedByUser(Ref ref, String postId) async {
   final currentUserAsync = ref.read(currentUserProvider);
   final userId = currentUserAsync.userId;
 
@@ -90,25 +94,157 @@ final isPostDislikedByUserProvider =
 
   final repository = ref.watch(postRepositoryProvider);
   return repository.isPostDislikedByUser(postId: postId, userId: userId);
-});
-
-// Post interactions provider (original)
-// final postInteractionsProvider = StateNotifierProvider.family<PostInteractionsNotifier, PostInteractionState, String>((ref, postId) {
-//   final repository = ref.watch(postRepositoryProvider);
-//   return PostInteractionsNotifier(
-//     repository: repository,
-//     postId: postId,
-//   );
-// });
+}
 
 // Post interactions provider with privacy setting
-final postInteractionsWithPrivacyProvider = StateNotifierProvider.family<
-    PostInteractionsNotifier, PostInteractionState, PostParams>((ref, params) {
-  final repository = ref.watch(postRepositoryProvider);
-  // Pass the full params if notifier needs herdId, otherwise just id/isAlt
-  return PostInteractionsNotifier(
-    repository: repository,
-    postId: params.id,
-    // Consider if the notifier needs isAlt directly or gets it from the post object later
-  );
-});
+@riverpod
+class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
+  late PostParams _params;
+
+  @override
+  PostInteractionState build(PostParams params) {
+    _params = params;
+    // Return initial state
+    return PostInteractionState.initial();
+  }
+
+  Future<void> initializeState(String userId) async {
+    await loadInteractionStatus(userId);
+  }
+
+  Future<void> loadInteractionStatus(String userId) async {
+    final repository = ref.watch(postRepositoryProvider);
+
+    try {
+      state = state.copyWith(isLoading: true);
+
+      final post =
+          await repository.getPostById(_params.id, isAlt: _params.isAlt);
+
+      if (!ref.mounted) return;
+
+      final isLiked = await repository.isPostLikedByUser(
+          postId: _params.id, userId: userId);
+
+      if (!ref.mounted) return;
+
+      final isDisliked = await repository.isPostDislikedByUser(
+          postId: _params.id, userId: userId);
+
+      if (!ref.mounted) return;
+
+      state = state.copyWith(
+        isLiked: isLiked,
+        isDisliked: isDisliked,
+        totalRawLikes: post?.likeCount ?? 0,
+        totalRawDislikes: post?.dislikeCount ?? 0,
+        totalLikes: (post?.likeCount ?? 0) - (post?.dislikeCount ?? 0),
+        totalComments: post?.commentCount ?? 0,
+        isLoading: false,
+      );
+    } catch (e) {
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> likePost(String userId,
+      {required bool isAlt, String? feedType, String? herdId}) async {
+    final repository = ref.watch(postRepositoryProvider);
+
+    try {
+      final wasLiked = state.isLiked;
+      final wasDisliked = state.isDisliked;
+
+      // Update state optimistically
+      final newLikeCount =
+          wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
+      final newDislikeCount =
+          wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes;
+
+      state = state.copyWith(
+        isLiked: !wasLiked,
+        isDisliked: false,
+        totalRawLikes: newLikeCount,
+        totalRawDislikes: newDislikeCount,
+        totalLikes: newLikeCount - newDislikeCount,
+      );
+
+      String effectiveFeedType = feedType ?? (isAlt ? 'alt' : 'public');
+
+      await repository.likePost(
+          postId: _params.id,
+          userId: userId,
+          isAlt: isAlt,
+          feedType: effectiveFeedType,
+          herdId: herdId);
+    } catch (e) {
+      final wasLiked = state.isLiked;
+      final wasDisliked = state.isDisliked;
+
+      final originalLikeCount =
+          wasLiked ? state.totalRawLikes + 1 : state.totalRawLikes - 1;
+      final originalDislikeCount =
+          wasDisliked ? state.totalRawDislikes + 1 : state.totalRawDislikes;
+
+      state = state.copyWith(
+        isLiked: wasLiked,
+        isDisliked: wasDisliked,
+        totalRawLikes: originalLikeCount,
+        totalRawDislikes: originalDislikeCount,
+        totalLikes: originalLikeCount - originalDislikeCount,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> dislikePost(String userId,
+      {required bool isAlt, required String feedType, String? herdId}) async {
+    final repository = ref.watch(postRepositoryProvider);
+
+    try {
+      final wasLiked = state.isLiked;
+      final wasDisliked = state.isDisliked;
+
+      final newLikeCount =
+          wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes;
+      final newDislikeCount =
+          wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes + 1;
+
+      state = state.copyWith(
+        isDisliked: !wasDisliked,
+        isLiked: false,
+        totalRawLikes: newLikeCount,
+        totalRawDislikes: newDislikeCount,
+        totalLikes: newLikeCount - newDislikeCount,
+      );
+
+      await repository.dislikePost(
+          postId: _params.id, userId: userId, isAlt: isAlt);
+    } catch (e) {
+      final wasLiked = state.isLiked;
+      final wasDisliked = state.isDisliked;
+
+      final originalLikeCount =
+          wasLiked ? state.totalRawLikes + 1 : state.totalRawLikes;
+      final originalDislikeCount =
+          wasDisliked ? state.totalRawDislikes + 1 : state.totalRawDislikes - 1;
+
+      state = state.copyWith(
+        isLiked: wasLiked,
+        isDisliked: wasDisliked,
+        totalRawLikes: originalLikeCount,
+        totalRawDislikes: originalDislikeCount,
+        totalLikes: originalLikeCount - originalDislikeCount,
+        error: e.toString(),
+      );
+    }
+  }
+
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+}

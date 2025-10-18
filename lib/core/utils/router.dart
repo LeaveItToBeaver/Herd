@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 import 'package:herdapp/features/content/post/view/screens/edit_post_screen.dart';
 import 'package:herdapp/features/content/post/view/screens/fullscreen_gallery_screen.dart';
@@ -395,7 +396,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           if (herdId == null) {
             // Force reset the current herd provider
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref.read(currentHerdIdProvider.notifier).state = null;
+              ref.read(currentHerdIdProvider.notifier).clear();
             });
           }
 
@@ -436,7 +437,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // Use the appropriate provider based on whether it's an alt post
                 final postAsync = ref.watch(
                   isAlt
-                      ? postProviderWithPrivacy(
+                      ? postWithPrivacyProvider(
                           PostParams(id: postId, isAlt: true))
                       : postProvider(postId),
                 );
@@ -696,7 +697,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // Use the appropriate provider based on whether it's an alt post
                 final postAsync = ref.watch(
                   isAlt
-                      ? postProviderWithPrivacy(
+                      ? postWithPrivacyProvider(
                           PostParams(id: postId, isAlt: true))
                       : postProvider(postId),
                 );

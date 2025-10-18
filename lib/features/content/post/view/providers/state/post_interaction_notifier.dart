@@ -1,35 +1,42 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'post_interaction_state.dart';
 
-class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
-  final PostRepository repository;
-  final String postId;
+part 'post_interaction_notifier.g.dart';
 
-  PostInteractionsNotifier({
-    required this.repository,
-    required this.postId,
-  }) : super(PostInteractionState.initial());
+@riverpod
+class PostInteractionsNotifier extends _$PostInteractionsNotifier {
+  late String _postId;
+
+  @override
+  PostInteractionState build(String postId) {
+    _postId = postId;
+    return PostInteractionState.initial();
+  }
+
   Future<void> initializeState(String userId) async {
     debugPrint(
-        'Initializing interaction state for post: $postId, user: $userId');
+        'Initializing interaction state for post: $_postId, user: $userId');
     final result = await loadInteractionStatus(userId);
     debugPrint(
-        'Interaction loaded for post: $postId, isLiked: ${state.isLiked}');
+        'Interaction loaded for post: $_postId, isLiked: ${state.isLiked}');
     return result;
   }
 
   Future<void> loadInteractionStatus(String userId) async {
+    final repository = ref.watch(postRepositoryProvider);
+
     try {
       state = state.copyWith(isLoading: true);
 
-      final post = await repository.getPostById(postId);
+      final post = await repository.getPostById(_postId);
 
       final isLiked =
-          await repository.isPostLikedByUser(postId: postId, userId: userId);
+          await repository.isPostLikedByUser(postId: _postId, userId: userId);
 
-      final isDisliked =
-          await repository.isPostDislikedByUser(postId: postId, userId: userId);
+      final isDisliked = await repository.isPostDislikedByUser(
+          postId: _postId, userId: userId);
 
       state = state.copyWith(
         isLiked: isLiked,
@@ -51,6 +58,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
   Future<void> likePost(String userId,
       {required bool isAlt, String? feedType, String? herdId}) async {
+    final repository = ref.watch(postRepositoryProvider);
+
     try {
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;
@@ -74,12 +83,16 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
       // Call repository with the feed type information
       await repository.likePost(
-          postId: postId,
+          postId: _postId,
           userId: userId,
           isAlt: isAlt,
           feedType: effectiveFeedType,
           herdId: herdId);
+
+      if (!ref.mounted) return;
     } catch (e) {
+      if (!ref.mounted) return;
+
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;
 
@@ -102,6 +115,8 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
   Future<void> dislikePost(String userId,
       {required bool isAlt, required String feedType, String? herdId}) async {
+    final repository = ref.watch(postRepositoryProvider);
+
     try {
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;
@@ -124,8 +139,12 @@ class PostInteractionsNotifier extends StateNotifier<PostInteractionState> {
 
       // Call the API without updating state for loading
       await repository.dislikePost(
-          postId: postId, userId: userId, isAlt: isAlt);
+          postId: _postId, userId: userId, isAlt: isAlt);
+
+      if (!ref.mounted) return;
     } catch (e) {
+      if (!ref.mounted) return;
+
       // If error, revert to previous state
       final wasLiked = state.isLiked;
       final wasDisliked = state.isDisliked;

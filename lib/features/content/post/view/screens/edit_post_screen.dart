@@ -377,7 +377,7 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
       final mentionIds =
           MentionExtractor.extractMentionIds(_contentController.document);
 
-      await ref.read(postControllerProvider.notifier).updatePost(
+      await ref.read(postRepositoryProvider).updatePost(
             postId: widget.post.id,
             userId: userId,
             title: _titleController.text,

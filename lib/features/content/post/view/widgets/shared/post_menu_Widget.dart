@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
-import 'package:herdapp/features/content/create_post/create_post_controller.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
-import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
+import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
+
+import '../../../../../community/herds/view/providers/herd_providers.dart';
 
 class PostMenu extends ConsumerWidget {
   final PostModel post;
@@ -30,18 +31,13 @@ class PostMenu extends ConsumerWidget {
     if (isCurrentUserAuthor && userId != null) {
       if (post.herdId != null && post.herdId!.isNotEmpty) {
         pinnedToHerdStatus = ref.watch(
-          isPostPinnedToHerdProvider((
-            herdId: post.herdId!,
-            postId: post.id,
-          )).select((value) => value),
+          isPostPinnedToHerdProvider(post.herdId!, post.id)
+              .select((value) => value),
         );
       } else {
         pinnedToProfileStatus = ref.watch(
-          isPostPinnedToProfileProvider((
-            userId: userId,
-            postId: post.id,
-            isAlt: post.isAlt,
-          )).select((value) => value),
+          isPostPinnedToProfileProvider(userId, post.id, post.isAlt)
+              .select((value) => value),
         );
       }
     }
@@ -232,7 +228,7 @@ class PostMenu extends ConsumerWidget {
               }
 
               try {
-                await ref.read(postControllerProvider.notifier).deletePost(
+                await ref.read(postRepositoryProvider).deletePost(
                       post.id,
                       user.userId!,
                       isAlt: post.isAlt,
@@ -364,11 +360,7 @@ class PostMenu extends ConsumerWidget {
       // Invalidate related providers
       ref.invalidate(herdProvider(post.herdId!));
       ref.invalidate(herdPinnedPostsProvider(post.herdId!));
-      ref.invalidate(herdFeedControllerProvider(post.herdId!));
-      ref.invalidate(isPostPinnedToHerdProvider((
-        herdId: post.herdId!,
-        postId: post.id,
-      )));
+      ref.invalidate(isPostPinnedToHerdProvider(post.herdId!, post.id));
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -402,11 +394,7 @@ class PostMenu extends ConsumerWidget {
       // Invalidate related providers
       ref.invalidate(herdProvider(post.herdId!));
       ref.invalidate(herdPinnedPostsProvider(post.herdId!));
-      ref.invalidate(herdFeedControllerProvider(post.herdId!));
-      ref.invalidate(isPostPinnedToHerdProvider((
-        herdId: post.herdId!,
-        postId: post.id,
-      )));
+      ref.invalidate(isPostPinnedToHerdProvider(post.herdId!, post.id));
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

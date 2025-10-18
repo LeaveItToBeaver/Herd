@@ -1,3 +1,5 @@
+import 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/community/herds/data/models/herd_model.dart';

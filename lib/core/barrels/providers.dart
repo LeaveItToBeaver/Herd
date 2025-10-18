@@ -29,7 +29,7 @@ export 'package:herdapp/features/user/edit_user/public_profile/view/providers/ed
 
 //Post Providers
 export 'package:herdapp/features/content/post/view/providers/post_provider.dart';
-export 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
+//export 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 export 'package:herdapp/features/content/post/view/providers/state/post_interaction_notifier.dart';
 export 'package:herdapp/features/content/post/view/providers/state/post_interaction_state.dart';
 export 'package:herdapp/features/content/post/view/providers/state/post_state.dart';
@@ -78,15 +78,13 @@ export 'package:herdapp/features/ui/navigation/view/providers/bottom_nav_bar_pro
 export 'package:herdapp/features/community/search/search_controller.dart';
 export 'package:herdapp/features/community/search/view/providers/state/search_state.dart';
 
-//Herd Providers
-export 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_feed_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_moderation_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_permission_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_repository_provider.dart';
-export 'package:herdapp/features/community/herds/view/providers/state/herd_feed_state.dart';
-export 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
+// //Herd Providers
+// export 'package:herdapp/features/community/herds/view/providers/herd_feed_providers.dart';
+// export 'package:herdapp/features/community/herds/view/providers/herd_moderation_providers.dart';
+// export 'package:herdapp/features/community/herds/view/providers/herd_permission_providers.dart';
+// export 'package:herdapp/features/community/herds/view/providers/herd_repository_provider.dart';
+// export 'package:herdapp/features/community/herds/view/providers/state/herd_feed_state.dart';
+// export 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
 
 //Moderation Providers
 export 'package:herdapp/features/community/moderation/view/providers/moderation_providers.dart';

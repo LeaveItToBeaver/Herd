@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/core/services/image_helper.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/content/create_post/create_post_controller.dart';
 import 'package:herdapp/features/content/rich_text_editing/utils/mention_embed_builder.dart';
 import 'package:herdapp/features/content/rich_text_editing/utils/mention_extractor.dart';

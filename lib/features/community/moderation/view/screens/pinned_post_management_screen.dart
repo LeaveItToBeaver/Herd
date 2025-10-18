@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
-import 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
+import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 
 // Alternative provider using batch reads for better performance
 final herdPinnedPostsBatchProvider =

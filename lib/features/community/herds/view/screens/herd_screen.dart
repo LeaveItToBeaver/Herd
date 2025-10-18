@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/data/models/herd_model.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 
 class HerdScreen extends ConsumerStatefulWidget {
   final String herdId;

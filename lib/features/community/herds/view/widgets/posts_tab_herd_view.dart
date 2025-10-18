@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
+import 'package:herdapp/features/community/herds/view/providers/state/herd_feed_state.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
+import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 import 'package:herdapp/features/content/post/view/widgets/pinned_posts/pinned_post_widget.dart';
 import 'package:herdapp/features/content/post/view/widgets/post_widget.dart';
 import 'package:herdapp/features/ui/navigation/view/widgets/BottomNavPadding.dart';
-import '../providers/herd_data_providers.dart';
-import '../providers/herd_feed_providers.dart';
-import '../providers/state/herd_feed_state.dart';
 
 class PostsTabHerdView extends ConsumerWidget {
   final List<PostModel> posts;
