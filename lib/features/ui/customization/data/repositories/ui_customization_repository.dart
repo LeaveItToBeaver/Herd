@@ -1,14 +1,16 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ui_customization_model.dart';
 
-final uiCustomizationRepositoryProvider =
-    Provider<UICustomizationRepository>((ref) {
+part 'ui_customization_repository.g.dart';
+
+@riverpod
+UICustomizationRepository uiCustomizationRepository(Ref ref) {
   return UICustomizationRepository(FirebaseFirestore.instance);
-});
+}
 
 class UICustomizationRepository {
   final FirebaseFirestore _firestore;

@@ -62,7 +62,9 @@ class _AltProfileEditScreenState extends ConsumerState<AltProfileEditScreen> {
             .usernameChanged(_usernameController.text);
 
         debugPrint("About to call submit()");
-        await ref.read(editAltProfileProvider(widget.user).notifier).submit();
+        await ref
+            .read(editAltProfileProvider(widget.user).notifier)
+            .submit(widget.user);
         debugPrint("After submit()");
 
         // Check if still mounted immediately after the async operation

@@ -1,20 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
-import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
 import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
+import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
+import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
+part 'current_user_provider.g.dart';
+
+@riverpod
+class CurrentUser extends _$CurrentUser {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final Ref _ref;
   String? _lastUserId; // Track last user ID to detect user changes
 
-  CurrentUserController(this._ref) : super(const AsyncValue.loading()) {
+  @override
+  Future<UserModel?> build() async {
     _initialize();
+    return null;
   }
 
   Future<void> _initialize() async {
@@ -35,6 +39,7 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
       final firebaseUser = _auth.currentUser;
       if (firebaseUser == null) {
         _lastUserId = null;
+        if (!ref.mounted) return;
         state = const AsyncValue.data(null);
         return;
       }
@@ -50,6 +55,9 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
 
       final doc =
           await _firestore.collection('users').doc(firebaseUser.uid).get();
+
+      if (!ref.mounted) return;
+
       if (doc.exists) {
         final userModel = UserModel.fromMap(doc.id, doc.data()!);
         state = AsyncValue.data(userModel);
@@ -59,8 +67,9 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
       } else {
         state = const AsyncValue.data(null);
       }
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, stack) {
+      if (!ref.mounted) return;
+      state = AsyncValue.error(e, stack);
     }
   }
 
@@ -69,12 +78,12 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
       String oldUserId, String newUserId) async {
     try {
       // Clear message caches
-      final messageCache = _ref.read(messageCacheServiceProvider);
+      final messageCache = ref.read(messageCacheServiceProvider);
       await messageCache.clearUserCache(oldUserId);
 
       // Reset chat providers
-      _ref.invalidate(chatStateProvider);
-      _ref.invalidate(chatPaginationProvider);
+      ref.invalidate(chatStateProvider);
+      ref.invalidate(chatPaginationProvider);
 
       // Note: We don't invalidate family providers like messagesProvider, currentChatProvider
       // and messageInputProvider because they are chat-specific and will be cleaned up
@@ -89,7 +98,7 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
   /// Initialize FCM token when user is loaded
   Future<void> _initializeFCMForUser(String userId) async {
     try {
-      final notificationRepo = _ref.read(notificationRepositoryProvider);
+      final notificationRepo = ref.read(notificationRepositoryProvider);
 
       final fcmToken = await notificationRepo.getUserFCMToken();
 
@@ -105,9 +114,3 @@ class CurrentUserController extends StateNotifier<AsyncValue<UserModel?>> {
     }
   }
 }
-
-// Update provider to pass ref
-final currentUserProvider =
-    StateNotifierProvider<CurrentUserController, AsyncValue<UserModel?>>((ref) {
-  return CurrentUserController(ref);
-});

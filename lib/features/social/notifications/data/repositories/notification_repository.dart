@@ -35,8 +35,8 @@ class NotificationRepository {
     bool markAsRead = true, // Auto-mark as read by default
   }) async {
     try {
-      debugPrint('🔔 ========== STARTING getNotifications ==========');
-      debugPrint('🔔 Parameters received:');
+      debugPrint('========== STARTING getNotifications ==========');
+      debugPrint('Parameters received:');
       debugPrint('  - limit: $limit');
       debugPrint('  - markAsRead: $markAsRead');
       debugPrint('  - onlyUnread: $onlyUnread');
@@ -86,8 +86,7 @@ class NotificationRepository {
       // Check for notifications array
       final rawNotifications = data['notifications'];
       debugPrint('🔍 ========== PROCESSING NOTIFICATIONS ==========');
-      debugPrint(
-          '  - Raw notifications type: ${rawNotifications.runtimeType}');
+      debugPrint('  - Raw notifications type: ${rawNotifications.runtimeType}');
 
       if (rawNotifications == null) {
         debugPrint('ERROR: notifications field is null!');
@@ -191,7 +190,7 @@ class NotificationRepository {
   /// Get unread count using cloud function
   Future<int> getUnreadCount() async {
     try {
-      debugPrint('🔔 Getting unread count via cloud function');
+      debugPrint('Getting unread count via cloud function');
 
       final callable = _functions.httpsCallable('getUnreadNotificationCount');
       final result = await callable.call();
@@ -210,7 +209,7 @@ class NotificationRepository {
   Future<Map<String, dynamic>> markAsRead(
       {List<String>? notificationIds}) async {
     try {
-      debugPrint('🔔 Marking notifications as read via cloud function');
+      debugPrint('Marking notifications as read via cloud function');
 
       final callable = _functions.httpsCallable('markNotificationsAsRead');
       final result = await callable.call({
@@ -229,7 +228,7 @@ class NotificationRepository {
 
   Future<String> getUserFCMToken() async {
     try {
-      debugPrint('🔔 Getting FCM token via cloud function');
+      debugPrint('Getting FCM token via cloud function');
 
       final token = await _messaging.getToken();
       if (token == null) {
@@ -248,7 +247,7 @@ class NotificationRepository {
   /// Update FCM token using cloud function
   Future<void> updateFCMToken(String token) async {
     try {
-      debugPrint('🔔 Updating FCM token via cloud function');
+      debugPrint('Updating FCM token via cloud function');
 
       final callable = _functions.httpsCallable('updateFCMToken');
       await callable.call({'fcmToken': token});

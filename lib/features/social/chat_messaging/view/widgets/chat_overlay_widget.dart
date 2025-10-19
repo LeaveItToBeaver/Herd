@@ -40,7 +40,7 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get the draggable painter color from customization
-    final customization = ref.watch(uiCustomizationProvider).value;
+    final customization = ref.watch(uICustomizationProvider).value;
     final appTheme = customization?.appTheme;
     final painterColor =
         appTheme?.getSurfaceColor() ?? Theme.of(context).colorScheme.surface;

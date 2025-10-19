@@ -8,7 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'cache_settings_screen.dart';
 import 'package:herdapp/core/widgets/markdown_dialog.dart';
-import 'package:herdapp/features/user_management/view/screens/blocked_users_screen.dart';
+import 'package:herdapp/features/user/user_management/view/screens/blocked_users_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

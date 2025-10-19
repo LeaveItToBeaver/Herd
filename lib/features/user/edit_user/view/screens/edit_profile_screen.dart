@@ -37,7 +37,7 @@ class EditProfileScreen extends ConsumerWidget {
                 child: TextButton(
                   onPressed: () {
                     if (!state.isSubmitting) {
-                      ref.read(editProfileProvider(user).notifier).submit();
+                      ref.read(editProfileProvider(user).notifier).submit(user);
                     }
                   },
                   style: ButtonStyle(

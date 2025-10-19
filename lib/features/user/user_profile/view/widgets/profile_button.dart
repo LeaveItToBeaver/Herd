@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 
-import '../../../auth/view/providers/auth_provider.dart';
 import '../../data/mappers/user_to_user_model.dart';
-import '../providers/profile_controller_provider.dart';
 
 class ProfileButton extends ConsumerWidget {
   final bool isCurrentUser;

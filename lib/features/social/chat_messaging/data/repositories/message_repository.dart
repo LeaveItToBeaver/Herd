@@ -8,7 +8,7 @@ import 'package:cryptography/cryptography.dart'; // For SecretKey caching
 import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/crypto/chat_crypto_service.dart';
-import 'package:herdapp/features/user_management/data/repositories/user_block_repository.dart';
+import 'package:herdapp/features/user/user_management/data/repositories/user_block_repository.dart';
 
 // Verbose logging toggle for message repository (non-error info). Set true for diagnostics.
 const bool _verboseMessages = false;

@@ -5,6 +5,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
+import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 
 import '../../../../../community/herds/view/providers/herd_providers.dart';
 

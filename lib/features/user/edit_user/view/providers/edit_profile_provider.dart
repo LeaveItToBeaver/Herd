@@ -1,17 +1,19 @@
 import 'dart:io';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/user/edit_user/view/providers/state/edit_profile_state.dart';
 
 import '../../../user_profile/data/models/user_model.dart';
 import '../../../user_profile/data/repositories/user_repository.dart';
 
-class EditProfileNotifier extends StateNotifier<EditProfileState> {
-  final UserRepository userRepository;
-  final UserModel user;
+part 'edit_profile_provider.g.dart';
 
-  EditProfileNotifier({required this.userRepository, required this.user})
-      : super(EditProfileState(username: user.username, bio: user.bio ?? ''));
+@riverpod
+class EditProfile extends _$EditProfile {
+  @override
+  EditProfileState build(UserModel user) {
+    return EditProfileState(username: user.username, bio: user.bio ?? '');
+  }
 
   void usernameChanged(String value) {
     state = state.copyWith(username: value);
@@ -29,11 +31,12 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
     state = state.copyWith(profileImage: file);
   }
 
-  Future<void> submit() async {
+  Future<void> submit(UserModel user) async {
     if (state.isSubmitting) return;
 
     state = state.copyWith(isSubmitting: true, errorMessage: null);
     try {
+      final userRepository = ref.read(userRepositoryProvider);
       final Map<String, dynamic> updatedData = {
         'username': state.username,
         'bio': state.bio,
@@ -44,6 +47,7 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
           file: state.coverImage!,
           type: 'cover',
         );
+        if (!ref.mounted) return;
         updatedData['coverImageURL'] = coverImageUrl;
       }
 
@@ -53,22 +57,17 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
           file: state.profileImage!,
           type: 'profile',
         );
+        if (!ref.mounted) return;
         updatedData['profileImageURL'] = profileImageUrl;
       }
 
       await userRepository.updateUser(user.id, updatedData);
+      if (!ref.mounted) return;
       state = state.copyWith(isSubmitting: false);
     } catch (error) {
+      if (!ref.mounted) return;
       state =
           state.copyWith(isSubmitting: false, errorMessage: error.toString());
     }
   }
 }
-
-final editProfileProvider = StateNotifierProvider.family<EditProfileNotifier,
-    EditProfileState, UserModel>(
-  (ref, user) {
-    final userRepository = ref.watch(userRepositoryProvider);
-    return EditProfileNotifier(userRepository: userRepository, user: user);
-  },
-);

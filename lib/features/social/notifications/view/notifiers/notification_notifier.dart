@@ -10,7 +10,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   NotificationNotifier(this._repository, this._userId)
       : super(NotificationState.initial()) {
-    debugPrint('🔔 NotificationNotifier initialized for user: $_userId');
+    debugPrint('NotificationNotifier initialized for user: $_userId');
     refreshNotifications();
   }
 

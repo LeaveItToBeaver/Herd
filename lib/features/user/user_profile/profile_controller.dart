@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-class ProfileController extends AsyncNotifier<ProfileState> {
+part 'profile_controller.g.dart';
+
+@riverpod
+class ProfileController extends _$ProfileController {
   late final UserRepository _userRepository;
   late final PostRepository _postRepository;
   late final FeedRepository _feedRepository;

@@ -1,8 +1,11 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'alt_connection_provider.g.dart';
 
 /// Provider to get the count of a user's alt connections
-final altConnectionCountProvider = FutureProvider.family<int, String>((ref, userId) async {
+@riverpod
+Future<int> altConnectionCount(Ref ref, String userId) async {
   // Use collection group query to count the connections
   final snapshot = await FirebaseFirestore.instance
       .collection('altConnections')
@@ -12,4 +15,4 @@ final altConnectionCountProvider = FutureProvider.family<int, String>((ref, user
       .get();
 
   return snapshot.count ?? 0;
-});
+}

@@ -79,18 +79,18 @@ class LayoutTab extends ConsumerWidget {
   }
 
   Future<void> _updateDensity(WidgetRef ref, String density) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedPrefs = current.layoutPreferences.copyWith(density: density);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateLayoutPreferences(updatedPrefs);
   }
 
   Future<void> _updateLayoutOption(
       WidgetRef ref, String key, bool value) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedPrefs = current.layoutPreferences.copyWith(
@@ -102,7 +102,7 @@ class LayoutTab extends ConsumerWidget {
           : current.layoutPreferences.useListLayout,
     );
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateLayoutPreferences(updatedPrefs);
   }
 }

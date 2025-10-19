@@ -6,6 +6,8 @@ import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
+import '../../../../../community/herds/view/providers/herd_providers.dart';
+
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
 

@@ -28,11 +28,11 @@ class AppBootstrap {
   Future<void> initializeNotifications(String userId, WidgetRef ref) async {
     try {
       if (_notificationsInitialized && _currentUserId == userId) {
-        debugPrint('🔔 Notifications already initialized for user: $userId');
+        debugPrint('Notifications already initialized for user: $userId');
         return;
       }
 
-      debugPrint('🔔 Initializing notifications for user: $userId');
+      debugPrint('Initializing notifications for user: $userId');
       _currentUserId = userId;
 
       final notificationService = ref.read(notificationServiceProvider);
@@ -228,7 +228,7 @@ class AppBootstrap {
       if (!enabled) {
         // Try to request permissions
         final granted = await notificationService.requestPermissions();
-        debugPrint('🔔 Permission request result: $granted');
+        debugPrint('Permission request result: $granted');
       }
 
       // Show test notification

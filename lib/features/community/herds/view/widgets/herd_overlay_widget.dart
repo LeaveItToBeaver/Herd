@@ -54,7 +54,7 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get theme colors
-    final customization = ref.watch(uiCustomizationProvider).value;
+    final customization = ref.watch(uICustomizationProvider).value;
     final appTheme = customization?.appTheme;
     final painterColor =
         appTheme?.getSurfaceColor() ?? Theme.of(context).colorScheme.surface;

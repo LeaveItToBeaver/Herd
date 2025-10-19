@@ -25,7 +25,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  debugPrint('🔔 Background message received: ${message.messageId}');
+  debugPrint('Background message received: ${message.messageId}');
   debugPrint('📱 Message data: ${message.data}');
 }
 
@@ -95,7 +95,7 @@ void main() async {
 //       sound: true,
 //     );
 //     debugPrint(
-//         '🔔 Firebase Messaging permission status: ${settings.authorizationStatus}');
+//         'Firebase Messaging permission status: ${settings.authorizationStatus}');
 //   } catch (e) {
 //     debugPrint('Firebase App Check setup error: $e');
 //     // Continue without App Check in case of errors
@@ -110,7 +110,7 @@ class MyApp extends ConsumerWidget {
     final goRouter = ref.watch(goRouterProvider);
 
     final customTheme = ref.watch(currentThemeProvider);
-    final customizationAsync = ref.watch(uiCustomizationProvider);
+    final customizationAsync = ref.watch(uICustomizationProvider);
 
     // Initialize E2EE keys when user is authenticated
     ref.watch(e2eeAutoInitProvider);

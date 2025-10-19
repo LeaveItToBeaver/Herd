@@ -1,28 +1,87 @@
 //user_settings Provider.dart
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/user/user_profile/view/providers/user_settings_notifier.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../auth/view/providers/auth_provider.dart';
 import '../../data/models/user_settings_state.dart';
-import '../../data/repositories/user_repository.dart';
+import 'user_settings_notifier.dart';
 
-final userSettingsProvider = StateNotifierProvider.autoDispose
-    .family<UserSettingsNotifier, UserSettingsState, String>(
-  (ref, userId) {
-    final userRepository = ref.watch(userRepositoryProvider);
-    return UserSettingsNotifier(userRepository, userId);
-  },
-);
+part 'user_settings_provider.g.dart';
 
-final currentUserSettingsProvider =
-    StateNotifierProvider.autoDispose<UserSettingsNotifier, UserSettingsState>(
-        (ref) {
-  final currentUser = ref.watch(authProvider);
-  if (currentUser == null) {
-    throw Exception('No authenticated user');
+// Current user settings provider - wraps the family provider for convenience
+@riverpod
+class CurrentUserSettings extends _$CurrentUserSettings {
+  @override
+  UserSettingsState build() {
+    final currentUser = ref.watch(authProvider);
+    if (currentUser == null) {
+      throw Exception('No authenticated user');
+    }
+
+    // Watch the actual user settings for the current user
+    return ref.watch(userSettingsProvider(currentUser.uid));
   }
 
-  final repository = ref.watch(userRepositoryProvider);
-  return UserSettingsNotifier(repository, currentUser.uid);
-});
+  // Delegate methods to the actual notifier
+  Future<void> updateAllowNSFWContent(bool value) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    await ref
+        .read(userSettingsProvider(currentUser.uid).notifier)
+        .updateAllowNSFWContent(value);
+  }
+
+  Future<void> updateBlurNSFWContent(bool value) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    await ref
+        .read(userSettingsProvider(currentUser.uid).notifier)
+        .updateBlurNSFWContent(value);
+  }
+
+  Future<void> updateShowHerdsInAltFeed(bool value) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    await ref
+        .read(userSettingsProvider(currentUser.uid).notifier)
+        .updateShowHerdsInAltFeed(value);
+  }
+
+  Future<void> updateIsOver18(bool value) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    await ref
+        .read(userSettingsProvider(currentUser.uid).notifier)
+        .updateIsOver18(value);
+  }
+
+  Future<void> updatePreference(String key, dynamic value,
+      {int debounceMs = 500}) async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    await ref
+        .read(userSettingsProvider(currentUser.uid).notifier)
+        .updatePreference(key, value, debounceMs: debounceMs);
+  }
+
+  void clearError() {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    ref.read(userSettingsProvider(currentUser.uid).notifier).clearError();
+  }
+
+  Future<void> refreshSettings() async {
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) return;
+
+    await ref
+        .read(userSettingsProvider(currentUser.uid).notifier)
+        .refreshSettings();
+  }
+}

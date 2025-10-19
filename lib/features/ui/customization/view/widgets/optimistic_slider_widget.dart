@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/ui/customization/view/providers/optimistic_slider_provider.dart';
 
 class OptimisticSlider<T extends num> extends ConsumerWidget {
-  final AutoDisposeNotifierProvider<OptimisticSliderNotifier<T>,
-      OptimisticSliderState<T>> provider;
+  final NotifierProvider<OptimisticSliderNotifier<T>, OptimisticSliderState<T>>
+      provider;
   final String label;
   final T min;
   final T max;

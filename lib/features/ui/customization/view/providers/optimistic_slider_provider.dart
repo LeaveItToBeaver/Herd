@@ -52,8 +52,7 @@ class OptimisticSliderState<T> {
 }
 
 // Generic notifier for optimistic slider updates
-class OptimisticSliderNotifier<T>
-    extends AutoDisposeNotifier<OptimisticSliderState<T>> {
+class OptimisticSliderNotifier<T> extends Notifier<OptimisticSliderState<T>> {
   Timer? _debounceTimer;
 
   @override
@@ -156,8 +155,8 @@ class _ConcreteOptimisticSliderNotifier<T> extends OptimisticSliderNotifier<T> {
 }
 
 // Provider factory for creating slider providers
-typedef SliderProviderFactory<T> = AutoDisposeNotifierProvider<
-    OptimisticSliderNotifier<T>, OptimisticSliderState<T>>;
+typedef SliderProviderFactory<T>
+    = NotifierProvider<OptimisticSliderNotifier<T>, OptimisticSliderState<T>>;
 
 SliderProviderFactory<T> createOptimisticSliderProvider<T>({
   required String name,

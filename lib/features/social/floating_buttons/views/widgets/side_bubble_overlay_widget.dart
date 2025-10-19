@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/bubble_factory.dart';
@@ -722,7 +723,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
   @override
   Widget build(BuildContext context) {
     final feedType = ref.watch(currentFeedProvider);
-    final customization = ref.watch(uiCustomizationProvider).value;
+    final customization = ref.watch(uICustomizationProvider).value;
     final appTheme = customization?.appTheme;
     final backgroundColor = appTheme?.getBackgroundColor() ??
         Theme.of(context).scaffoldBackgroundColor;

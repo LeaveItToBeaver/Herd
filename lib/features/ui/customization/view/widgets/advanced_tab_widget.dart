@@ -100,39 +100,39 @@ class AdvancedTab extends ConsumerWidget {
   }
 
   Future<void> _updateFont(WidgetRef ref, String font) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedTypo = current.typography.copyWith(primaryFont: font);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateTypography(updatedTypo);
   }
 
   Future<void> _updateAnimationEnabled(WidgetRef ref, bool enabled) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedAnim =
         current.animationSettings.copyWith(enableAnimations: enabled);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateAnimationSettings(updatedAnim);
   }
 
   Future<void> _updateAnimationSpeed(WidgetRef ref, String speed) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedAnim = current.animationSettings.copyWith(speed: speed);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateAnimationSettings(updatedAnim);
   }
 
   Future<void> _updateAnimationOption(
       WidgetRef ref, String key, bool value) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedAnim = current.animationSettings.copyWith(
@@ -144,7 +144,7 @@ class AdvancedTab extends ConsumerWidget {
           : current.animationSettings.enableHoverEffects,
     );
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateAnimationSettings(updatedAnim);
   }
 

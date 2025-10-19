@@ -6,8 +6,10 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/data/models/herd_model.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
-import 'package:herdapp/features/user_management/utils/user_block_utils.dart';
-import 'package:herdapp/features/user_management/view/providers/user_block_providers.dart';
+import 'package:herdapp/features/user/user_management/utils/user_block_utils.dart';
+import 'package:herdapp/features/user/user_management/view/providers/user_block_providers.dart';
+
+import '../../../../community/herds/view/providers/herd_providers.dart';
 
 class AltProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -172,14 +174,18 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                                 context,
                                 ref,
                                 userId: profile.user!.id,
-                                displayName: profile.user!.altUsername ?? profile.user!.username,
-                                username: profile.user!.altUsername ?? profile.user!.username,
+                                displayName: profile.user!.altUsername ??
+                                    profile.user!.username,
+                                username: profile.user!.altUsername ??
+                                    profile.user!.username,
                               );
                               break;
                             case 'report':
                               // TODO: Implement report functionality
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Report functionality coming soon')),
+                                const SnackBar(
+                                    content: Text(
+                                        'Report functionality coming soon')),
                               );
                               break;
                           }
@@ -294,8 +300,9 @@ class _AltProfileScreenState extends ConsumerState<AltProfileScreen>
                             if (!isCurrentUser)
                               Consumer(
                                 builder: (context, ref, child) {
-                                  final isBlockedAsync = ref.watch(isUserBlockedProvider(profile.user!.id));
-                                  
+                                  final isBlockedAsync = ref.watch(
+                                      isUserBlockedProvider(profile.user!.id));
+
                                   return isBlockedAsync.when(
                                     loading: () => const SizedBox(
                                       width: double.infinity,

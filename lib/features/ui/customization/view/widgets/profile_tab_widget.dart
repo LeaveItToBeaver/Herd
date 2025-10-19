@@ -137,7 +137,7 @@ class ProfileTab extends ConsumerWidget {
 
   Future<void> _updateProfileBackground(
       WidgetRef ref, String key, dynamic value) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedProfile = current.profileCustomization.copyWith(
@@ -147,24 +147,24 @@ class ProfileTab extends ConsumerWidget {
     );
 
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateProfileCustomization(updatedProfile);
   }
 
   Future<void> _updateProfileLayout(WidgetRef ref, String layout) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedProfile =
         current.profileCustomization.copyWith(layout: layout);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateProfileCustomization(updatedProfile);
   }
 
   Future<void> _updateProfileFeature(
       WidgetRef ref, String key, bool value) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedProfile = current.profileCustomization.copyWith(
@@ -180,18 +180,18 @@ class ProfileTab extends ConsumerWidget {
     );
 
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateProfileCustomization(updatedProfile);
   }
 
   Future<void> _updateProfileCSS(WidgetRef ref, String css) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedProfile =
         current.profileCustomization.copyWith(customCSS: css);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateProfileCustomization(updatedProfile);
   }
 }

@@ -80,7 +80,7 @@ class ComponentsTab extends ConsumerWidget {
   }
 
   Future<void> _updateButtonShape(WidgetRef ref, String shape) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedButton =
@@ -88,23 +88,23 @@ class ComponentsTab extends ConsumerWidget {
     final updatedStyles =
         current.componentStyles.copyWith(primaryButton: updatedButton);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateComponentStyles(updatedStyles);
   }
 
   Future<void> _updateCardElevation(WidgetRef ref, double elevation) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedStyles =
         current.componentStyles.copyWith(cardElevation: elevation);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateComponentStyles(updatedStyles);
   }
 
   Future<void> _updateNavigationFloating(WidgetRef ref, bool floating) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedNav =
@@ -112,12 +112,12 @@ class ComponentsTab extends ConsumerWidget {
     final updatedStyles =
         current.componentStyles.copyWith(navigation: updatedNav);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateComponentStyles(updatedStyles);
   }
 
   Future<void> _updateNavigationLabels(WidgetRef ref, bool showLabels) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedNav =
@@ -125,7 +125,7 @@ class ComponentsTab extends ConsumerWidget {
     final updatedStyles =
         current.componentStyles.copyWith(navigation: updatedNav);
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateComponentStyles(updatedStyles);
   }
 }

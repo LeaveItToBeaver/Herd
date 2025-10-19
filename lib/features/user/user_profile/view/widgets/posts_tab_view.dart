@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
+import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 
 class PostsTabView extends ConsumerWidget {
   final List<PostModel> posts;

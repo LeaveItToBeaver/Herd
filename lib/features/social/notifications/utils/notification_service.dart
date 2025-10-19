@@ -144,7 +144,7 @@ class NotificationService {
     Function(Map<String, dynamic>)? onForegroundMessage,
   }) async {
     try {
-      debugPrint('🔔 Initializing notification service...');
+      debugPrint('Initializing notification service...');
 
       // Step 1: Set up local notifications
       await _setupLocalNotifications(onNotificationTap);
@@ -463,7 +463,7 @@ class NotificationService {
   /// Request notification permissions
   Future<bool> requestPermissions() async {
     try {
-      debugPrint('🔔 Requesting notification permissions...');
+      debugPrint('Requesting notification permissions...');
 
       // Request FCM permissions
       final settings = await FirebaseMessaging.instance.requestPermission(

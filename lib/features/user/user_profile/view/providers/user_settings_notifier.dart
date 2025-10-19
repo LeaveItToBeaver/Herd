@@ -1,27 +1,32 @@
 // user_settings_notifier.dart
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/user/user_profile/data/repositories/user_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/user_settings_state.dart';
 
-class UserSettingsNotifier extends StateNotifier<UserSettingsState> {
-  final UserRepository _repository;
-  final String _userId;
+part 'user_settings_notifier.g.dart';
+
+@riverpod
+class UserSettings extends _$UserSettings {
   final Map<String, Timer> _debounceTimers = {};
 
-  UserSettingsNotifier(this._repository, this._userId)
-      : super(UserSettingsState(isLoading: true)) {
+  @override
+  UserSettingsState build(String userId) {
     // Load settings when created
-    _loadSettings();
+    _loadSettings(userId);
+    return UserSettingsState(isLoading: true);
   }
 
-  Future<void> _loadSettings() async {
+  Future<void> _loadSettings(String userId) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      final userModel = await _repository.getUserById(_userId);
+      final repository = ref.read(userRepositoryProvider);
+      final userModel = await repository.getUserById(userId);
+
+      if (!ref.mounted) return;
 
       if (userModel != null) {
         final preferences = userModel.preferences;
@@ -39,6 +44,7 @@ class UserSettingsNotifier extends StateNotifier<UserSettingsState> {
             state.copyWith(isLoading: false, errorMessage: 'User not found');
       }
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(
           isLoading: false, errorMessage: 'Error loading settings: $e');
     }
@@ -94,33 +100,42 @@ class UserSettingsNotifier extends StateNotifier<UserSettingsState> {
     // Start a new debounce timer
     _debounceTimers[key] = Timer(Duration(milliseconds: debounceMs), () async {
       try {
+        final repository = ref.read(userRepositoryProvider);
+
         // Save to repository
-        await _repository.updateUser(_userId, {
+        await repository.updateUser(userId, {
           'preferences': {
             ...state.preferences,
             key: value,
           },
         });
 
+        if (!ref.mounted) return;
+
         // Handle special case for allowNSFW
         if (key == 'allowNSFWContent') {
-          await _repository.updateUser(_userId, {
+          await repository.updateUser(userId, {
             'allowNSFW': value,
           });
         }
 
+        if (!ref.mounted) return;
+
         // Handle special case for showHerdsInAltFeed
         if (key == 'showHerdsInAltFeed') {
-          await _repository.updateUser(_userId, {
+          await repository.updateUser(userId, {
             'showHerdPostsInAltFeed': value,
           });
         }
+
+        if (!ref.mounted) return;
 
         // Update state to mark field as not updating
         final updatedFields = {...state.updatingFields};
         updatedFields[key] = false;
         state = state.copyWith(updatingFields: updatedFields);
       } catch (e) {
+        if (!ref.mounted) return;
         // Handle error - update state to show error
         final updatedFields = {...state.updatingFields};
         updatedFields[key] = false;
@@ -164,15 +179,6 @@ class UserSettingsNotifier extends StateNotifier<UserSettingsState> {
 
   // Reload settings from repository
   Future<void> refreshSettings() async {
-    await _loadSettings();
-  }
-
-  @override
-  void dispose() {
-    // Cancel all timers
-    for (final timer in _debounceTimers.values) {
-      timer.cancel();
-    }
-    super.dispose();
+    await _loadSettings(userId);
   }
 }

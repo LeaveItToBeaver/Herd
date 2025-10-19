@@ -119,7 +119,7 @@ module.exports = function (admin) {
      */
     async function sendPushNotification(userId, title, body, data) {
         try {
-            logger.log(`🔔 Sending push notification to user ${userId}: ${title}`);
+            logger.log(`Sending push notification to user ${userId}: ${title}`);
 
             // Get user's FCM token
             const userSnapshot = await firestore.collection('users').doc(userId).get();
@@ -718,7 +718,7 @@ module.exports = function (admin) {
                 const followerId = event.params.followerId;
                 const followedId = event.params.followedId;
 
-                console.log(`🔔 === FOLLOW NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`=== FOLLOW NOTIFICATION TRIGGER FIRED ===`);
                 console.log(`📋 Follower: ${followerId}, Followed: ${followedId}`);
                 console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
 
@@ -789,7 +789,7 @@ module.exports = function (admin) {
             async (event) => {
                 const postId = event.params.postId;
                 const likerId = event.params.userId;
-                console.log(`🔔 === LIKE NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`=== LIKE NOTIFICATION TRIGGER FIRED ===`);
                 console.log(`📋 Post: ${postId}, Liker: ${likerId}`);
                 console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
 

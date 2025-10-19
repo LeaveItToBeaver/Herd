@@ -7,7 +7,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
-import 'package:herdapp/features/user_management/view/providers/user_block_providers.dart';
+import 'package:herdapp/features/user/user_management/view/providers/user_block_providers.dart';
 
 class ChatInputWidget extends ConsumerStatefulWidget {
   final String chatId;

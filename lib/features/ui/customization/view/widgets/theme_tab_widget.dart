@@ -105,16 +105,16 @@ class ThemeTab extends ConsumerWidget {
 
   void _updateColor(WidgetRef ref, String colorKey, Color color) {
     ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateColorInstant(colorKey, color);
 
     // Commit the color change to Firebase
-    ref.read(uiCustomizationProvider.notifier).commitColorChanges();
+    ref.read(uICustomizationProvider.notifier).commitColorChanges();
   }
 
   Future<void> _updateThemeEffect(
       WidgetRef ref, String key, dynamic value) async {
-    final current = ref.read(uiCustomizationProvider).value;
+    final current = ref.read(uICustomizationProvider).value;
     if (current == null) return;
 
     final updatedTheme = current.appTheme.copyWith(
@@ -130,11 +130,11 @@ class ThemeTab extends ConsumerWidget {
     );
 
     await ref
-        .read(uiCustomizationProvider.notifier)
+        .read(uICustomizationProvider.notifier)
         .updateAppTheme(updatedTheme);
   }
 
   void _applyPreset(WidgetRef ref, String presetId) {
-    ref.read(uiCustomizationProvider.notifier).applyPreset(presetId);
+    ref.read(uICustomizationProvider.notifier).applyPreset(presetId);
   }
 }

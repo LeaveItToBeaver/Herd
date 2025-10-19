@@ -12,7 +12,7 @@ export 'package:herdapp/features/user/auth/data/repositories/auth_repository.dar
 export 'package:herdapp/features/user/user_profile/view/providers/alt_connection_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/image_loading_provider.dart';
-export 'package:herdapp/features/user/user_profile/view/providers/profile_controller_provider.dart';
+export 'package:herdapp/features/user/user_profile/profile_controller.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/profile_customization_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/profile_navigation_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/user_provider.dart';
@@ -109,3 +109,8 @@ export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_re
 export 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
 
 export 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
+
+//User Management Providers
+//export 'package:herdapp/features/user/user_management/view/providers/user_block_providers.dart';
+export 'package:herdapp/features/user/user_management/data/models/user_block_model.dart';
+export 'package:herdapp/features/user/user_management/data/repositories/user_block_repository.dart';

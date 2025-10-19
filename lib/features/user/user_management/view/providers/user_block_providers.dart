@@ -1,16 +1,20 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/repositories/user_block_repository.dart';
 import '../../data/models/user_block_model.dart';
-import '../../../user/auth/view/providers/auth_provider.dart';
+import '../../../auth/view/providers/auth_provider.dart';
+
+part 'user_block_providers.g.dart';
 
 // User Block Repository Provider
-final userBlockRepositoryProvider = Provider<UserBlockRepository>((ref) {
+@riverpod
+UserBlockRepository userBlockRepository(Ref ref) {
   return UserBlockRepository(FirebaseFirestore.instance);
-});
+}
 
 // Stream blocked users for the current user
-final blockedUsersProvider = StreamProvider<List<UserBlockModel>>((ref) {
+@riverpod
+Stream<List<UserBlockModel>> blockedUsers(Ref ref) {
   final repository = ref.watch(userBlockRepositoryProvider);
   final currentUser = ref.watch(authProvider);
 
@@ -19,11 +23,11 @@ final blockedUsersProvider = StreamProvider<List<UserBlockModel>>((ref) {
   }
 
   return repository.streamBlockedUsers(currentUserId: currentUser!.uid);
-});
+}
 
 // Stream blocked users with a limit
-final blockedUsersWithLimitProvider =
-    StreamProvider.family<List<UserBlockModel>, int>((ref, limit) {
+@riverpod
+Stream<List<UserBlockModel>> blockedUsersWithLimit(Ref ref, int limit) {
   final repository = ref.watch(userBlockRepositoryProvider);
   final currentUser = ref.watch(authProvider);
 
@@ -35,56 +39,58 @@ final blockedUsersWithLimitProvider =
     currentUserId: currentUser!.uid,
     limit: limit,
   );
-});
+}
 
 // Check if a specific user is blocked
-final isUserBlockedProvider =
-    FutureProvider.family<bool, String>((ref, targetUserId) {
+@riverpod
+Future<bool> isUserBlocked(Ref ref, String targetUserId) async {
   final repository = ref.watch(userBlockRepositoryProvider);
   final currentUser = ref.watch(authProvider);
 
   if (currentUser?.uid == null) {
-    return Future.value(false);
+    return false;
   }
 
   return repository.isUserBlocked(
     currentUserId: currentUser!.uid,
     targetUserId: targetUserId,
   );
-});
+}
 
 // Get a specific blocked user's details
-final blockedUserDetailsProvider =
-    FutureProvider.family<UserBlockModel?, String>((ref, blockedUserId) {
+@riverpod
+Future<UserBlockModel?> blockedUserDetails(
+    Ref ref, String blockedUserId) async {
   final repository = ref.watch(userBlockRepositoryProvider);
   final currentUser = ref.watch(authProvider);
 
   if (currentUser?.uid == null) {
-    return Future.value(null);
+    return null;
   }
 
   return repository.getBlockedUser(
     currentUserId: currentUser!.uid,
     blockedUserId: blockedUserId,
   );
-});
+}
 
 // Get count of blocked users
-final blockedUsersCountProvider = FutureProvider<int>((ref) {
+@riverpod
+Future<int> blockedUsersCount(Ref ref) async {
   final repository = ref.watch(userBlockRepositoryProvider);
   final currentUser = ref.watch(authProvider);
 
   if (currentUser?.uid == null) {
-    return Future.value(0);
+    return 0;
   }
 
   return repository.getBlockedUsersCount(currentUserId: currentUser!.uid);
-});
+}
 
 // Check if two users can interact (bi-directional blocking check)
 // Returns true if users CAN interact, false if blocked
-final canUsersInteractProvider =
-    FutureProvider.family<bool, String>((ref, targetUserId) async {
+@riverpod
+Future<bool> canUsersInteract(Ref ref, String targetUserId) async {
   final repository = ref.watch(userBlockRepositoryProvider);
   final currentUser = ref.watch(authProvider);
 
@@ -93,7 +99,7 @@ final canUsersInteractProvider =
   }
 
   final currentUserId = currentUser!.uid;
-  
+
   // Don't block self-interaction
   if (currentUserId == targetUserId) {
     return true;
@@ -118,23 +124,15 @@ final canUsersInteractProvider =
     // SECURITY: Default to blocking interaction if there's an error (fail closed)
     return false;
   }
-});
-
-// State provider for block user operation
-final blockUserStateProvider =
-    StateNotifierProvider<BlockUserNotifier, AsyncValue<void>>((ref) {
-  final repository = ref.watch(userBlockRepositoryProvider);
-  final currentUser = ref.watch(authProvider);
-  return BlockUserNotifier(repository, currentUser?.uid);
-});
+}
 
 // State notifier for managing block user operations
-class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
-  final UserBlockRepository _repository;
-  final String? _currentUserId;
-
-  BlockUserNotifier(this._repository, this._currentUserId)
-      : super(const AsyncValue.data(null));
+@riverpod
+class BlockUserState extends _$BlockUserState {
+  @override
+  AsyncValue<void> build() {
+    return const AsyncValue.data(null);
+  }
 
   /// Block a user
   Future<void> blockUser({
@@ -146,7 +144,8 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     bool isAlt = false,
     String? notes,
   }) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -155,8 +154,9 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.blockUser(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.blockUser(
+        currentUserId: currentUser!.uid,
         blockedUserId: blockedUserId,
         username: username,
         firstName: firstName,
@@ -165,15 +165,18 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
         isAlt: isAlt,
         notes: notes,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
 
   /// Unblock a user
   Future<void> unblockUser(String blockedUserId) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -182,12 +185,15 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.unblockUser(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.unblockUser(
+        currentUserId: currentUser!.uid,
         blockedUserId: blockedUserId,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -197,7 +203,8 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     required String blockedUserId,
     String? notes,
   }) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -206,13 +213,16 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.updateBlockNotes(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.updateBlockNotes(
+        currentUserId: currentUser!.uid,
         blockedUserId: blockedUserId,
         notes: notes,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -222,7 +232,8 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     required String blockedUserId,
     required bool reported,
   }) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -231,13 +242,16 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.updateBlockReportedStatus(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.updateBlockReportedStatus(
+        currentUserId: currentUser!.uid,
         blockedUserId: blockedUserId,
         reported: reported,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -247,7 +261,8 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     required String blockedUserId,
     required bool isAlt,
   }) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -256,20 +271,24 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.updateBlockAltStatus(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.updateBlockAltStatus(
+        currentUserId: currentUser!.uid,
         blockedUserId: blockedUserId,
         isAlt: isAlt,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
 
   /// Block multiple users at once
   Future<void> blockMultipleUsers(List<UserBlockModel> blockedUsers) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -278,19 +297,23 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.blockMultipleUsers(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.blockMultipleUsers(
+        currentUserId: currentUser!.uid,
         blockedUsers: blockedUsers,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
 
   /// Unblock multiple users at once
   Future<void> unblockMultipleUsers(List<String> blockedUserIds) async {
-    if (_currentUserId == null) {
+    final currentUser = ref.read(authProvider);
+    if (currentUser?.uid == null) {
       state =
           const AsyncValue.error('User not authenticated', StackTrace.empty);
       return;
@@ -299,12 +322,15 @@ class BlockUserNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
 
     try {
-      await _repository.unblockMultipleUsers(
-        currentUserId: _currentUserId,
+      final repository = ref.read(userBlockRepositoryProvider);
+      await repository.unblockMultipleUsers(
+        currentUserId: currentUser!.uid,
         blockedUserIds: blockedUserIds,
       );
+      if (!ref.mounted) return;
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
