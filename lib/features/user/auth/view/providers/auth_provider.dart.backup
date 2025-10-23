@@ -31,7 +31,7 @@ class Auth extends _$Auth {
     _logger = ref.watch(exceptionLoggerProvider);
     
     final currentUser = _auth.currentUser;
-    debugPrint('🔐 AuthNotifier constructed. Initial currentUser: '
+    debugPrint('AuthNotifier constructed. Initial currentUser: '
         '${currentUser?.uid ?? 'null'}');
 
     // Check Firebase Auth persistence settings and keystore health
@@ -42,9 +42,9 @@ class Auth extends _$Auth {
         _initialEventReceived = true;
         _firstEventTime = DateTime.now();
         debugPrint(
-            '🔐 First auth event received. user=${user?.uid ?? 'null'}');
+            'First auth event received. user=${user?.uid ?? 'null'}');
         debugPrint(
-            '🔐 Auth persistence check - emailVerified: ${user?.emailVerified}');
+            'Auth persistence check - emailVerified: ${user?.emailVerified}');
 
         // Mark readiness flag so UI can proceed
         ref.read(authReadyProvider.notifier).markReady();
@@ -174,7 +174,7 @@ class Auth extends _$Auth {
 
   Future<UserCredential> signIn(String email, String password) async {
     try {
-      debugPrint('🔐 Attempting sign in for: $email');
+      debugPrint('Attempting sign in for: $email');
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,

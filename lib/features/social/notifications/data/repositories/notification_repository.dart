@@ -173,8 +173,7 @@ class NotificationRepository {
 
       // Log additional context for specific error types
       if (e.toString().contains('PERMISSION_DENIED')) {
-        debugPrint(
-            '🔐 PERMISSION ERROR: Check Firebase rules and authentication');
+        debugPrint('PERMISSION ERROR: Check Firebase rules and authentication');
       } else if (e.toString().contains('UNAUTHENTICATED')) {
         debugPrint('🔒 AUTH ERROR: User might not be properly authenticated');
       } else if (e.toString().contains('INTERNAL')) {
@@ -270,7 +269,7 @@ class NotificationRepository {
 
       // Check notification permissions
       final settings = await _messaging.getNotificationSettings();
-      debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
+      debugPrint('Notification permission: ${settings.authorizationStatus}');
 
       // Call the debug cloud function
       final callable = _functions.httpsCallable('debugFCMToken');
@@ -457,14 +456,14 @@ class NotificationRepository {
       debugPrint(' ===== FCM INITIALIZATION START =====');
 
       // Request permissions
-      debugPrint('🔐 Requesting FCM permissions...');
+      debugPrint('Requesting FCM permissions...');
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      debugPrint('🔐 Permission result: ${settings.authorizationStatus}');
+      debugPrint('Permission result: ${settings.authorizationStatus}');
       if (settings.authorizationStatus != AuthorizationStatus.authorized) {
         debugPrint('Notification permissions not granted');
         return null;
@@ -576,7 +575,7 @@ class NotificationRepository {
 
       // Check notification permissions
       final settings = await _messaging.getNotificationSettings();
-      debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
+      debugPrint('Notification permission: ${settings.authorizationStatus}');
 
       try {
         await updateFCMToken(token);

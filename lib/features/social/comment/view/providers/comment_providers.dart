@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
+import 'package:herdapp/features/social/comment/data/repositories/comment_repository.dart';
 import 'package:herdapp/features/social/comment/view/providers/reply_providers.dart';
 import 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
-
-import '../../../../user/user_profile/view/providers/current_user_provider.dart';
-import '../../data/models/comment_model.dart';
-import '../../data/repositories/comment_repository.dart';
+import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 
 final commentSortProvider = StateProvider<String>((ref) => 'hot');
 

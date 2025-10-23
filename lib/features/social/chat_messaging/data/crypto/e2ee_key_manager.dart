@@ -17,7 +17,7 @@ class E2EEKeyManager {
   /// Initialize E2EE keys for a user during app startup
   Future<void> initializeUserKeys(String userId) async {
     try {
-      debugPrint('🔐 Starting E2EE key initialization for user: $userId');
+      debugPrint('Starting E2EE key initialization for user: $userId');
 
       // Step 1: Generate or load existing key from device
       final userKey = await _generateOrLoadUserKey();

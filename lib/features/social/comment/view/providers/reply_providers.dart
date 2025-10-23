@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
+import 'package:herdapp/features/social/comment/data/repositories/comment_repository.dart';
 
-import '../../data/models/comment_model.dart';
-import '../../data/repositories/comment_repository.dart';
 import 'state/reply_state.dart';
 
 // Provider to store all replies for a post

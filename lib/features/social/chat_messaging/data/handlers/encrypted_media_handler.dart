@@ -59,7 +59,7 @@ class EncryptedMediaMessageHandler {
           final msg = e.message ?? '';
           if (msg.contains('BAD_DECRYPT')) {
             debugPrint(
-                '🔐 BAD_DECRYPT during media derivation (attempt ${attempt + 1}) – regenerating identity keys');
+                'BAD_DECRYPT during media derivation (attempt ${attempt + 1}) – regenerating identity keys');
             try {
               await _cryptoService.deleteStoredKeys();
               await _cryptoService.ensureKeyPairExists();

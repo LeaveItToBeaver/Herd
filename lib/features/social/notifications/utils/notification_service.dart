@@ -79,7 +79,7 @@ class NotificationService {
 
       // Test 3: Check permissions
       final permissionsEnabled = await areNotificationsEnabled();
-      debugPrint('🔐 Notifications enabled: $permissionsEnabled');
+      debugPrint('Notifications enabled: $permissionsEnabled');
 
       return {
         'repositoryTest': repoResult,

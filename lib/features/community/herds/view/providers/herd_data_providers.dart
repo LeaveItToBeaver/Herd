@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';

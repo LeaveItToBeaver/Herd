@@ -406,7 +406,7 @@ class MessageRepository {
 
           // Check if message is encrypted (has ciphertext field)
           if (data.containsKey('ciphertext')) {
-            _v('🔐 Processing encrypted message: ${doc.id}');
+            _v('Processing encrypted message: ${doc.id}');
             // Encrypted message - try to decrypt it
             final decrypted = await _decodeEncrypted(chatId, doc.id, data);
             messages.add(decrypted);
@@ -582,9 +582,9 @@ class MessageRepository {
 
     if (isDirect) {
       // Check if both users have identity keys for E2EE (cached)
-      _v('🔐 Checking E2EE capability for direct chat...');
+      _v('Checking E2EE capability for direct chat...');
       final hasEncryption = await _getCachedEncryptionCapability(participants);
-      _v('🔐 E2EE capability result: $hasEncryption');
+      _v('E2EE capability result: $hasEncryption');
       if (hasEncryption) {
         try {
           _v('Using encrypted messaging path');
@@ -837,7 +837,7 @@ class MessageRepository {
 
     Future<Map<String, dynamic>?> _attempt(String peerId) async {
       try {
-        debugPrint('🔐 Attempting decrypt for message $id using peer $peerId');
+        debugPrint('Attempting decrypt for message $id using peer $peerId');
         final key = await _getOrDeriveKey(peerId);
         if (key == null) {
           debugPrint('No public key for peer $peerId');
