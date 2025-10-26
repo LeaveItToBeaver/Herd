@@ -34,7 +34,7 @@ class EncryptedMediaMessageHandler {
     Function(double)? onUploadProgress,
   }) async {
     try {
-      debugPrint('📱 Starting encrypted media message send');
+      debugPrint('Starting encrypted media message send');
 
       if (participants.length != 2) {
         throw Exception('Encrypted media currently only supports direct chats');

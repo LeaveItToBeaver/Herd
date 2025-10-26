@@ -245,7 +245,7 @@ module.exports = function (admin) {
             logger.log(` Successfully sent notification: ${response}`);
 
             // Log the message structure for debugging
-            logger.log(`📱 Message structure: ${JSON.stringify(message, null, 2)}`);
+            logger.log(`Message structure: ${JSON.stringify(message, null, 2)}`);
 
         } catch (error) {
             logger.error(`Error sending notification: ${error}`);
@@ -738,7 +738,7 @@ module.exports = function (admin) {
             const postId = event.params.postId;
 
             if (postData.isAlt === true) {
-                logger.log(`⏭️ Skipping alt post notification for ${postId}`);
+                logger.log(`Skipping alt post notification for ${postId}`);
                 return;
             }
 
@@ -812,7 +812,7 @@ module.exports = function (admin) {
                 const authorId = postData.authorId;
 
                 if (likerId === authorId) {
-                    logger.log(`⏭️ Skipping self-like for post ${postId}`);
+                    logger.log(`Skipping self-like for post ${postId}`);
                     return;
                 }
 
@@ -1051,11 +1051,11 @@ module.exports = function (admin) {
                     .get();
 
                 if (oldNotificationsSnapshot.empty) {
-                    logger.log('🧹 No old notifications to clean up');
+                    logger.log('No old notifications to clean up');
                     return;
                 }
 
-                logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
+                logger.log(`Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
 
                 const batch = firestore.batch();
                 oldNotificationsSnapshot.docs.forEach(doc => {

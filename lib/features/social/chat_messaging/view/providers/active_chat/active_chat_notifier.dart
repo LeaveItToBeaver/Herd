@@ -4,11 +4,6 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'dart:async';
 
-final activeChatBubblesProvider =
-    StateNotifierProvider<ActiveChatBubblesNotifier, List<ChatModel>>((ref) {
-  return ActiveChatBubblesNotifier(ref);
-});
-
 class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
   final Ref ref;
   StreamSubscription? _chatSubscription;

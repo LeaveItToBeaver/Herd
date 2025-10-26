@@ -70,7 +70,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> loadMoreNotifications({bool markAsRead = false}) async {
     if (state.isLoading || !state.hasMore || state.lastNotificationId == null) {
       debugPrint(
-          '⏭️ Skipping load more: isLoading=${state.isLoading}, hasMore=${state.hasMore}');
+          'Skipping load more: isLoading=${state.isLoading}, hasMore=${state.hasMore}');
       return;
     }
 

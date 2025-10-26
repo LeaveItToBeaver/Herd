@@ -60,7 +60,7 @@ class AppBootstrap {
   /// Handle foreground notification messages
   void _handleForegroundMessage(Map<String, dynamic> data, WidgetRef ref) {
     try {
-      debugPrint('📱 Foreground notification received: ${data['title']}');
+      debugPrint('Foreground notification received: ${data['title']}');
 
       // You can show a custom in-app notification here if needed
       // For example, show a snackbar or custom notification widget
@@ -76,7 +76,7 @@ class AppBootstrap {
   Future<void> cleanupNotifications(WidgetRef ref) async {
     try {
       if (_notificationsInitialized) {
-        debugPrint('🧹 Cleaning up notifications');
+        debugPrint('Cleaning up notifications');
 
         final notificationService = ref.read(notificationServiceProvider);
         await notificationService.clearAllNotifications();
@@ -223,7 +223,7 @@ class AppBootstrap {
 
       // Test if notifications are enabled
       final enabled = await notificationService.areNotificationsEnabled();
-      debugPrint('📱 Notifications enabled: $enabled');
+      debugPrint('Notifications enabled: $enabled');
 
       if (!enabled) {
         // Try to request permissions

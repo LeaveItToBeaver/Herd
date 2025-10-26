@@ -578,7 +578,7 @@ class MessageRepository {
         throw Exception('Cannot send message: user interaction blocked');
       }
     }
-    _v('📱 Chat type: ${isDirect ? 'Direct' : 'Group'}, participants: $participants');
+    _v('Chat type: ${isDirect ? 'Direct' : 'Group'}, participants: $participants');
 
     if (isDirect) {
       // Check if both users have identity keys for E2EE (cached)

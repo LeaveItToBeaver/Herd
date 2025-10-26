@@ -10,7 +10,7 @@ class ChatStateCleaner {
   /// Clear all chat state and caches (useful for debugging or manual cleanup)
   static Future<void> clearAllChatState(WidgetRef ref) async {
     try {
-      debugPrint('🧹 Starting manual chat state cleanup...');
+      debugPrint('Starting manual chat state cleanup...');
 
       // Clear message caches
       final messageCache = ref.read(messageCacheServiceProvider);
@@ -37,7 +37,7 @@ class ChatStateCleaner {
   /// Clear cache for a specific chat
   static Future<void> clearChatCache(WidgetRef ref, String chatId) async {
     try {
-      debugPrint('🧹 Clearing cache for chat: $chatId');
+      debugPrint('Clearing cache for chat: $chatId');
 
       final messageCache = ref.read(messageCacheServiceProvider);
       await messageCache.clearChatCache(chatId);

@@ -265,7 +265,7 @@ class NotificationRepository {
 
       // First check if we can get the token locally
       final token = await _messaging.getToken();
-      debugPrint('📱 Current FCM token: ${token?.substring(0, 20)}...');
+      debugPrint('Current FCM token: ${token?.substring(0, 20)}...');
 
       // Check notification permissions
       final settings = await _messaging.getNotificationSettings();
@@ -470,9 +470,9 @@ class NotificationRepository {
       }
 
       // Get FCM token
-      debugPrint('📱 Getting FCM token...');
+      debugPrint('Getting FCM token...');
       final token = await _messaging.getToken();
-      debugPrint('📱 FCM Token obtained: ${token?.substring(0, 20)}...');
+      debugPrint('FCM Token obtained: ${token?.substring(0, 20)}...');
 
       if (token != null) {
         // Update token via cloud function
@@ -515,8 +515,7 @@ class NotificationRepository {
   }) {
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint(
-          '📱 Foreground message received: ${message.notification?.title}');
+      debugPrint('Foreground message received: ${message.notification?.title}');
 
       final data = {
         'title': message.notification?.title ?? '',
@@ -529,8 +528,7 @@ class NotificationRepository {
 
     // Handle message taps when app is in background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint(
-          '📱 Message tapped (background): ${message.notification?.title}');
+      debugPrint('Message tapped (background): ${message.notification?.title}');
 
       final data = {
         'title': message.notification?.title ?? '',
@@ -546,7 +544,7 @@ class NotificationRepository {
         .getInitialMessage()
         .then((RemoteMessage? message) {
       if (message != null) {
-        debugPrint('📱 Initial message: ${message.notification?.title}');
+        debugPrint('Initial message: ${message.notification?.title}');
 
         final data = {
           'title': message.notification?.title ?? '',
@@ -566,7 +564,7 @@ class NotificationRepository {
 
       // Get current token
       final token = await _messaging.getToken();
-      debugPrint('📱 Current FCM token: ${token?.substring(0, 20)}...');
+      debugPrint('Current FCM token: ${token?.substring(0, 20)}...');
 
       if (token == null) {
         debugPrint('No FCM token found');
@@ -630,7 +628,7 @@ class NotificationRepository {
         .limit(50) // Reasonable limit for real-time updates
         .snapshots()
         .map((snapshot) {
-      debugPrint('📱 Stream update: ${snapshot.docs.length} notifications');
+      debugPrint('Stream update: ${snapshot.docs.length} notifications');
 
       final notifications = <NotificationModel>[];
       for (final doc in snapshot.docs) {

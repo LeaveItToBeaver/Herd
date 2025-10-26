@@ -382,8 +382,7 @@ class _NotificationSettingsScreenState
     }
 
     final buffer = StringBuffer();
-    buffer.writeln(
-        '📱 Local Token: ${result['localToken']?.substring(0, 30)}...');
+    buffer.writeln('Local Token: ${result['localToken']?.substring(0, 30)}...');
     buffer
         .writeln('☁️ Update Call Succeeded: ${result['updateCallSucceeded']}');
 
@@ -399,7 +398,7 @@ class _NotificationSettingsScreenState
       buffer.writeln('\n🎉 SUCCESS: FCM is working perfectly!');
       buffer.writeln('Token saved to Firestore');
       buffer.writeln('Test notification sent');
-      buffer.writeln('📱 Check your device notification tray');
+      buffer.writeln('Check your device notification tray');
       buffer.writeln('\n💡 If you don\'t see the notification:');
       buffer.writeln(' • Make sure app is in background');
       buffer.writeln(' • Check device notification settings');

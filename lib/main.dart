@@ -26,7 +26,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   debugPrint('Background message received: ${message.messageId}');
-  debugPrint('📱 Message data: ${message.data}');
+  debugPrint('Message data: ${message.data}');
 }
 
 void main() async {

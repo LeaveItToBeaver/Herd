@@ -99,7 +99,7 @@ class E2EEKeyManager {
     final existingKey = await _cryptoService.exportPublicIdentityKeyBase64();
 
     if (existingKey.isNotEmpty) {
-      debugPrint('📱 Found existing user key on device');
+      debugPrint('Found existing user key on device');
       return existingKey;
     } else {
       debugPrint('🆕 Generating new user key');
