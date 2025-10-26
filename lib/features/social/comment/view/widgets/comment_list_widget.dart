@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/comment/view/providers/comment_providers.dart';
+import 'package:herdapp/features/social/comment/view/providers/comment_sort_provider.dart';
+import 'package:herdapp/features/social/comment/view/providers/expanded_comments_provider.dart';
 import 'package:herdapp/features/social/comment/view/widgets/comment_input_field.dart';
 import 'package:herdapp/features/social/comment/view/widgets/comment_widget.dart';
 
@@ -43,7 +45,7 @@ class CommentListWidget extends ConsumerWidget {
               value: sortBy,
               onChanged: (value) {
                 if (value != null) {
-                  ref.read(commentSortProvider.notifier).state = value;
+                  ref.read(commentSortProvider.notifier).set(value);
                   ref
                       .read(commentsProvider(postId).notifier)
                       .changeSortBy(value);

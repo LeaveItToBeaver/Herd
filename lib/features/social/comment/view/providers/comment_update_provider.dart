@@ -1,39 +1,54 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/comment/view/providers/comment_providers.dart';
-import 'package:herdapp/features/social/comment/view/providers/reply_providers.dart';
-import 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
+import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final commentUpdateProvider = StateProvider<int>((ref) => 0);
+part 'comment_update_provider.g.dart';
 
-class CommentsNotifier extends StateNotifier<CommentState> {
-  final CommentRepository _repository;
-  final String _postId;
-  String _sortBy;
+@riverpod
+class CommentUpdateCounter extends _$CommentUpdateCounter {
+  @override
+  int build() => 0;
 
-  CommentsNotifier(this._repository, this._postId, this._sortBy)
-      : super(CommentState.initial().copyWith(sortBy: _sortBy)) {
+  void increment() => state++;
+}
+
+@riverpod
+class CommentsUpdate extends _$CommentsUpdate {
+  late String _postId;
+  late String _sortBy;
+
+  @override
+  CommentState build(String postId, String sortBy) {
+    _postId = postId;
+    _sortBy = sortBy;
+
     // Load initial comments
-    loadComments();
+    Future.microtask(() => loadComments());
+
+    return CommentState.initial().copyWith(sortBy: sortBy);
   }
 
   Future<void> invalidateRelatedProviders(
-      WidgetRef ref, String postId, String? parentId) async {
+      WidgetRef widgetRef, String postId, String? parentId) async {
     try {
       // Invalidate providers
-      ref.invalidate(commentsProvider(postId));
-      ref.invalidate(repliesProvider(postId));
+      widgetRef.invalidate(commentsProvider(postId));
+      widgetRef.invalidate(repliesProvider(postId));
 
       // Don't call loadComments() directly here
       // Instead, let the UI reload data as needed
 
       if (parentId != null) {
-        ref.invalidate(
-            commentThreadProvider((commentId: parentId, postId: postId)));
+        widgetRef.invalidate(
+            commentThreadProvider(commentId: parentId, postId: postId));
       } else {
-        ref.invalidate(
-            commentThreadProvider((commentId: _postId, postId: postId)));
+        widgetRef.invalidate(
+            commentThreadProvider(commentId: _postId, postId: postId));
       }
 
       // The UI should handle refreshing data after invalidation
@@ -45,14 +60,19 @@ class CommentsNotifier extends StateNotifier<CommentState> {
   }
 
   Future<void> loadComments() async {
+    if (!ref.mounted) return;
+
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final comments = await _repository.getComments(
+      final repository = ref.read(commentRepositoryProvider);
+      final comments = await repository.getComments(
         postId: _postId,
         sortBy: state.sortBy,
         limit: 30,
       );
+
+      if (!ref.mounted) return;
 
       state = state.copyWith(
         comments: comments,
@@ -63,6 +83,8 @@ class CommentsNotifier extends StateNotifier<CommentState> {
             : null,
       );
     } catch (e) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -71,17 +93,20 @@ class CommentsNotifier extends StateNotifier<CommentState> {
   }
 
   Future<void> loadMoreComments() async {
-    if (state.isLoading || !state.hasMore) return;
+    if (state.isLoading || !state.hasMore || !ref.mounted) return;
 
     try {
       state = state.copyWith(isLoading: true);
 
-      final comments = await _repository.getComments(
+      final repository = ref.read(commentRepositoryProvider);
+      final comments = await repository.getComments(
         postId: _postId,
         sortBy: state.sortBy,
         limit: 30,
         startAfter: state.lastDocument,
       );
+
+      if (!ref.mounted) return;
 
       state = state.copyWith(
         comments: [...state.comments, ...comments],
@@ -92,6 +117,8 @@ class CommentsNotifier extends StateNotifier<CommentState> {
             : state.lastDocument,
       );
     } catch (e) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -100,7 +127,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
   }
 
   Future<void> changeSortBy(String sortBy) async {
-    if (sortBy == state.sortBy) return;
+    if (sortBy == state.sortBy || !ref.mounted) return;
 
     _sortBy = sortBy;
     state = state.copyWith(
@@ -124,10 +151,11 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     String? authorAltProfileImage,
     bool isAltPost = false,
     File? mediaFile,
-    required WidgetRef ref,
+    required WidgetRef widgetRef,
   }) async {
     try {
-      final comment = await _repository.createComment(
+      final repository = ref.read(commentRepositoryProvider);
+      final comment = await repository.createComment(
         postId: _postId,
         authorId: authorId,
         content: content,
@@ -140,6 +168,8 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         isAltPost: isAltPost,
         mediaFile: mediaFile,
       );
+
+      if (!ref.mounted) return comment;
 
       try {
         // If it's a top-level comment, add to the list
@@ -162,7 +192,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         }
 
         // Invalidate the replies provider for this post
-        invalidateRelatedProviders(ref, _postId, parentId);
+        invalidateRelatedProviders(widgetRef, _postId, parentId);
       } catch (e) {
         if (kDebugMode) {
           print('Error uploading comment: $e');

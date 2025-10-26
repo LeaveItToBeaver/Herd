@@ -203,7 +203,7 @@ class _CommentInputFieldState extends ConsumerState<CommentInputField> {
               ? currentUserAsync.safeAltProfileImageURL
               : currentUserAsync.safeProfileImageURL,
           mediaFile: _mediaFile,
-          ref: ref);
+          widgetRef: ref);
 
       _commentController.clear();
       setState(() => _mediaFile = null);

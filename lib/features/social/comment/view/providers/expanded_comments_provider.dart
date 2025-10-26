@@ -1,13 +1,12 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
 
-final expandedCommentsProvider =
-    StateNotifierProvider<ExpandedCommentsNotifier, ExpandedCommentsState>(
-        (ref) {
-  return ExpandedCommentsNotifier();
-});
+part 'expanded_comments_provider.g.dart';
 
-class ExpandedCommentsNotifier extends StateNotifier<ExpandedCommentsState> {
-  ExpandedCommentsNotifier() : super(ExpandedCommentsState.initial());
+@riverpod
+class ExpandedComments extends _$ExpandedComments {
+  @override
+  ExpandedCommentsState build() => ExpandedCommentsState.initial();
 
   void toggleExpanded(String commentId) {
     final expandedIds = Set<String>.from(state.expandedCommentIds);

@@ -45,6 +45,10 @@ export 'package:herdapp/features/content/drafts/data/repositories/draft_reposito
 
 //Comment Providers
 export 'package:herdapp/features/social/comment/view/providers/comment_providers.dart';
+export 'package:herdapp/features/social/comment/view/providers/comment_interaction_provider.dart';
+export 'package:herdapp/features/social/comment/view/providers/comment_sort_provider.dart';
+export 'package:herdapp/features/social/comment/view/providers/comment_thread_provider.dart';
+export 'package:herdapp/features/social/comment/view/providers/expanded_comments_provider.dart';
 export 'package:herdapp/features/social/comment/view/providers/reply_providers.dart';
 export 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
 export 'package:herdapp/features/social/comment/view/providers/state/reply_state.dart';

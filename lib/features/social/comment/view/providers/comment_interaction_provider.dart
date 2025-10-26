@@ -1,34 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/comment/data/repositories/comment_repository.dart';
 import 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
 import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
+import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 
-final commentInteractionProvider = StateNotifierProvider.family<
-    CommentInteractionNotifier,
-    CommentInteractionState,
-    ({String commentId, String postId})>((ref, params) {
-  final repository = ref.watch(commentRepositoryProvider);
-  final currentUser = ref.read(currentUserProvider);
+part 'comment_interaction_provider.g.dart';
 
-  // Use the extension method to safely extract the ID
-  final userId = currentUser.userId ?? '';
+@riverpod
+class CommentInteraction extends _$CommentInteraction {
+  late final String _commentId;
+  late final String _postId;
+  late final String _userId;
+  late final CommentRepository _repository;
 
-  return CommentInteractionNotifier(
-      repository, params.commentId, userId, params.postId);
-});
+  @override
+  CommentInteractionState build(String commentId, String postId) {
+    _commentId = commentId;
+    _postId = postId;
+    _repository = ref.watch(commentRepositoryProvider);
 
-class CommentInteractionNotifier
-    extends StateNotifier<CommentInteractionState> {
-  final CommentRepository _repository;
-  final String _commentId;
-  final String _userId;
-  final String _postId;
+    final currentUser = ref.read(currentUserProvider);
+    _userId = currentUser.userId ?? '';
 
-  CommentInteractionNotifier(
-      this._repository, this._commentId, this._userId, this._postId)
-      : super(const CommentInteractionState()) {
+    // Initialize by loading the state
     _loadInteractionState();
+
+    return const CommentInteractionState();
   }
 
   // Initialize state when the provider is created
@@ -54,6 +53,10 @@ class CommentInteractionNotifier
 
       if (commentDoc.exists) {
         final data = commentDoc.data()!;
+
+        // Check if the provider is still mounted after async operation
+        if (!ref.mounted) return;
+
         state = CommentInteractionState(
           isLiked: isLiked,
           isDisliked: isDisliked,
@@ -98,12 +101,18 @@ class CommentInteractionNotifier
         postId: _postId,
       );
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       // Mark loading complete
       state = state.copyWith(isLoading: false);
     } catch (e) {
       if (kDebugMode) {
         print('Error toggling like: $e');
       }
+
+      // Check if still mounted before reverting
+      if (!ref.mounted) return;
 
       // Revert on error
       state = CommentInteractionState(
@@ -149,12 +158,18 @@ class CommentInteractionNotifier
         postId: _postId,
       );
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       // Mark loading complete
       state = state.copyWith(isLoading: false);
     } catch (e) {
       if (kDebugMode) {
         print('Error toggling dislike: $e');
       }
+
+      // Check if still mounted before reverting
+      if (!ref.mounted) return;
 
       // Revert on error
       state = CommentInteractionState(

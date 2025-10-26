@@ -3,79 +3,59 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
 import 'package:herdapp/features/social/comment/data/repositories/comment_repository.dart';
 import 'package:herdapp/features/social/comment/view/providers/reply_providers.dart';
 import 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
-import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
-import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
+import 'package:herdapp/features/social/comment/view/providers/comment_thread_provider.dart';
+import 'package:herdapp/features/social/comment/view/providers/comment_sort_provider.dart';
 
-final commentSortProvider = StateProvider<String>((ref) => 'hot');
+part 'comment_providers.g.dart';
 
-// Provider for the expanded comments (which comments should show their replies)
-final expandedCommentsProvider =
-    StateNotifierProvider<ExpandedCommentsNotifier, ExpandedCommentsState>(
-        (ref) {
-  return ExpandedCommentsNotifier();
-});
+// Provider for comment update count
+@riverpod
+class CommentUpdate extends _$CommentUpdate {
+  @override
+  int build() => 0;
 
-class ExpandedCommentsNotifier extends StateNotifier<ExpandedCommentsState> {
-  ExpandedCommentsNotifier() : super(ExpandedCommentsState.initial());
-
-  void toggleExpanded(String commentId) {
-    final expandedIds = Set<String>.from(state.expandedCommentIds);
-    if (expandedIds.contains(commentId)) {
-      expandedIds.remove(commentId);
-    } else {
-      expandedIds.add(commentId);
-    }
-    state = state.copyWith(expandedCommentIds: expandedIds);
-  }
-
-  void collapseAll() {
-    state = state.copyWith(expandedCommentIds: {});
-  }
+  void increment() => state++;
 }
 
 // Provider for comment list for a specific post
-final commentsProvider =
-    StateNotifierProvider.family<CommentsNotifier, CommentState, String>(
-        (ref, postId) {
-  final repository = ref.watch(commentRepositoryProvider);
-  final sortBy = ref.watch(commentSortProvider);
-  return CommentsNotifier(repository, postId, sortBy);
-});
+@riverpod
+class Comments extends _$Comments {
+  late final String _postId;
+  late final CommentRepository _repository;
 
-// Provider for comment update count
-final commentUpdateProvider = StateProvider<int>((ref) => 0);
+  @override
+  CommentState build(String postId) {
+    _postId = postId;
+    _repository = ref.watch(commentRepositoryProvider);
+    final sortBy = ref.watch(commentSortProvider);
 
-class CommentsNotifier extends StateNotifier<CommentState> {
-  final CommentRepository _repository;
-  final String _postId;
-  String _sortBy;
-
-  CommentsNotifier(this._repository, this._postId, this._sortBy)
-      : super(CommentState.initial().copyWith(sortBy: _sortBy)) {
     // Load initial comments
     loadComments();
+
+    return CommentState.initial().copyWith(sortBy: sortBy);
   }
 
   Future<void> invalidateRelatedProviders(
-      WidgetRef ref, String postId, String? parentId) async {
+      WidgetRef widgetRef, String postId, String? parentId) async {
     try {
       // Invalidate providers
-      ref.invalidate(commentsProvider(postId));
-      ref.invalidate(repliesProvider(postId));
+      widgetRef.invalidate(commentsProvider(postId));
+      widgetRef.invalidate(repliesProvider(postId));
 
       // Don't call loadComments() directly here
       // Instead, let the UI reload data as needed
 
       if (parentId != null) {
-        ref.invalidate(
-            commentThreadProvider((commentId: parentId, postId: postId)));
+        widgetRef.invalidate(
+            commentThreadProvider(commentId: parentId, postId: postId));
       } else {
-        ref.invalidate(
-            commentThreadProvider((commentId: _postId, postId: postId)));
+        widgetRef.invalidate(
+            commentThreadProvider(commentId: _postId, postId: postId));
       }
 
       // The UI should handle refreshing data after invalidation
@@ -96,6 +76,9 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         limit: 30,
       );
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         comments: comments,
         isLoading: false,
@@ -105,6 +88,9 @@ class CommentsNotifier extends StateNotifier<CommentState> {
             : null,
       );
     } catch (e) {
+      // Check if still mounted before updating error state
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -125,6 +111,9 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         startAfter: state.lastDocument,
       );
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         comments: [...state.comments, ...comments],
         isLoading: false,
@@ -134,6 +123,9 @@ class CommentsNotifier extends StateNotifier<CommentState> {
             : state.lastDocument,
       );
     } catch (e) {
+      // Check if still mounted before updating error state
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -144,7 +136,6 @@ class CommentsNotifier extends StateNotifier<CommentState> {
   Future<void> changeSortBy(String sortBy) async {
     if (sortBy == state.sortBy) return;
 
-    _sortBy = sortBy;
     state = state.copyWith(
       sortBy: sortBy,
       comments: [],
@@ -166,7 +157,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
     String? authorAltProfileImage,
     bool isAltPost = false,
     File? mediaFile,
-    required WidgetRef ref,
+    required WidgetRef widgetRef,
   }) async {
     try {
       final comment = await _repository.createComment(
@@ -204,7 +195,7 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         }
 
         // Invalidate the replies provider for this post
-        invalidateRelatedProviders(ref, _postId, parentId);
+        invalidateRelatedProviders(widgetRef, _postId, parentId);
       } catch (e) {
         if (kDebugMode) {
           print('Error uploading comment: $e');
@@ -234,338 +225,6 @@ class CommentsNotifier extends StateNotifier<CommentState> {
         print('Error getting document: $e');
       }
       return null;
-    }
-  }
-}
-
-final commentThreadProvider = StateNotifierProvider.family<
-    CommentThreadNotifier,
-    CommentThreadState?,
-    ({String commentId, String? postId})>((ref, params) {
-  final repository = ref.watch(commentRepositoryProvider);
-  return CommentThreadNotifier(repository, params.commentId, params.postId);
-});
-
-class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
-  final CommentRepository _repository;
-  final String _commentId;
-  final FirebaseFirestore _firestore;
-  String? _postId;
-
-  CommentThreadNotifier(this._repository, this._commentId, String? postId,
-      {FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        super(null) {
-    // Load the thread when created
-    loadThread();
-  }
-
-  Future<void> loadThread() async {
-    try {
-      // First get the parent comment to determine postId
-      // You need to query all comments collections to find where this comment is
-      final commentDoc = await _getCommentDoc();
-
-      if (commentDoc == null || !commentDoc.exists) {
-        throw Exception('Comment not found');
-      }
-
-      final parentComment = CommentModel.fromFirestore(commentDoc);
-      _postId = parentComment.postId; // Store the postId for later queries
-
-      // Then load its replies using the correct postId
-      if (_postId != null) {
-        final replies = await _repository.getReplies(
-          postId: _postId!,
-          commentId: _commentId,
-          limit: 30,
-        );
-
-        state = CommentThreadState(
-          parentComment: parentComment,
-          replies: replies,
-          hasMore: replies.length >= 30,
-          lastDocument: replies.isNotEmpty
-              ? await _getLastDocument(replies.last.id)
-              : null,
-        );
-      } else {
-        throw Exception('Unable to determine post ID for comment');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading thread: $e');
-      }
-      // State remains null to indicate error
-    }
-  }
-
-  Future<DocumentSnapshot?> _getCommentDoc() async {
-    if (_postId != null) {
-      // If we already know the postId, use it directly
-      return await _firestore
-          .collection('comments')
-          .doc(_postId)
-          .collection('postComments')
-          .doc(_commentId)
-          .get();
-    }
-
-    final postsSnapshot = await _firestore.collection('posts').limit(50).get();
-
-    for (final postDoc in postsSnapshot.docs) {
-      final postId = postDoc.id;
-
-      final commentDoc = await _firestore
-          .collection('comments')
-          .doc(postId)
-          .collection('postComments')
-          .doc(_commentId)
-          .get();
-
-      if (commentDoc.exists) {
-        _postId = postId;
-        return commentDoc;
-      }
-    }
-
-    final altPostsSnapshot =
-        await _firestore.collection('altPosts').limit(50).get();
-
-    for (final postDoc in altPostsSnapshot.docs) {
-      final postId = postDoc.id;
-
-      final commentDoc = await _firestore
-          .collection('comments')
-          .doc(postId)
-          .collection('postComments')
-          .doc(_commentId)
-          .get();
-
-      if (commentDoc.exists) {
-        _postId = postId;
-        return commentDoc;
-      }
-    }
-
-    return null;
-  }
-
-  Future<void> loadMoreReplies() async {
-    if (state == null ||
-        state!.isLoading ||
-        !state!.hasMore ||
-        _postId == null) {
-      return;
-    }
-
-    try {
-      state = state!.copyWith(isLoading: true);
-
-      final replies = await _repository.getReplies(
-        postId: _postId!,
-        commentId: _commentId,
-        limit: 30,
-        startAfter: state!.lastDocument,
-      );
-
-      state = state!.copyWith(
-        replies: [...state!.replies, ...replies],
-        isLoading: false,
-        hasMore: replies.length >= 30,
-        lastDocument: replies.isNotEmpty
-            ? await _getLastDocument(replies.last.id)
-            : state!.lastDocument,
-      );
-    } catch (e) {
-      state = state!.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
-  }
-
-  // Helper to get document for pagination
-  Future<DocumentSnapshot?> _getLastDocument(String commentId) async {
-    if (_postId == null) return null;
-
-    try {
-      return await _firestore
-          .collection('comments')
-          .doc(_postId)
-          .collection('postComments')
-          .doc(commentId)
-          .get();
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error getting document: $e');
-      }
-      return null;
-    }
-  }
-}
-
-final commentInteractionProvider = StateNotifierProvider.family<
-    CommentInteractionNotifier,
-    CommentInteractionState,
-    ({String commentId, String postId})>((ref, params) {
-  final repository = ref.watch(commentRepositoryProvider);
-  final currentUser = ref.read(currentUserProvider);
-
-  // Use the extension method to safely extract the ID
-  final userId = currentUser.userId ?? '';
-
-  return CommentInteractionNotifier(
-      repository, params.commentId, userId, params.postId);
-});
-
-class CommentInteractionNotifier
-    extends StateNotifier<CommentInteractionState> {
-  final CommentRepository _repository;
-  final String _commentId;
-  final String _userId;
-  final String _postId;
-
-  CommentInteractionNotifier(
-      this._repository, this._commentId, this._userId, this._postId)
-      : super(const CommentInteractionState()) {
-    _loadInteractionState();
-  }
-
-  // Initialize state when the provider is created
-  void initializeState() {
-    _loadInteractionState();
-  }
-
-  Future<void> _loadInteractionState() async {
-    try {
-      final isLiked = await _repository.isCommentLikedByUser(
-          commentId: _commentId, userId: _userId);
-
-      final isDisliked = await _repository.isCommentDislikedByUser(
-          commentId: _commentId, userId: _userId);
-
-      // Get the comment to get current like/dislike counts
-      final commentDoc = await FirebaseFirestore.instance
-          .collection('comments')
-          .doc(_postId)
-          .collection('postComments')
-          .doc(_commentId)
-          .get();
-
-      if (commentDoc.exists) {
-        final data = commentDoc.data()!;
-        state = CommentInteractionState(
-          isLiked: isLiked,
-          isDisliked: isDisliked,
-          likeCount: data['likeCount'] ?? 0,
-          dislikeCount: data['dislikeCount'] ?? 0,
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading interaction state: $e');
-      }
-    }
-  }
-
-  Future<void> toggleLike() async {
-    if (state.isLoading) return;
-
-    // Optimistic update
-    final wasLiked = state.isLiked;
-    final wasDisliked = state.isDisliked;
-
-    // Calculate new counts
-    final newLikeCount = wasLiked ? state.likeCount - 1 : state.likeCount + 1;
-
-    final newDislikeCount =
-        wasDisliked && !wasLiked ? state.dislikeCount - 1 : state.dislikeCount;
-
-    // Update state optimistically
-    state = CommentInteractionState(
-      isLiked: !wasLiked,
-      isDisliked: false, // Remove dislike if present
-      likeCount: newLikeCount,
-      dislikeCount: newDislikeCount,
-      isLoading: true,
-    );
-
-    try {
-      // Perform the action
-      await _repository.toggleLikeComment(
-        commentId: _commentId,
-        userId: _userId,
-        postId: _postId,
-      );
-
-      // Mark loading complete
-      state = state.copyWith(isLoading: false);
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error toggling like: $e');
-      }
-
-      // Revert on error
-      state = CommentInteractionState(
-        isLiked: wasLiked,
-        isDisliked: wasDisliked,
-        likeCount: state.likeCount + (wasLiked ? 1 : -1),
-        dislikeCount: wasDisliked && !wasLiked
-            ? state.dislikeCount + 1
-            : state.dislikeCount,
-        isLoading: false,
-      );
-    }
-  }
-
-  Future<void> toggleDislike() async {
-    if (state.isLoading) return;
-
-    // Optimistic update
-    final wasLiked = state.isLiked;
-    final wasDisliked = state.isDisliked;
-
-    // Calculate new counts
-    final newDislikeCount =
-        wasDisliked ? state.dislikeCount - 1 : state.dislikeCount + 1;
-
-    final newLikeCount =
-        wasLiked && !wasDisliked ? state.likeCount - 1 : state.likeCount;
-
-    // Update state optimistically
-    state = CommentInteractionState(
-      isDisliked: !wasDisliked,
-      isLiked: false, // Remove like if present
-      dislikeCount: newDislikeCount,
-      likeCount: newLikeCount,
-      isLoading: true,
-    );
-
-    try {
-      // Perform the action
-      await _repository.toggleDislikeComment(
-        commentId: _commentId,
-        userId: _userId,
-        postId: _postId,
-      );
-
-      // Mark loading complete
-      state = state.copyWith(isLoading: false);
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error toggling dislike: $e');
-      }
-
-      // Revert on error
-      state = CommentInteractionState(
-        isLiked: wasLiked,
-        isDisliked: wasDisliked,
-        likeCount:
-            wasLiked && !wasDisliked ? state.likeCount + 1 : state.likeCount,
-        dislikeCount: state.dislikeCount + (wasDisliked ? 1 : -1),
-        isLoading: false,
-      );
     }
   }
 }

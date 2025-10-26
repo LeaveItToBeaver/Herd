@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
 import 'package:herdapp/features/social/comment/view/providers/comment_providers.dart';
+import 'package:herdapp/features/social/comment/view/providers/comment_interaction_provider.dart';
+import 'package:herdapp/features/social/comment/view/providers/comment_thread_provider.dart';
+import 'package:herdapp/features/social/comment/view/providers/expanded_comments_provider.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -48,10 +51,9 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       Future.microtask(() {
         if (mounted) {
           ref
-              .read(commentInteractionProvider((
-                commentId: widget.comment.id,
-                postId: widget.comment.postId
-              )).notifier)
+              .read(commentInteractionProvider(
+                      widget.comment.id, widget.comment.postId)
+                  .notifier)
               .initializeState();
           _hasInitializedInteraction = true;
         }
@@ -245,7 +247,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
       builder: (context, ref, child) {
         // Only watch the like state
         final likeState = ref.watch(commentInteractionProvider(
-                (commentId: widget.comment.id, postId: widget.comment.postId))
+                widget.comment.id, widget.comment.postId)
             .select(
                 (state) => (state.isLiked, state.likeCount, state.isLoading)));
 
@@ -284,10 +286,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
     return Consumer(
       builder: (context, ref, child) {
         // Only watch the dislike state
-        final dislikeState = ref.watch(commentInteractionProvider(
-                (commentId: widget.comment.id, postId: widget.comment.postId))
-            .select((state) =>
-                (state.isDisliked, state.dislikeCount, state.isLoading)));
+        final dislikeState = ref.watch(
+            commentInteractionProvider(widget.comment.id, widget.comment.postId)
+                .select((state) =>
+                    (state.isDisliked, state.dislikeCount, state.isLoading)));
 
         final isDisliked = dislikeState.$1;
         final dislikeCount = dislikeState.$2;
@@ -389,7 +391,7 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
     return Consumer(
       builder: (context, ref, child) {
         final threadStateAsync = ref.watch(commentThreadProvider(
-            (commentId: widget.comment.id, postId: widget.comment.postId)));
+            commentId: widget.comment.id, postId: widget.comment.postId));
 
         if (threadStateAsync == null) {
           return const Padding(
@@ -435,10 +437,10 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
                 child: TextButton(
                   onPressed: () {
                     ref
-                        .read(commentThreadProvider((
-                          commentId: widget.comment.id,
-                          postId: widget.comment.postId
-                        )).notifier)
+                        .read(commentThreadProvider(
+                                commentId: widget.comment.id,
+                                postId: widget.comment.postId)
+                            .notifier)
                         .loadMoreReplies();
                   },
                   child: const Text('Load more replies'),
@@ -487,9 +489,9 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
     }
 
     ref
-        .read(commentInteractionProvider(
-                (commentId: widget.comment.id, postId: widget.comment.postId))
-            .notifier)
+        .read(
+            commentInteractionProvider(widget.comment.id, widget.comment.postId)
+                .notifier)
         .toggleLike();
   }
 
@@ -506,9 +508,9 @@ class _CommentWidgetState extends ConsumerState<CommentWidget> {
 
     // This executes immediately for optimistic update, just like before
     ref
-        .read(commentInteractionProvider(
-                (commentId: widget.comment.id, postId: widget.comment.postId))
-            .notifier)
+        .read(
+            commentInteractionProvider(widget.comment.id, widget.comment.postId)
+                .notifier)
         .toggleDislike();
   }
 
@@ -702,16 +704,16 @@ class _ReplyDialogState extends ConsumerState<ReplyDialog> {
                 ? currentUserAsync.safeAltProfileImageURL
                 : currentUserAsync.safeProfileImageURL,
             mediaFile: _mediaFile,
-            ref: ref,
+            widgetRef: ref,
           );
 
       // Rest of the function remains the same
       ref.invalidate(repliesProvider(widget.postId));
       ref.invalidate(commentThreadProvider(
-          (commentId: widget.parentId, postId: widget.postId)));
+          commentId: widget.parentId, postId: widget.postId));
 
       // Increment update counter to force refresh of listeners
-      ref.read(commentUpdateProvider.notifier).state++;
+      ref.read(commentUpdateProvider.notifier).increment();
 
       if (mounted) {
         Navigator.pop(context);

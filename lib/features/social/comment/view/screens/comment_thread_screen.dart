@@ -57,7 +57,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
   @override
   Widget build(BuildContext context) {
     final threadState = ref.watch(commentThreadProvider(
-        (commentId: widget.commentId, postId: widget.postId)));
+        commentId: widget.commentId, postId: widget.postId));
     final currentUserAsync = ref.watch(currentUserProvider);
 
     // Get user data for UI
@@ -90,10 +90,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
               ElevatedButton(
                 onPressed: () {
                   ref
-                      .read(commentThreadProvider((
-                        commentId: widget.commentId,
-                        postId: widget.postId
-                      )).notifier)
+                      .read(commentThreadProvider(
+                              commentId: widget.commentId,
+                              postId: widget.postId)
+                          .notifier)
                       .loadThread();
                 },
                 child: const Text('Retry'),
@@ -124,7 +124,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
             onPressed: () {
               ref
                   .read(commentThreadProvider(
-                          (commentId: widget.commentId, postId: widget.postId))
+                          commentId: widget.commentId, postId: widget.postId)
                       .notifier)
                   .loadThread();
             },
@@ -179,10 +179,10 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
                     child: TextButton(
                       onPressed: () {
                         ref
-                            .read(commentThreadProvider((
-                              commentId: widget.commentId,
-                              postId: widget.postId
-                            )).notifier)
+                            .read(commentThreadProvider(
+                                    commentId: widget.commentId,
+                                    postId: widget.postId)
+                                .notifier)
                             .loadMoreReplies();
                       },
                       child: threadState.isLoading
@@ -350,7 +350,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
 
     // Get the thread state
     final threadState = ref.read(commentThreadProvider(
-        (commentId: widget.commentId, postId: widget.postId)));
+        commentId: widget.commentId, postId: widget.postId));
     if (threadState == null) return;
 
     setState(() => _isSubmitting = true);
@@ -367,7 +367,7 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
             parentId: widget.commentId,
             isAltPost: isAltPost,
             mediaFile: _mediaFile,
-            ref: ref,
+            widgetRef: ref,
           );
 
       // Clear input
@@ -379,7 +379,8 @@ class _CommentThreadScreenState extends ConsumerState<CommentThreadScreen> {
       ref.invalidate(repliesProvider(widget.postId));
       ref
           .read(commentThreadProvider(
-              (commentId: widget.commentId, postId: widget.postId)).notifier)
+                  commentId: widget.commentId, postId: widget.postId)
+              .notifier)
           .loadThread();
     } catch (e) {
       if (mounted) {

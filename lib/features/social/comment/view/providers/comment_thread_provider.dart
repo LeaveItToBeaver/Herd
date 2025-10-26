@@ -1,28 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
 import 'package:herdapp/features/social/comment/data/repositories/comment_repository.dart';
 import 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
 
-final commentThreadProvider = StateNotifierProvider.family<
-    CommentThreadNotifier,
-    CommentThreadState?,
-    ({String commentId, String? postId})>((ref, params) {
-  final repository = ref.watch(commentRepositoryProvider);
-  return CommentThreadNotifier(repository, params.commentId, params.postId);
-});
+part 'comment_thread_provider.g.dart';
 
-class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
-  final CommentRepository _repository;
-  final String _commentId;
-  final FirebaseFirestore _firestore;
+@riverpod
+class CommentThread extends _$CommentThread {
+  late final String _commentId;
+  late final CommentRepository _repository;
+  late final FirebaseFirestore _firestore;
   String? _postId;
 
-  CommentThreadNotifier(this._repository, this._commentId, String? postId,
-      {FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        super(null) {
+  @override
+  CommentThreadState? build({required String commentId, String? postId}) {
+    _commentId = commentId;
+    _postId = postId;
+    _repository = ref.watch(commentRepositoryProvider);
+    _firestore = FirebaseFirestore.instance;
+
     // Load the thread when created
     loadThread();
+
+    return null;
   }
 
   Future<void> loadThread() async {
@@ -45,6 +48,9 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
           commentId: _commentId,
           limit: 30,
         );
+
+        // Check if still mounted after async operation
+        if (!ref.mounted) return;
 
         state = CommentThreadState(
           parentComment: parentComment,
@@ -134,6 +140,9 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
         startAfter: state!.lastDocument,
       );
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       state = state!.copyWith(
         replies: [...state!.replies, ...replies],
         isLoading: false,
@@ -143,6 +152,9 @@ class CommentThreadNotifier extends StateNotifier<CommentThreadState?> {
             : state!.lastDocument,
       );
     } catch (e) {
+      // Check if still mounted before updating error state
+      if (!ref.mounted) return;
+
       state = state!.copyWith(
         isLoading: false,
         error: e.toString(),
