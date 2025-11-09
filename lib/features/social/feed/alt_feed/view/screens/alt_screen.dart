@@ -5,7 +5,6 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
-import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
@@ -121,8 +120,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                     ],
                   ),
                   onTap: () {
-                    final controller =
-                        ref.read(altFeedControllerProvider);
+                    final controller = ref.read(altFeedControllerProvider);
                     controller.toggleHerdPostsFilter(!showHerdPosts);
                   },
                 ),
@@ -141,9 +139,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
             FeedSortWidget(
               currentSort: altFeedState.sortType,
               onSortChanged: (newSortType) {
-                ref
-                    .read(altFeedControllerProvider)
-                    .changeSortType(newSortType);
+                ref.read(altFeedControllerProvider).changeSortType(newSortType);
               },
               isLoading: altFeedState.isLoading,
             ),
@@ -437,12 +433,10 @@ class _FeedContentWrapper extends ConsumerWidget {
                     hasError: altFeedState.error != null,
                     errorMessage: altFeedState.error?.toString(),
                     hasMorePosts: altFeedState.hasMorePosts,
-                    onRefresh: () => ref
-                        .read(altFeedControllerProvider)
-                        .refreshFeed(),
-                    onLoadMore: () => ref
-                        .read(altFeedControllerProvider)
-                        .loadMorePosts(),
+                    onRefresh: () =>
+                        ref.read(altFeedControllerProvider).refreshFeed(),
+                    onLoadMore: () =>
+                        ref.read(altFeedControllerProvider).loadMorePosts(),
                     type: PostListType.feed,
                     emptyMessage: 'No alt posts yet',
                     emptyActionLabel: 'Create an alt post',

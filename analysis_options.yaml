@@ -13,3 +13,5 @@ analyzer:
     unreachable_switch_default: ignore
     unused_field: ignore
     unused_local_variable: ignore
+    invalid_use_of_protected_member: ignore
+    invalid_use_of_visible_for_testing_member: ignore

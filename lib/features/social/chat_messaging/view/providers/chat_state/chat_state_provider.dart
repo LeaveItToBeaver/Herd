@@ -1,2 +1,2 @@
 // Export the generated provider
-export 'chat_state_notifier.dart' show chatStateNotifierProvider;
+export 'chat_state_notifier.dart';
