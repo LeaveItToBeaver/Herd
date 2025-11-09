@@ -2,16 +2,16 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:herdapp/core/bootstrap/app_bootstraps.dart';
+import 'package:herdapp/core/providers/exception_logger_provider.dart';
+import 'package:herdapp/core/services/exception_logging_service.dart';
+import 'package:herdapp/core/utils/keystore_recovery_helper.dart';
+import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat_pagination/chat_pagination_notifier.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat_state/chat_state_notifier.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../../../../../core/providers/exception_logger_provider.dart';
-import '../../../../../core/services/exception_logging_service.dart';
-import '../../../../../core/utils/keystore_recovery_helper.dart';
-import '../../../../social/chat_messaging/data/cache/message_cache_service.dart';
-import '../../../../social/chat_messaging/view/providers/chat_provider.dart';
-import '../../../../social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-import '../../../../social/floating_buttons/providers/chat_animation_provider.dart';
-import '../../../../../core/bootstrap/app_bootstraps.dart';
 
 part 'auth_provider.g.dart';
 

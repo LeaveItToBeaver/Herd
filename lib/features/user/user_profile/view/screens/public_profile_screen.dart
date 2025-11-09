@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat/active_chat_notifier.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/user/user_management/utils/user_block_utils.dart';
 import 'package:herdapp/features/user/user_management/view/providers/user_block_providers.dart';

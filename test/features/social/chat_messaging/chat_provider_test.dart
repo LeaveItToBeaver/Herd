@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/chat_messaging/chat_messaging.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/message_input/notifiers/message_input_notifier.dart';
 import 'package:mockito/annotations.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 

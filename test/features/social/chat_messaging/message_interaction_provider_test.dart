@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/message_interaction_provider.dart';
 import 'package:mockito/mockito.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
 

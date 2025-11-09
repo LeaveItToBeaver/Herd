@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat/active_chat_notifier.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/bubble_factory.dart';

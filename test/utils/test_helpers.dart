@@ -6,6 +6,7 @@ import 'package:herdapp/features/social/chat_messaging/data/models/message/messa
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 /// Shared test utilities and helper functions for the test suite
 class TestHelpers {
