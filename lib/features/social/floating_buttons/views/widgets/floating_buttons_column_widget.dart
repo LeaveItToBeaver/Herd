@@ -40,18 +40,15 @@ class FloatingButtonsColumn extends ConsumerWidget {
         final callbacks = ref.read(bubbleAnimationCallbackProvider);
         const callBackKey = '_navigation_pending';
 
-        ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
-          final newState = Map<String, VoidCallback>.from(state);
-          newState[callBackKey] = () {
-            ref.read(bubbleAnimationCallbackProvider.notifier).update((state) {
-              final cleanState = Map<String, VoidCallback>.from(state);
-              cleanState.remove(callBackKey);
-              return cleanState;
-            });
-            navigate();
-          };
-          return newState;
-        });
+        final newState = Map<String, VoidCallback>.from(callbacks);
+        newState[callBackKey] = () {
+          final currentCallbacks = ref.read(bubbleAnimationCallbackProvider);
+          final cleanState = Map<String, VoidCallback>.from(currentCallbacks);
+          cleanState.remove(callBackKey);
+          ref.read(bubbleAnimationCallbackProvider.notifier).state = cleanState;
+          navigate();
+        };
+        ref.read(bubbleAnimationCallbackProvider.notifier).state = newState;
 
         final activeOverlay = ref.read(activeOverlayTypeProvider);
         if (activeOverlay == OverlayType.chat) {
@@ -198,6 +195,7 @@ class FloatingButtonsColumn extends ConsumerWidget {
               if (activeOverlay == OverlayType.chat) {
                 // For chat overlay
                 if (chatTriggeredByBubble != null) {
+                  // Using state assignment for @riverpod class providers
                   ref.read(chatClosingAnimationProvider.notifier).state =
                       chatTriggeredByBubble;
                 } else {

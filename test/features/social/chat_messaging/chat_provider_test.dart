@@ -10,7 +10,7 @@ import 'chat_provider_test.mocks.dart';
 @GenerateMocks([MessageRepository])
 void main() {
   group('OptimisticMessagesNotifier', () {
-    late OptimisticMessagesNotifier notifier;
+    late OptimisticMessagesNotifier;
     const chatId = 'test_chat_id';
 
     setUp(() {

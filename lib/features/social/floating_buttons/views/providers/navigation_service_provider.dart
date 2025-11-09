@@ -1,6 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/floating_buttons/utils/navigation_service.dart';
 
-final navigationServiceProvider = Provider<NavigationService>((ref) {
+part 'navigation_service_provider.g.dart';
+
+@riverpod
+NavigationService navigationService(Ref ref) {
   return NavigationService();
-});
+}

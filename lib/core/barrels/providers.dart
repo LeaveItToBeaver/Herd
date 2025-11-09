@@ -74,6 +74,8 @@ export 'package:herdapp/features/social/notifications/data/repositories/notifica
 export 'package:herdapp/features/social/mentions/view/providers/mentions_provider.dart';
 
 //Floating Button and Navigation Providers
+export 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+export 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 export 'package:herdapp/features/social/floating_buttons/views/providers/navigation_provider.dart';
 export 'package:herdapp/features/social/floating_buttons/views/providers/navigation_service_provider.dart';
 export 'package:herdapp/features/ui/navigation/view/providers/bottom_nav_bar_provider.dart';

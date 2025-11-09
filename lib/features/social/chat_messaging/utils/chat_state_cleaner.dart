@@ -5,6 +5,8 @@ import 'package:herdapp/features/social/chat_messaging/view/providers/chat_pagin
 import 'package:herdapp/features/social/chat_messaging/view/providers/chat_state/chat_state_notifier.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/views/providers/drag_state_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
 
 /// Utility class for clearing chat-related state and caches
 class ChatStateCleaner {
@@ -27,6 +29,12 @@ class ChatStateCleaner {
       ref.invalidate(herdClosingAnimationProvider);
       ref.invalidate(bubbleAnimationCallbackProvider);
       ref.invalidate(explosionRevealProvider);
+      ref.invalidate(isDraggingProvider);
+      ref.invalidate(chatOverlayOpenProvider);
+      ref.invalidate(herdOverlayOpenProvider);
+      ref.invalidate(chatTriggeredByBubbleProvider);
+      ref.invalidate(herdTriggeredByBubbleProvider);
+      ref.invalidate(activeOverlayTypeProvider);
 
       debugPrint('Manual chat state cleanup completed');
     } catch (e) {

@@ -46,7 +46,7 @@ class BottomNavOverlay extends ConsumerWidget {
       if (!navService.canNavigate) return;
 
       final selectedItem = BottomNavItem.values[index];
-      ref.read(bottomNavProvider.notifier).setCurrentTab(selectedItem);
+      ref.read(bottomNavProvider.notifier).state = selectedItem;
 
       HapticFeedback.heavyImpact();
 

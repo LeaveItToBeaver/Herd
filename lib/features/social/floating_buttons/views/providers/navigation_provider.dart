@@ -1,3 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final navLockProvider = StateProvider<bool>((ref) => false);
+part 'navigation_provider.g.dart';
+
+@riverpod
+class NavLock extends _$NavLock {
+  @override
+  bool build() => false;
+}
