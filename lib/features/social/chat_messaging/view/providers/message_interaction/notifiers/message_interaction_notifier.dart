@@ -1,8 +1,10 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
-import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 import '../state/message_interaction_state.dart';
+
+part 'message_interaction_notifier.g.dart';
 
 enum MessageAction {
   copy,
@@ -84,13 +86,12 @@ class MessageActionConfig {
   }
 }
 
-class MessageInteractionNotifier
-    extends StateNotifier<MessageInteractionState> {
-  final String chatId;
-  final MessageRepository _messageRepository;
-
-  MessageInteractionNotifier(this.chatId, this._messageRepository)
-      : super(const MessageInteractionState());
+@riverpod
+class MessageInteraction extends _$MessageInteraction {
+  @override
+  MessageInteractionState build(String chatId) {
+    return const MessageInteractionState();
+  }
 
   void toggleStatusVisibility(String messageId) {
     final hiddenMessages = Set<String>.from(state.hiddenStatusMessages);
@@ -119,8 +120,10 @@ class MessageInteractionNotifier
 
   Future<String> deleteMessage(String messageId, String currentUserId) async {
     try {
+      final messageRepository = ref.read(messageRepositoryProvider);
       // Use soft delete instead of hard delete
-      await _messageRepository.softDeleteMessage(
+      // chatId is provided by the generated base class as a getter
+      await messageRepository.softDeleteMessage(
           chatId, messageId, currentUserId);
 
       return 'Message deleted successfully';
@@ -136,7 +139,8 @@ class MessageInteractionNotifier
     required String emoji,
   }) async {
     try {
-      await _messageRepository.toggleMessageReaction(
+      final messageRepository = ref.read(messageRepositoryProvider);
+      await messageRepository.toggleMessageReaction(
         messageId: messageId,
         userId: userId,
         emoji: emoji,

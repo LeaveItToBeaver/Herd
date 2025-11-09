@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 
+part 'e2ee_chat_provider.g.dart';
+
 /// Automatically initializes E2EE identity keys when user is authenticated
-final e2eeInitProvider = FutureProvider<void>((ref) async {
+@riverpod
+Future<void> e2eeInit(Ref ref) async {
   final auth = ref.watch(authProvider);
   if (auth == null) return;
 
@@ -16,11 +19,11 @@ final e2eeInitProvider = FutureProvider<void>((ref) async {
     // Silently handle errors to prevent blocking the UI
     // This allows the app to function normally even if E2EE setup fails
   }
-});
+}
 
 /// Provider that can be consumed in the app to ensure E2EE is initialized
-
-final e2eeStatusProvider = FutureProvider<bool>((ref) async {
+@riverpod
+Future<bool> e2eeStatus(Ref ref) async {
   final user = ref.watch(authProvider);
   if (user == null) return false;
 
@@ -32,10 +35,11 @@ final e2eeStatusProvider = FutureProvider<bool>((ref) async {
     debugPrint('E2EE initialization deferred: $e');
     return false;
   }
-});
+}
 
-final initializeE2eeProvider =
-    FutureProvider.family<void, String>((ref, userId) async {
+/// Initialize E2EE for a specific user
+@riverpod
+Future<void> initializeE2ee(Ref ref, String userId) async {
   final crypto = ref.read(chatCryptoServiceProvider);
 
   try {
@@ -47,4 +51,4 @@ final initializeE2eeProvider =
     // Re-throw to let the calling code know E2EE setup failed
     throw Exception('E2EE initialization failed: $e');
   }
-});
+}

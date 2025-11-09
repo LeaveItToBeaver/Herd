@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat_pagination/chat_pagination_notifier.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat_state/chat_state_notifier.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
 

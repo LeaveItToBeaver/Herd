@@ -1,44 +1,44 @@
 import 'dart:io';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
-import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
-import 'package:herdapp/features/social/chat_messaging/data/handlers/encrypted_media_handler.dart';
-import '../state/chat_pagination_state.dart';
+import 'state/chat_pagination_state.dart';
 
-class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
-  final String chatId;
-  final MessageRepository repo;
-  final MessageCacheService cache;
-  final EncryptedMediaMessageHandler _mediaHandler;
-  ChatPaginationNotifier(
-      {required this.chatId,
-      required this.repo,
-      required this.cache,
-      required EncryptedMediaMessageHandler mediaHandler})
-      : _mediaHandler = mediaHandler,
-        super(ChatPaginationState.initial()) {
-    _loadInitial();
-  }
+part 'chat_pagination_notifier.g.dart';
 
+@riverpod
+class ChatPagination extends _$ChatPagination {
+  late String _chatId;
   bool _initialLoaded = false;
+
+  @override
+  ChatPaginationState build(String chatId) {
+    _chatId = chatId;
+    _loadInitial();
+    return ChatPaginationState.initial();
+  }
 
   Future<void> _loadInitial() async {
     if (_initialLoaded) return;
+
+    final cache = ref.read(messageCacheServiceProvider);
+    final repo = ref.read(messageRepositoryProvider);
+
     // Load cache first
-    final cached = await cache.getCachedMessages(chatId);
+    final cached = await cache.getCachedMessages(_chatId);
     if (cached.isNotEmpty) {
       state = state.copyWith(messages: cached); // assume ascending already
     }
     // Fetch first page (descending), then merge & resort ascending
     final page =
-        await repo.fetchMessagePage(chatId: chatId, limit: repo.pageSize);
+        await repo.fetchMessagePage(chatId: _chatId, limit: repo.pageSize);
     final descending = page; // already newest first
     final ascending = List<MessageModel>.from(descending)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     final merged = _mergeAscending(state.messages, ascending);
-    await cache.putMessages(chatId, merged);
+    await cache.putMessages(_chatId, merged);
     state =
         state.copyWith(messages: merged, hasMore: page.length == repo.pageSize);
     _initialLoaded = true;
@@ -76,11 +76,15 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasMore) return;
     state = state.copyWith(isLoadingMore: true);
+
+    final cache = ref.read(messageCacheServiceProvider);
+    final repo = ref.read(messageRepositoryProvider);
+
     try {
       // Determine last snapshot by querying one doc (inefficient placeholder) – improvement: retain snapshots in state.
       // For legacy path we need lastDocument; for now we re-query last N messages and use startAfter.
       final page =
-          await repo.fetchMessagePage(chatId: chatId, limit: repo.pageSize);
+          await repo.fetchMessagePage(chatId: _chatId, limit: repo.pageSize);
       // TODO: Implement real pagination using retained last DocumentSnapshot.
       final existingIds = state.messages.map((m) => m.id).toSet();
       final newOnes = page.where((m) => !existingIds.contains(m.id)).toList();
@@ -91,7 +95,7 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
       final asc = List<MessageModel>.from(newOnes)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
       final merged = _mergeAscending(state.messages, asc);
-      await cache.putMessages(chatId, merged);
+      await cache.putMessages(_chatId, merged);
       state = state.copyWith(
           messages: merged,
           isLoadingMore: false,
@@ -112,8 +116,9 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
     Function(double)? onProgress,
   }) async {
     final participants = await _getCachedParticipants(chatId, senderId);
+    final mediaHandler = ref.read(encryptedMediaHandlerProvider);
 
-    return await _mediaHandler.sendEncryptedMediaMessage(
+    return await mediaHandler.sendEncryptedMediaMessage(
       chatId: chatId,
       senderId: senderId,
       mediaFile: mediaFile,
@@ -134,15 +139,16 @@ class ChatPaginationNotifier extends StateNotifier<ChatPaginationState> {
   }) async {
     final participants =
         await _getCachedParticipants(message.chatId, currentUserId);
+    final mediaHandler = ref.read(encryptedMediaHandlerProvider);
 
-    final mediaInfo = await _mediaHandler.decryptMediaMessage(
+    final mediaInfo = await mediaHandler.decryptMediaMessage(
       message: message,
       currentUserId: currentUserId,
       participants: participants,
     );
 
     if (mediaInfo != null) {
-      return await _mediaHandler.downloadDecryptedMedia(
+      return await mediaHandler.downloadDecryptedMedia(
         mediaInfo: mediaInfo,
         onProgress: onProgress,
       );

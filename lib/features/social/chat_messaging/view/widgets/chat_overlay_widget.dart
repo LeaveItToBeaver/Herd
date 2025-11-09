@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat/chat_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat/e2ee_chat_provider.dart';
 
 class ChatOverlayWidget extends ConsumerStatefulWidget {
   final String bubbleId;

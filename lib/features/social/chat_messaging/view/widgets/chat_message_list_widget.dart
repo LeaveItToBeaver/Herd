@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat/chat_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/message_input/notifiers/message_input_notifier.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/interactive_message_widget.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/encrypted_media_widget.dart';
+import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
+import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 
 class ChatMessageListWidget extends ConsumerStatefulWidget {
   final String chatId;
@@ -707,7 +711,7 @@ class _MessageItem extends ConsumerWidget {
           return firstName;
         }
       }
-      
+
       // Fallback to generic "User" - never expose username information
       return 'User';
     }

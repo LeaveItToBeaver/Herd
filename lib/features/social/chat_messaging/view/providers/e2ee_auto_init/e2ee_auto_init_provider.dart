@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 
+part 'e2ee_auto_init_provider.g.dart';
+
 /// Provider that automatically initializes E2EE keys when a user is authenticated
-final e2eeAutoInitProvider = FutureProvider<void>((ref) async {
+@riverpod
+Future<void> e2eeAutoInit(Ref ref) async {
   final auth = ref.watch(authProvider);
   if (auth == null) return;
 
@@ -24,18 +27,18 @@ final e2eeAutoInitProvider = FutureProvider<void>((ref) async {
     debugPrint('E2EE auto-initialization failed: $e');
     // Don't throw - allow app to continue without E2EE
   }
-});
+}
 
 /// Provider for getting E2EE key sync status
-final e2eeKeyStatusProvider =
-    FutureProvider.family<Map<String, dynamic>, String>((ref, userId) async {
+@riverpod
+Future<Map<String, dynamic>> e2eeKeyStatus(Ref ref, String userId) async {
   final keyManager = ref.read(e2eeKeyManagerProvider);
   return await keyManager.getSyncStatus(userId);
-});
+}
 
 /// Provider for manually resetting E2EE keys
-final e2eeKeyResetProvider =
-    FutureProvider.family<void, String>((ref, userId) async {
+@riverpod
+Future<void> e2eeKeyReset(Ref ref, String userId) async {
   final keyManager = ref.read(e2eeKeyManagerProvider);
   await keyManager.resetAndReinitializeKeys(userId);
-});
+}

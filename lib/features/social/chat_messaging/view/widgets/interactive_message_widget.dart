@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
-import 'package:herdapp/features/social/chat_messaging/view/providers/message_interaction_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/message_interaction/notifiers/message_interaction_notifier.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/message_context_menu_widget.dart';
 import 'package:herdapp/features/social/chat_messaging/view/widgets/message_status_indicator_widget.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';

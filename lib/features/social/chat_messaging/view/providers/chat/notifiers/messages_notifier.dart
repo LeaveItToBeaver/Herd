@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import '../state/messages_state.dart';
+import 'optimistic_messages_notifier.dart';
+
+part 'messages_notifier.g.dart';
 
 // Verbose logging toggle for chat provider (non-error informational logs)
 const bool _verboseChatProvider = false;
@@ -14,18 +17,27 @@ void _vc(String msg) {
   if (_verboseChatProvider && kDebugMode) debugPrint(msg);
 }
 
-class MessagesNotifier extends StateNotifier<MessagesState> {
-  final Ref _ref;
-  final String _chatId;
+@riverpod
+class Messages extends _$Messages {
+  late String _chatId;
   Timer? _pollTimer; // periodic lightweight poll
   DateTime? _lastFetchedTimestamp; // high-watermark
 
-  MessagesNotifier(this._ref, this._chatId) : super(const MessagesState()) {
+  @override
+  MessagesState build(String chatId) {
+    _chatId = chatId;
+
+    // Clean up timer on dispose
+    ref.onDispose(() {
+      _pollTimer?.cancel();
+    });
+
     _initializeCacheFirst();
+    return const MessagesState();
   }
 
   Future<void> _initializeCacheFirst() async {
-    final cache = _ref.read(messageCacheServiceProvider);
+    final cache = ref.read(messageCacheServiceProvider);
     await cache.initialize();
 
     try {
@@ -55,12 +67,12 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
 
   Future<void> _fetchNewMessages() async {
     try {
-      final repo = _ref.read(messageRepositoryProvider);
-      final cache = _ref.read(messageCacheServiceProvider);
+      final repo = ref.read(messageRepositoryProvider);
+      final cache = ref.read(messageCacheServiceProvider);
       final latestTs = _lastFetchedTimestamp;
 
       // Get current user ID for message filtering
-      final currentUser = _ref.read(authProvider);
+      final currentUser = ref.read(authProvider);
       final currentUserId = currentUser?.uid;
 
       final newMessages = await repo.fetchLatestMessages(
@@ -73,9 +85,9 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       if (newMessages.isEmpty) return;
 
       // Remove replaced optimistic messages
-      final optimistic = _ref.read(optimisticMessagesProvider(_chatId));
+      final optimistic = ref.read(optimisticMessagesProvider(_chatId));
       final optimisticNotifier =
-          _ref.read(optimisticMessagesProvider(_chatId).notifier);
+          ref.read(optimisticMessagesProvider(_chatId).notifier);
       final toRemove = <String>[];
       for (final serverMsg in newMessages) {
         for (final entry in optimistic.entries) {
@@ -102,8 +114,8 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
   // Full refetch no longer automatically triggered; provide manual method if diagnostic needed.
   Future<void> refetchAllMessagesForDebug() async {
     try {
-      final repo = _ref.read(messageRepositoryProvider);
-      final cache = _ref.read(messageCacheServiceProvider);
+      final repo = ref.read(messageRepositoryProvider);
+      final cache = ref.read(messageCacheServiceProvider);
       final all = await repo.fetchAllMessages(_chatId);
       final sorted = _sortMessages(all);
       state = state.copyWith(messages: sorted);
@@ -131,7 +143,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     state = state.copyWith(messages: sortedMessages);
 
     // Update cache with the optimistic message
-    final cache = _ref.read(messageCacheServiceProvider);
+    final cache = ref.read(messageCacheServiceProvider);
     await cache.putMessages(_chatId, sortedMessages);
 
     debugPrint('Added optimistic message locally: ${message.id}');
@@ -164,7 +176,7 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     state = state.copyWith(messages: _sortMessages(updatedMessages));
 
     // Update cache with the replaced message
-    final cache = _ref.read(messageCacheServiceProvider);
+    final cache = ref.read(messageCacheServiceProvider);
     await cache.putMessages(_chatId, updatedMessages);
 
     debugPrint('Replaced optimistic message: $tempId -> ${serverMessage.id}');
@@ -174,11 +186,5 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     final sorted = [...messages];
     sorted.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return sorted;
-  }
-
-  @override
-  void dispose() {
-    _pollTimer?.cancel();
-    super.dispose();
   }
 }

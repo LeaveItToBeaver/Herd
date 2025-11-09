@@ -1,26 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'dart:async';
 
-class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
-  final Ref ref;
+part 'active_chat_notifier.g.dart';
+
+@riverpod
+class ActiveChatBubbles extends _$ActiveChatBubbles {
   StreamSubscription? _chatSubscription;
   String? _currentUserId; // Track current user to prevent unnecessary reloads
 
-  ActiveChatBubblesNotifier(this.ref) : super([]) {
-    loadUserChats();
+  @override
+  List<ChatModel> build() {
+    _initializeChats();
+    return [];
+  }
 
+  void _initializeChats() {
     // Listen to auth changes to reload chats when user changes
     ref.listen(authProvider, (previous, next) {
       final newUserId = next?.uid;
       if (newUserId != _currentUserId) {
-        debugPrint('User changed from $_currentUserId to $newUserId');
+        debugPrint('👤 User changed from $_currentUserId to $newUserId');
         _currentUserId = newUserId;
         loadUserChats();
       }
     });
+
+    // Clean up subscription on dispose
+    ref.onDispose(() {
+      _chatSubscription?.cancel();
+    });
+
+    loadUserChats();
   }
 
   Future<void> loadUserChats() async {
@@ -34,7 +48,7 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
 
     // Prevent reloading if same user
     if (_currentUserId == currentUser.uid && _chatSubscription != null) {
-      debugPrint('Same user, skipping reload: ${currentUser.uid}');
+      debugPrint('⏭️ Same user, skipping reload: ${currentUser.uid}');
       return;
     }
 
@@ -44,12 +58,12 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
     // Cancel previous subscription if exists
     _chatSubscription?.cancel();
 
-    debugPrint('Loading chats for user: ${currentUser.uid}');
+    debugPrint('🔄 Loading chats for user: ${currentUser.uid}');
 
     // Listen to user's chats with real-time updates
     _chatSubscription = chatRepo.getUserChats(currentUser.uid).listen(
       (chats) {
-        debugPrint('Received ${chats.length} chats from stream');
+        debugPrint('📱 Received ${chats.length} chats from stream');
 
         // Debug: debugPrint chat IDs to check for duplicates
         final chatIds = chats.map((c) => c.id).toList();
@@ -112,11 +126,5 @@ class ActiveChatBubblesNotifier extends StateNotifier<List<ChatModel>> {
       updatedChats[index] = updatedChat;
       state = updatedChats;
     }
-  }
-
-  @override
-  void dispose() {
-    _chatSubscription?.cancel();
-    super.dispose();
   }
 }

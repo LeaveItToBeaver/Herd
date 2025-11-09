@@ -84,12 +84,17 @@ final class E2eeStatusProvider
 
 String _$e2eeStatusHash() => r'165dc438d12b55e4472e3532430c0058138bde9e';
 
+/// Initialize E2EE for a specific user
+
 @ProviderFor(initializeE2ee)
 const initializeE2eeProvider = InitializeE2eeFamily._();
+
+/// Initialize E2EE for a specific user
 
 final class InitializeE2eeProvider
     extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
     with $FutureModifier<void>, $FutureProvider<void> {
+  /// Initialize E2EE for a specific user
   const InitializeE2eeProvider._(
       {required InitializeE2eeFamily super.from,
       required String super.argument})
@@ -138,6 +143,8 @@ final class InitializeE2eeProvider
 
 String _$initializeE2eeHash() => r'95438751a620cd57a5fc11f7b60ba79c95df85f0';
 
+/// Initialize E2EE for a specific user
+
 final class InitializeE2eeFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<void>, String> {
   const InitializeE2eeFamily._()
@@ -148,6 +155,8 @@ final class InitializeE2eeFamily extends $Family
           $allTransitiveDependencies: null,
           isAutoDispose: true,
         );
+
+  /// Initialize E2EE for a specific user
 
   InitializeE2eeProvider call(
     String userId,

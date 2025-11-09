@@ -1,8 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
-import 'active_chat_notifier.dart';
-
-final activeChatBubblesProvider =
-    StateNotifierProvider<ActiveChatBubblesNotifier, List<ChatModel>>((ref) {
-  return ActiveChatBubblesNotifier(ref);
-});
+// Re-export the generated provider from active_chat_notifier.dart
+// The @riverpod class ActiveChatBubbles generates activeChatBubblesProvider
+// which can be used as: ref.watch(activeChatBubblesProvider)
+export 'active_chat_notifier.dart';

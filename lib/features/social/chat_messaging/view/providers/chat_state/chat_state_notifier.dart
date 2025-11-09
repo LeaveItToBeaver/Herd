@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
+import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
-import 'package:herdapp/core/barrels/providers.dart';
-import '../state/chat_state.dart';
+import 'state/chat_state.dart';
+
+part 'chat_state_notifier.g.dart';
 
 // Verbose logging toggle for chat provider (non-error informational logs)
 const bool _verboseChatProvider = false;
@@ -11,10 +14,12 @@ void _vc(String msg) {
   if (_verboseChatProvider && kDebugMode) debugPrint(msg);
 }
 
-class ChatStateNotifier extends StateNotifier<ChatState> {
-  final Ref _ref;
-
-  ChatStateNotifier(this._ref) : super(const ChatState());
+@riverpod
+class ChatStateNotifier extends _$ChatStateNotifier {
+  @override
+  ChatState build() {
+    return const ChatState();
+  }
 
   Future<void> loadChats() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -68,10 +73,10 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
 
   Future<void> _markChatAsRead(String chatId) async {
     try {
-      final authUser = _ref.read(authProvider);
+      final authUser = ref.read(authProvider);
       if (authUser == null) return;
 
-      final messagesRepo = _ref.read(messageRepositoryProvider);
+      final messagesRepo = ref.read(messageRepositoryProvider);
       await messagesRepo.markMessagesAsRead(chatId, authUser.uid);
 
       _vc('Marked chat $chatId as read for user ${authUser.uid}');
@@ -83,7 +88,7 @@ class ChatStateNotifier extends StateNotifier<ChatState> {
   /// Force clear all message caches for debugging
   Future<void> clearAllMessageCaches() async {
     try {
-      final cache = _ref.read(messageCacheServiceProvider);
+      final cache = ref.read(messageCacheServiceProvider);
       await cache.clearAllCaches();
       _vc('Cleared all message caches');
     } catch (e) {

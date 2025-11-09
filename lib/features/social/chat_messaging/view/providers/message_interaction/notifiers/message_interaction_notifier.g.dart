@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'message_interaction_provider.dart';
+part of 'message_interaction_notifier.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -59,7 +59,7 @@ final class MessageInteractionProvider
 }
 
 String _$messageInteractionHash() =>
-    r'd09bd2395cf24de71095f0f19708c79d564490dc';
+    r'd9cf1eb7d2362d063aa6065af1bfda3a38a980b8';
 
 final class MessageInteractionFamily extends $Family
     with

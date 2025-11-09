@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'active_chat_provider.dart';
+part of 'active_chat_notifier.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -41,7 +41,7 @@ final class ActiveChatBubblesProvider
   }
 }
 
-String _$activeChatBubblesHash() => r'2810e51646f6299be68b9a2146394b929caac1fc';
+String _$activeChatBubblesHash() => r'd3477f806083c9fdb83ec85dd6428df2f16b28b9';
 
 abstract class _$ActiveChatBubbles extends $Notifier<List<ChatModel>> {
   List<ChatModel> build();

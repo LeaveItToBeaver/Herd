@@ -1,12 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat/notifiers/messages_notifier.dart';
+import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
-import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 import '../state/message_input_state.dart';
+
+part 'message_input_notifier.g.dart';
 
 // Verbose logging toggle for chat provider (non-error informational logs)
 const bool _verboseChatProvider = false;
@@ -14,12 +18,15 @@ void _vc(String msg) {
   if (_verboseChatProvider && kDebugMode) debugPrint(msg);
 }
 
-class MessageInputNotifier extends StateNotifier<MessageInputState> {
-  final Ref _ref;
-  final String _chatId;
+@riverpod
+class MessageInput extends _$MessageInput {
+  late String _chatId;
 
-  MessageInputNotifier(this._ref, this._chatId)
-      : super(const MessageInputState());
+  @override
+  MessageInputState build(String chatId) {
+    _chatId = chatId;
+    return const MessageInputState();
+  }
 
   void updateText(String text) {
     state = state.copyWith(text: text);
@@ -42,12 +49,12 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     state = state.copyWith(isSending: true, error: null);
 
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
-      final messagesNotifier = _ref.read(messagesProvider(_chatId).notifier);
+      final messagesRepo = ref.read(messageRepositoryProvider);
+      final messagesNotifier = ref.read(messagesProvider(_chatId).notifier);
 
       // Get current authenticated user
-      final authUser = _ref.read(authProvider);
-      final currentUserAsync = _ref.read(currentUserProvider);
+      final authUser = ref.read(authProvider);
+      final currentUserAsync = ref.read(currentUserProvider);
 
       if (authUser == null) {
         throw Exception('User not authenticated');
@@ -148,8 +155,8 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
 
   /// Retry sending a failed message
   Future<void> retryMessage(String messageId) async {
-    final messagesNotifier = _ref.read(messagesProvider(_chatId).notifier);
-    final currentState = _ref.read(messagesProvider(_chatId));
+    final messagesNotifier = ref.read(messagesProvider(_chatId).notifier);
+    final currentState = ref.read(messagesProvider(_chatId));
     final message =
         currentState.messages.where((m) => m.id == messageId).firstOrNull;
 
@@ -161,7 +168,7 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     messagesNotifier.updateMessageStatus(messageId, MessageStatus.sending);
 
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
+      final messagesRepo = ref.read(messageRepositoryProvider);
 
       final sentMessage = await messagesRepo.sendMessage(
         chatId: message.chatId,
@@ -190,8 +197,8 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     required String emoji,
   }) async {
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
-      final authUser = _ref.read(authProvider);
+      final messagesRepo = ref.read(messageRepositoryProvider);
+      final authUser = ref.read(authProvider);
 
       if (authUser == null) {
         throw Exception('User not authenticated');
@@ -213,8 +220,8 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
     required String newContent,
   }) async {
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
-      final authUser = _ref.read(authProvider);
+      final messagesRepo = ref.read(messageRepositoryProvider);
+      final authUser = ref.read(authProvider);
 
       if (authUser == null) {
         throw Exception('User not authenticated');
@@ -233,8 +240,8 @@ class MessageInputNotifier extends StateNotifier<MessageInputState> {
   /// Delete a message
   Future<void> deleteMessage(String chatId, String messageId) async {
     try {
-      final messagesRepo = _ref.read(messageRepositoryProvider);
-      final authUser = _ref.read(authProvider);
+      final messagesRepo = ref.read(messageRepositoryProvider);
+      final authUser = ref.read(authProvider);
 
       if (authUser == null) {
         throw Exception('User not authenticated');

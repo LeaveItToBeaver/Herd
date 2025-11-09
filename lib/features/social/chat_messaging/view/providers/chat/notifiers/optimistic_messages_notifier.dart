@@ -1,19 +1,26 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
+
+part 'optimistic_messages_notifier.g.dart';
 
 // Verbose logging toggle for optimistic messages (non-error informational logs)
 const bool _verboseOptimisticMessages = false;
 void _vc(String msg) {
-  if (_verboseOptimisticMessages) debugPrint(msg);
+  if (_verboseOptimisticMessages && kDebugMode) debugPrint(msg);
 }
 
 /// Manages optimistic messages for a specific chat
-class OptimisticMessagesNotifier
-    extends StateNotifier<Map<String, MessageModel>> {
-  final String chatId;
+@riverpod
+class OptimisticMessages extends _$OptimisticMessages {
+  late String _chatId;
 
-  OptimisticMessagesNotifier(this.chatId) : super({});
+  @override
+  Map<String, MessageModel> build(String chatId) {
+    _chatId = chatId;
+    return {};
+  }
 
   void addOptimisticMessage(MessageModel message) {
     final newState = Map<String, MessageModel>.from(state);
