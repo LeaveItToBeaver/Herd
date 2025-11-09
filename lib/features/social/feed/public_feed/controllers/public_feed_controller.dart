@@ -11,24 +11,27 @@ import 'package:herdapp/features/social/feed/data/repositories/feed_repository.d
 import 'package:herdapp/features/social/feed/public_feed/view/providers/state/public_feed_state.dart';
 
 /// Controller for public feed with pagination
-class PublicFeedController extends StateNotifier<PublicFeedState> {
+class PublicFeedController {
   final FeedRepository repository;
   final CacheManager cacheManager;
   final String userId;
   final int pageSize;
-  final Ref ref; // Add this
+  final Ref ref;
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
+  // State management
+  PublicFeedState _state = PublicFeedState.initial();
+  PublicFeedState get state => _state;
+  set state(PublicFeedState newState) => _state = newState;
+
   PublicFeedController(
       this.repository, this.userId, this.cacheManager, this.ref,
-      {this.pageSize = 20})
-      : super(PublicFeedState.initial());
+      {this.pageSize = 20});
 
-  @override
   void dispose() {
     _disposed = true;
-    super.dispose();
+    _postUpdateSubscription?.cancel();
   }
 
   /// Check if controller is still active

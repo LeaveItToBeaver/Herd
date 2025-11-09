@@ -104,9 +104,7 @@ export 'package:herdapp/features/ui/customization/data/repositories/ui_customiza
 export 'package:herdapp/features/social/floating_buttons/views/providers/drag_state_provider.dart';
 
 //Chat Messaging Providers
-export 'package:herdapp/features/social/chat_messaging/view/providers/active_chat_provider.dart';
-export 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
-export 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat_provider.dart';
+
 export 'package:herdapp/features/social/chat_messaging/view/providers/state/chat_state.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';

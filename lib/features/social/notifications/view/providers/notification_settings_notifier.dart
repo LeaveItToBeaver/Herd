@@ -1,16 +1,17 @@
-// lib/features/notifications/view/providers/notification_settings_notifier.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/notifications/data/models/notification_model.dart'; // Required for NotificationType
+import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_settings_model.dart';
 import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
 
-class NotificationSettingsNotifier
-    extends StateNotifier<AsyncValue<NotificationSettingsModel?>> {
+class NotificationSettingsNotifier {
   final NotificationRepository _repository;
   final String _userId;
+  AsyncValue<NotificationSettingsModel?> _state = const AsyncValue.loading();
 
-  NotificationSettingsNotifier(this._repository, this._userId)
-      : super(const AsyncValue.loading()) {
+  AsyncValue<NotificationSettingsModel?> get state => _state;
+  set state(AsyncValue<NotificationSettingsModel?> newState) => _state = newState;
+
+  NotificationSettingsNotifier(this._repository, this._userId) {
     loadSettings();
   }
 
@@ -24,23 +25,18 @@ class NotificationSettingsNotifier
     }
   }
 
-  // Existing updateSettings method - keep as is
   Future<void> updateSettings(NotificationSettingsModel newSettings) async {
     try {
       await _repository.updateSettings(newSettings);
       state = AsyncValue.data(newSettings);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
-      // Consider re-loading settings on error to ensure UI consistency
-      // loadSettings();
     }
   }
 
-  // --- Add Missing Methods ---
-
   Future<void> togglePushNotifications(bool isEnabled) async {
     final currentSettings = state.value;
-    if (currentSettings == null) return; // Should not happen if loaded
+    if (currentSettings == null) return;
 
     final newSettings =
         currentSettings.copyWith(pushNotificationsEnabled: isEnabled);
@@ -64,13 +60,13 @@ class NotificationSettingsNotifier
         newSettings = currentSettings.copyWith(likeNotifications: isEnabled);
         break;
       case NotificationType.comment:
-        newSettings = currentSettings.copyWith(commentNotifications: isEnabled);
+        newSettings =
+            currentSettings.copyWith(commentNotifications: isEnabled);
         break;
       case NotificationType.commentReply:
         newSettings = currentSettings.copyWith(replyNotifications: isEnabled);
         break;
-      case NotificationType
-            .connectionRequest: // Assuming this covers connectionAccepted as well for the toggle
+      case NotificationType.connectionRequest:
       case NotificationType.connectionAccepted:
         newSettings =
             currentSettings.copyWith(connectionNotifications: isEnabled);
@@ -80,7 +76,7 @@ class NotificationSettingsNotifier
             currentSettings.copyWith(milestoneNotifications: isEnabled);
         break;
       default:
-        return; // Or throw an error for unhandled type
+        return;
     }
     await updateSettings(newSettings);
   }

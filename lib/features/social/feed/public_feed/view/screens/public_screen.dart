@@ -27,15 +27,15 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     if (!mounted) return;
 
     Future.microtask(() {
-      final state = ref.read(publicFeedControllerProvider);
+      final controller = ref.read(publicFeedControllerProvider);
       final currentUserAsync = ref.read(currentUserProvider);
       final userId = currentUserAsync.userId;
 
-      if (userId == null || state.posts.isEmpty) return;
+      if (userId == null || controller.state.posts.isEmpty) return;
 
       // Initialize all posts, not just estimated visible ones
-      for (int i = 0; i < state.posts.length; i++) {
-        final post = state.posts[i];
+      for (int i = 0; i < controller.state.posts.length; i++) {
+        final post = controller.state.posts[i];
         ref
             .read(postInteractionsWithPrivacyProvider(
                     PostParams(id: post.id, isAlt: post.isAlt))
@@ -53,7 +53,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       if (!mounted) return;
 
       final currentUser = ref.read(authProvider);
-      ref.read(publicFeedControllerProvider.notifier).loadInitialPosts(
+      ref.read(publicFeedControllerProvider).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
     });
@@ -69,7 +69,8 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final publicFeedState = ref.watch(publicFeedControllerProvider);
+    final controller = ref.watch(publicFeedControllerProvider);
+    final publicFeedState = controller.state;
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
     final isOverlayActive = ref.watch(activeOverlayTypeProvider) != null;
 
@@ -83,7 +84,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
-                ref.read(publicFeedControllerProvider.notifier).refreshFeed();
+                ref.read(publicFeedControllerProvider).refreshFeed();
               },
             ),
             IconButton(
@@ -103,7 +104,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
               currentSort: publicFeedState.sortType,
               onSortChanged: (newSortType) {
                 ref
-                    .read(publicFeedControllerProvider.notifier)
+                    .read(publicFeedControllerProvider)
                     .changeSortType(newSortType);
               },
               isLoading: publicFeedState.isLoading,
@@ -125,7 +126,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                             ? _buildErrorWidget(context, publicFeedState.error!,
                                 () {
                                 ref
-                                    .read(publicFeedControllerProvider.notifier)
+                                    .read(publicFeedControllerProvider)
                                     .refreshFeed();
                               })
                             : PostListWidget(
@@ -137,10 +138,10 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                                 errorMessage: publicFeedState.error?.toString(),
                                 hasMorePosts: publicFeedState.hasMorePosts,
                                 onRefresh: () => ref
-                                    .read(publicFeedControllerProvider.notifier)
+                                    .read(publicFeedControllerProvider)
                                     .refreshFeed(),
                                 onLoadMore: () => ref
-                                    .read(publicFeedControllerProvider.notifier)
+                                    .read(publicFeedControllerProvider)
                                     .loadMorePosts(),
                                 type: PostListType.feed,
                                 emptyMessage:

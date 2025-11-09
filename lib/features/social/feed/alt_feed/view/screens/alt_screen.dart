@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-
-import '../../../../../community/herds/view/providers/herd_providers.dart';
 
 class AltFeedScreen extends ConsumerStatefulWidget {
   const AltFeedScreen({super.key});
@@ -29,15 +28,15 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
     if (!mounted) return;
 
     Future.microtask(() {
-      final state = ref.read(altFeedControllerProvider);
+      final controller = ref.read(altFeedControllerProvider);
       final currentUserAsync = ref.read(currentUserProvider);
       final userId = currentUserAsync.userId;
 
-      if (userId == null || state.posts.isEmpty) return;
+      if (userId == null || controller.state.posts.isEmpty) return;
 
       // Initialize all posts, not just estimated visible ones
-      for (int i = 0; i < state.posts.length; i++) {
-        final post = state.posts[i];
+      for (int i = 0; i < controller.state.posts.length; i++) {
+        final post = controller.state.posts[i];
         ref
             .read(postInteractionsWithPrivacyProvider(
                     PostParams(id: post.id, isAlt: post.isAlt))
@@ -58,7 +57,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
       ref.read(currentHerdIdProvider.notifier).state = null;
 
       final currentUser = ref.read(authProvider);
-      await ref.read(altFeedControllerProvider.notifier).loadInitialPosts(
+      await ref.read(altFeedControllerProvider).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
 
@@ -76,9 +75,9 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final altFeedState = ref.watch(altFeedControllerProvider);
-    final showHerdPosts =
-        ref.watch(altFeedControllerProvider.notifier).showHerdPosts;
+    final controller = ref.watch(altFeedControllerProvider);
+    final altFeedState = controller.state;
+    final showHerdPosts = controller.showHerdPosts;
     final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
 
     return PopScope(
@@ -92,7 +91,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
-                ref.read(altFeedControllerProvider.notifier).refreshFeed();
+                ref.read(altFeedControllerProvider).refreshFeed();
               },
             ),
             // Optional highlighted posts button
@@ -123,7 +122,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
                   ),
                   onTap: () {
                     final controller =
-                        ref.read(altFeedControllerProvider.notifier);
+                        ref.read(altFeedControllerProvider);
                     controller.toggleHerdPostsFilter(!showHerdPosts);
                   },
                 ),
@@ -143,7 +142,7 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
               currentSort: altFeedState.sortType,
               onSortChanged: (newSortType) {
                 ref
-                    .read(altFeedControllerProvider.notifier)
+                    .read(altFeedControllerProvider)
                     .changeSortType(newSortType);
               },
               isLoading: altFeedState.isLoading,
@@ -429,7 +428,7 @@ class _FeedContentWrapper extends ConsumerWidget {
             ? buildLoadingWidget()
             : altFeedState.error != null
                 ? buildErrorWidget(context, altFeedState.error!, () {
-                    ref.read(altFeedControllerProvider.notifier).refreshFeed();
+                    ref.read(altFeedControllerProvider).refreshFeed();
                   })
                 : PostListWidget(
                     scrollController: scrollController,
@@ -439,10 +438,10 @@ class _FeedContentWrapper extends ConsumerWidget {
                     errorMessage: altFeedState.error?.toString(),
                     hasMorePosts: altFeedState.hasMorePosts,
                     onRefresh: () => ref
-                        .read(altFeedControllerProvider.notifier)
+                        .read(altFeedControllerProvider)
                         .refreshFeed(),
                     onLoadMore: () => ref
-                        .read(altFeedControllerProvider.notifier)
+                        .read(altFeedControllerProvider)
                         .loadMorePosts(),
                     type: PostListType.feed,
                     emptyMessage: 'No alt posts yet',

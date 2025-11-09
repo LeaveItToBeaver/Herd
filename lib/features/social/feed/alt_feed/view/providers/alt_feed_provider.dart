@@ -1,33 +1,36 @@
-import 'dart:async' show StreamSubscription, unawaited;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
-import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/social/feed/alt_feed/controllers/alt_feed_controller.dart';
-import 'package:herdapp/features/social/feed/data/models/feed_sort_type.dart';
+
+part 'alt_feed_provider.g.dart';
 
 // Repository provider with Firebase Functions
-final altFeedRepositoryProvider = Provider<FeedRepository>((ref) {
+@riverpod
+FeedRepository altFeedRepository(Ref ref) {
   return FeedRepository(
     FirebaseFirestore.instance,
     FirebaseFunctions.instance,
   );
-});
+}
 
-final altFeedCacheManagerProvider = Provider<CacheManager>((ref) {
+@riverpod
+CacheManager altFeedCacheManager(Ref ref) {
   return CacheManager();
-});
+}
 
 /// Provider for the alt feed controller
-final altFeedControllerProvider =
-    StateNotifierProvider<AltFeedController, AltFeedState>((ref) {
+@riverpod
+AltFeedController altFeedController(Ref ref) {
   final repository = ref.watch(altFeedRepositoryProvider);
   final user = ref.watch(authProvider);
 
   return AltFeedController(
-      repository, user?.uid, ref.watch(altFeedCacheManagerProvider), ref);
-});
+    repository,
+    user?.uid,
+    ref.watch(altFeedCacheManagerProvider),
+    ref,
+  );
+}

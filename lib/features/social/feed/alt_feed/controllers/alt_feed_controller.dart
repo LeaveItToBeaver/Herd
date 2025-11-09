@@ -10,7 +10,7 @@ import 'package:herdapp/features/social/feed/data/models/feed_sort_type.dart';
 import 'package:herdapp/features/social/feed/data/repositories/feed_repository.dart';
 
 /// Controller for alt feed with pagination
-class AltFeedController extends StateNotifier<AltFeedState> {
+class AltFeedController {
   final FeedRepository repository;
   final CacheManager cacheManager;
   final String? userId;
@@ -20,11 +20,15 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
+  // State management
+  AltFeedState _state = AltFeedState.initial();
+  AltFeedState get state => _state;
+  set state(AltFeedState newState) => _state = newState;
+
   bool get showHerdPosts => _showHerdPosts;
 
   AltFeedController(this.repository, this.userId, this.cacheManager, this.ref,
-      {this.pageSize = 15})
-      : super(AltFeedState.initial()) {
+      {this.pageSize = 15}) {
     // Listen for post updates from repository
     _postUpdateSubscription = repository.postUpdates.listen(_handlePostUpdates);
   }
@@ -35,11 +39,9 @@ class AltFeedController extends StateNotifier<AltFeedState> {
     refreshFeed();
   }
 
-  @override
   void dispose() {
     _disposed = true;
     _postUpdateSubscription?.cancel();
-    super.dispose();
   }
 
   bool get _isActive => !_disposed;
@@ -115,7 +117,7 @@ class AltFeedController extends StateNotifier<AltFeedState> {
   }
 
   void _handlePostUpdates(List<PostModel> updatedPosts) {
-    if (!mounted) return;
+    if (!_isActive) return;
 
     // Only update if we have posts and we're not loading
     if (updatedPosts.isEmpty || state.isLoading) return;

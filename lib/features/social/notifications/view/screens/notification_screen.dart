@@ -41,7 +41,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
       // Load and mark notifications as read
       ref
-          .read(notificationProvider(currentUser.uid).notifier)
+          .read(notificationProvider(currentUser.uid))
           .refreshNotifications(markAsRead: true);
     }
   }
@@ -55,7 +55,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
       try {
         await ref
-            .read(notificationProvider(currentUser.uid).notifier)
+            .read(notificationProvider(currentUser.uid))
             .markAllAsRead();
       } finally {
         if (mounted) {
@@ -101,14 +101,15 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       );
     }
 
-    final notificationsState = ref.watch(notificationProvider(currentUser.uid));
+    final notifier = ref.watch(notificationProvider(currentUser.uid));
+    final notificationsState = notifier.state;
     final unreadCount = notificationsState.unreadCount;
 
     // Show error if present
     if (notificationsState.error != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showErrorSnackBar(notificationsState.error!);
-        ref.read(notificationProvider(currentUser.uid).notifier).clearError();
+        ref.read(notificationProvider(currentUser.uid)).clearError();
       });
     }
 
@@ -132,7 +133,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               ref
-                  .read(notificationProvider(currentUser.uid).notifier)
+                  .read(notificationProvider(currentUser.uid))
                   .forceRefresh();
             },
             tooltip: 'Refresh',
@@ -149,7 +150,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       body: RefreshIndicator(
         onRefresh: () async {
           await ref
-              .read(notificationProvider(currentUser.uid).notifier)
+              .read(notificationProvider(currentUser.uid))
               .forceRefresh();
         },
         child: _buildNotificationList(notificationsState),
@@ -241,7 +242,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           final currentUser = ref.read(authProvider);
           if (currentUser != null) {
             ref
-                .read(notificationProvider(currentUser.uid).notifier)
+                .read(notificationProvider(currentUser.uid))
                 .loadMoreNotifications(
                     markAsRead: false); // Don't auto-mark pagination as read
           }
@@ -271,7 +272,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
               final currentUser = ref.read(authProvider);
               if (currentUser != null) {
                 ref
-                    .read(notificationProvider(currentUser.uid).notifier)
+                    .read(notificationProvider(currentUser.uid))
                     .markAsRead(notificationId);
               }
             },

@@ -8,6 +8,7 @@ import 'package:herdapp/features/community/herds/view/providers/herd_data_provid
 import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 import 'package:herdapp/features/content/post/view/screens/edit_post_screen.dart';
 import 'package:herdapp/features/content/post/view/screens/fullscreen_gallery_screen.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat/e2ee_chat_provider.dart';
 import 'package:herdapp/features/user/auth/view/screens/email_verification_screen.dart';
 import 'package:herdapp/features/ui/customization/view/screens/ui_customization_screen.dart';
 import 'package:herdapp/features/community/herds/view/screens/herd_settings_screen.dart';

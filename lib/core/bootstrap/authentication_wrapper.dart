@@ -35,8 +35,9 @@ class _NotificationSettingsScreenState
       );
     }
 
-    final settingsAsync =
+    final settingsNotifier =
         ref.watch(notificationSettingsProvider(currentUser.uid));
+    final settingsAsync = settingsNotifier.state;
 
     return Scaffold(
       appBar: AppBar(
@@ -61,8 +62,7 @@ class _NotificationSettingsScreenState
               ElevatedButton(
                 onPressed: () {
                   ref
-                      .read(notificationSettingsProvider(currentUser.uid)
-                          .notifier)
+                      .read(notificationSettingsProvider(currentUser.uid))
                       .loadSettings();
                 },
                 child: const Text('Retry'),
@@ -553,7 +553,7 @@ class _NotificationSettingsScreenState
 
     try {
       final settingsNotifier =
-          ref.read(notificationSettingsProvider(userId).notifier);
+          ref.read(notificationSettingsProvider(userId));
 
       switch (settingName) {
         case 'pushNotificationsEnabled':
@@ -605,7 +605,7 @@ class _NotificationSettingsScreenState
 
     try {
       await ref
-          .read(notificationSettingsProvider(userId).notifier)
+          .read(notificationSettingsProvider(userId))
           .setMuteUntil(dateTime);
     } finally {
       if (mounted) {
