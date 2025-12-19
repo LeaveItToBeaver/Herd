@@ -366,8 +366,8 @@ class PinnedPostsManagementScreen extends ConsumerWidget {
       final currentUser = ref.read(authProvider);
       if (currentUser == null) return;
 
-    final moderationRepository =
-      ref.read(pinnedPostModerationRepositoryProvider);
+      final moderationRepository =
+          ref.read(pinnedPostModerationRepositoryProvider);
 
       await moderationRepository.unpinPost(
         herdId: herdId,
