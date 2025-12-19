@@ -26,6 +26,7 @@ import 'package:mockito/src/dummies.dart' as _i6;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
+// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeFirebaseApp_0 extends _i1.SmartFake implements _i2.FirebaseApp {
   _FakeFirebaseApp_0(
@@ -132,19 +133,19 @@ class MockFirebaseStorage extends _i1.Mock implements _i3.FirebaseStorage {
       ) as Duration);
 
   @override
-  set app(_i2.FirebaseApp? _app) => super.noSuchMethod(
+  set app(_i2.FirebaseApp? value) => super.noSuchMethod(
         Invocation.setter(
           #app,
-          _app,
+          value,
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  set bucket(String? _bucket) => super.noSuchMethod(
+  set bucket(String? value) => super.noSuchMethod(
         Invocation.setter(
           #bucket,
-          _bucket,
+          value,
         ),
         returnValueForMissingStub: null,
       );
@@ -241,15 +242,6 @@ class MockFirebaseFunctions extends _i1.Mock implements _i5.FirebaseFunctions {
   }
 
   @override
-  _i2.FirebaseApp get app => (super.noSuchMethod(
-        Invocation.getter(#app),
-        returnValue: _FakeFirebaseApp_0(
-          this,
-          Invocation.getter(#app),
-        ),
-      ) as _i2.FirebaseApp);
-
-  @override
   _i4.FirebaseFunctionsPlatform get delegate => (super.noSuchMethod(
         Invocation.getter(#delegate),
         returnValue: _FakeFirebaseFunctionsPlatform_3(
@@ -257,6 +249,15 @@ class MockFirebaseFunctions extends _i1.Mock implements _i5.FirebaseFunctions {
           Invocation.getter(#delegate),
         ),
       ) as _i4.FirebaseFunctionsPlatform);
+
+  @override
+  _i2.FirebaseApp get app => (super.noSuchMethod(
+        Invocation.getter(#app),
+        returnValue: _FakeFirebaseApp_0(
+          this,
+          Invocation.getter(#app),
+        ),
+      ) as _i2.FirebaseApp);
 
   @override
   Map<dynamic, dynamic> get pluginConstants => (super.noSuchMethod(

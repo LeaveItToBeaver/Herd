@@ -1,82 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
+import 'package:herdapp/features/community/moderation/view/providers/pinned_post_management_providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
-
-// Alternative provider using batch reads for better performance
-final herdPinnedPostsBatchProvider =
-    FutureProvider.family<List<PostModel>, String>((ref, herdId) async {
-  final herd = await ref.watch(herdProvider(herdId).future);
-  if (herd == null || herd.pinnedPosts.isEmpty) return [];
-
-  final List<PostModel> pinnedPosts = [];
-  final firestore = FirebaseFirestore.instance;
-  final batch = firestore.batch();
-
-  try {
-    // Create a list of document references to read
-    final List<DocumentReference> docRefs = [];
-
-    for (final postId in herd.pinnedPosts) {
-      // Add herd post reference
-      docRefs.add(firestore
-          .collection('herdPosts')
-          .doc(herdId)
-          .collection('posts')
-          .doc(postId));
-
-      // Add public post reference
-      docRefs.add(firestore.collection('posts').doc(postId));
-
-      // Add alt post reference
-      docRefs.add(firestore.collection('altPosts').doc(postId));
-    }
-
-    // Read all documents in parallel
-    final futures = docRefs.map((ref) => ref.get()).toList();
-    final snapshots = await Future.wait(futures);
-
-    // Process the results
-    for (int i = 0; i < herd.pinnedPosts.length; i++) {
-      final postId = herd.pinnedPosts[i];
-
-      // Check each location for this post (3 snapshots per post)
-      final herdPostSnapshot = snapshots[i * 3];
-      final publicPostSnapshot = snapshots[i * 3 + 1];
-      final altPostSnapshot = snapshots[i * 3 + 2];
-
-      if (herdPostSnapshot.exists) {
-        final post = PostModel.fromMap(herdPostSnapshot.id,
-            herdPostSnapshot.data()! as Map<String, dynamic>);
-        pinnedPosts.add(post);
-      } else if (publicPostSnapshot.exists) {
-        final post = PostModel.fromMap(publicPostSnapshot.id,
-            publicPostSnapshot.data()! as Map<String, dynamic>);
-        pinnedPosts.add(post);
-      } else if (altPostSnapshot.exists) {
-        final post = PostModel.fromMap(altPostSnapshot.id,
-            altPostSnapshot.data()! as Map<String, dynamic>);
-        pinnedPosts.add(post);
-      } else {
-        debugPrint('Pinned post $postId not found in any collection');
-      }
-    }
-
-    return pinnedPosts;
-  } catch (e) {
-    debugPrint('Error loading pinned posts with batch: $e');
-    return [];
-  }
-});
-// Provider for moderation repository
-final moderationRepositoryProvider = Provider<ModerationRepository>((ref) {
-  final herdRepository = ref.watch(herdRepositoryProvider);
-  return ModerationRepository(FirebaseFirestore.instance, herdRepository);
-});
 
 class PinnedPostsManagementScreen extends ConsumerWidget {
   final String herdId;
@@ -437,7 +366,8 @@ class PinnedPostsManagementScreen extends ConsumerWidget {
       final currentUser = ref.read(authProvider);
       if (currentUser == null) return;
 
-      final moderationRepository = ref.read(moderationRepositoryProvider);
+    final moderationRepository =
+      ref.read(pinnedPostModerationRepositoryProvider);
 
       await moderationRepository.unpinPost(
         herdId: herdId,
