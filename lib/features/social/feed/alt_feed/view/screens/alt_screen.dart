@@ -413,7 +413,6 @@ class _FeedContentWrapper extends ConsumerWidget {
     final hasChat = ref.watch(
       chatBubblesEnabledProvider.select((enabled) => enabled),
     );
-    final isOverlayActive = ref.watch(activeOverlayTypeProvider) != null;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),

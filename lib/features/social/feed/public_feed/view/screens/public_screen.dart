@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
-import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
 class PublicFeedScreen extends ConsumerStatefulWidget {
   const PublicFeedScreen({super.key});
@@ -71,8 +70,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   Widget build(BuildContext context) {
     final controller = ref.watch(publicFeedControllerProvider);
     final publicFeedState = controller.state;
-    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
-    final isOverlayActive = ref.watch(activeOverlayTypeProvider) != null;
 
     return PopScope(
       canPop: false, // Disable swipe to close
@@ -114,100 +111,81 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // Main content with animated padding
-                  AnimatedPadding(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
-                    child: publicFeedState.isLoading &&
-                            publicFeedState.posts.isEmpty
-                        ? _buildLoadingWidget()
-                        : publicFeedState.error != null
-                            ? _buildErrorWidget(context, publicFeedState.error!,
-                                () {
-                                ref
-                                    .read(publicFeedControllerProvider)
-                                    .refreshFeed();
-                              })
-                            : PostListWidget(
-                                scrollController: _scrollController,
-                                posts: publicFeedState.posts,
-                                isLoading: publicFeedState.isLoading &&
-                                    publicFeedState.posts.isEmpty,
-                                hasError: publicFeedState.error != null,
-                                errorMessage: publicFeedState.error?.toString(),
-                                hasMorePosts: publicFeedState.hasMorePosts,
-                                onRefresh: () => ref
-                                    .read(publicFeedControllerProvider)
-                                    .refreshFeed(),
-                                onLoadMore: () => ref
-                                    .read(publicFeedControllerProvider)
-                                    .loadMorePosts(),
-                                type: PostListType.feed,
-                                emptyMessage:
-                                    'No posts in your public feed yet',
-                                emptyActionLabel: 'Find users to follow',
-                                onEmptyAction: () {
-                                  context.pushNamed('search');
-                                },
-                                isRefreshing: publicFeedState.isRefreshing,
-                              ),
+                  // Main content - pass content to animation wrapper which handles padding
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isChatEnabled =
+                          ref.watch(chatBubblesEnabledProvider);
+                      return _PaddingAnimationWrapper(
+                        isChatEnabled: isChatEnabled,
+                        child: _buildContentWidget(publicFeedState),
+                      );
+                    },
                   ),
 
                   // Side bubbles overlay - only show if chat is enabled
-                  if (isChatEnabled)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom:
-                          0, // Full height - overlay will manage its own layout
-                      child: MediaQuery.removePadding(
-                        context: context,
-                        removeBottom: true,
-                        child: Builder(
-                          builder: (context) {
-                            // Complete keyboard isolation - preserve original screen size and remove insets
-                            final originalMediaQuery = MediaQuery.of(context);
-                            final keyboardFreeMediaQuery =
-                                originalMediaQuery.copyWith(
-                              size: Size(
-                                originalMediaQuery.size.width,
-                                originalMediaQuery.size.height +
-                                    originalMediaQuery.viewInsets.bottom,
-                              ),
-                              viewInsets: EdgeInsets.zero,
-                              viewPadding:
-                                  originalMediaQuery.viewPadding.copyWith(
-                                bottom: originalMediaQuery.viewPadding.bottom,
-                              ),
-                            );
-
-                            return MediaQuery(
-                              data: keyboardFreeMediaQuery,
-                              child: SafeArea(
-                                top: true,
-                                left: false,
-                                right: false,
-                                bottom:
-                                    false, // Don't apply SafeArea to bottom since we're handling it
-                                child: SideBubblesOverlay(
-                                  showProfileBtn:
-                                      false, // We'll use floating buttons from shell instead
-                                  showSearchBtn:
-                                      false, // We'll use floating buttons from shell instead
-                                  showNotificationsBtn:
-                                      false, // We'll use floating buttons from shell instead
-                                  showChatToggle:
-                                      false, // Chat toggle handled by shell's GlobalOverlayManager
-                                  showHerdBubbles:
-                                      false, // Public feed doesn't show herd bubbles
+                  // Wrapped in Consumer to isolate provider watches
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isChatEnabled =
+                          ref.watch(chatBubblesEnabledProvider);
+                      if (!isChatEnabled) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom:
+                            0, // Full height - overlay will manage its own layout
+                        child: MediaQuery.removePadding(
+                          context: context,
+                          removeBottom: true,
+                          child: Builder(
+                            builder: (context) {
+                              // Complete keyboard isolation - preserve original screen size and remove insets
+                              final originalMediaQuery = MediaQuery.of(context);
+                              final keyboardFreeMediaQuery =
+                                  originalMediaQuery.copyWith(
+                                size: Size(
+                                  originalMediaQuery.size.width,
+                                  originalMediaQuery.size.height +
+                                      originalMediaQuery.viewInsets.bottom,
                                 ),
-                              ),
-                            );
-                          },
+                                viewInsets: EdgeInsets.zero,
+                                viewPadding: originalMediaQuery.viewPadding
+                                    .copyWith(
+                                  bottom: originalMediaQuery.viewPadding.bottom,
+                                ),
+                              );
+
+                              return MediaQuery(
+                                data: keyboardFreeMediaQuery,
+                                child: SafeArea(
+                                  top: true,
+                                  left: false,
+                                  right: false,
+                                  bottom:
+                                      false, // Don't apply SafeArea to bottom since we're handling it
+                                  child: SideBubblesOverlay(
+                                    showProfileBtn:
+                                        false, // We'll use floating buttons from shell instead
+                                    showSearchBtn:
+                                        false, // We'll use floating buttons from shell instead
+                                    showNotificationsBtn:
+                                        false, // We'll use floating buttons from shell instead
+                                    showChatToggle:
+                                        false, // Chat toggle handled by shell's GlobalOverlayManager
+                                    showHerdBubbles:
+                                        false, // Public feed doesn't show herd bubbles
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
 
                   // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
                   // This prevents double-rendering of buttons
@@ -220,10 +198,36 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     ); // Close PopScope
   }
 
-// Add a loading widget that's scrollable
+  Widget _buildContentWidget(PublicFeedState publicFeedState) {
+    return publicFeedState.isLoading && publicFeedState.posts.isEmpty
+        ? _buildLoadingWidget()
+        : publicFeedState.error != null
+            ? _buildErrorWidget(context, publicFeedState.error!)
+            : PostListWidget(
+                scrollController: _scrollController,
+                posts: publicFeedState.posts,
+                isLoading: publicFeedState.isLoading &&
+                    publicFeedState.posts.isEmpty,
+                hasError: publicFeedState.error != null,
+                errorMessage: publicFeedState.error?.toString(),
+                hasMorePosts: publicFeedState.hasMorePosts,
+                onRefresh: () =>
+                    ref.read(publicFeedControllerProvider).refreshFeed(),
+                onLoadMore: () =>
+                    ref.read(publicFeedControllerProvider).loadMorePosts(),
+                type: PostListType.feed,
+                emptyMessage: 'No posts in your public feed yet',
+                emptyActionLabel: 'Find users to follow',
+                onEmptyAction: () {
+                  context.pushNamed('search');
+                },
+                isRefreshing: publicFeedState.isRefreshing,
+              );
+  }
+
   Widget _buildLoadingWidget() {
     return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       children: const [
         SizedBox(height: 100),
         Center(child: CircularProgressIndicator()),
@@ -232,9 +236,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     );
   }
 
-// Update error widget to be scrollable
-  Widget _buildErrorWidget(
-      BuildContext context, Object error, VoidCallback onRetry) {
+  Widget _buildErrorWidget(BuildContext context, Object error) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
@@ -263,7 +265,9 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: onRetry,
+                  onPressed: () {
+                    ref.read(publicFeedControllerProvider).refreshFeed();
+                  },
                   child: const Text('Try Again'),
                 ),
               ],
@@ -364,6 +368,28 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Wraps only the padding animation to prevent child rebuilds on animation frames.
+/// The child is passed as a parameter to remain stable during animation.
+class _PaddingAnimationWrapper extends StatelessWidget {
+  final bool isChatEnabled;
+  final Widget child;
+
+  const _PaddingAnimationWrapper({
+    required this.isChatEnabled,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
+      child: child,
     );
   }
 }

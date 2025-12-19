@@ -22,15 +22,22 @@ CacheManager altFeedCacheManager(Ref ref) {
 }
 
 /// Provider for the alt feed controller
-@riverpod
+@Riverpod(keepAlive: true)
 AltFeedController altFeedController(Ref ref) {
   final repository = ref.watch(altFeedRepositoryProvider);
   final user = ref.watch(authProvider);
 
-  return AltFeedController(
+  final controller = AltFeedController(
     repository,
     user?.uid,
     ref.watch(altFeedCacheManagerProvider),
     ref,
   );
+
+  // Properly dispose the controller when provider disposes
+  ref.onDispose(() {
+    controller.dispose();
+  });
+
+  return controller;
 }

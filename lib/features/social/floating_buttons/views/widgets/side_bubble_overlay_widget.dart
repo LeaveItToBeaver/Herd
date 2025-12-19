@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/community/herds/data/models/herd_model.dart';
 import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/active_chat/active_chat_notifier.dart';
 import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
@@ -179,20 +180,25 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
       // FIX: Use ref.read instead of ref.watch in update function
       final userHerdsAsync =
           ref.read(profileUserHerdsProvider(currentUser.uid));
-      if (userHerdsAsync.hasValue && userHerdsAsync.value != null) {
-        final herds = userHerdsAsync.value!;
-        debugPrint('Registering callbacks for ${herds.length} herds');
-        for (final herd in herds) {
-          final herdBubbleId = 'herd_${herd.id}';
-          newState[herdBubbleId] =
-              () => _startCloseAnimation(herdBubbleId, true); // true = herd
-          newState['${herdBubbleId}_snapback'] =
-              () => _snapBackAfterCloseHerd(); // Snap back callback
-          debugPrint('Registered callback for herd bubble: $herdBubbleId');
-        }
-      } else {
-        debugPrint(
-            'No herds available yet (hasValue: ${userHerdsAsync.hasValue}, value: ${userHerdsAsync.value})');
+
+      // Handle AsyncValue states properly using pattern matching
+      switch (userHerdsAsync) {
+        case AsyncData(:final value):
+          if (value.isNotEmpty) {
+            debugPrint('Registering callbacks for ${value.length} herds');
+            for (final herd in value) {
+              final herdBubbleId = 'herd_${herd.id}';
+              newState[herdBubbleId] =
+                  () => _startCloseAnimation(herdBubbleId, true); // true = herd
+              newState['${herdBubbleId}_snapback'] =
+                  () => _snapBackAfterCloseHerd(); // Snap back callback
+              debugPrint('Registered callback for herd bubble: $herdBubbleId');
+            }
+          }
+        case AsyncLoading():
+          debugPrint('Herds still loading');
+        case AsyncError(:final error):
+          debugPrint('Error loading herds: $error');
       }
     }
 
@@ -329,13 +335,13 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
 
     final currentUser = ref.read(authProvider);
     final userHerdsAsync = currentUser != null
-        ? ref.watch(profileUserHerdsProvider(currentUser.uid))
+        ? ref.read(profileUserHerdsProvider(currentUser.uid))
         : null;
 
     final configs = _createBubbleConfigs(
         context,
         ref,
-        ref.watch(currentFeedProvider),
+        ref.read(currentFeedProvider),
         null,
         ref.read(activeChatBubblesProvider),
         userHerdsAsync);
@@ -957,7 +963,7 @@ class _SideBubblesOverlayState extends ConsumerState<SideBubblesOverlay>
           FeedType feedType,
           dynamic appTheme,
           List<dynamic> activeChats,
-          dynamic userHerdsAsync) {
+          AsyncValue<List<HerdModel>>? userHerdsAsync) {
     final List<BubbleConfigState> stationaryConfigs = [];
     final List<BubbleConfigState> draggableConfigs = [];
 

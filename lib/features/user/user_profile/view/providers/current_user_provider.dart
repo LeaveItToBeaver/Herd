@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ class CurrentUser extends _$CurrentUser {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String? _lastUserId; // Track last user ID to detect user changes
+  StreamSubscription<User?>? _authSubscription; // Track subscription for proper cleanup
 
   @override
   Future<UserModel?> build() async {
@@ -23,14 +26,24 @@ class CurrentUser extends _$CurrentUser {
   }
 
   Future<void> _initialize() async {
-    // Listen to auth state changes
-    _auth.authStateChanges().listen((user) {
+    // Cancel any existing subscription
+    await _authSubscription?.cancel();
+
+    // Listen to auth state changes and store the subscription
+    _authSubscription = _auth.authStateChanges().listen((user) {
+      if (!ref.mounted) return; // Don't update state if provider is disposed
+
       if (user == null) {
         _lastUserId = null;
         state = const AsyncValue.data(null);
       } else {
         fetchCurrentUser();
       }
+    });
+
+    // Cancel subscription when provider is disposed
+    ref.onDispose(() {
+      _authSubscription?.cancel();
     });
   }
 
@@ -102,12 +115,15 @@ class CurrentUser extends _$CurrentUser {
       final notificationRepo = ref.read(notificationRepositoryProvider);
 
       final fcmToken = await notificationRepo.getUserFCMToken();
+      if (!ref.mounted) return; // Check after async operation
 
       // Initialize FCM service
       await notificationRepo.initializeFCM();
+      if (!ref.mounted) return; // Check after async operation
 
       // Update FCM token for this user
       await notificationRepo.updateFCMToken(fcmToken);
+      if (!ref.mounted) return; // Check after async operation
 
       debugPrint('FCM token initialized for user: $userId');
     } catch (e) {

@@ -110,7 +110,7 @@ final class AltFeedControllerProvider extends $FunctionalProvider<
           argument: null,
           retry: null,
           name: r'altFeedControllerProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -138,4 +138,4 @@ final class AltFeedControllerProvider extends $FunctionalProvider<
   }
 }
 
-String _$altFeedControllerHash() => r'a64620fb1da8b6d5c5f0b0397fd857e771c0ea97';
+String _$altFeedControllerHash() => r'7d249c9fa8710c3d14e02bfabbada021b67762a1';

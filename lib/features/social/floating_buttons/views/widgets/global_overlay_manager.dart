@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/view/widgets/herd_overlay_widget.dart';
-import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
-import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 import 'package:herdapp/features/social/floating_buttons/views/widgets/animated_reveal_overlay.dart';
 
 class GlobalOverlayManager extends ConsumerWidget {
@@ -41,13 +39,12 @@ class GlobalOverlayManager extends ConsumerWidget {
         showChatToggle; // Chat toggle should be shown regardless of enabled state
 
     // Watch the drag state to determine if we should offset content
-    final isDragging = ref.watch(isDraggingProvider);
-    final isChatOverlayOpen = ref.watch(chatOverlayOpenProvider);
-    final isHerdOverlayOpen = ref.watch(herdOverlayOpenProvider);
-    final activeOverlayType = ref.watch(activeOverlayTypeProvider);
-    final chatTriggeredByBubble = ref.watch(chatTriggeredByBubbleProvider);
-    final herdTriggeredByBubble = ref.watch(herdTriggeredByBubbleProvider);
-    final explosionReveal = ref.watch(explosionRevealProvider);
+    // Use select() to minimize rebuilds and prevent widget tree reorganization
+    final isDragging = ref.watch(isDraggingProvider.select((v) => v));
+    final activeOverlayType = ref.watch(activeOverlayTypeProvider.select((v) => v));
+    final chatTriggeredByBubble = ref.watch(chatTriggeredByBubbleProvider.select((v) => v));
+    final herdTriggeredByBubble = ref.watch(herdTriggeredByBubbleProvider.select((v) => v));
+    final explosionReveal = ref.watch(explosionRevealProvider.select((v) => v));
 
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
     double navBarPositionRight = 10;

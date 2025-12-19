@@ -110,7 +110,7 @@ final class PublicFeedControllerProvider extends $FunctionalProvider<
           argument: null,
           retry: null,
           name: r'publicFeedControllerProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -139,4 +139,4 @@ final class PublicFeedControllerProvider extends $FunctionalProvider<
 }
 
 String _$publicFeedControllerHash() =>
-    r'5e2004ff3160e53e9e3331c447bb54fd81c8353f';
+    r'f67e4effaeb1682252d96c863321ea58e32b93c8';

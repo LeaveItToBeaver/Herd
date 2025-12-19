@@ -22,15 +22,22 @@ CacheManager publicFeedCacheManager(Ref ref) {
 }
 
 /// Provider for the public feed controller
-@riverpod
+@Riverpod(keepAlive: true)
 PublicFeedController publicFeedController(Ref ref) {
   final repository = ref.watch(feedRepositoryProvider);
   final user = ref.watch(authProvider);
 
-  return PublicFeedController(
+  final controller = PublicFeedController(
     repository,
     user!.uid,
     ref.watch(publicFeedCacheManagerProvider),
     ref,
   );
+
+  // Properly dispose the controller when provider disposes
+  ref.onDispose(() {
+    controller.dispose();
+  });
+
+  return controller;
 }
