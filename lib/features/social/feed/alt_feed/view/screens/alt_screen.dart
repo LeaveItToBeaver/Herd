@@ -37,8 +37,8 @@ class _AltFeedScreenState extends ConsumerState<AltFeedScreen> {
       for (int i = 0; i < controllerState.posts.length; i++) {
         final post = controllerState.posts[i];
         ref
-            .read(postInteractionsWithPrivacyProvider(
-                    PostParams(id: post.id, isAlt: post.isAlt))
+            .read(postInteractionsWithPrivacyProvider(PostParams(
+                    id: post.id, isAlt: post.isAlt, herdId: post.herdId))
                 .notifier)
             .initializeState(userId);
       }

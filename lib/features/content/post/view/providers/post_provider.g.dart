@@ -21,7 +21,7 @@ final class PostRepositoryProvider
           argument: null,
           retry: null,
           name: r'postRepositoryProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -48,7 +48,7 @@ final class PostRepositoryProvider
   }
 }
 
-String _$postRepositoryHash() => r'8b77a458fb6ac997316fc1a3cbb8aee1688ec0dd';
+String _$postRepositoryHash() => r'68e7e90385b54239744ca6858f1e86f11993f1f3';
 
 @ProviderFor(userPosts)
 const userPostsProvider = UserPostsFamily._();
@@ -506,7 +506,7 @@ final class PostInteractionsWithPrivacyProvider extends $NotifierProvider<
       : super(
           retry: null,
           name: r'postInteractionsWithPrivacyProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -546,7 +546,7 @@ final class PostInteractionsWithPrivacyProvider extends $NotifierProvider<
 }
 
 String _$postInteractionsWithPrivacyHash() =>
-    r'ba8343ac774c960683acfd45b072a96a676e18d0';
+    r'5951082dd236a131901978958510d510648a191c';
 
 final class PostInteractionsWithPrivacyFamily extends $Family
     with
@@ -558,7 +558,7 @@ final class PostInteractionsWithPrivacyFamily extends $Family
           name: r'postInteractionsWithPrivacyProvider',
           dependencies: null,
           $allTransitiveDependencies: null,
-          isAutoDispose: true,
+          isAutoDispose: false,
         );
 
   PostInteractionsWithPrivacyProvider call(

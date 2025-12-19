@@ -1,13 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
 import 'state/post_interaction_state.dart';
 
+// Using keepAlive provider that reads from non-keepAlive providers is valid
+// when we only need to read values once (not watch for changes).
+// ignore_for_file: avoid_manual_providers_as_generated_provider_dependency
+// ignore_for_file: provider_dependencies
+
 part 'post_provider.g.dart';
 
-// Repository provider
-@riverpod
+// Repository provider - keepAlive since it's a stateless singleton
+@Riverpod(keepAlive: true)
 PostRepository postRepository(Ref ref) {
   return PostRepository();
 }
@@ -50,10 +56,11 @@ class PostParams {
       other is PostParams &&
           runtimeType == other.runtimeType &&
           id == other.id &&
-          isAlt == other.isAlt;
+          isAlt == other.isAlt &&
+          herdId == other.herdId;
 
   @override
-  int get hashCode => id.hashCode ^ isAlt.hashCode;
+  int get hashCode => Object.hash(id, isAlt, herdId);
 }
 
 @riverpod
@@ -97,23 +104,42 @@ Future<bool> isPostDislikedByUser(Ref ref, String postId) async {
 }
 
 // Post interactions provider with privacy setting
-@riverpod
+// keepAlive: true ensures the provider survives async gaps during loading
+@Riverpod(keepAlive: true)
 class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
   late PostParams _params;
 
   @override
   PostInteractionState build(PostParams params) {
     _params = params;
-    // Return initial state
+
+    // Auto-initialize: schedule loading if user is logged in.
+    // We check via a post-frame callback to allow the widget tree to settle,
+    // then verify state.isInitialized to avoid duplicate loads.
+    final currentUserAsync = ref.read(currentUserProvider);
+    final userId = currentUserAsync.userId;
+    if (userId != null) {
+      Future.microtask(() {
+        if (!ref.mounted) return;
+        // Only load if not already initialized or currently loading
+        if (!state.isInitialized && !state.isLoading) {
+          loadInteractionStatus(userId);
+        }
+      });
+    }
+
+    // Return initial state (loading will update it asynchronously)
     return PostInteractionState.initial();
   }
 
   Future<void> initializeState(String userId) async {
+    if (state.isInitialized || state.isLoading) return;
     await loadInteractionStatus(userId);
   }
 
   Future<void> loadInteractionStatus(String userId) async {
-    final repository = ref.watch(postRepositoryProvider);
+    // Use ref.read since repository is stable and we're in a keepAlive provider
+    final repository = ref.read(postRepositoryProvider);
 
     try {
       state = state.copyWith(isLoading: true);
@@ -141,11 +167,14 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
         totalLikes: (post?.likeCount ?? 0) - (post?.dislikeCount ?? 0),
         totalComments: post?.commentCount ?? 0,
         isLoading: false,
+        isInitialized: true,
       );
     } catch (e) {
+      debugPrint('❌ Failed to load interactions for ${_params.id}: $e');
       if (!ref.mounted) return;
       state = state.copyWith(
         isLoading: false,
+        isInitialized: true,
         error: e.toString(),
       );
     }
@@ -153,7 +182,8 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
 
   Future<void> likePost(String userId,
       {required bool isAlt, String? feedType, String? herdId}) async {
-    final repository = ref.watch(postRepositoryProvider);
+    // Use ref.read since repository is stable and we're in a keepAlive provider
+    final repository = ref.read(postRepositoryProvider);
 
     try {
       final wasLiked = state.isLiked;
@@ -203,7 +233,8 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
 
   Future<void> dislikePost(String userId,
       {required bool isAlt, required String feedType, String? herdId}) async {
-    final repository = ref.watch(postRepositoryProvider);
+    // Use ref.read since repository is stable and we're in a keepAlive provider
+    final repository = ref.read(postRepositoryProvider);
 
     try {
       final wasLiked = state.isLiked;

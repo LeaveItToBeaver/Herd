@@ -14,7 +14,8 @@ abstract class PostInteractionState with _$PostInteractionState {
       @Default(false) bool isLoading, // Loading state
       String? error, // Error message
       @Default(false) bool isLiked, // Whether user has liked
-      @Default(false) bool isDisliked // Whether user has disliked
+      @Default(false) bool isDisliked, // Whether user has disliked
+      @Default(false) bool isInitialized // Whether data has been loaded
       }) = _PostInteractionState;
 
   factory PostInteractionState.initial() => const PostInteractionState();

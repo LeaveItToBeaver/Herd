@@ -107,8 +107,8 @@ class AltFeedController {
     for (final post in posts) {
       // Initialize each post's interaction state proactively
       ref
-          .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: post.id, isAlt: post.isAlt))
+          .read(postInteractionsWithPrivacyProvider(PostParams(
+                  id: post.id, isAlt: post.isAlt, herdId: post.herdId))
               .notifier)
           .initializeState(userId!);
     }

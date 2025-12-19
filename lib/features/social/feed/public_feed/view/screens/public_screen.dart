@@ -15,6 +15,11 @@ class PublicFeedScreen extends ConsumerStatefulWidget {
 class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   final ScrollController _scrollController = ScrollController();
 
+  /// Avoid re-initializing interaction state for the same list repeatedly.
+  Set<String> _initializedInteractionPostIds = {};
+
+  bool _feedListenerAttached = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -32,12 +37,19 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
 
       if (userId == null || controllerState.posts.isEmpty) return;
 
+      final nextIds = controllerState.posts.map((p) => p.id).toSet();
+      if (nextIds.length == _initializedInteractionPostIds.length &&
+          nextIds.containsAll(_initializedInteractionPostIds)) {
+        return;
+      }
+      _initializedInteractionPostIds = nextIds;
+
       // Initialize all posts, not just estimated visible ones
       for (int i = 0; i < controllerState.posts.length; i++) {
         final post = controllerState.posts[i];
         ref
-            .read(postInteractionsWithPrivacyProvider(
-                    PostParams(id: post.id, isAlt: post.isAlt))
+            .read(postInteractionsWithPrivacyProvider(PostParams(
+                    id: post.id, isAlt: post.isAlt, herdId: post.herdId))
                 .notifier)
             .initializeState(userId);
       }
@@ -56,7 +68,6 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             overrideUserId: currentUser?.uid,
           );
     });
-    _refreshVisiblePostInteractions();
   }
 
   @override
@@ -68,6 +79,27 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_feedListenerAttached) {
+      _feedListenerAttached = true;
+
+      // Initialize interaction providers whenever the post list changes.
+      // This catches: initial load, refresh, and sort changes.
+      ref.listen<PublicFeedState>(publicFeedStateProvider, (prev, next) {
+        if (!mounted) return;
+
+        final prevIds = (prev?.posts ?? const []).map((p) => p.id).toSet();
+        final nextIds = next.posts.map((p) => p.id).toSet();
+        if (prevIds.length == nextIds.length && prevIds.containsAll(nextIds)) {
+          return;
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _refreshVisiblePostInteractions();
+        });
+      });
+    }
+
     final publicFeedState = ref.watch(publicFeedStateProvider);
 
     return PopScope(
