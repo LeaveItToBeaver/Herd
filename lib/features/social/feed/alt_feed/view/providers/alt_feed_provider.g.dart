@@ -21,7 +21,7 @@ final class AltFeedRepositoryProvider
           argument: null,
           retry: null,
           name: r'altFeedRepositoryProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -48,7 +48,7 @@ final class AltFeedRepositoryProvider
   }
 }
 
-String _$altFeedRepositoryHash() => r'0d469a15346f7475e27e7ed58e63febd404aefc8';
+String _$altFeedRepositoryHash() => r'5641df64e258451286a45728b3ca85ca825959e0';
 
 @ProviderFor(altFeedCacheManager)
 const altFeedCacheManagerProvider = AltFeedCacheManagerProvider._();
@@ -62,7 +62,7 @@ final class AltFeedCacheManagerProvider
           argument: null,
           retry: null,
           name: r'altFeedCacheManagerProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -90,52 +90,61 @@ final class AltFeedCacheManagerProvider
 }
 
 String _$altFeedCacheManagerHash() =>
-    r'50b22df529302f53b4e4302c3cf538ec8d1c0581';
+    r'34eefc7597b83d7f16f7dba7efea42c4078edfa1';
 
-/// Provider for the alt feed controller
+/// Riverpod-native alt feed state + actions.
 
-@ProviderFor(altFeedController)
-const altFeedControllerProvider = AltFeedControllerProvider._();
+@ProviderFor(AltFeedStateNotifier)
+const altFeedStateProvider = AltFeedStateNotifierProvider._();
 
-/// Provider for the alt feed controller
-
-final class AltFeedControllerProvider extends $FunctionalProvider<
-    AltFeedController,
-    AltFeedController,
-    AltFeedController> with $Provider<AltFeedController> {
-  /// Provider for the alt feed controller
-  const AltFeedControllerProvider._()
+/// Riverpod-native alt feed state + actions.
+final class AltFeedStateNotifierProvider
+    extends $NotifierProvider<AltFeedStateNotifier, AltFeedState> {
+  /// Riverpod-native alt feed state + actions.
+  const AltFeedStateNotifierProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'altFeedControllerProvider',
-          isAutoDispose: false,
+          name: r'altFeedStateProvider',
+          isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$altFeedControllerHash();
+  String debugGetCreateSourceHash() => _$altFeedStateNotifierHash();
 
   @$internal
   @override
-  $ProviderElement<AltFeedController> $createElement(
-          $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  AltFeedController create(Ref ref) {
-    return altFeedController(ref);
-  }
+  AltFeedStateNotifier create() => AltFeedStateNotifier();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AltFeedController value) {
+  Override overrideWithValue(AltFeedState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<AltFeedController>(value),
+      providerOverride: $SyncValueProvider<AltFeedState>(value),
     );
   }
 }
 
-String _$altFeedControllerHash() => r'7d249c9fa8710c3d14e02bfabbada021b67762a1';
+String _$altFeedStateNotifierHash() =>
+    r'acd4cb00ed304fb1f7597eaffdb9be7cdbf5a3c6';
+
+/// Riverpod-native alt feed state + actions.
+
+abstract class _$AltFeedStateNotifier extends $Notifier<AltFeedState> {
+  AltFeedState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<AltFeedState, AltFeedState>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AltFeedState, AltFeedState>,
+        AltFeedState,
+        Object?,
+        Object?>;
+    element.handleValue(ref, created);
+  }
+}

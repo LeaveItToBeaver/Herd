@@ -4,11 +4,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/features/social/feed/alt_feed/controllers/alt_feed_controller.dart';
+import 'package:herdapp/features/social/feed/alt_feed/view/providers/state/alt_feed_states.dart';
+import 'package:herdapp/features/social/feed/data/models/feed_sort_type.dart';
 
 part 'alt_feed_provider.g.dart';
 
 // Repository provider with Firebase Functions
-@riverpod
+@Riverpod(keepAlive: true)
 FeedRepository altFeedRepository(Ref ref) {
   return FeedRepository(
     FirebaseFirestore.instance,
@@ -16,28 +18,65 @@ FeedRepository altFeedRepository(Ref ref) {
   );
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 CacheManager altFeedCacheManager(Ref ref) {
   return CacheManager();
 }
 
-/// Provider for the alt feed controller
-@Riverpod(keepAlive: true)
-AltFeedController altFeedController(Ref ref) {
-  final repository = ref.watch(altFeedRepositoryProvider);
-  final user = ref.watch(authProvider);
+/// Riverpod-native alt feed state + actions.
+@riverpod
+class AltFeedStateNotifier extends _$AltFeedStateNotifier {
+  late final AltFeedController _controller;
 
-  final controller = AltFeedController(
-    repository,
-    user?.uid,
-    ref.watch(altFeedCacheManagerProvider),
-    ref,
-  );
+  @override
+  AltFeedState build() {
+    final user = ref.watch(authProvider);
+    final repository = ref.watch(altFeedRepositoryProvider);
+    final cacheManager = ref.watch(altFeedCacheManagerProvider);
 
-  // Properly dispose the controller when provider disposes
-  ref.onDispose(() {
-    controller.dispose();
-  });
+    _controller = AltFeedController(
+      repository,
+      user?.uid,
+      cacheManager,
+      ref,
+    );
+    ref.onDispose(_controller.dispose);
 
-  return controller;
+    return AltFeedState.initial();
+  }
+
+  bool get showHerdPosts => _controller.showHerdPosts;
+
+  Future<void> loadInitialPosts(
+      {String? overrideUserId, bool forceRefresh = false}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    await _controller.loadInitialPosts(
+        overrideUserId: overrideUserId, forceRefresh: forceRefresh);
+    state = _controller.state;
+  }
+
+  Future<void> loadMorePosts() async {
+    state = state.copyWith(isLoading: true, error: null);
+    await _controller.loadMorePosts();
+    state = _controller.state;
+  }
+
+  Future<void> refreshFeed() async {
+    state = state.copyWith(isRefreshing: true, error: null);
+    await _controller.refreshFeed();
+    state = _controller.state;
+  }
+
+  Future<void> changeSortType(FeedSortType newSortType) async {
+    state = state.copyWith(
+        sortType: newSortType, isLoading: true, error: null, posts: []);
+    await _controller.changeSortType(newSortType);
+    state = _controller.state;
+  }
+
+  void toggleHerdPostsFilter(bool show) {
+    _controller.toggleHerdPostsFilter(show);
+    // Controller will refresh internally; reflect whatever it has right now.
+    state = _controller.state;
+  }
 }

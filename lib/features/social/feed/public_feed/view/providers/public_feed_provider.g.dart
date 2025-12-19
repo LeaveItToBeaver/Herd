@@ -21,7 +21,7 @@ final class FeedRepositoryProvider
           argument: null,
           retry: null,
           name: r'feedRepositoryProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -48,7 +48,7 @@ final class FeedRepositoryProvider
   }
 }
 
-String _$feedRepositoryHash() => r'fa6939b0e1f3149361594832a20e79ceecbf4fd0';
+String _$feedRepositoryHash() => r'70051a5f7b27ab14a4d7832ee1b179696d7a2a18';
 
 @ProviderFor(publicFeedCacheManager)
 const publicFeedCacheManagerProvider = PublicFeedCacheManagerProvider._();
@@ -62,7 +62,7 @@ final class PublicFeedCacheManagerProvider
           argument: null,
           retry: null,
           name: r'publicFeedCacheManagerProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -90,53 +90,61 @@ final class PublicFeedCacheManagerProvider
 }
 
 String _$publicFeedCacheManagerHash() =>
-    r'45bbb1eef9c380b9b982c706ae50565aee260820';
+    r'67b2caffb376bdc92f878581e99b0d0ff16b968d';
 
-/// Provider for the public feed controller
+/// Riverpod-native public feed state + actions.
 
-@ProviderFor(publicFeedController)
-const publicFeedControllerProvider = PublicFeedControllerProvider._();
+@ProviderFor(PublicFeedStateNotifier)
+const publicFeedStateProvider = PublicFeedStateNotifierProvider._();
 
-/// Provider for the public feed controller
-
-final class PublicFeedControllerProvider extends $FunctionalProvider<
-    PublicFeedController,
-    PublicFeedController,
-    PublicFeedController> with $Provider<PublicFeedController> {
-  /// Provider for the public feed controller
-  const PublicFeedControllerProvider._()
+/// Riverpod-native public feed state + actions.
+final class PublicFeedStateNotifierProvider
+    extends $NotifierProvider<PublicFeedStateNotifier, PublicFeedState> {
+  /// Riverpod-native public feed state + actions.
+  const PublicFeedStateNotifierProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
-          name: r'publicFeedControllerProvider',
-          isAutoDispose: false,
+          name: r'publicFeedStateProvider',
+          isAutoDispose: true,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
 
   @override
-  String debugGetCreateSourceHash() => _$publicFeedControllerHash();
+  String debugGetCreateSourceHash() => _$publicFeedStateNotifierHash();
 
   @$internal
   @override
-  $ProviderElement<PublicFeedController> $createElement(
-          $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  PublicFeedController create(Ref ref) {
-    return publicFeedController(ref);
-  }
+  PublicFeedStateNotifier create() => PublicFeedStateNotifier();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(PublicFeedController value) {
+  Override overrideWithValue(PublicFeedState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<PublicFeedController>(value),
+      providerOverride: $SyncValueProvider<PublicFeedState>(value),
     );
   }
 }
 
-String _$publicFeedControllerHash() =>
-    r'f67e4effaeb1682252d96c863321ea58e32b93c8';
+String _$publicFeedStateNotifierHash() =>
+    r'73d4010f63ee44d360a75c1186261d5a06ad90d1';
+
+/// Riverpod-native public feed state + actions.
+
+abstract class _$PublicFeedStateNotifier extends $Notifier<PublicFeedState> {
+  PublicFeedState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<PublicFeedState, PublicFeedState>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<PublicFeedState, PublicFeedState>,
+        PublicFeedState,
+        Object?,
+        Object?>;
+    element.handleValue(ref, created);
+  }
+}

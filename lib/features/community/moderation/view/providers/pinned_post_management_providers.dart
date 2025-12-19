@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:herdapp/features/community/moderation/view/providers/moderation_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';

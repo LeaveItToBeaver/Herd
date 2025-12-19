@@ -26,15 +26,15 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     if (!mounted) return;
 
     Future.microtask(() {
-      final controller = ref.read(publicFeedControllerProvider);
+      final controllerState = ref.read(publicFeedStateProvider);
       final currentUserAsync = ref.read(currentUserProvider);
       final userId = currentUserAsync.userId;
 
-      if (userId == null || controller.state.posts.isEmpty) return;
+      if (userId == null || controllerState.posts.isEmpty) return;
 
       // Initialize all posts, not just estimated visible ones
-      for (int i = 0; i < controller.state.posts.length; i++) {
-        final post = controller.state.posts[i];
+      for (int i = 0; i < controllerState.posts.length; i++) {
+        final post = controllerState.posts[i];
         ref
             .read(postInteractionsWithPrivacyProvider(
                     PostParams(id: post.id, isAlt: post.isAlt))
@@ -52,7 +52,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       if (!mounted) return;
 
       final currentUser = ref.read(authProvider);
-      ref.read(publicFeedControllerProvider).loadInitialPosts(
+      ref.read(publicFeedStateProvider.notifier).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
     });
@@ -68,8 +68,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = ref.watch(publicFeedControllerProvider);
-    final publicFeedState = controller.state;
+    final publicFeedState = ref.watch(publicFeedStateProvider);
 
     return PopScope(
       canPop: false, // Disable swipe to close
@@ -81,7 +80,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
-                ref.read(publicFeedControllerProvider).refreshFeed();
+                ref.read(publicFeedStateProvider.notifier).refreshFeed();
               },
             ),
             IconButton(
@@ -101,7 +100,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
               currentSort: publicFeedState.sortType,
               onSortChanged: (newSortType) {
                 ref
-                    .read(publicFeedControllerProvider)
+                    .read(publicFeedStateProvider.notifier)
                     .changeSortType(newSortType);
               },
               isLoading: publicFeedState.isLoading,
@@ -152,8 +151,8 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                                       originalMediaQuery.viewInsets.bottom,
                                 ),
                                 viewInsets: EdgeInsets.zero,
-                                viewPadding: originalMediaQuery.viewPadding
-                                    .copyWith(
+                                viewPadding:
+                                    originalMediaQuery.viewPadding.copyWith(
                                   bottom: originalMediaQuery.viewPadding.bottom,
                                 ),
                               );
@@ -206,15 +205,15 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             : PostListWidget(
                 scrollController: _scrollController,
                 posts: publicFeedState.posts,
-                isLoading: publicFeedState.isLoading &&
-                    publicFeedState.posts.isEmpty,
+                isLoading:
+                    publicFeedState.isLoading && publicFeedState.posts.isEmpty,
                 hasError: publicFeedState.error != null,
                 errorMessage: publicFeedState.error?.toString(),
                 hasMorePosts: publicFeedState.hasMorePosts,
                 onRefresh: () =>
-                    ref.read(publicFeedControllerProvider).refreshFeed(),
+                    ref.read(publicFeedStateProvider.notifier).refreshFeed(),
                 onLoadMore: () =>
-                    ref.read(publicFeedControllerProvider).loadMorePosts(),
+                    ref.read(publicFeedStateProvider.notifier).loadMorePosts(),
                 type: PostListType.feed,
                 emptyMessage: 'No posts in your public feed yet',
                 emptyActionLabel: 'Find users to follow',
@@ -266,7 +265,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    ref.read(publicFeedControllerProvider).refreshFeed();
+                    ref.read(publicFeedStateProvider.notifier).refreshFeed();
                   },
                   child: const Text('Try Again'),
                 ),
