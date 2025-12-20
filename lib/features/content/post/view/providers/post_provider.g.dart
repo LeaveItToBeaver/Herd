@@ -546,7 +546,7 @@ final class PostInteractionsWithPrivacyProvider extends $NotifierProvider<
 }
 
 String _$postInteractionsWithPrivacyHash() =>
-    r'5951082dd236a131901978958510d510648a191c';
+    r'9569a33bdfb1eed6693f059a800ae6e935030dcd';
 
 final class PostInteractionsWithPrivacyFamily extends $Family
     with

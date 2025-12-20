@@ -20,6 +20,10 @@ class AltFeedController {
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
+  /// Maximum posts to keep in memory state.
+  /// Posts beyond this are still cached to disk and can be reloaded.
+  static const int maxPostsInMemory = 60;
+
   // State management
   AltFeedState _state = AltFeedState.initial();
   AltFeedState get state => _state;
@@ -300,17 +304,25 @@ class AltFeedController {
         // Add the new unique posts to the existing list
         final allPosts = [...state.posts, ...uniqueNewPosts];
 
+        // Trim oldest posts if we exceed memory cap
+        // Keep the most recent posts (end of list since we append new posts)
+        final trimmedPosts = allPosts.length > maxPostsInMemory
+            ? allPosts.sublist(allPosts.length - maxPostsInMemory)
+            : allPosts;
+
         state = state.copyWith(
-          posts: allPosts,
+          posts: trimmedPosts,
           isLoading: false,
           hasMorePosts: gotFullPage,
           lastPost: uniqueNewPosts.isNotEmpty ? uniqueNewPosts.last : lastPost,
+          // Track total loaded for potential "scroll back" feature
+          totalPostsLoaded: state.totalPostsLoaded + uniqueNewPosts.length,
           lastCreatedAt:
               state.sortType == FeedSortType.latest && uniqueNewPosts.isNotEmpty
                   ? uniqueNewPosts.last.createdAt
                   : state.lastCreatedAt,
         );
-        await _batchInitializePostInteractions(allPosts);
+        await _batchInitializePostInteractions(trimmedPosts);
 
         debugPrint(
             'AltFeedController: State updated. New state.hasMorePosts = ${state.hasMorePosts}');
@@ -338,13 +350,19 @@ class AltFeedController {
         // Merge the new posts with existing ones
         final allPosts = [...state.posts, ...morePosts];
 
+        // Trim oldest posts if we exceed memory cap
+        final trimmedPosts = allPosts.length > maxPostsInMemory
+            ? allPosts.sublist(allPosts.length - maxPostsInMemory)
+            : allPosts;
+
         state = state.copyWith(
-          posts: allPosts,
+          posts: trimmedPosts,
           isLoading: false,
           hasMorePosts: morePosts.length >= pageSize,
           lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
+          totalPostsLoaded: state.totalPostsLoaded + morePosts.length,
         );
-        await _batchInitializePostInteractions(allPosts);
+        await _batchInitializePostInteractions(trimmedPosts);
       }
     } catch (e) {
       state = state.copyWith(

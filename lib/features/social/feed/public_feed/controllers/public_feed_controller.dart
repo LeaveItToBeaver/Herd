@@ -20,6 +20,10 @@ class PublicFeedController {
   bool _disposed = false;
   StreamSubscription? _postUpdateSubscription;
 
+  /// Maximum posts to keep in memory state.
+  /// Posts beyond this are still cached to disk and can be reloaded.
+  static const int maxPostsInMemory = 60;
+
   // State management
   PublicFeedState _state = PublicFeedState.initial();
   PublicFeedState get state => _state;
@@ -189,13 +193,19 @@ class PublicFeedController {
             morePosts.where((p) => !existingIds.contains(p.id)).toList();
         final allPosts = [...state.posts, ...newPosts];
 
+        // Trim oldest posts if we exceed memory cap
+        final trimmedPosts = allPosts.length > maxPostsInMemory
+            ? allPosts.sublist(allPosts.length - maxPostsInMemory)
+            : allPosts;
+
         _safeUpdateState(state.copyWith(
-          posts: allPosts,
+          posts: trimmedPosts,
           isLoading: false,
           hasMorePosts: newPosts.length >= pageSize, // Use newPosts length
           lastPost: newPosts.isNotEmpty ? newPosts.last : lastPost,
+          totalPostsLoaded: state.totalPostsLoaded + newPosts.length,
         ));
-        await _batchInitializePostInteractions(allPosts);
+        await _batchInitializePostInteractions(trimmedPosts);
 
         return;
       } catch (e) {
@@ -222,13 +232,19 @@ class PublicFeedController {
       // Merge the new posts with existing ones
       final allPosts = [...state.posts, ...morePosts];
 
+      // Trim oldest posts if we exceed memory cap
+      final trimmedPosts = allPosts.length > maxPostsInMemory
+          ? allPosts.sublist(allPosts.length - maxPostsInMemory)
+          : allPosts;
+
       _safeUpdateState(state.copyWith(
-        posts: allPosts,
+        posts: trimmedPosts,
         isLoading: false,
         hasMorePosts: morePosts.length >= pageSize,
         lastPost: morePosts.isNotEmpty ? morePosts.last : lastPost,
+        totalPostsLoaded: state.totalPostsLoaded + morePosts.length,
       ));
-      await _batchInitializePostInteractions(allPosts);
+      await _batchInitializePostInteractions(trimmedPosts);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

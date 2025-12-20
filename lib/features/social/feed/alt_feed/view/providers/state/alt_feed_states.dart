@@ -16,6 +16,12 @@ abstract class AltFeedState with _$AltFeedState {
     @Default(false) bool fromCache,
     @Default(FeedSortType.hot) FeedSortType sortType,
     DateTime? lastCreatedAt,
+
+    /// Track when we last fetched data for staleness detection
+    DateTime? lastFetchedAt,
+
+    /// Track total posts ever loaded (for pagination tracking)
+    @Default(0) int totalPostsLoaded,
   }) = _AltFeedState;
 
   factory AltFeedState.initial() => const AltFeedState(
@@ -28,5 +34,7 @@ abstract class AltFeedState with _$AltFeedState {
         fromCache: false,
         sortType: FeedSortType.hot,
         lastCreatedAt: null,
+        lastFetchedAt: null,
+        totalPostsLoaded: 0,
       );
 }

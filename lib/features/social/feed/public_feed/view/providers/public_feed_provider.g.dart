@@ -93,21 +93,24 @@ String _$publicFeedCacheManagerHash() =>
     r'67b2caffb376bdc92f878581e99b0d0ff16b968d';
 
 /// Riverpod-native public feed state + actions.
+/// Uses keepAlive: true to persist state across navigation.
 
 @ProviderFor(PublicFeedStateNotifier)
 const publicFeedStateProvider = PublicFeedStateNotifierProvider._();
 
 /// Riverpod-native public feed state + actions.
+/// Uses keepAlive: true to persist state across navigation.
 final class PublicFeedStateNotifierProvider
     extends $NotifierProvider<PublicFeedStateNotifier, PublicFeedState> {
   /// Riverpod-native public feed state + actions.
+  /// Uses keepAlive: true to persist state across navigation.
   const PublicFeedStateNotifierProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'publicFeedStateProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -129,9 +132,10 @@ final class PublicFeedStateNotifierProvider
 }
 
 String _$publicFeedStateNotifierHash() =>
-    r'73d4010f63ee44d360a75c1186261d5a06ad90d1';
+    r'b7ff018eb6453df07c4ecc4074acacb317b14a1a';
 
 /// Riverpod-native public feed state + actions.
+/// Uses keepAlive: true to persist state across navigation.
 
 abstract class _$PublicFeedStateNotifier extends $Notifier<PublicFeedState> {
   PublicFeedState build();

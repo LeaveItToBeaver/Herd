@@ -93,21 +93,24 @@ String _$altFeedCacheManagerHash() =>
     r'34eefc7597b83d7f16f7dba7efea42c4078edfa1';
 
 /// Riverpod-native alt feed state + actions.
+/// Uses keepAlive: true to persist state across navigation.
 
 @ProviderFor(AltFeedStateNotifier)
 const altFeedStateProvider = AltFeedStateNotifierProvider._();
 
 /// Riverpod-native alt feed state + actions.
+/// Uses keepAlive: true to persist state across navigation.
 final class AltFeedStateNotifierProvider
     extends $NotifierProvider<AltFeedStateNotifier, AltFeedState> {
   /// Riverpod-native alt feed state + actions.
+  /// Uses keepAlive: true to persist state across navigation.
   const AltFeedStateNotifierProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'altFeedStateProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -129,9 +132,10 @@ final class AltFeedStateNotifierProvider
 }
 
 String _$altFeedStateNotifierHash() =>
-    r'acd4cb00ed304fb1f7597eaffdb9be7cdbf5a3c6';
+    r'9a443a686b89015a52468a9ef5b711607c0c1381';
 
 /// Riverpod-native alt feed state + actions.
+/// Uses keepAlive: true to persist state across navigation.
 
 abstract class _$AltFeedStateNotifier extends $Notifier<AltFeedState> {
   AltFeedState build();
