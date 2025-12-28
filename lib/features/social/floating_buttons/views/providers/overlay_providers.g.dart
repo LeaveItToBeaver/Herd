@@ -20,7 +20,7 @@ final class ChatOverlayOpenProvider
           argument: null,
           retry: null,
           name: r'chatOverlayOpenProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -41,7 +41,7 @@ final class ChatOverlayOpenProvider
   }
 }
 
-String _$chatOverlayOpenHash() => r'0bd3c6819d933c2c2d027e4d66fa0de79130b837';
+String _$chatOverlayOpenHash() => r'caa56549558f5ecb94ee8f4fe0c95b3deb1e290c';
 
 abstract class _$ChatOverlayOpen extends $Notifier<bool> {
   bool build();
@@ -67,7 +67,7 @@ final class ChatTriggeredByBubbleProvider
           argument: null,
           retry: null,
           name: r'chatTriggeredByBubbleProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -89,7 +89,7 @@ final class ChatTriggeredByBubbleProvider
 }
 
 String _$chatTriggeredByBubbleHash() =>
-    r'd4ceaeb3c1704de753bfc37b136698e8f19657ea';
+    r'40c1c231d2830a31926cc573069ab0ca2441bad3';
 
 abstract class _$ChatTriggeredByBubble extends $Notifier<String?> {
   String? build();
@@ -115,7 +115,7 @@ final class HerdOverlayOpenProvider
           argument: null,
           retry: null,
           name: r'herdOverlayOpenProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -136,7 +136,7 @@ final class HerdOverlayOpenProvider
   }
 }
 
-String _$herdOverlayOpenHash() => r'2aff2c133ac2954c7485f4b8305d1b4dd5bf5fc0';
+String _$herdOverlayOpenHash() => r'435e70fe97be5ba18f727adb5049505df9e501b1';
 
 abstract class _$HerdOverlayOpen extends $Notifier<bool> {
   bool build();
@@ -162,7 +162,7 @@ final class HerdTriggeredByBubbleProvider
           argument: null,
           retry: null,
           name: r'herdTriggeredByBubbleProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -184,7 +184,7 @@ final class HerdTriggeredByBubbleProvider
 }
 
 String _$herdTriggeredByBubbleHash() =>
-    r'2e793957fe2dcc7e5e617f1dad21b2a2d83fa335';
+    r'da7abfd88a915df1068dc47a9340bc774f8d98b4';
 
 abstract class _$HerdTriggeredByBubble extends $Notifier<String?> {
   String? build();
@@ -210,7 +210,7 @@ final class ActiveOverlayTypeProvider
           argument: null,
           retry: null,
           name: r'activeOverlayTypeProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -231,7 +231,7 @@ final class ActiveOverlayTypeProvider
   }
 }
 
-String _$activeOverlayTypeHash() => r'4459af795b0a63cf5b8530da8b7f8fac9b430c96';
+String _$activeOverlayTypeHash() => r'0efb7307c58a1f0df189dfca55fe2dcf5fec7261';
 
 abstract class _$ActiveOverlayType extends $Notifier<OverlayType?> {
   OverlayType? build();

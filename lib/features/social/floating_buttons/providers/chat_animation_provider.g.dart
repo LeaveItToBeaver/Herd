@@ -9,21 +9,24 @@ part of 'chat_animation_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Provider to track when chat is closing and needs reverse animation
+/// Keep alive to persist state during animation lifecycle
 
 @ProviderFor(ChatClosingAnimation)
 const chatClosingAnimationProvider = ChatClosingAnimationProvider._();
 
 /// Provider to track when chat is closing and needs reverse animation
+/// Keep alive to persist state during animation lifecycle
 final class ChatClosingAnimationProvider
     extends $NotifierProvider<ChatClosingAnimation, String?> {
   /// Provider to track when chat is closing and needs reverse animation
+  /// Keep alive to persist state during animation lifecycle
   const ChatClosingAnimationProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'chatClosingAnimationProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -45,9 +48,10 @@ final class ChatClosingAnimationProvider
 }
 
 String _$chatClosingAnimationHash() =>
-    r'6a4e17be16e7121e869694f550d9203a31ed0d16';
+    r'ce4c4adc55bcd82d3f1c2a43ac97080efe78e372';
 
 /// Provider to track when chat is closing and needs reverse animation
+/// Keep alive to persist state during animation lifecycle
 
 abstract class _$ChatClosingAnimation extends $Notifier<String?> {
   String? build();
@@ -63,21 +67,24 @@ abstract class _$ChatClosingAnimation extends $Notifier<String?> {
 }
 
 /// Provider to track when herd is closing and needs reverse animation
+/// Keep alive to persist state during animation lifecycle
 
 @ProviderFor(HerdClosingAnimation)
 const herdClosingAnimationProvider = HerdClosingAnimationProvider._();
 
 /// Provider to track when herd is closing and needs reverse animation
+/// Keep alive to persist state during animation lifecycle
 final class HerdClosingAnimationProvider
     extends $NotifierProvider<HerdClosingAnimation, String?> {
   /// Provider to track when herd is closing and needs reverse animation
+  /// Keep alive to persist state during animation lifecycle
   const HerdClosingAnimationProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'herdClosingAnimationProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -99,9 +106,10 @@ final class HerdClosingAnimationProvider
 }
 
 String _$herdClosingAnimationHash() =>
-    r'7618d60f182dd16b8c83503756d8ae88b098144e';
+    r'ad8b9bded27bdfa1a592fb4bce6b9055358688c6';
 
 /// Provider to track when herd is closing and needs reverse animation
+/// Keep alive to persist state during animation lifecycle
 
 abstract class _$HerdClosingAnimation extends $Notifier<String?> {
   String? build();
@@ -117,21 +125,24 @@ abstract class _$HerdClosingAnimation extends $Notifier<String?> {
 }
 
 /// Provider to track the animation callback for each bubble
+/// Keep alive to persist callbacks during overlay animation lifecycle
 
 @ProviderFor(BubbleAnimationCallback)
 const bubbleAnimationCallbackProvider = BubbleAnimationCallbackProvider._();
 
 /// Provider to track the animation callback for each bubble
+/// Keep alive to persist callbacks during overlay animation lifecycle
 final class BubbleAnimationCallbackProvider extends $NotifierProvider<
     BubbleAnimationCallback, Map<String, VoidCallback>> {
   /// Provider to track the animation callback for each bubble
+  /// Keep alive to persist callbacks during overlay animation lifecycle
   const BubbleAnimationCallbackProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'bubbleAnimationCallbackProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -153,9 +164,10 @@ final class BubbleAnimationCallbackProvider extends $NotifierProvider<
 }
 
 String _$bubbleAnimationCallbackHash() =>
-    r'abc7804616aab83994c27fd5fa0dba9caf871d70';
+    r'f5788243b635a55b84bbebb00cea7fa289e766c0';
 
 /// Provider to track the animation callback for each bubble
+/// Keep alive to persist callbacks during overlay animation lifecycle
 
 abstract class _$BubbleAnimationCallback
     extends $Notifier<Map<String, VoidCallback>> {
@@ -175,18 +187,22 @@ abstract class _$BubbleAnimationCallback
   }
 }
 
+/// Keep alive to persist explosion reveal state during animation
+
 @ProviderFor(ExplosionReveal)
 const explosionRevealProvider = ExplosionRevealProvider._();
 
+/// Keep alive to persist explosion reveal state during animation
 final class ExplosionRevealProvider
     extends $NotifierProvider<ExplosionReveal, ExplosionRevealState?> {
+  /// Keep alive to persist explosion reveal state during animation
   const ExplosionRevealProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'explosionRevealProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -207,7 +223,9 @@ final class ExplosionRevealProvider
   }
 }
 
-String _$explosionRevealHash() => r'39e2f1651c12c4366e3410b23d730f9a044376de';
+String _$explosionRevealHash() => r'b574ec8fd312b0d7638288c6be0af9abf84681e3';
+
+/// Keep alive to persist explosion reveal state during animation
 
 abstract class _$ExplosionReveal extends $Notifier<ExplosionRevealState?> {
   ExplosionRevealState? build();
