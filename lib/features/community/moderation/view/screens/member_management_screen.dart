@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/community/moderation/view/widgets/batch_action_sheet_widget.dart';
 import 'package:herdapp/features/community/moderation/view/widgets/member_action_sheet_widget.dart';
 import 'package:herdapp/features/community/moderation/view/widgets/member_tile_widget.dart';
+import 'package:herdapp/features/community/moderation/view/providers/role_providers.dart'
+    show PermissionRequest, hasPermissionProvider;
+import 'package:herdapp/features/community/moderation/data/models/herd_role.dart'
+    show HerdPermission;
 import '../../../herds/data/models/herd_member_info.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../../user/auth/view/providers/auth_provider.dart';
@@ -64,7 +68,13 @@ class _MemberManagementScreenState
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider);
-    final isModerator = ref.watch(isHerdModeratorProvider(widget.herdId));
+    final viewMembersPermission = PermissionRequest(
+      herdId: widget.herdId,
+      permission: HerdPermission.viewMembers,
+    );
+    final canViewMembers = ref.watch(
+      hasPermissionProvider(viewMembersPermission),
+    );
     final membersAsync = ref.watch(herdMembersWithInfoProvider(widget.herdId));
 
     if (currentUser == null) {
@@ -73,15 +83,15 @@ class _MemberManagementScreenState
       );
     }
 
-    return isModerator.when(
+    return canViewMembers.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Scaffold(
         body: Center(child: Text('Error: $error')),
       ),
-      data: (isModeratorResult) {
-        if (!isModeratorResult) {
+      data: (hasPermission) {
+        if (!hasPermission) {
           return const Scaffold(
             body: Center(
               child: Text('You do not have permission to manage members'),

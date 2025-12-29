@@ -341,9 +341,7 @@ class ModerationRepository {
         metadata: {'herdId': herdId},
       );
 
-      await _firestore.collection('herds').doc(herdId).update({
-        'moderatorIds': FieldValue.arrayUnion([userId]),
-      });
+      await _herdRepository.addModerator(herdId, userId, addedBy);
 
       await _appendModerationAction(herdId, action);
     } catch (e) {
@@ -369,9 +367,7 @@ class ModerationRepository {
         metadata: {'herdId': herdId},
       );
 
-      await _firestore.collection('herds').doc(herdId).update({
-        'moderatorIds': FieldValue.arrayRemove([userId]),
-      });
+      await _herdRepository.removeModerator(herdId, userId, removedBy);
 
       await _appendModerationAction(herdId, action);
     } catch (e) {
