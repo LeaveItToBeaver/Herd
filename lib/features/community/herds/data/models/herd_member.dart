@@ -26,7 +26,8 @@ class HerdMember {
     Map<String, dynamic> map, {
     String? herdId,
   }) {
-    final role = parseHerdRole(map); // TODO: remove isModerator fallback after migration
+    final role = parseHerdRole(
+        map); // TODO: remove isModerator fallback after legacy docs include role
 
     return HerdMember(
       userId: userId,

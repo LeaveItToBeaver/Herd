@@ -53,7 +53,7 @@ class PermissionMatrix {
     }
     final permissions = <HerdPermission>{};
     for (final r in HerdRole.values) {
-      if (role.hasAtLeast(r)) {
+      if (r.level <= role.level) {
         permissions.addAll(_matrix[r] ?? {});
       }
     }
