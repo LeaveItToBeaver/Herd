@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:herdapp/features/community/herds/data/models/herd_member_info.dart';
 import 'package:herdapp/features/community/herds/data/models/banned_user_info.dart';
+import 'package:herdapp/features/community/herds/data/models/herd_member_info.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
+import 'package:herdapp/features/community/moderation/data/models/herd_role.dart';
 
 import '../../../../../core/utils/hot_algorithm.dart';
 import '../models/herd_model.dart';
@@ -58,11 +59,14 @@ class HerdRepository {
       await herdMembers(herdId).doc(userId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': true,
+        'role': HerdRole.owner.name,
+        'roleChangedAt': FieldValue.serverTimestamp(),
       });
 
       await userHerds(userId).doc(herdId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': true,
+        'role': HerdRole.owner.name,
       });
 
       await _herds.doc(herdId).update({
@@ -152,11 +156,13 @@ class HerdRepository {
       await herdMembers(herdId).doc(userId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': false,
+        'role': HerdRole.member.name,
       });
 
       await userHerds(userId).doc(herdId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': false,
+        'role': HerdRole.member.name,
         'name': herd.name,
       });
 
@@ -221,8 +227,13 @@ class HerdRepository {
       final doc = await herdMembers(herdId).doc(userId).get();
       if (!doc.exists) return false;
 
-      return doc.data()?['isModerator'] == true ||
-          herd.moderatorIds.contains(userId);
+      final data = doc.data() ?? {};
+      final role = _parseRole(data);
+      if (role.hasAtLeast(HerdRole.moderator)) {
+        return true;
+      }
+
+      return data['isModerator'] == true || herd.moderatorIds.contains(userId);
     } catch (e, stackTrace) {
       logError('isHerdModerator', e, stackTrace);
       return false;
@@ -479,23 +490,26 @@ class HerdRepository {
           final userDoc =
               await _firestore.collection('users').doc(memberId).get();
 
-          if (userDoc.exists) {
-            final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
+        if (userDoc.exists) {
+          final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
+          final role = _parseRole(memberData);
 
-            membersInfo.add(HerdMemberInfo(
-              userId: user.id,
-              username: user.username,
-              altUsername: user.altUsername,
-              profileImageURL: user.profileImageURL,
-              altProfileImageURL: user.altProfileImageURL,
-              isVerified: user.isVerified,
-              joinedAt: _parseDateTime(memberData['joinedAt']),
-              isModerator: memberData['isModerator'] ?? false,
-              userPoints: user.userPoints,
-              altUserPoints: user.altUserPoints,
-              isActive: user.isActive,
-              bio: user.bio,
-              altBio: user.altBio,
+          membersInfo.add(HerdMemberInfo(
+            userId: user.id,
+            username: user.username,
+            altUsername: user.altUsername,
+            profileImageURL: user.profileImageURL,
+            altProfileImageURL: user.altProfileImageURL,
+            isVerified: user.isVerified,
+            joinedAt: _parseDateTime(memberData['joinedAt']),
+            isModerator:
+                memberData['isModerator'] ?? role.hasAtLeast(HerdRole.moderator),
+            role: role,
+            userPoints: user.userPoints,
+            altUserPoints: user.altUserPoints,
+            isActive: user.isActive,
+            bio: user.bio,
+            altBio: user.altBio,
             ));
           }
         } catch (e) {
@@ -555,10 +569,14 @@ class HerdRepository {
 
       await herdMembers(herdId).doc(userId).update({
         'isModerator': true,
+        'role': HerdRole.moderator.name,
+        'roleChangedAt': FieldValue.serverTimestamp(),
+        'promotedBy': currentUserId,
       });
 
       await userHerds(userId).doc(herdId).update({
         'isModerator': true,
+        'role': HerdRole.moderator.name,
       });
     } catch (e, stackTrace) {
       logError('addModerator', e, stackTrace);
@@ -588,10 +606,13 @@ class HerdRepository {
 
       await herdMembers(herdId).doc(userId).update({
         'isModerator': false,
+        'role': HerdRole.member.name,
+        'roleChangedAt': FieldValue.serverTimestamp(),
       });
 
       await userHerds(userId).doc(herdId).update({
         'isModerator': false,
+        'role': HerdRole.member.name,
       });
     } catch (e, stackTrace) {
       logError('removeModerator', e, stackTrace);
@@ -1015,5 +1036,19 @@ class HerdRepository {
       return DateTime.tryParse(value);
     }
     return null;
+  }
+
+  HerdRole _parseRole(Map<String, dynamic> data) {
+    final roleValue = data['role'] as String?;
+    if (roleValue != null) {
+      return HerdRole.values.firstWhere(
+        (r) => r.name == roleValue,
+        orElse: () => HerdRole.member,
+      );
+    }
+    if (data['isModerator'] == true) {
+      return HerdRole.moderator;
+    }
+    return HerdRole.member;
   }
 }
