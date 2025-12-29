@@ -25,7 +25,11 @@ class RoleRepository {
       throw Exception('User is not a member of this herd');
     }
 
-    final currentRole = parseHerdRole(targetDoc.data());
+    final targetData = targetDoc.data();
+    if (targetData == null) {
+      throw Exception('Member record is missing data');
+    }
+    final currentRole = parseHerdRole(targetData);
 
     if (!performerRole.outranks(newRole)) {
       throw Exception('Cannot assign a role equal to or higher than your role');

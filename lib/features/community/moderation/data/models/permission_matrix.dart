@@ -35,7 +35,9 @@ class PermissionMatrix {
       HerdPermission.editHerdInfo,
       HerdPermission.editHerdSettings,
     },
-    HerdRole.owner: {},
+    HerdRole.owner: {
+      ...HerdPermission.values,
+    },
   };
 
   /// Check if [role] has [permission], applying inheritance.

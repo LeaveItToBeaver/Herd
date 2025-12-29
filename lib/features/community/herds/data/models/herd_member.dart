@@ -26,11 +26,7 @@ class HerdMember {
     Map<String, dynamic> map, {
     String? herdId,
   }) {
-    final roleName = map['role'] as String?;
-    final role = HerdRole.values.firstWhere(
-      (r) => r.name == roleName,
-      orElse: () => map['isModerator'] == true ? HerdRole.moderator : HerdRole.member,
-    );
+    final role = parseHerdRole(map); // TODO: remove isModerator fallback after migration
 
     return HerdMember(
       userId: userId,

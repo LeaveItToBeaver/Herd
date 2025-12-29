@@ -40,8 +40,11 @@ class MemberActionSheet extends ConsumerWidget {
 
         final isSelf = member.userId == currentUser.uid;
         final canActOnMember = !isSelf && role.outranks(member.role);
+        final promotionPermission = member.role.hasAtLeast(HerdRole.admin)
+            ? HerdPermission.promoteToAdmin
+            : HerdPermission.promoteToMod;
         final canPromote = canActOnMember &&
-            PermissionMatrix.hasPermission(role, HerdPermission.promoteToMod) &&
+            PermissionMatrix.hasPermission(role, promotionPermission) &&
             !member.hasModeratorPrivileges;
         final canDemote = canActOnMember &&
             PermissionMatrix.hasPermission(role, HerdPermission.demoteFromMod) &&
