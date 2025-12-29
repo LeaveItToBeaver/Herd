@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
 
-import '../models/herd_role.dart';
-import '../models/moderation_action_model.dart';
+import 'package:herdapp/features/community/moderation/data/models/herd_role.dart';
+import 'package:herdapp/features/community/moderation/data/models/moderation_action_model.dart';
 
 class RoleRepository {
   final FirebaseFirestore _firestore;
@@ -106,7 +106,7 @@ class RoleRepository {
       case HerdRole.moderator:
         return ModActionType.addModerator;
       case HerdRole.admin:
-        return ModActionType.addModerator;
+        return ModActionType.addAdmin;
       case HerdRole.owner:
         return ModActionType.transferOwnership;
       default:

@@ -97,6 +97,7 @@ enum ModActionType {
   // Herd management
   editHerdInfo,
   addModerator,
+  addAdmin,
   removeModerator,
   transferOwnership,
 
@@ -158,6 +159,8 @@ extension ModActionTypeExtension on ModActionType {
         return 'Edited Herd Info';
       case ModActionType.addModerator:
         return 'Added Moderator';
+      case ModActionType.addAdmin:
+        return 'Added Admin';
       case ModActionType.removeModerator:
         return 'Removed Moderator';
       case ModActionType.transferOwnership:
@@ -203,6 +206,7 @@ extension ModActionTypeExtension on ModActionType {
       case ModActionType.editHerdInfo:
         return Icons.edit;
       case ModActionType.addModerator:
+      case ModActionType.addAdmin:
       case ModActionType.removeModerator:
         return Icons.admin_panel_settings;
       case ModActionType.transferOwnership:
@@ -232,6 +236,9 @@ extension ModActionTypeExtension on ModActionType {
         return Colors.deepOrange;
       case ModActionType.warnUser:
         return Colors.orange;
+      case ModActionType.addModerator:
+      case ModActionType.addAdmin:
+        return Colors.blue;
       case ModActionType.pinPost:
       case ModActionType.unpinPost:
         return Colors.blue;
