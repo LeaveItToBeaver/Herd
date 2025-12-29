@@ -228,7 +228,7 @@ class HerdRepository {
       if (!doc.exists) return false;
 
       final data = doc.data() ?? {};
-      final role = _parseRole(data);
+      final role = parseHerdRole(data);
       if (role.hasAtLeast(HerdRole.moderator)) {
         return true;
       }
@@ -492,7 +492,7 @@ class HerdRepository {
 
           if (userDoc.exists) {
             final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
-            final role = _parseRole(memberData);
+            final role = parseHerdRole(memberData);
 
             membersInfo.add(HerdMemberInfo(
               userId: user.id,
@@ -1036,19 +1036,5 @@ class HerdRepository {
       return DateTime.tryParse(value);
     }
     return null;
-  }
-
-  HerdRole _parseRole(Map<String, dynamic> data) {
-    final roleValue = data['role'] as String?;
-    if (roleValue != null) {
-      return HerdRole.values.firstWhere(
-        (r) => r.name == roleValue,
-        orElse: () => HerdRole.member,
-      );
-    }
-    if (data['isModerator'] == true) {
-      return HerdRole.moderator;
-    }
-    return HerdRole.member;
   }
 }

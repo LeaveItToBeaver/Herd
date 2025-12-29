@@ -25,10 +25,10 @@ class RoleRepository {
       throw Exception('User is not a member of this herd');
     }
 
-    final currentRole = _parseRole(targetDoc.data());
+    final currentRole = parseHerdRole(targetDoc.data());
 
     if (!performerRole.outranks(newRole)) {
-      throw Exception('Cannot assign a role equal to or higher than your own');
+      throw Exception('Cannot assign a role equal to or higher than your role');
     }
 
     if (!performerRole.outranks(currentRole)) {
@@ -111,25 +111,12 @@ class RoleRepository {
     }
   }
 
-  HerdRole _parseRole(Map<String, dynamic>? data) {
-    final roleValue = data?['role'] as String?;
-    if (roleValue != null) {
-      return HerdRole.values.firstWhere(
-        (r) => r.name == roleValue,
-        orElse: () => HerdRole.member,
-      );
-    }
-    if (data?['isModerator'] == true) {
-      return HerdRole.moderator;
-    }
-    return HerdRole.member;
-  }
-
   ModActionType _getDemotionActionType(HerdRole oldRole) {
     switch (oldRole) {
       case HerdRole.moderator:
-      case HerdRole.admin:
         return ModActionType.removeModerator;
+      case HerdRole.admin:
+        return ModActionType.removeAdmin;
       default:
         return ModActionType.unknown;
     }

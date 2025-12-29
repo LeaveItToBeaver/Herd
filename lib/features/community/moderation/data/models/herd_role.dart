@@ -59,3 +59,17 @@ enum HerdPermission {
   editHerdSettings,
   deleteHerd,
 }
+
+HerdRole parseHerdRole(Map<String, dynamic>? data) {
+  final roleValue = data?['role'] as String?;
+  if (roleValue != null) {
+    return HerdRole.values.firstWhere(
+      (r) => r.name == roleValue,
+      orElse: () => HerdRole.member,
+    );
+  }
+  if (data?['isModerator'] == true) {
+    return HerdRole.moderator;
+  }
+  return HerdRole.member;
+}

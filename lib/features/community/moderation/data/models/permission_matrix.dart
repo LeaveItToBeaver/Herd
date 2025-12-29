@@ -35,10 +35,7 @@ class PermissionMatrix {
       HerdPermission.editHerdInfo,
       HerdPermission.editHerdSettings,
     },
-    HerdRole.owner: {
-      // Owners inherit everything; values are expanded at runtime.
-      ...HerdPermission.values,
-    },
+    HerdRole.owner: {},
   };
 
   /// Check if [role] has [permission], applying inheritance.
@@ -49,6 +46,9 @@ class PermissionMatrix {
 
   /// Aggregate permissions for [role], including inherited levels.
   static Set<HerdPermission> getPermissions(HerdRole role) {
+    if (role == HerdRole.owner) {
+      return HerdPermission.values.toSet();
+    }
     final permissions = <HerdPermission>{};
     for (final r in HerdRole.values) {
       if (role.hasAtLeast(r)) {

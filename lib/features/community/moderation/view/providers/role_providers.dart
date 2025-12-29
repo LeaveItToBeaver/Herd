@@ -18,10 +18,10 @@ final roleRepositoryProvider = Provider<RoleRepository>((ref) {
 /// Get the current user's membership in a herd
 final currentUserHerdMembershipProvider =
     FutureProvider.family<HerdMember?, String>((ref, herdId) async {
-  final user = ref.watch(authProvider);
+  final user = ref.read(authProvider);
   if (user == null) return null;
 
-  final repository = ref.watch(herdRepositoryProvider);
+  final repository = ref.read(herdRepositoryProvider);
   final doc = await repository.herdMembers(herdId).doc(user.uid).get();
 
   if (!doc.exists) return null;

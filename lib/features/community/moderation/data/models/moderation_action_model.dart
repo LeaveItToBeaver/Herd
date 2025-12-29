@@ -99,6 +99,7 @@ enum ModActionType {
   addModerator,
   addAdmin,
   removeModerator,
+  removeAdmin,
   transferOwnership,
 
   // Report handling
@@ -163,6 +164,8 @@ extension ModActionTypeExtension on ModActionType {
         return 'Added Admin';
       case ModActionType.removeModerator:
         return 'Removed Moderator';
+      case ModActionType.removeAdmin:
+        return 'Removed Admin';
       case ModActionType.transferOwnership:
         return 'Transferred Ownership';
       case ModActionType.reviewReport:
@@ -208,6 +211,7 @@ extension ModActionTypeExtension on ModActionType {
       case ModActionType.addModerator:
       case ModActionType.addAdmin:
       case ModActionType.removeModerator:
+      case ModActionType.removeAdmin:
         return Icons.admin_panel_settings;
       case ModActionType.transferOwnership:
         return Icons.swap_horiz;
