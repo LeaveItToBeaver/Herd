@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/community/moderation/view/widgets/batch_action_sheet_widget.dart';
 import 'package:herdapp/features/community/moderation/view/widgets/member_action_sheet_widget.dart';
 import 'package:herdapp/features/community/moderation/view/widgets/member_tile_widget.dart';
-import 'package:herdapp/features/community/moderation/view/providers/role_providers.dart';
+import 'package:herdapp/features/community/moderation/view/providers/role_providers.dart'
+    show PermissionRequest, hasPermissionProvider;
 import 'package:herdapp/features/community/moderation/data/models/herd_role.dart'
     show HerdPermission;
 import '../../../herds/data/models/herd_member_info.dart';

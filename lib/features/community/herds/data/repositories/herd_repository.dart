@@ -490,26 +490,26 @@ class HerdRepository {
           final userDoc =
               await _firestore.collection('users').doc(memberId).get();
 
-        if (userDoc.exists) {
-          final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
-          final role = _parseRole(memberData);
+          if (userDoc.exists) {
+            final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
+            final role = _parseRole(memberData);
 
-          membersInfo.add(HerdMemberInfo(
-            userId: user.id,
-            username: user.username,
-            altUsername: user.altUsername,
-            profileImageURL: user.profileImageURL,
-            altProfileImageURL: user.altProfileImageURL,
-            isVerified: user.isVerified,
-            joinedAt: _parseDateTime(memberData['joinedAt']),
-            isModerator:
-                memberData['isModerator'] ?? role.hasAtLeast(HerdRole.moderator),
-            role: role,
-            userPoints: user.userPoints,
-            altUserPoints: user.altUserPoints,
-            isActive: user.isActive,
-            bio: user.bio,
-            altBio: user.altBio,
+            membersInfo.add(HerdMemberInfo(
+              userId: user.id,
+              username: user.username,
+              altUsername: user.altUsername,
+              profileImageURL: user.profileImageURL,
+              altProfileImageURL: user.altProfileImageURL,
+              isVerified: user.isVerified,
+              joinedAt: _parseDateTime(memberData['joinedAt']),
+              isModerator: memberData['isModerator'] ??
+                  role.hasAtLeast(HerdRole.moderator),
+              role: role,
+              userPoints: user.userPoints,
+              altUserPoints: user.altUserPoints,
+              isActive: user.isActive,
+              bio: user.bio,
+              altBio: user.altBio,
             ));
           }
         } catch (e) {
