@@ -55,9 +55,6 @@ class PermissionMatrix {
         permissions.addAll(_matrix[r] ?? {});
       }
     }
-    if (role == HerdRole.owner) {
-      permissions.addAll(HerdPermission.values);
-    }
     return permissions;
   }
 }

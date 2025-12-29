@@ -25,10 +25,7 @@ class RoleRepository {
       throw Exception('User is not a member of this herd');
     }
 
-    final currentRole = HerdRole.values.firstWhere(
-      (r) => r.name == targetDoc.data()?['role'],
-      orElse: () => HerdRole.member,
-    );
+    final currentRole = _parseRole(targetDoc.data());
 
     if (!performerRole.outranks(newRole)) {
       throw Exception('Cannot assign a role equal to or higher than your own');
@@ -55,7 +52,7 @@ class RoleRepository {
       },
     );
 
-    final actionId = _firestore.collection('dummy').doc().id;
+    final actionId = _firestore.collection('moderationLogs').doc().id;
     final actionType = newRole.level > currentRole.level
         ? _getPromotionActionType(newRole)
         : _getDemotionActionType(currentRole);
@@ -112,6 +109,20 @@ class RoleRepository {
       default:
         return ModActionType.unknown;
     }
+  }
+
+  HerdRole _parseRole(Map<String, dynamic>? data) {
+    final roleValue = data?['role'] as String?;
+    if (roleValue != null) {
+      return HerdRole.values.firstWhere(
+        (r) => r.name == roleValue,
+        orElse: () => HerdRole.member,
+      );
+    }
+    if (data?['isModerator'] == true) {
+      return HerdRole.moderator;
+    }
+    return HerdRole.member;
   }
 
   ModActionType _getDemotionActionType(HerdRole oldRole) {
