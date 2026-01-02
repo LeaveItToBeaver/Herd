@@ -91,6 +91,14 @@
            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
         );
 
+        // Allow users to delete their own membership (leave herd)
+        // Handle both new role system and legacy isModerator field
+        // Prevent owners from leaving (they must transfer ownership first)
+        allow delete: if isOwner(userId) && (
+          // New system: check role field
+          (!('role' in resource.data.keys()) || resource.data.role != 'owner')
+        );
+
         // Allow moderators to remove members (delete)
         // But only if target has lower role
         allow delete: if isHerdModerator(herdId) && (
@@ -128,6 +136,11 @@
 
         // Users can create their own join request
         allow create: if isOwner(userId) &&
+                         request.resource.data.status == 'pending';
+
+        // Users can resubmit after rejection (update rejected → pending)
+        allow update: if isOwner(userId) &&
+                         resource.data.status == 'rejected' &&
                          request.resource.data.status == 'pending';
 
         // Users can delete/cancel their own pending request

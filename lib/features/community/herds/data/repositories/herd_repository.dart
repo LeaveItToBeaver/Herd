@@ -187,6 +187,12 @@ class HerdRepository {
             'Creators cannot leave their herds. Transfer ownership or delete the herd instead.');
       }
 
+      // Debug: Check member data before deleting
+      final memberDoc = await herdMembers(herdId).doc(userId).get();
+      debugPrint('=== LEAVE HERD DEBUG ===');
+      debugPrint('Member doc exists: ${memberDoc.exists}');
+      debugPrint('Member data: ${memberDoc.data()}');
+
       await herdMembers(herdId).doc(userId).delete();
 
       await userHerds(userId).doc(herdId).delete();
@@ -792,15 +798,39 @@ class HerdRepository {
 
   Future<void> _createJoinRequest(String herdId, String userId) async {
     try {
+      // Check if request already exists
+      final requestDoc = await _firestore
+          .collection('herdJoinRequests')
+          .doc(herdId)
+          .collection('requests')
+          .doc(userId)
+          .get();
+
+      if (requestDoc.exists) {
+        final data = requestDoc.data();
+        final status = data?['status'] as String?;
+
+        if (status == 'pending') {
+          debugPrint('Join request already pending for herd $herdId');
+          return; // Already have a pending request
+        } else if (status == 'rejected') {
+          // Allow resubmitting after rejection
+          debugPrint('Resubmitting rejected join request for herd $herdId');
+        }
+      }
+
       await _firestore
           .collection('herdJoinRequests')
           .doc(herdId)
           .collection('requests')
           .doc(userId)
           .set({
+        'userId': userId,
         'requestedAt': FieldValue.serverTimestamp(),
         'status': 'pending',
       });
+
+      debugPrint('Join request created successfully for herd $herdId');
     } catch (e, stackTrace) {
       debugPrint('_createJoinRequest error: $e\nStack: $stackTrace');
       rethrow;
