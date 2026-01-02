@@ -337,7 +337,7 @@ final class ModerationControllerProvider
 }
 
 String _$moderationControllerHash() =>
-    r'06babc84141df541aa76396a211d35117a65a711';
+    r'dc56cacde82753c36cc93eb41c8f650c02fb107b';
 
 abstract class _$ModerationController extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();

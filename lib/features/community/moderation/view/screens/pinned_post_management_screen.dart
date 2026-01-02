@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/community/moderation/view/providers/pinned_post_management_providers.dart';
+import 'package:herdapp/features/community/moderation/view/providers/role_providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 
@@ -17,6 +18,7 @@ class PinnedPostsManagementScreen extends ConsumerWidget {
     final herdAsync = ref.watch(herdProvider(herdId));
     final pinnedPostsAsync = ref.watch(herdPinnedPostsBatchProvider(herdId));
     final currentUser = ref.watch(authProvider);
+    final canModerateAsync = ref.watch(canModerateProvider(herdId));
 
     return herdAsync.when(
       loading: () => const Scaffold(
@@ -33,21 +35,39 @@ class PinnedPostsManagementScreen extends ConsumerWidget {
           );
         }
 
-        final isModerator = herd.isModerator(currentUser.uid) ||
-            herd.isCreator(currentUser.uid);
+        return canModerateAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, __) => const Scaffold(
+            body: Center(child: Text('Error loading permissions')),
+          ),
+          data: (canModerate) {
+            if (!canModerate) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Pinned Posts')),
+                body: const Center(
+                  child: Text('Only moderators and owners can manage pinned posts'),
+                ),
+              );
+            }
 
-        if (!isModerator) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Pinned Posts')),
-            body: const Center(
-              child: Text('Only moderators and owners can manage pinned posts'),
-            ),
-          );
-        }
+            return _buildPinnedPostsScreen(context, ref, herd, pinnedPostsAsync);
+          },
+        );
+      },
+    );
+  }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Column(
+  Widget _buildPinnedPostsScreen(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic herd,
+    AsyncValue<List<PostModel>> pinnedPostsAsync,
+  ) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -109,8 +129,6 @@ class PinnedPostsManagementScreen extends ConsumerWidget {
             },
           ),
         );
-      },
-    );
   }
 
   Widget _buildPinnedPostCard(

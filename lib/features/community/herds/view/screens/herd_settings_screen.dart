@@ -8,6 +8,7 @@ import '../providers/herd_providers.dart';
 import '../../../moderation/view/screens/moderation_dashboard_screen.dart';
 import '../../../moderation/view/screens/member_management_screen.dart';
 import '../../../moderation/view/screens/moderation_log_screen.dart';
+import '../../../moderation/view/providers/role_providers.dart';
 import 'moderator_management_screen.dart';
 import 'banned_users_screen.dart';
 
@@ -20,6 +21,8 @@ class HerdSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final herdAsync = ref.watch(herdProvider(herd.id));
     final currentUser = ref.watch(authProvider);
+    final isOwnerAsync = ref.watch(isOwnerProvider(herd.id));
+    final canModerateAsync = ref.watch(canModerateProvider(herd.id));
 
     return herdAsync.when(
       loading: () => const Scaffold(
@@ -36,43 +39,70 @@ class HerdSettingsScreen extends ConsumerWidget {
           );
         }
 
-        final isOwner = herd.isCreator(currentUser.uid);
-        final isModerator = herd.isModerator(currentUser.uid);
-
-        if (!isOwner && !isModerator) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Herd Info')),
-            body: _buildMemberView(context, herd),
-          );
-        }
-
-        return DefaultTabController(
-          length: isOwner ? 4 : 3,
-          child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Herd Settings'),
-              bottom: TabBar(
-                isScrollable: true,
-                tabs: [
-                  if (isOwner)
-                    const Tab(text: 'General', icon: Icon(Icons.settings)),
-                  const Tab(text: 'Moderation', icon: Icon(Icons.shield)),
-                  const Tab(text: 'Members', icon: Icon(Icons.people)),
-                  const Tab(text: 'Activity', icon: Icon(Icons.history)),
-                ],
-              ),
-            ),
-            body: TabBarView(
-              children: [
-                if (isOwner) _buildGeneralTab(context, ref, herd),
-                _buildModerationTab(context, ref, herd, isOwner),
-                _buildMembersTab(context, ref, herd, isOwner),
-                _buildActivityTab(context, ref, herd),
-              ],
-            ),
+        return isOwnerAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           ),
+          error: (_, __) => const Scaffold(
+            body: Center(child: Text('Error loading permissions')),
+          ),
+          data: (isOwner) {
+            return canModerateAsync.when(
+              loading: () => const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const Scaffold(
+                body: Center(child: Text('Error loading permissions')),
+              ),
+              data: (canModerate) {
+                if (!isOwner && !canModerate) {
+                  return Scaffold(
+                    appBar: AppBar(title: const Text('Herd Info')),
+                    body: _buildMemberView(context, herd),
+                  );
+                }
+
+                return _buildModeratorView(context, ref, herd, isOwner, canModerate);
+              },
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildModeratorView(
+    BuildContext context,
+    WidgetRef ref,
+    HerdModel herd,
+    bool isOwner,
+    bool canModerate,
+  ) {
+    return DefaultTabController(
+      length: isOwner ? 4 : 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Herd Settings'),
+          bottom: TabBar(
+            isScrollable: true,
+            tabs: [
+              if (isOwner)
+                const Tab(text: 'General', icon: Icon(Icons.settings)),
+              const Tab(text: 'Moderation', icon: Icon(Icons.shield)),
+              const Tab(text: 'Members', icon: Icon(Icons.people)),
+              const Tab(text: 'Activity', icon: Icon(Icons.history)),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            if (isOwner) _buildGeneralTab(context, ref, herd),
+            _buildModerationTab(context, ref, herd, isOwner),
+            _buildMembersTab(context, ref, herd, isOwner),
+            _buildActivityTab(context, ref, herd),
+          ],
+        ),
+      ),
     );
   }
 

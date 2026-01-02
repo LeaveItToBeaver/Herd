@@ -1,10 +1,12 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:herdapp/features/community/moderation/data/models/moderation_action_model.dart';
+import 'package:herdapp/features/community/moderation/data/models/herd_role.dart';
 import '../../data/repositories/moderation_repository.dart';
 import '../../data/models/report_model.dart';
 import '../../../herds/view/providers/herd_providers.dart';
 import '../../../../user/auth/view/providers/auth_provider.dart';
+import 'role_providers.dart';
 
 part 'moderation_providers.g.dart';
 
@@ -305,6 +307,43 @@ class ModerationController extends _$ModerationController {
       if (herdId != null) {
         ref.invalidate(herdPendingReportsProvider(herdId));
       }
+
+      state = const AsyncValue.data(null);
+    } catch (e, stack) {
+      if (!ref.mounted) return;
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> transferOwnership({
+    required String herdId,
+    required String newOwnerId,
+  }) async {
+    state = const AsyncValue.loading();
+
+    final currentUser = ref.read(authProvider);
+    if (currentUser == null) {
+      state = AsyncValue.error('Not authenticated', StackTrace.current);
+      return;
+    }
+
+    try {
+      final roleRepository = ref.read(roleRepositoryProvider);
+      await roleRepository.changeUserRole(
+        herdId: herdId,
+        targetUserId: newOwnerId,
+        newRole: HerdRole.owner,
+        performedBy: currentUser.uid,
+        performerRole: HerdRole.owner,
+      );
+
+      if (!ref.mounted) return;
+
+      // Refresh all relevant providers
+      ref.invalidate(herdProvider(herdId));
+      ref.invalidate(herdMembersProvider(herdId));
+      ref.invalidate(currentUserRoleProvider(herdId));
+      ref.invalidate(currentUserHerdMembershipProvider(herdId));
 
       state = const AsyncValue.data(null);
     } catch (e, stack) {

@@ -54,6 +54,9 @@ class MemberActionSheet extends ConsumerWidget {
             PermissionMatrix.hasPermission(role, HerdPermission.banUser);
         final canRemove = canActOnMember &&
             PermissionMatrix.hasPermission(role, HerdPermission.kickUser);
+        final canTransferOwnership = !isSelf &&
+            role == HerdRole.owner &&
+            PermissionMatrix.hasPermission(role, HerdPermission.transferOwnership);
 
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -127,6 +130,18 @@ class MemberActionSheet extends ConsumerWidget {
                     if (uid != null) {
                       _showRemoveDialogWithDeps(context, repo, uid);
                     }
+                  },
+                ),
+              if (canTransferOwnership)
+                ListTile(
+                  leading: const Icon(Icons.swap_horiz, color: Colors.purple),
+                  title: const Text('Transfer Ownership'),
+                  subtitle: const Text('Make this user the new owner'),
+                  onTap: () {
+                    final controller =
+                        ref.read(moderationControllerProvider.notifier);
+                    Navigator.pop(context);
+                    _showTransferOwnershipDialog(context, controller);
                   },
                 ),
               const Divider(),
@@ -339,6 +354,74 @@ class MemberActionSheet extends ConsumerWidget {
               }
             },
             child: const Text('Remove User'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTransferOwnershipDialog(
+      BuildContext context, ModerationController moderationController) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Transfer Ownership to ${member.displayUsername}?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action is irreversible. You will be demoted to Admin and lose owner privileges.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text('${member.displayUsername} will become the new owner of this herd.'),
+            const SizedBox(height: 8),
+            const Text(
+              'As an Admin, you will retain moderation abilities but cannot:',
+            ),
+            const SizedBox(height: 4),
+            const Text('  • Delete the herd'),
+            const Text('  • Transfer ownership'),
+            const Text('  • Promote users to Admin'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final username = member.displayUsername;
+
+              navigator.pop();
+
+              try {
+                await moderationController.transferOwnership(
+                  herdId: herdId,
+                  newOwnerId: member.userId,
+                );
+
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Ownership transferred to $username'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to transfer ownership: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Transfer Ownership'),
           ),
         ],
       ),

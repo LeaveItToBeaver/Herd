@@ -79,3 +79,23 @@ final currentUserRoleStreamProvider =
     );
   });
 });
+
+/// Check if current user has at least moderator role (can perform moderation actions)
+final canModerateProvider = FutureProvider.family<bool, String>((ref, herdId) async {
+  final role = await ref.watch(currentUserRoleProvider(herdId).future);
+  if (role == null) return false;
+  return role.hasAtLeast(HerdRole.moderator);
+});
+
+/// Check if current user has at least admin role
+final isAdminProvider = FutureProvider.family<bool, String>((ref, herdId) async {
+  final role = await ref.watch(currentUserRoleProvider(herdId).future);
+  if (role == null) return false;
+  return role.hasAtLeast(HerdRole.admin);
+});
+
+/// Check if current user is the owner
+final isOwnerProvider = FutureProvider.family<bool, String>((ref, herdId) async {
+  final role = await ref.watch(currentUserRoleProvider(herdId).future);
+  return role == HerdRole.owner;
+});

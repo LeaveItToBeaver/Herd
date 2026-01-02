@@ -46,6 +46,7 @@ class RoleRepository {
     final batch = _firestore.batch();
     final now = DateTime.now();
 
+    // Update target user's role
     batch.update(
       _herdRepository.herdMembers(herdId).doc(targetUserId),
       {
@@ -81,6 +82,54 @@ class RoleRepository {
         },
       ).toMap(),
     );
+
+    // Handle ownership transfer: demote current owner to admin
+    if (newRole == HerdRole.owner) {
+      // Demote the current owner (performer) to admin
+      batch.update(
+        _herdRepository.herdMembers(herdId).doc(performedBy),
+        {
+          'role': HerdRole.admin.name,
+          'roleChangedAt': Timestamp.fromDate(now),
+          'isModerator': true,
+        },
+      );
+
+      // Update herd document with new owner
+      batch.update(
+        _firestore.collection('herds').doc(herdId),
+        {
+          'creatorId': targetUserId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      // Log the demotion of the previous owner
+      final demotionActionId = _firestore.collection('moderationLogs').doc().id;
+      batch.set(
+        _firestore
+            .collection('moderationLogs')
+            .doc(herdId)
+            .collection('actions')
+            .doc(demotionActionId),
+        ModerationAction(
+          actionId: demotionActionId,
+          performedBy: performedBy,
+          timestamp: now,
+          actionType: ModActionType.removeAdmin,
+          targetId: performedBy,
+          targetType: ModTargetType.user,
+          reason: 'Automatically demoted to admin after transferring ownership',
+          metadata: {
+            'herdId': herdId,
+            'previousRole': HerdRole.owner.name,
+            'newRole': HerdRole.admin.name,
+            'relatedAction': 'ownershipTransfer',
+            'newOwnerId': targetUserId,
+          },
+        ).toMap(),
+      );
+    }
 
     // Update moderatorIds array for backward compatibility
     if (newRole.hasAtLeast(HerdRole.moderator)) {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../user/auth/view/providers/auth_provider.dart';
 import '../providers/herd_providers.dart';
+import '../../../moderation/view/providers/role_providers.dart';
 // ignore: unused_import
 import '../../data/models/banned_user_info.dart';
 
@@ -15,6 +16,7 @@ class BannedUsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final herdAsync = ref.watch(herdProvider(herdId));
     final currentUser = ref.watch(authProvider);
+    final canModerateAsync = ref.watch(canModerateProvider(herdId));
 
     return herdAsync.when(
       loading: () => const Scaffold(
@@ -31,60 +33,85 @@ class BannedUsersScreen extends ConsumerWidget {
           );
         }
 
-        final isOwner = herd.isCreator(currentUser.uid);
-        final isModerator = herd.isModerator(currentUser.uid);
-
-        if (!isOwner && !isModerator) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Banned Users')),
-            body: const Center(
-              child: Text('Only moderators can view banned users'),
-            ),
-          );
-        }
-
-        // Tip: heavy debug calls removed from build to avoid repeated queries
-
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Banned Users'),
+        return canModerateAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.block, color: Colors.red, size: 32),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Banned Users',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              Text(
-                                '${herd.bannedUserIds.length} users banned',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
+          error: (_, __) => const Scaffold(
+            body: Center(child: Text('Error loading permissions')),
+          ),
+          data: (canModerate) {
+            if (!canModerate) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Banned Users')),
+                body: const Center(
+                  child: Text('Only moderators can view banned users'),
+                ),
+              );
+            }
+
+            // Get isOwner status
+            final isOwnerAsync = ref.watch(isOwnerProvider(herdId));
+            return isOwnerAsync.when(
+              loading: () => const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const Scaffold(
+                body: Center(child: Text('Error loading permissions')),
+              ),
+              data: (isOwner) {
+                // Tip: heavy debug calls removed from build to avoid repeated queries
+
+                return Scaffold(
+                  appBar: AppBar(
+                    title: const Text('Banned Users'),
+                  ),
+                  body: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.block,
+                                    color: Colors.red, size: 32),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Banned Users',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge,
+                                      ),
+                                      Text(
+                                        '${herd.bannedUserIds.length} users banned',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Expanded(
+                        child: _buildBannedUsersList(context, ref, herd, isOwner),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              Expanded(
-                child: _buildBannedUsersList(context, ref, herd, isOwner),
-              ),
-            ],
-          ),
+                );
+              },
+            );
+          },
         );
       },
     );
@@ -227,14 +254,14 @@ class BannedUsersScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        if (isOwner ||
-                            herd.isModerator(ref.read(authProvider)?.uid ?? ''))
-                          const PopupMenuItem(
-                            value: 'unban',
-                            child: Row(
-                              children: [
-                                Icon(Icons.undo, color: Colors.green),
-                                SizedBox(width: 8),
+                        // User can unban if they're owner or moderator
+                        // Since we're already in a screen that requires canModerate, this is always true
+                        const PopupMenuItem(
+                          value: 'unban',
+                          child: Row(
+                            children: [
+                              Icon(Icons.undo, color: Colors.green),
+                              SizedBox(width: 8),
                                 Text('Unban User',
                                     style: TextStyle(color: Colors.green)),
                               ],
