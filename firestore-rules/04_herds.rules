@@ -114,3 +114,29 @@
       // Allow moderators to remove users from herds
       allow delete: if isHerdAdmin(herdId);
     }
+
+    // =====================================================================
+    //  Herd Join Requests (for private herds)
+    // =====================================================================
+
+    match /herdJoinRequests/{herdId} {
+      allow read: if isHerdAdmin(herdId);
+
+      match /requests/{userId} {
+        // Users can read their own join request
+        allow read: if isOwner(userId) || isHerdAdmin(herdId);
+
+        // Users can create their own join request
+        allow create: if isOwner(userId) &&
+                         request.resource.data.status == 'pending';
+
+        // Users can delete/cancel their own pending request
+        allow delete: if isOwner(userId) && resource.data.status == 'pending';
+
+        // Admins can update request status (approve/reject)
+        allow update: if isHerdAdmin(herdId);
+
+        // Admins can delete requests (cleanup after approval/rejection)
+        allow delete: if isHerdAdmin(herdId);
+      }
+    }

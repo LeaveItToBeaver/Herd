@@ -132,7 +132,7 @@ final class PublicFeedStateNotifierProvider
 }
 
 String _$publicFeedStateNotifierHash() =>
-    r'b7ff018eb6453df07c4ecc4074acacb317b14a1a';
+    r'af88a8eebfb8e0e8c741503b955d6bf79d3a99f9';
 
 /// Riverpod-native public feed state + actions.
 /// Uses keepAlive: true to persist state across navigation.

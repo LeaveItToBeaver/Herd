@@ -28,7 +28,8 @@ CacheManager publicFeedCacheManager(Ref ref) {
 /// Uses keepAlive: true to persist state across navigation.
 @Riverpod(keepAlive: true)
 class PublicFeedStateNotifier extends _$PublicFeedStateNotifier {
-  late final PublicFeedController _controller;
+  // Changed from `late final` to nullable to allow re-initialization on rebuild
+  PublicFeedController? _controller;
 
   /// Default staleness threshold (1 hour)
   static const Duration _stalenessThreshold = Duration(hours: 1);
@@ -39,15 +40,30 @@ class PublicFeedStateNotifier extends _$PublicFeedStateNotifier {
     final repository = ref.watch(feedRepositoryProvider);
     final cacheManager = ref.watch(publicFeedCacheManagerProvider);
 
+    // Dispose old controller if it exists before creating a new one
+    _controller?.dispose();
+
     _controller = PublicFeedController(
       repository,
       user?.uid ?? '',
       cacheManager,
       ref,
     );
-    ref.onDispose(_controller.dispose);
+    ref.onDispose(() {
+      _controller?.dispose();
+      _controller = null;
+    });
 
     return PublicFeedState.initial();
+  }
+
+  /// Get the controller, throwing if it's null (should never happen during normal operation)
+  PublicFeedController get _safeController {
+    final controller = _controller;
+    if (controller == null) {
+      throw StateError('PublicFeedController accessed before initialization');
+    }
+    return controller;
   }
 
   /// Check if current state has valid cached data
@@ -71,32 +87,32 @@ class PublicFeedStateNotifier extends _$PublicFeedStateNotifier {
     }
 
     state = state.copyWith(isLoading: true, error: null);
-    await _controller.loadInitialPosts(
+    await _safeController.loadInitialPosts(
         overrideUserId: overrideUserId, forceRefresh: forceRefresh);
 
     // Update lastFetchedAt after successful load
-    state = _controller.state.copyWith(lastFetchedAt: DateTime.now());
+    state = _safeController.state.copyWith(lastFetchedAt: DateTime.now());
   }
 
   Future<void> loadMorePosts() async {
     // Preserve current posts; controller contains pagination values.
     state = state.copyWith(isLoading: true, error: null);
-    await _controller.loadMorePosts();
-    state = _controller.state;
+    await _safeController.loadMorePosts();
+    state = _safeController.state;
   }
 
   Future<void> refreshFeed() async {
     state = state.copyWith(isRefreshing: true, error: null);
-    await _controller.refreshFeed();
+    await _safeController.refreshFeed();
     // Update lastFetchedAt after refresh
-    state = _controller.state.copyWith(lastFetchedAt: DateTime.now());
+    state = _safeController.state.copyWith(lastFetchedAt: DateTime.now());
   }
 
   Future<void> changeSortType(FeedSortType newSortType) async {
     state = state.copyWith(
         sortType: newSortType, isLoading: true, error: null, posts: []);
-    await _controller.changeSortType(newSortType);
+    await _safeController.changeSortType(newSortType);
     // Update lastFetchedAt after sort change
-    state = _controller.state.copyWith(lastFetchedAt: DateTime.now());
+    state = _safeController.state.copyWith(lastFetchedAt: DateTime.now());
   }
 }

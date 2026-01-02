@@ -132,7 +132,7 @@ final class AltFeedStateNotifierProvider
 }
 
 String _$altFeedStateNotifierHash() =>
-    r'9a443a686b89015a52468a9ef5b711607c0c1381';
+    r'6b2cb04faa0850c3ea8b16b57ca01fde3a2f324a';
 
 /// Riverpod-native alt feed state + actions.
 /// Uses keepAlive: true to persist state across navigation.

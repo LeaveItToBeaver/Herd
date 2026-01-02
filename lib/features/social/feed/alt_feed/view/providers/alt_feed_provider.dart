@@ -28,7 +28,8 @@ CacheManager altFeedCacheManager(Ref ref) {
 /// Uses keepAlive: true to persist state across navigation.
 @Riverpod(keepAlive: true)
 class AltFeedStateNotifier extends _$AltFeedStateNotifier {
-  late final AltFeedController _controller;
+  // Changed from `late final` to nullable to allow re-initialization on rebuild
+  AltFeedController? _controller;
 
   /// Default staleness threshold (1 hour)
   static const Duration _stalenessThreshold = Duration(hours: 1);
@@ -39,15 +40,30 @@ class AltFeedStateNotifier extends _$AltFeedStateNotifier {
     final repository = ref.watch(altFeedRepositoryProvider);
     final cacheManager = ref.watch(altFeedCacheManagerProvider);
 
+    // Dispose old controller if it exists before creating a new one
+    _controller?.dispose();
+
     _controller = AltFeedController(
       repository,
       user?.uid,
       cacheManager,
       ref,
     );
-    ref.onDispose(_controller.dispose);
+    ref.onDispose(() {
+      _controller?.dispose();
+      _controller = null;
+    });
 
     return AltFeedState.initial();
+  }
+
+  /// Get the controller, throwing if it's null (should never happen during normal operation)
+  AltFeedController get _safeController {
+    final controller = _controller;
+    if (controller == null) {
+      throw StateError('AltFeedController accessed before initialization');
+    }
+    return controller;
   }
 
   /// Check if current state has valid cached data
@@ -59,7 +75,7 @@ class AltFeedStateNotifier extends _$AltFeedStateNotifier {
     return age < _stalenessThreshold;
   }
 
-  bool get showHerdPosts => _controller.showHerdPosts;
+  bool get showHerdPosts => _safeController.showHerdPosts;
 
   Future<void> loadInitialPosts({
     String? overrideUserId,
@@ -73,37 +89,37 @@ class AltFeedStateNotifier extends _$AltFeedStateNotifier {
     }
 
     state = state.copyWith(isLoading: true, error: null);
-    await _controller.loadInitialPosts(
+    await _safeController.loadInitialPosts(
         overrideUserId: overrideUserId, forceRefresh: forceRefresh);
 
     // Update lastFetchedAt after successful load
-    state = _controller.state.copyWith(lastFetchedAt: DateTime.now());
+    state = _safeController.state.copyWith(lastFetchedAt: DateTime.now());
   }
 
   Future<void> loadMorePosts() async {
     state = state.copyWith(isLoading: true, error: null);
-    await _controller.loadMorePosts();
-    state = _controller.state;
+    await _safeController.loadMorePosts();
+    state = _safeController.state;
   }
 
   Future<void> refreshFeed() async {
     state = state.copyWith(isRefreshing: true, error: null);
-    await _controller.refreshFeed();
+    await _safeController.refreshFeed();
     // Update lastFetchedAt after refresh
-    state = _controller.state.copyWith(lastFetchedAt: DateTime.now());
+    state = _safeController.state.copyWith(lastFetchedAt: DateTime.now());
   }
 
   Future<void> changeSortType(FeedSortType newSortType) async {
     state = state.copyWith(
         sortType: newSortType, isLoading: true, error: null, posts: []);
-    await _controller.changeSortType(newSortType);
+    await _safeController.changeSortType(newSortType);
     // Update lastFetchedAt after sort change
-    state = _controller.state.copyWith(lastFetchedAt: DateTime.now());
+    state = _safeController.state.copyWith(lastFetchedAt: DateTime.now());
   }
 
   void toggleHerdPostsFilter(bool show) {
-    _controller.toggleHerdPostsFilter(show);
+    _safeController.toggleHerdPostsFilter(show);
     // Controller will refresh internally; reflect whatever it has right now.
-    state = _controller.state;
+    state = _safeController.state;
   }
 }

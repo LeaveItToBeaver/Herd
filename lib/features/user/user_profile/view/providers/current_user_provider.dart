@@ -17,7 +17,8 @@ class CurrentUser extends _$CurrentUser {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String? _lastUserId; // Track last user ID to detect user changes
-  StreamSubscription<User?>? _authSubscription; // Track subscription for proper cleanup
+  StreamSubscription<User?>?
+      _authSubscription; // Track subscription for proper cleanup
 
   @override
   Future<UserModel?> build() async {
@@ -48,6 +49,8 @@ class CurrentUser extends _$CurrentUser {
   }
 
   Future<void> fetchCurrentUser() async {
+    // Check if mounted before setting loading state
+    if (!ref.mounted) return;
     state = const AsyncValue.loading();
     try {
       final firebaseUser = _auth.currentUser;
