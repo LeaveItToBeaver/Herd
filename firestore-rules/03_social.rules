@@ -1,0 +1,29 @@
+    // =====================================================================
+    //  Social & Connections
+    // =====================================================================
+
+    match /following/{userId}/userFollowing/{followedUserId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    match /followers/{userId}/userFollowers/{followerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == followerId;
+    }
+
+    match /altConnectionRequests/{userId}/requests/{requesterId} {
+      allow read, update, delete: if isOwner(userId) || isOwner(requesterId);
+      allow create: if isOwner(requesterId);
+    }
+
+    match /altConnections/{userId}/userConnections/{connectionId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isOwner(connectionId);
+    }
+
+    match /userBlocks/{userId}/usersBlocked/{blockedUserId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && userId != blockedUserId;
+      allow delete: if isOwner(userId);
+    }

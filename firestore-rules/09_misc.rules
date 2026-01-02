@@ -1,0 +1,48 @@
+    // =====================================================================
+    //  E2EE Key Management
+    // =====================================================================
+
+    match /userKeys/{userId} {
+      // Anyone can read public keys (needed for E2EE encryption)
+      // but only the owner can write their own keys
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+
+      // Validate key structure on create/update
+      allow create: if isOwner(userId) &&
+        request.resource.data.keys().hasAll(['publicKey', 'createdAt', 'userId']) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.publicKey is string &&
+        request.resource.data.createdAt is timestamp;
+
+      allow update: if isOwner(userId) &&
+        // Allow updating lastSyncedAt, version, and key rotation
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['lastSyncedAt', 'version', 'publicKey', 'createdAt']) &&
+        // Ensure userId cannot be changed
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.userId == request.auth.uid;
+    }
+
+    // =====================================================================
+    //  Notifications
+    // =====================================================================
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['isRead', 'readAt']);
+      allow delete: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+    }
+
+    // =====================================================================
+    //  Miscellaneous
+    // =====================================================================
+
+    match /exemptUserIds/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
