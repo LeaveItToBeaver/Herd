@@ -31,11 +31,11 @@ class Comments extends _$Comments {
   @override
   CommentState build(String postId) {
     _postId = postId;
-    _repository = ref.watch(commentRepositoryProvider);
+    _repository = ref.read(commentRepositoryProvider);
     final sortBy = ref.watch(commentSortProvider);
 
-    // Load initial comments
-    loadComments();
+    // Schedule the load after the build completes
+    Future.microtask(() => loadComments());
 
     return CommentState.initial().copyWith(sortBy: sortBy);
   }
@@ -67,6 +67,10 @@ class Comments extends _$Comments {
   }
 
   Future<void> loadComments() async {
+    if (kDebugMode) {
+      debugPrint('loadComments() called for post: $_postId');
+    }
+
     try {
       state = state.copyWith(isLoading: true, error: null);
 
@@ -76,8 +80,19 @@ class Comments extends _$Comments {
         limit: 30,
       );
 
+      if (kDebugMode) {
+        debugPrint(
+            'loadComments() fetched ${comments.length} comments, mounted: ${ref.mounted}');
+      }
+
       // Check if still mounted after async operation
-      if (!ref.mounted) return;
+      if (!ref.mounted) {
+        if (kDebugMode) {
+          debugPrint(
+              'loadComments() provider no longer mounted, skipping state update');
+        }
+        return;
+      }
 
       state = state.copyWith(
         comments: comments,
@@ -87,7 +102,15 @@ class Comments extends _$Comments {
             ? await _getLastDocument(comments.last.id)
             : null,
       );
+
+      if (kDebugMode) {
+        debugPrint('loadComments() state updated successfully');
+      }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('loadComments() error: $e');
+      }
+
       // Check if still mounted before updating error state
       if (!ref.mounted) return;
 

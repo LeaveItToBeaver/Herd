@@ -109,13 +109,6 @@
       }
     }
 
-    match /moderationLogs/{herdId}/actions/{actionId} {
-      allow read: if isAuthenticated();
-      allow create: if isHerdAdmin(herdId);
-      allow update: if false; // Logs should be immutable
-      allow delete: if false;
-    }
-
     match /userHerds/{userId}/following/{herdId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(userId);

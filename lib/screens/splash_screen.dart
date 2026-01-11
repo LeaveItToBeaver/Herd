@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
-import 'package:herdapp/core/barrels/screens.dart';
 
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
@@ -12,12 +12,22 @@ class SplashScreen extends ConsumerWidget {
 
     return authState.when(
       data: (user) {
-        if (user != null) {
-          // Pass the current user's ID to the ProfileScreen
-          return PublicProfileScreen(userId: user.uid);
-        } else {
-          return const LoginScreen();
-        }
+        // Use addPostFrameCallback to navigate after build completes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            if (user != null) {
+              context.go('/profile/${user.uid}');
+            } else {
+              context.go('/login');
+            }
+          }
+        });
+        // Show loading while redirecting
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
       },
       loading: () => const Scaffold(
         body: Center(

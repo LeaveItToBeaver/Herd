@@ -19,13 +19,13 @@ abstract class CommentState with _$CommentState {
   }) = _CommentState;
 
   factory CommentState.initial() => const CommentState(
-    comments: [],
-    isLoading: false,
-    hasMore: true,
-    sortBy: 'hot',
-    lastDocument: null,
-    error: null,
-  );
+        comments: [],
+        isLoading: true, // Start in loading state since we load on build
+        hasMore: true,
+        sortBy: 'hot',
+        lastDocument: null,
+        error: null,
+      );
 }
 
 // State for a thread of comments
@@ -49,8 +49,8 @@ abstract class ExpandedCommentsState with _$ExpandedCommentsState {
   }) = _ExpandedCommentsState;
 
   factory ExpandedCommentsState.initial() => const ExpandedCommentsState(
-    expandedCommentIds: {},
-  );
+        expandedCommentIds: {},
+      );
 }
 
 // State for comment interactions (like/dislike)

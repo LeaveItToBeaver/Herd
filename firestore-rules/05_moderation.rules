@@ -38,52 +38,28 @@
     match /herdBans/{herdId} {
       // List requests cannot depend on other documents; keep broad and gate per-doc reads
       allow list: if isAuthenticated();
-      // Reading the parent doc (rare) still requires admin
-      allow read: if isAuthenticated() && (
-        (exists(/databases/$(database)/documents/herds/$(herdId)) &&
-         getDoc('herds/' + herdId).data.creatorId == request.auth.uid) ||
-        (exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid)) &&
-         getDoc('herdMembers/' + herdId + '/members/' + request.auth.uid).data.isModerator == true)
-      );
+      // Reading the parent doc (rare) still requires moderator access
+      allow read: if isAuthenticated() && isHerdModerator(herdId);
 
       match /banned/{userId} {
         // Allow queries to run, but actual docs will be filtered by the read rule below
         allow list: if isAuthenticated();
-        // Per-document read requires herd admin (creator or moderator)
-        allow read: if isAuthenticated() && (
-          (exists(/databases/$(database)/documents/herds/$(herdId)) &&
-           getDoc('herds/' + herdId).data.creatorId == request.auth.uid) ||
-          (exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid)) &&
-           getDoc('herdMembers/' + herdId + '/members/' + request.auth.uid).data.isModerator == true)
-        );
-        // Writes still require admin
-        allow create, update, delete: if isAuthenticated() && (
-          (exists(/databases/$(database)/documents/herds/$(herdId)) &&
-           getDoc('herds/' + herdId).data.creatorId == request.auth.uid) ||
-          (exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid)) &&
-           getDoc('herdMembers/' + herdId + '/members/' + request.auth.uid).data.isModerator == true)
-        );
+        // Per-document read requires moderator access
+        allow read: if isAuthenticated() && isHerdModerator(herdId);
+        // Writes require moderator access
+        allow create, update, delete: if isAuthenticated() && isHerdModerator(herdId);
       }
     }
 
     match /moderationLogs/{herdId} {
       // Allow listing, but enforce per-doc reads below
       allow list: if isAuthenticated();
-      allow read: if isAuthenticated() && (
-        (exists(/databases/$(database)/documents/herds/$(herdId)) &&
-         getDoc('herds/' + herdId).data.creatorId == request.auth.uid) ||
-        (exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid)) &&
-         getDoc('herdMembers/' + herdId + '/members/' + request.auth.uid).data.isModerator == true)
-      );
+      allow read: if isAuthenticated() && isHerdModerator(herdId);
 
       match /actions/{actionId} {
         allow list: if isAuthenticated();
-        allow read, create: if isAuthenticated() && (
-          (exists(/databases/$(database)/documents/herds/$(herdId)) &&
-           getDoc('herds/' + herdId).data.creatorId == request.auth.uid) ||
-          (exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid)) &&
-           getDoc('herdMembers/' + herdId + '/members/' + request.auth.uid).data.isModerator == true)
-        );
+        // Allow moderators to read and write moderation logs
+        allow read, create, update: if isAuthenticated() && isHerdModerator(herdId);
       }
     }
 

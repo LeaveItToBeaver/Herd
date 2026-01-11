@@ -393,7 +393,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
                     CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
                     Text(
-                      'Initializing app...',
+                      'Loading app...',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
