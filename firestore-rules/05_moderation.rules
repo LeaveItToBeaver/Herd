@@ -66,10 +66,10 @@
     // Herd suspensions: allow moderators to suspend and manage suspensions
     match /herdSuspensions/{herdId} {
       allow list: if isAuthenticated();
-      allow read: if isHerdAdmin(herdId);
+      allow read: if isHerdModerator(herdId);
 
       match /suspended/{userId} {
         allow list: if isAuthenticated();
-        allow read, create, update: if isHerdAdmin(herdId);
+        allow read, create, update: if isHerdModerator(herdId);
       }
     }

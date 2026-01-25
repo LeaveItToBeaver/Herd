@@ -18,13 +18,34 @@
     //  Role-Based Access Control (RBAC) Functions
     // =====================================================================
 
+    // Check if user is the herd creator by checking the herd document
+    function isCreatorOf(herdId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/herds/$(herdId)) &&
+             get(/databases/$(database)/documents/herds/$(herdId)).data.creatorId == request.auth.uid;
+    }
+
+    // Get the member document for current user in a herd
+    function getMemberDoc(herdId) {
+      return get(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid));
+    }
+
+    // Check if member doc exists
+    function memberDocExists(herdId) {
+      return exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid));
+    }
+
     function getUserRole(herdId) {
-        // Get user's role from herdMembers collection
-        // Returns 'member' if not found or not authenticated
-        return isAuthenticated() &&
-               exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid))
-          ? getDoc('herdMembers/' + herdId + '/members/' + request.auth.uid).data.get('role', 'member')
-          : 'member';
+        // First: if user is herd creator, they're always owner
+        // Second: check role field on member doc
+        // Third: fall back to legacy isModerator field
+        // Default: member
+        return !isAuthenticated() ? 'member' :
+               isCreatorOf(herdId) ? 'owner' :
+               !memberDocExists(herdId) ? 'member' :
+               getMemberDoc(herdId).data.get('role', null) != null ? getMemberDoc(herdId).data.role :
+               getMemberDoc(herdId).data.get('isModerator', false) == true ? 'moderator' :
+               'member';
     }
 
     function hasRole(herdId, role) {
