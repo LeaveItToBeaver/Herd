@@ -47,17 +47,22 @@ class UICustomization extends _$UICustomization {
     final auth = ref.read(authProvider);
     if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(appTheme: theme));
+    }
+
     final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
       await repository.updateCustomization(auth.uid, {
         'appTheme': theme.toJson(),
       });
-
-      if (!ref.mounted) return;
-      // Refresh state
-      ref.invalidateSelf();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating app theme: $e');
+      // On error, reload from source to get accurate state
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -67,17 +72,22 @@ class UICustomization extends _$UICustomization {
     final auth = ref.read(authProvider);
     if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(
+          current.copyWith(profileCustomization: customization));
+    }
+
     final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
       await repository.updateCustomization(auth.uid, {
         'profileCustomization': customization.toJson(),
       });
-
-      if (!ref.mounted) return;
-      // Refresh state
-      ref.invalidateSelf();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating profile customization: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -86,17 +96,21 @@ class UICustomization extends _$UICustomization {
     final auth = ref.read(authProvider);
     if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(componentStyles: styles));
+    }
+
     final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
       await repository.updateCustomization(auth.uid, {
         'componentStyles': styles.toJson(),
       });
-
-      if (!ref.mounted) return;
-      // Refresh state
-      ref.invalidateSelf();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating component styles: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -105,17 +119,21 @@ class UICustomization extends _$UICustomization {
     final auth = ref.read(authProvider);
     if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(layoutPreferences: preferences));
+    }
+
     final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
       await repository.updateCustomization(auth.uid, {
         'layoutPreferences': preferences.toJson(),
       });
-
-      if (!ref.mounted) return;
-      // Refresh state
-      ref.invalidateSelf();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating layout preferences: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -124,17 +142,21 @@ class UICustomization extends _$UICustomization {
     final auth = ref.read(authProvider);
     if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(typography: typography));
+    }
+
     final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
       await repository.updateCustomization(auth.uid, {
         'typography': typography.toJson(),
       });
-
-      if (!ref.mounted) return;
-      // Refresh state
-      ref.invalidateSelf();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating typography: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -143,17 +165,21 @@ class UICustomization extends _$UICustomization {
     final auth = ref.read(authProvider);
     if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(animationSettings: animations));
+    }
+
     final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
       await repository.updateCustomization(auth.uid, {
         'animationSettings': animations.toJson(),
       });
-
-      if (!ref.mounted) return;
-      // Refresh state
-      ref.invalidateSelf();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating animation settings: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -192,8 +218,8 @@ class UICustomization extends _$UICustomization {
   }
 
   // Quick color update (for real-time color picker)
-  void updateColorInstant(String colorKey, Color color) async {
-    final current = await future;
+  void updateColorInstant(String colorKey, Color color) {
+    final current = state.value;
     if (current == null) return;
 
     // Create a copy with the updated color
@@ -217,7 +243,7 @@ class UICustomization extends _$UICustomization {
 
   // Commit color changes to Firebase
   Future<void> commitColorChanges() async {
-    final current = await future;
+    final current = state.value;
     if (current == null) return;
 
     await updateAppTheme(current.appTheme);

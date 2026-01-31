@@ -103,7 +103,7 @@ final class CommentsProvider extends $NotifierProvider<Comments, CommentState> {
   }
 }
 
-String _$commentsHash() => r'c6823e652e8dcb5f5f9db5e9557049287ece795e';
+String _$commentsHash() => r'03705edf2847367200a065867461765e27c1d5b8';
 
 final class CommentsFamily extends $Family
     with

@@ -13,7 +13,7 @@ part of 'user_settings_notifier.dart';
 const userSettingsProvider = UserSettingsFamily._();
 
 final class UserSettingsProvider
-    extends $NotifierProvider<UserSettings, UserSettingsState> {
+    extends $AsyncNotifierProvider<UserSettings, UserSettingsState> {
   const UserSettingsProvider._(
       {required UserSettingsFamily super.from, required String super.argument})
       : super(
@@ -38,14 +38,6 @@ final class UserSettingsProvider
   @override
   UserSettings create() => UserSettings();
 
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(UserSettingsState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<UserSettingsState>(value),
-    );
-  }
-
   @override
   bool operator ==(Object other) {
     return other is UserSettingsProvider && other.argument == argument;
@@ -57,12 +49,12 @@ final class UserSettingsProvider
   }
 }
 
-String _$userSettingsHash() => r'68eb2f64fa63f8b7e53b4064f7e4908486cb966c';
+String _$userSettingsHash() => r'2e67a2f269e5a3c3ba36d344b0011c3fa9560537';
 
 final class UserSettingsFamily extends $Family
     with
-        $ClassFamilyOverride<UserSettings, UserSettingsState, UserSettingsState,
-            UserSettingsState, String> {
+        $ClassFamilyOverride<UserSettings, AsyncValue<UserSettingsState>,
+            UserSettingsState, FutureOr<UserSettingsState>, String> {
   const UserSettingsFamily._()
       : super(
           retry: null,
@@ -81,11 +73,11 @@ final class UserSettingsFamily extends $Family
   String toString() => r'userSettingsProvider';
 }
 
-abstract class _$UserSettings extends $Notifier<UserSettingsState> {
+abstract class _$UserSettings extends $AsyncNotifier<UserSettingsState> {
   late final _$args = ref.$arg as String;
   String get userId => _$args;
 
-  UserSettingsState build(
+  FutureOr<UserSettingsState> build(
     String userId,
   );
   @$mustCallSuper
@@ -94,10 +86,11 @@ abstract class _$UserSettings extends $Notifier<UserSettingsState> {
     final created = build(
       _$args,
     );
-    final ref = this.ref as $Ref<UserSettingsState, UserSettingsState>;
+    final ref =
+        this.ref as $Ref<AsyncValue<UserSettingsState>, UserSettingsState>;
     final element = ref.element as $ClassProviderElement<
-        AnyNotifier<UserSettingsState, UserSettingsState>,
-        UserSettingsState,
+        AnyNotifier<AsyncValue<UserSettingsState>, UserSettingsState>,
+        AsyncValue<UserSettingsState>,
         Object?,
         Object?>;
     element.handleValue(ref, created);

@@ -13,40 +13,29 @@ class UserSettings extends _$UserSettings {
   final Map<String, Timer> _debounceTimers = {};
 
   @override
-  UserSettingsState build(String userId) {
-    // Load settings when created
-    _loadSettings(userId);
-    return UserSettingsState(isLoading: true);
-  }
-
-  Future<void> _loadSettings(String userId) async {
-    try {
-      state = state.copyWith(isLoading: true, errorMessage: null);
-
-      final repository = ref.read(userRepositoryProvider);
-      final userModel = await repository.getUserById(userId);
-
-      if (!ref.mounted) return;
-
-      if (userModel != null) {
-        final preferences = userModel.preferences;
-
-        state = state.copyWith(
-          allowNSFWContent: userModel.allowNSFW,
-          blurNSFWContent: preferences['blurNSFWContent'] ?? true,
-          showHerdsInAltFeed: userModel.showHerdPostsInAltFeed,
-          isOver18: preferences['isOver18'] ?? false,
-          preferences: preferences,
-          isLoading: false,
-        );
-      } else {
-        state =
-            state.copyWith(isLoading: false, errorMessage: 'User not found');
+  Future<UserSettingsState> build(String userId) async {
+    // Clean up timers when provider is disposed
+    ref.onDispose(() {
+      for (final timer in _debounceTimers.values) {
+        timer.cancel();
       }
-    } catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(
-          isLoading: false, errorMessage: 'Error loading settings: $e');
+      _debounceTimers.clear();
+    });
+
+    final repository = ref.read(userRepositoryProvider);
+    final userModel = await repository.getUserById(userId);
+
+    if (userModel != null) {
+      final preferences = userModel.preferences;
+      return UserSettingsState(
+        allowNSFWContent: userModel.allowNSFW,
+        blurNSFWContent: preferences['blurNSFWContent'] ?? true,
+        showHerdsInAltFeed: userModel.showHerdPostsInAltFeed,
+        isOver18: preferences['isOver18'] ?? false,
+        preferences: preferences,
+      );
+    } else {
+      throw Exception('User not found');
     }
   }
 
@@ -56,46 +45,53 @@ class UserSettings extends _$UserSettings {
     // Cancel existing timer if any
     _debounceTimers[key]?.cancel();
 
+    // Get current state or return if not loaded
+    final currentState = state.value;
+    if (currentState == null) return;
+
     // Mark this field as updating
-    final updatedFields = {...state.updatingFields};
+    final updatedFields = <String, bool>{...currentState.updatingFields};
     updatedFields[key] = true;
 
     // Update the local state immediately for responsive UI
-    final updatedPreferences = {...state.preferences};
+    final updatedPreferences = <String, dynamic>{...currentState.preferences};
     updatedPreferences[key] = value;
 
     // Update specific state fields based on the key
+    UserSettingsState newState;
     if (key == 'allowNSFWContent') {
-      state = state.copyWith(
+      newState = currentState.copyWith(
         allowNSFWContent: value as bool,
         preferences: updatedPreferences,
         updatingFields: updatedFields,
       );
     } else if (key == 'blurNSFWContent') {
-      state = state.copyWith(
+      newState = currentState.copyWith(
         blurNSFWContent: value as bool,
         preferences: updatedPreferences,
         updatingFields: updatedFields,
       );
     } else if (key == 'showHerdsInAltFeed') {
-      state = state.copyWith(
+      newState = currentState.copyWith(
         showHerdsInAltFeed: value as bool,
         preferences: updatedPreferences,
         updatingFields: updatedFields,
       );
     } else if (key == 'isOver18') {
-      state = state.copyWith(
+      newState = currentState.copyWith(
         isOver18: value as bool,
         preferences: updatedPreferences,
         updatingFields: updatedFields,
       );
     } else {
       // For any other preference
-      state = state.copyWith(
+      newState = currentState.copyWith(
         preferences: updatedPreferences,
         updatingFields: updatedFields,
       );
     }
+
+    state = AsyncData(newState);
 
     // Start a new debounce timer
     _debounceTimers[key] = Timer(Duration(milliseconds: debounceMs), () async {
@@ -105,7 +101,7 @@ class UserSettings extends _$UserSettings {
         // Save to repository
         await repository.updateUser(userId, {
           'preferences': {
-            ...state.preferences,
+            ...newState.preferences,
             key: value,
           },
         });
@@ -131,54 +127,52 @@ class UserSettings extends _$UserSettings {
         if (!ref.mounted) return;
 
         // Update state to mark field as not updating
-        final updatedFields = {...state.updatingFields};
+        final latestState = state.value;
+        if (latestState == null) return;
+
+        final updatedFields = <String, bool>{...latestState.updatingFields};
         updatedFields[key] = false;
-        state = state.copyWith(updatingFields: updatedFields);
+        state = AsyncData(latestState.copyWith(updatingFields: updatedFields));
       } catch (e) {
         if (!ref.mounted) return;
-        // Handle error - update state to show error
-        final updatedFields = {...state.updatingFields};
+        // Handle error - mark field as not updating but set error state
+        final latestState = state.value;
+        if (latestState == null) return;
+
+        final updatedFields = <String, bool>{...latestState.updatingFields};
         updatedFields[key] = false;
-        state = state.copyWith(
-          errorMessage: 'Error saving preference: $e',
-          updatingFields: updatedFields,
-        );
+        state = AsyncError(e, StackTrace.current);
       }
     });
   }
 
   // Direct method to update allowNSFW setting
   Future<void> updateAllowNSFWContent(bool value) async {
-    updatePreference('allowNSFWContent', value);
+    await updatePreference('allowNSFWContent', value);
   }
 
   // Direct method to update blurNSFW setting
   Future<void> updateBlurNSFWContent(bool value) async {
-    updatePreference('blurNSFWContent', value);
+    await updatePreference('blurNSFWContent', value);
   }
 
   // Direct method to update showHerdsInAltFeed setting
   Future<void> updateShowHerdsInAltFeed(bool value) async {
-    updatePreference('showHerdsInAltFeed', value);
+    await updatePreference('showHerdsInAltFeed', value);
   }
 
   // Direct method to update isOver18 setting
   Future<void> updateIsOver18(bool value) async {
-    updatePreference('isOver18', value);
+    await updatePreference('isOver18', value);
 
     // If confirming they are over 18, also enable NSFW content
     if (value) {
-      updateAllowNSFWContent(true);
+      await updateAllowNSFWContent(true);
     }
-  }
-
-  // Reset all errors
-  void clearError() {
-    state = state.copyWith(errorMessage: null);
   }
 
   // Reload settings from repository
   Future<void> refreshSettings() async {
-    await _loadSettings(userId);
+    ref.invalidateSelf();
   }
 }

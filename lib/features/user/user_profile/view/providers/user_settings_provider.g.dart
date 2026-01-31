@@ -13,7 +13,7 @@ part of 'user_settings_provider.dart';
 const currentUserSettingsProvider = CurrentUserSettingsProvider._();
 
 final class CurrentUserSettingsProvider
-    extends $NotifierProvider<CurrentUserSettings, UserSettingsState> {
+    extends $AsyncNotifierProvider<CurrentUserSettings, UserSettingsState> {
   const CurrentUserSettingsProvider._()
       : super(
           from: null,
@@ -31,29 +31,22 @@ final class CurrentUserSettingsProvider
   @$internal
   @override
   CurrentUserSettings create() => CurrentUserSettings();
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(UserSettingsState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<UserSettingsState>(value),
-    );
-  }
 }
 
 String _$currentUserSettingsHash() =>
-    r'2c1ab151a3e9ee6c2dbf9fbcced7e20d42412151';
+    r'd7aef065c905d7fdcb1f8496161ee72191b3907c';
 
-abstract class _$CurrentUserSettings extends $Notifier<UserSettingsState> {
-  UserSettingsState build();
+abstract class _$CurrentUserSettings extends $AsyncNotifier<UserSettingsState> {
+  FutureOr<UserSettingsState> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<UserSettingsState, UserSettingsState>;
+    final ref =
+        this.ref as $Ref<AsyncValue<UserSettingsState>, UserSettingsState>;
     final element = ref.element as $ClassProviderElement<
-        AnyNotifier<UserSettingsState, UserSettingsState>,
-        UserSettingsState,
+        AnyNotifier<AsyncValue<UserSettingsState>, UserSettingsState>,
+        AsyncValue<UserSettingsState>,
         Object?,
         Object?>;
     element.handleValue(ref, created);

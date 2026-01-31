@@ -153,343 +153,368 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settingsState = ref.watch(currentUserSettingsProvider);
+    final settingsAsync = ref.watch(currentUserSettingsProvider);
     final settingsNotifier = ref.watch(currentUserSettingsProvider.notifier);
     final theme = Theme.of(context);
 
-    if (settingsState.isLoading) {
-      return const Scaffold(
+    return settingsAsync.when(
+      loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Account Section
-                  _buildExpandableSection(
-                    title:
-                        'Account${_isUpdatingPreference ? ' (Saving...)' : ''}',
-                    isInitiallyExpanded: false,
-                    children: [
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final userId = ref.read(authProvider)?.uid;
-                          if (userId == null) return const SizedBox.shrink();
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading settings: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(currentUserSettingsProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (settingsState) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Settings'),
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Account Section
+                    _buildExpandableSection(
+                      title:
+                          'Account${_isUpdatingPreference ? ' (Saving...)' : ''}',
+                      isInitiallyExpanded: false,
+                      children: [
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final userId = ref.read(authProvider)?.uid;
+                            if (userId == null) return const SizedBox.shrink();
 
-                          final userAsync = ref.watch(userProvider(userId));
+                            final userAsync = ref.watch(userProvider(userId));
 
-                          return ListTile(
-                            leading: const Icon(Icons.person),
-                            title: const Text('Account Settings'),
-                            subtitle: const Text('Manage your account details'),
-                            trailing: userAsync.isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : const Icon(Icons.chevron_right),
-                            onTap: userAsync.hasValue && userAsync.value != null
-                                ? () => context.push('/editProfile', extra: {
-                                      'user': userAsync.value,
-                                      'isPublic': true,
-                                    })
-                                : null,
-                          );
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.palette),
-                        title: const Text('Customize Appearance'),
-                        subtitle: const Text('Personalize your app experience'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          context.push('/customization');
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.visibility),
-                        title: const Text('Privacy'),
-                        subtitle:
-                            const Text('Control your account privacy settings'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showPrivacySettings(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.security),
-                        title: const Text('Security'),
-                        subtitle: const Text('Manage account security'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showSecuritySettings(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.block),
-                        title: const Text('Blocked Users & Herds'),
-                        subtitle: const Text('Manage your block list'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showBlockedList(context),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Content Section
-                  _buildExpandableSection(
-                    title:
-                        'Content${_isUpdatingPreference ? ' (Saving...)' : ''}',
-                    isInitiallyExpanded: false,
-                    children: [
-                      SwitchListTile(
-                        title: const Text('Allow NSFW Content'),
-                        subtitle: Text(
-                          settingsState.isOver18
-                              ? 'Show content marked as NSFW'
-                              : 'You must be 18+ to enable this setting',
-                        ),
-                        value: settingsState.allowNSFWContent,
-                        secondary: settingsState
-                                .isFieldUpdating('allowNSFWContent')
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.explicit),
-                        onChanged: settingsState.isOver18
-                            ? (value) =>
-                                settingsNotifier.updateAllowNSFWContent(value)
-                            : null,
-                      ),
-                      if (!settingsState.isOver18)
-                        CheckboxListTile(
-                          title: const Text('I confirm that I am 18 or older'),
-                          value: settingsState.isOver18,
-                          onChanged: (value) {
-                            if (value ?? false) {
-                              _showAgeVerificationDialog();
-                            }
+                            return ListTile(
+                              leading: const Icon(Icons.person),
+                              title: const Text('Account Settings'),
+                              subtitle:
+                                  const Text('Manage your account details'),
+                              trailing: userAsync.isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))
+                                  : const Icon(Icons.chevron_right),
+                              onTap: userAsync.hasValue &&
+                                      userAsync.value != null
+                                  ? () => context.push('/editProfile', extra: {
+                                        'user': userAsync.value,
+                                        'isPublic': true,
+                                      })
+                                  : null,
+                            );
                           },
                         ),
-                      SwitchListTile(
-                        title: const Text('Blur NSFW Content'),
-                        subtitle:
-                            const Text('Blur images and videos marked as NSFW'),
-                        value: settingsState.blurNSFWContent,
-                        secondary: settingsState
-                                .isFieldUpdating('blurNSFWContent')
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.blur_on),
-                        onChanged: (value) =>
-                            settingsNotifier.updateBlurNSFWContent(value),
-                      ),
-                      SwitchListTile(
-                        title: const Text('Show Herds in Alt Feed'),
-                        subtitle: const Text(
-                            'Allow herd posts to appear in your alt feed'),
-                        value: settingsState.showHerdsInAltFeed,
-                        secondary: settingsState
-                                .isFieldUpdating('showHerdsInAltFeed')
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.group),
-                        onChanged: (value) =>
-                            settingsNotifier.updateShowHerdsInAltFeed(value),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.tune),
-                        title: const Text('Feed Preferences'),
-                        subtitle: const Text('Customize your feed experience'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showFeedPreferences(context),
-                      ),
-                    ],
-                  ),
+                        ListTile(
+                          leading: const Icon(Icons.palette),
+                          title: const Text('Customize Appearance'),
+                          subtitle:
+                              const Text('Personalize your app experience'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            context.push('/customization');
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.visibility),
+                          title: const Text('Privacy'),
+                          subtitle: const Text(
+                              'Control your account privacy settings'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showPrivacySettings(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.security),
+                          title: const Text('Security'),
+                          subtitle: const Text('Manage account security'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showSecuritySettings(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.block),
+                          title: const Text('Blocked Users & Herds'),
+                          subtitle: const Text('Manage your block list'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showBlockedList(context),
+                        ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  // Data Section
-                  _buildExpandableSection(
-                    title: 'Data',
-                    isInitiallyExpanded: false,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.storage),
-                        title: const Text('Cache Settings'),
-                        subtitle: const Text('Manage app data storage'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CacheSettingsScreen(),
+                    // Content Section
+                    _buildExpandableSection(
+                      title:
+                          'Content${_isUpdatingPreference ? ' (Saving...)' : ''}',
+                      isInitiallyExpanded: false,
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Allow NSFW Content'),
+                          subtitle: Text(
+                            settingsState.isOver18
+                                ? 'Show content marked as NSFW'
+                                : 'You must be 18+ to enable this setting',
+                          ),
+                          value: settingsState.allowNSFWContent,
+                          secondary: settingsState
+                                  .isFieldUpdating('allowNSFWContent')
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.explicit),
+                          onChanged: settingsState.isOver18
+                              ? (value) =>
+                                  settingsNotifier.updateAllowNSFWContent(value)
+                              : null,
+                        ),
+                        if (!settingsState.isOver18)
+                          CheckboxListTile(
+                            title:
+                                const Text('I confirm that I am 18 or older'),
+                            value: settingsState.isOver18,
+                            onChanged: (value) {
+                              if (value ?? false) {
+                                _showAgeVerificationDialog();
+                              }
+                            },
+                          ),
+                        SwitchListTile(
+                          title: const Text('Blur NSFW Content'),
+                          subtitle: const Text(
+                              'Blur images and videos marked as NSFW'),
+                          value: settingsState.blurNSFWContent,
+                          secondary: settingsState
+                                  .isFieldUpdating('blurNSFWContent')
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.blur_on),
+                          onChanged: (value) =>
+                              settingsNotifier.updateBlurNSFWContent(value),
+                        ),
+                        SwitchListTile(
+                          title: const Text('Show Herds in Alt Feed'),
+                          subtitle: const Text(
+                              'Allow herd posts to appear in your alt feed'),
+                          value: settingsState.showHerdsInAltFeed,
+                          secondary: settingsState
+                                  .isFieldUpdating('showHerdsInAltFeed')
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.group),
+                          onChanged: (value) =>
+                              settingsNotifier.updateShowHerdsInAltFeed(value),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.tune),
+                          title: const Text('Feed Preferences'),
+                          subtitle:
+                              const Text('Customize your feed experience'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showFeedPreferences(context),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Data Section
+                    _buildExpandableSection(
+                      title: 'Data',
+                      isInitiallyExpanded: false,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.storage),
+                          title: const Text('Cache Settings'),
+                          subtitle: const Text('Manage app data storage'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CacheSettingsScreen(),
+                            ),
                           ),
                         ),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.download),
-                        title: const Text('Download Your Data'),
-                        subtitle:
-                            const Text('Request a copy of your personal data'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showDataDownloadInfo(context),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Support Section
-                  _buildExpandableSection(
-                    title: 'Support',
-                    isInitiallyExpanded: false,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.info),
-                        title: const Text('About'),
-                        subtitle: Text('Version $_appVersion'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showAboutDialog(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.help),
-                        title: const Text('Help & Support'),
-                        subtitle: const Text('Get assistance with the app'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showSupportOptions(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.description),
-                        title: const Text('Terms of Service'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showTermsOfService(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.privacy_tip),
-                        title: const Text('Privacy Policy'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showPrivacyPolicy(context),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Logout Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Log Out'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () => _showLogoutConfirmation(context),
+                        ListTile(
+                          leading: const Icon(Icons.download),
+                          title: const Text('Download Your Data'),
+                          subtitle: const Text(
+                              'Request a copy of your personal data'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showDataDownloadInfo(context),
+                        ),
+                      ],
                     ),
-                  ),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 16),
 
-                  Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => const AlertDialog(
-                                content: Row(
-                                  children: [
-                                    CircularProgressIndicator(),
-                                    SizedBox(width: 16),
-                                    Text('Recalculating post counts...'),
-                                  ],
+                    // Support Section
+                    _buildExpandableSection(
+                      title: 'Support',
+                      isInitiallyExpanded: false,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.info),
+                          title: const Text('About'),
+                          subtitle: Text('Version $_appVersion'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showAboutDialog(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.help),
+                          title: const Text('Help & Support'),
+                          subtitle: const Text('Get assistance with the app'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showSupportOptions(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.description),
+                          title: const Text('Terms of Service'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showTermsOfService(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.privacy_tip),
+                          title: const Text('Privacy Policy'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showPrivacyPolicy(context),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Logout Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Log Out'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => _showLogoutConfirmation(context),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) => const AlertDialog(
+                                  content: Row(
+                                    children: [
+                                      CircularProgressIndicator(),
+                                      SizedBox(width: 16),
+                                      Text('Recalculating post counts...'),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-
-                            final postRepo = ref.read(postRepositoryProvider);
-                            final result =
-                                await postRepo.recalculateAllUsersInBatches();
-
-                            if (!context.mounted) return;
-                            Navigator.of(context).pop(); // Close loading dialog
-
-                            if (result['success'] == true) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(result['message'])),
                               );
-                            } else {
+
+                              final postRepo = ref.read(postRepositoryProvider);
+                              final result =
+                                  await postRepo.recalculateAllUsersInBatches();
+
+                              if (!context.mounted) return;
+                              Navigator.of(context)
+                                  .pop(); // Close loading dialog
+
+                              if (result['success'] == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(result['message'])),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content:
+                                          Text('Error: ${result['error']}')),
+                                );
+                              }
+                            } catch (e) {
+                              Navigator.of(context)
+                                  .pop(); // Close loading dialog
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Error: ${result['error']}')),
-                              );
-                            }
-                          } catch (e) {
-                            Navigator.of(context).pop(); // Close loading dialog
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        },
-                        child: const Text('Fix All Post Counts (Batch)'),
-                      ),
-                      ElevatedButton(
-                        // 24 * 2 = 48 Herd posts 10 alt posts
-                        onPressed: () async {
-                          try {
-                            final postRepo = ref.read(postRepositoryProvider);
-                            final currentUser = ref.read(currentUserProvider);
-                            final userId = currentUser.value?.id;
-
-                            if (userId == null) return;
-
-                            final result = await postRepo
-                                .recalculateUserPostCounts(userId);
-
-                            if (!context.mounted) return;
-
-                            if (result['success'] == true) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(result['message'])),
+                                SnackBar(content: Text('Error: $e')),
                               );
                             }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        },
-                        child: const Text('Fix My Post Counts'),
-                      ),
-                    ],
-                  ),
+                          },
+                          child: const Text('Fix All Post Counts (Batch)'),
+                        ),
+                        ElevatedButton(
+                          // 24 * 2 = 48 Herd posts 10 alt posts
+                          onPressed: () async {
+                            try {
+                              final postRepo = ref.read(postRepositoryProvider);
+                              final currentUser = ref.read(currentUserProvider);
+                              final userId = currentUser.value?.id;
 
-                  const SizedBox(height: 32),
-                ],
+                              if (userId == null) return;
+
+                              final result = await postRepo
+                                  .recalculateUserPostCounts(userId);
+
+                              if (!context.mounted) return;
+
+                              if (result['success'] == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(result['message'])),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          },
+                          child: const Text('Fix My Post Counts'),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
