@@ -9,6 +9,7 @@ const postTriggers = require('./post_triggers');
 const scoreFunctions = require('./score_functions');
 const userEventHandlers = require('./user_event_handlers');
 const migrationFunctions = require('./migration_functions');
+const dataExportFunctions = require('./data_export_functions');
 
 const debugFunctions = require('./debug_functions');
 
@@ -20,6 +21,7 @@ const allFunctions = {
   ...userEventHandlers,
   ...notificationHandlers,
   ...migrationFunctions,
+  ...dataExportFunctions,
   ...debugFunctions,
 };
 

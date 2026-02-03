@@ -676,11 +676,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showDataDownloadInfo(BuildContext context) {
-    // Show data download information or start download process
+  void _showDataDownloadInfo(BuildContext context) async {
+    final currentUser = ref.read(currentUserProvider).value;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to request your data')),
+      );
+      return;
+    }
+
+    // Check if there's already a pending request
+    final userRepository = ref.read(userRepositoryProvider);
+    final hasPending =
+        await userRepository.hasPendingDataExport(currentUser.id);
+
+    if (!context.mounted) return;
+
+    if (hasPending) {
+      // Show status dialog for pending request
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Data Export In Progress'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Your data export is being processed.',
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Text(
+                'You will receive a notification when your data is ready.',
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'If your request seems stuck (more than 10 minutes), you can reset it and try again.',
+                style: TextStyle(fontSize: 13),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _resetDataExportRequest(context, currentUser.id);
+              },
+              child: const Text('Reset Request'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Show data download request dialog
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Download Your Data'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
@@ -693,37 +766,174 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Text('• Your public and alt profile information'),
             Text('• Your posts and comments'),
             Text('• Your connections and follows'),
+            Text('• Your saved posts'),
+            Text('• Your herd memberships'),
+            Text('• Your notifications history'),
             Text('• Other account activity'),
             SizedBox(height: 16),
             Text(
-              'Data will be provided in a downloadable format. This process may take up to 48 hours.',
+              'Once your data is ready, you will receive a notification. Our support team will then send your data to your registered email address in JSON format.',
               style: TextStyle(
                 fontStyle: FontStyle.italic,
                 inherit: true,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'This process may take up to 48 hours.',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      'Data request submitted. You\'ll be notified when it\'s ready.'),
-                ),
-              );
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              await _submitDataExportRequest(context, currentUser.id);
             },
             child: const Text('Request Data'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _submitDataExportRequest(
+      BuildContext context, String userId) async {
+    // Show loading indicator with more descriptive text since export happens synchronously
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Processing your data export...'),
+            SizedBox(height: 8),
+            Text(
+              'This may take a minute depending on the amount of data.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final userRepository = ref.read(userRepositoryProvider);
+      final result = await userRepository.requestDataExport(userId);
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (result['success'] == true) {
+        // Show success dialog with more details
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
+            title: const Text('Data Export Complete!'),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your data has been successfully exported.',
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'You will receive a notification with instructions on how to download your data. Our support team will send your data to your registered email address.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to submit request'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _resetDataExportRequest(
+      BuildContext context, String userId) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Resetting request...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final userRepository = ref.read(userRepositoryProvider);
+      final result = await userRepository.resetDataExportRequest(userId);
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Request reset'),
+          backgroundColor:
+              result['success'] == true ? Colors.green : Colors.orange,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // If reset was successful, show the data download dialog again
+      if (result['success'] == true && context.mounted) {
+        _showDataDownloadInfo(context);
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showAboutDialog(BuildContext context) {

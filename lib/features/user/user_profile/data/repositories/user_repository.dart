@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1094,16 +1095,36 @@ class UserRepository {
     }
   }
 
-  /// Request data export for user
-  Future<void> requestDataExport(String userId) async {
+  /// Request data export for user via Cloud Function
+  /// Returns a map with 'success' boolean and 'message' string
+  Future<Map<String, dynamic>> requestDataExport(String userId) async {
     try {
-      // Create a data export request document
-      await _firestore.collection('dataExportRequests').doc(userId).set({
-        'userId': userId,
-        'requestedAt': FieldValue.serverTimestamp(),
-        'status': 'pending',
-        'exportType': 'full_account_data',
-      });
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('requestDataExport');
+
+      final result = await callable.call();
+      final data = result.data as Map<String, dynamic>;
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Request submitted',
+        'status': data['status'],
+        'requestedAt': data['requestedAt'],
+      };
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+          'Firebase Functions error requesting data export: ${e.code} - ${e.message}');
+      _logger.logException(
+        errorMessage: '${e.code}: ${e.message}',
+        stackTrace: StackTrace.current.toString(),
+        action: 'requestDataExport',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': e.message ?? 'Failed to submit data export request',
+      };
     } catch (e) {
       debugPrint('Error requesting data export: $e');
       _logger.logException(
@@ -1113,7 +1134,10 @@ class UserRepository {
         route: 'UserRepository',
         userId: userId,
       );
-      rethrow;
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred. Please try again later.',
+      };
     }
   }
 
@@ -1137,6 +1161,95 @@ class UserRepository {
         userId: userId,
       );
       return false;
+    }
+  }
+
+  /// Get detailed data export status via Cloud Function
+  Future<Map<String, dynamic>> getDataExportStatus(String userId) async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('getDataExportStatus');
+
+      final result = await callable.call();
+      final data = result.data as Map<String, dynamic>;
+
+      return {
+        'hasRequest': data['hasRequest'] ?? false,
+        'status': data['status'],
+        'requestedAt': data['requestedAt'],
+        'completedAt': data['completedAt'],
+        'exportDocId': data['exportDocId'],
+      };
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+          'Firebase Functions error getting data export status: ${e.code} - ${e.message}');
+      _logger.logException(
+        errorMessage: '${e.code}: ${e.message}',
+        stackTrace: StackTrace.current.toString(),
+        action: 'getDataExportStatus',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'hasRequest': false,
+        'error': e.message,
+      };
+    } catch (e) {
+      debugPrint('Error getting data export status: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getDataExportStatus',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'hasRequest': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Reset a stuck data export request
+  Future<Map<String, dynamic>> resetDataExportRequest(String userId) async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('resetDataExportRequest');
+
+      final result = await callable.call();
+      final data = result.data as Map<String, dynamic>;
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Request reset',
+      };
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+          'Firebase Functions error resetting data export: ${e.code} - ${e.message}');
+      _logger.logException(
+        errorMessage: '${e.code}: ${e.message}',
+        stackTrace: StackTrace.current.toString(),
+        action: 'resetDataExportRequest',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': e.message ?? 'Failed to reset data export request',
+      };
+    } catch (e) {
+      debugPrint('Error resetting data export request: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'resetDataExportRequest',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred.',
+      };
     }
   }
 
