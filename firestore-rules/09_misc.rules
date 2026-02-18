@@ -46,3 +46,24 @@
       allow read: if isOwner(userId);
       allow write: if false;
     }
+
+    // =====================================================================
+    //  Data Export Requests
+    // =====================================================================
+
+    match /dataExportRequests/{userId} {
+      // Users can only read their own data export request status
+      allow read: if isOwner(userId);
+      // Only cloud functions can create/update/delete (not client)
+      allow write: if false;
+    }
+
+    // Data exports are only accessible by cloud functions (admin)
+    match /dataExports/{exportId} {
+      allow read, write: if false;
+    }
+
+    // Admin notifications - not accessible to clients
+    match /adminNotifications/{notificationId} {
+      allow read, write: if false;
+    }

@@ -1,0 +1,103 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // User uploads folder (existing)
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    match /herds/{herdId}/{allPaths=**} {
+      // Anyone can read herd images
+      allow read: if isAuthenticated();
+      
+      // Allow creator to upload herd images
+      // We just check if they're authenticated since we validate the herdId in the app
+      allow write: if isAuthenticated();
+    }
+    
+    // Post images folder (existing)
+    match /users/{userId}/posts/{postId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update, delete: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // Alt images folder (existing)
+    match /users/{userId}/alt/posts/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update, delete: if isAuthenticated() && isOwner(userId);
+    }
+    
+    match /public/{allPaths=**} {
+      allow read: if isAuthenticated();
+      // Restrict writes to prevent abuse
+      allow write: if false;
+    }
+    
+    match /users/{authorId}/posts/{postId}/comments/{commentId}/media/{fileName} {
+  		allow read: if isAuthenticated();
+  		allow create: if request.auth.uid == authorId;
+  		allow delete: if request.auth.uid == authorId;
+  		allow update: if false;
+		}
+    
+    match /encrypted_media/{chatId}/{fileName} {
+      allow read: if isAuthenticated();
+      
+      // Write access: Only authenticated users can upload
+      // The chatId and sender verification happens in the app before upload
+      allow create: if isAuthenticated() && 
+                     // Ensure the file is marked as encrypted in metadata
+                     request.resource.metadata.encrypted == 'true' &&
+                     // Ensure the uploader is specified in metadata (for audit)
+                     request.resource.metadata.sender_id == request.auth.uid &&
+                     // Only allow binary content type (encrypted files)
+                     request.resource.contentType == 'application/octet-stream';
+      
+      // Updates not allowed - encrypted media is immutable
+      allow update: if false;
+      
+      // Delete access: Only the original uploader or chat participants
+      // Since we can't verify chat membership in rules, we allow the uploader
+      allow delete: if isAuthenticated() && 
+                     resource.metadata.sender_id == request.auth.uid;
+    }
+    
+    match /temp_uploads/{userId}/{fileName} {
+      // Temporary uploads - allow user to upload and delete their own files
+      allow read, write: if isOwner(userId);
+      
+      // Auto-cleanup: Files older than 24 hours should be cleaned up by a function
+      // This rule just prevents unauthorized access
+    }
+    
+    // =====================================================================
+    //  Data Exports - Users can only read (download) their own exports
+    //  Cloud Functions (admin SDK) handles all writes, bypassing rules
+    // =====================================================================
+    match /data_exports/{userId}/{allPaths=**} {
+      // Only the owner can download their export
+      allow read: if isOwner(userId);
+      // Clients cannot write, update, or delete exports
+      // Only Cloud Functions (admin SDK) can manage these files
+      allow write: if false;
+    }
+    
+    // Default deny for security
+    match /{allPaths=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

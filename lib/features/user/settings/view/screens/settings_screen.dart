@@ -7,6 +7,7 @@ import 'package:herdapp/core/barrels/providers.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'cache_settings_screen.dart';
+import 'data_export_screen.dart';
 import 'package:herdapp/core/widgets/markdown_dialog.dart';
 import 'package:herdapp/features/user/user_management/view/screens/blocked_users_screen.dart';
 
@@ -371,7 +372,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           subtitle: const Text(
                               'Request a copy of your personal data'),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _showDataDownloadInfo(context),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DataExportScreen(),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -851,15 +857,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'You will receive a notification with instructions on how to download your data. Our support team will send your data to your registered email address.',
+                  'You can now download your data from the Data Export screen.',
                   style: TextStyle(fontSize: 13),
                 ),
               ],
             ),
             actions: [
-              ElevatedButton(
+              TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+                child: const Text('Later'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DataExportScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Go to Download'),
               ),
             ],
           ),

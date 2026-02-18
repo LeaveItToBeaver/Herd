@@ -1179,6 +1179,12 @@ class UserRepository {
         'requestedAt': data['requestedAt'],
         'completedAt': data['completedAt'],
         'exportDocId': data['exportDocId'],
+        'downloadUrl': data['downloadUrl'],
+        'fileSizeBytes': data['fileSizeBytes'],
+        'expiresAt': data['expiresAt'],
+        'isExpired': data['isExpired'] ?? false,
+        'downloaded': data['downloaded'] ?? false,
+        'downloadedAt': data['downloadedAt'],
       };
     } on FirebaseFunctionsException catch (e) {
       debugPrint(

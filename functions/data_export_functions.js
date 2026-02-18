@@ -1,7 +1,38 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
 const { admin, firestore } = require('./admin_init');
+
+const storage = admin.storage();
+const bucket = storage.bucket();
+
+/**
+ * Upload export data as a JSON file to Firebase Storage.
+ * Returns the storage file path.
+ */
+async function uploadExportToStorage(userId, exportData) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filePath = `data_exports/${userId}/export_${timestamp}.json`;
+    const file = bucket.file(filePath);
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+
+    await file.save(jsonString, {
+        metadata: {
+            contentType: 'application/json',
+            metadata: {
+                userId: userId,
+                exportedAt: new Date().toISOString(),
+                // Store expiration date in custom metadata for cleanup
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+        },
+    });
+
+    logger.info(`Uploaded data export for user ${userId} to ${filePath} (${(jsonString.length / 1024).toFixed(1)} KB)`);
+    return filePath;
+}
 
 /**
  * Callable function for users to request their data export
@@ -59,15 +90,24 @@ const requestDataExport = onCall({
             // Collect all user data
             const exportData = await collectUserData(userId);
 
-            // Store the export data
+            // Upload JSON to Firebase Storage
+            const storagePath = await uploadExportToStorage(userId, exportData);
+
+            // Calculate expiration date (30 days from now)
+            const expiresAt = admin.firestore.Timestamp.fromDate(
+                new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            );
+
+            // Store lightweight metadata in Firestore (not the data blob)
             const exportDocRef = await firestore.collection('dataExports').add({
                 userId: userId,
                 email: userEmail,
                 exportedAt: admin.firestore.FieldValue.serverTimestamp(),
-                data: exportData,
-                expiresAt: admin.firestore.Timestamp.fromDate(
-                    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-                ),
+                storagePath: storagePath,
+                expiresAt: expiresAt,
+                downloaded: false,
+                downloadedAt: null,
+                fileSizeBytes: JSON.stringify(exportData).length,
             });
 
             // Update the request status to completed
@@ -75,6 +115,7 @@ const requestDataExport = onCall({
                 status: 'completed',
                 completedAt: admin.firestore.FieldValue.serverTimestamp(),
                 exportDocId: exportDocRef.id,
+                storagePath: storagePath,
             });
 
             // Send notification to admin
@@ -93,19 +134,20 @@ const requestDataExport = onCall({
                 recipientId: userId,
                 type: 'data_export_ready',
                 title: 'Your Data Export is Ready',
-                body: 'Your requested data export has been completed. Please contact support to receive your data.',
+                body: 'Your data export is ready to download. Tap to open the download page.',
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 read: false,
                 data: {
                     exportDocId: exportDocRef.id,
+                    route: '/settings/data-export',
                 },
             });
 
-            logger.info(`Data export completed for user ${userId}, export doc: ${exportDocRef.id}`);
+            logger.info(`Data export completed for user ${userId}, export doc: ${exportDocRef.id}, storage: ${storagePath}`);
 
             return {
                 success: true,
-                message: 'Your data export has been completed! You will receive a notification with further instructions.',
+                message: 'Your data export is ready! Go to your settings to download it.',
                 exportDocId: exportDocRef.id,
             };
         } catch (processingError) {
@@ -167,15 +209,24 @@ const processDataExportRequest = onDocumentWritten(
             // Collect all user data
             const exportData = await collectUserData(userId);
 
-            // Store the export data
+            // Upload JSON to Firebase Storage
+            const storagePath = await uploadExportToStorage(userId, exportData);
+
+            // Calculate expiration date (30 days from now)
+            const expiresAt = admin.firestore.Timestamp.fromDate(
+                new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            );
+
+            // Store lightweight metadata in Firestore
             const exportDocRef = await firestore.collection('dataExports').add({
                 userId: userId,
                 email: afterData.email,
                 exportedAt: admin.firestore.FieldValue.serverTimestamp(),
-                data: exportData,
-                expiresAt: admin.firestore.Timestamp.fromDate(
-                    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                ),
+                storagePath: storagePath,
+                expiresAt: expiresAt,
+                downloaded: false,
+                downloadedAt: null,
+                fileSizeBytes: JSON.stringify(exportData).length,
             });
 
             // Update the request status
@@ -183,6 +234,7 @@ const processDataExportRequest = onDocumentWritten(
                 status: 'completed',
                 completedAt: admin.firestore.FieldValue.serverTimestamp(),
                 exportDocId: exportDocRef.id,
+                storagePath: storagePath,
             });
 
             // Send notifications
@@ -200,11 +252,12 @@ const processDataExportRequest = onDocumentWritten(
                 recipientId: userId,
                 type: 'data_export_ready',
                 title: 'Your Data Export is Ready',
-                body: 'Your requested data export has been completed. Please contact support to receive your data.',
+                body: 'Your data export is ready to download. Tap to open the download page.',
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 read: false,
                 data: {
                     exportDocId: exportDocRef.id,
+                    route: '/settings/data-export',
                 },
             });
 
@@ -226,198 +279,248 @@ const processDataExportRequest = onDocumentWritten(
 
 /**
  * Collect all user data from various collections
+ * Each query is wrapped in try-catch to continue even if some fail
  */
 async function collectUserData(userId) {
     const exportData = {
         exportedAt: new Date().toISOString(),
         userId: userId,
+        errors: [], // Track any collection errors
     };
 
-    try {
-        // 1. User profile data
-        const userDoc = await firestore.collection('users').doc(userId).get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
+    // Helper to safely execute a query and log errors
+    async function safeQuery(name, queryFn) {
+        try {
+            return await queryFn();
+        } catch (error) {
+            logger.warn(`Failed to collect ${name} for user ${userId}:`, error.message);
+            exportData.errors.push({ collection: name, error: error.message });
+            return null;
+        }
+    }
+
+    // 1. User profile data
+    const userDoc = await safeQuery('profile', async () => {
+        const doc = await firestore.collection('users').doc(userId).get();
+        if (doc.exists) {
+            const userData = doc.data();
             // Remove sensitive fields that shouldn't be exported
             delete userData.fcmToken;
             delete userData.fcmTokenUpdatedAt;
-            exportData.profile = userData;
+            return userData;
         }
+        return null;
+    });
+    exportData.profile = userDoc;
 
-        // 2. Public posts
-        const publicPostsSnapshot = await firestore
+    // 2. Public posts
+    const publicPosts = await safeQuery('publicPosts', async () => {
+        const snapshot = await firestore
             .collection('posts')
             .where('authorId', '==', userId)
             .get();
-        exportData.publicPosts = publicPostsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...sanitizePostData(doc.data())
         }));
+    });
+    exportData.publicPosts = publicPosts || [];
 
-        // 3. Alt posts
-        const altPostsSnapshot = await firestore
+    // 3. Alt posts
+    const altPosts = await safeQuery('altPosts', async () => {
+        const snapshot = await firestore
             .collection('altPosts')
             .where('authorId', '==', userId)
             .get();
-        exportData.altPosts = altPostsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...sanitizePostData(doc.data())
         }));
+    });
+    exportData.altPosts = altPosts || [];
 
-        // 4. Comments
-        const commentsSnapshot = await firestore
+    // 4. Comments
+    const comments = await safeQuery('comments', async () => {
+        const snapshot = await firestore
             .collection('comments')
             .where('authorId', '==', userId)
             .get();
-        exportData.comments = commentsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.comments = comments || [];
 
-        // 5. Following list
-        const followingSnapshot = await firestore
+    // 5. Following list
+    const following = await safeQuery('following', async () => {
+        const snapshot = await firestore
             .collection('following')
             .doc(userId)
             .collection('userFollowing')
             .get();
-        exportData.following = followingSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             userId: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.following = following || [];
 
-        // 6. Followers list
-        const followersSnapshot = await firestore
+    // 6. Followers list
+    const followers = await safeQuery('followers', async () => {
+        const snapshot = await firestore
             .collection('followers')
             .doc(userId)
             .collection('userFollowers')
             .get();
-        exportData.followers = followersSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             userId: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.followers = followers || [];
 
-        // 7. Alt connections
-        const altConnectionsSnapshot = await firestore
+    // 7. Alt connections
+    const altConnections = await safeQuery('altConnections', async () => {
+        const snapshot = await firestore
             .collection('altConnections')
             .doc(userId)
             .collection('userConnections')
             .get();
-        exportData.altConnections = altConnectionsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             connectionId: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.altConnections = altConnections || [];
 
-        // 8. Alt connection requests (sent and received)
-        const sentRequestsSnapshot = await firestore
+    // 8. Alt connection requests (sent)
+    const sentRequests = await safeQuery('sentConnectionRequests', async () => {
+        const snapshot = await firestore
             .collection('altConnectionRequests')
             .where('senderId', '==', userId)
             .get();
-        exportData.sentConnectionRequests = sentRequestsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.sentConnectionRequests = sentRequests || [];
 
-        const receivedRequestsSnapshot = await firestore
+    // 8b. Alt connection requests (received)
+    const receivedRequests = await safeQuery('receivedConnectionRequests', async () => {
+        const snapshot = await firestore
             .collection('altConnectionRequests')
             .where('receiverId', '==', userId)
             .get();
-        exportData.receivedConnectionRequests = receivedRequestsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.receivedConnectionRequests = receivedRequests || [];
 
-        // 9. Saved posts
-        const savedPostsSnapshot = await firestore
+    // 9. Saved posts
+    const savedPosts = await safeQuery('savedPosts', async () => {
+        const snapshot = await firestore
             .collection('savedPosts')
             .doc(userId)
             .collection('posts')
             .get();
-        exportData.savedPosts = savedPostsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             postId: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.savedPosts = savedPosts || [];
 
-        // 10. Notifications (recent)
-        const notificationsSnapshot = await firestore
+    // 10. Notifications (recent) - without ordering to avoid index requirement
+    const notifications = await safeQuery('notifications', async () => {
+        const snapshot = await firestore
             .collection('notifications')
             .where('recipientId', '==', userId)
-            .orderBy('createdAt', 'desc')
             .limit(500)
             .get();
-        exportData.notifications = notificationsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+    });
+    exportData.notifications = notifications || [];
 
-        // 11. Post interactions (likes/dislikes)
-        const userInteractionsDoc = await firestore
+    // 11. Post interactions (likes/dislikes)
+    const postInteractions = await safeQuery('postInteractions', async () => {
+        const doc = await firestore
             .collection('userInteractions')
             .doc(userId)
             .get();
-        if (userInteractionsDoc.exists) {
-            exportData.postInteractions = userInteractionsDoc.data();
-        }
+        return doc.exists ? doc.data() : null;
+    });
+    exportData.postInteractions = postInteractions;
 
-        // 12. Herd memberships
-        const herdMembershipsSnapshot = await firestore
+    // 12. Herd memberships - this requires a composite index
+    const herdMemberships = await safeQuery('herdMemberships', async () => {
+        const snapshot = await firestore
             .collectionGroup('members')
             .where('userId', '==', userId)
             .get();
-        exportData.herdMemberships = herdMembershipsSnapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => ({
             herdId: doc.ref.parent.parent?.id,
             ...doc.data()
         }));
+    });
+    exportData.herdMemberships = herdMemberships || [];
 
-        // 13. Chat messages (if any)
-        // Note: This is a simplified version - chat messages might be in different collections
-        try {
-            const chatRoomsSnapshot = await firestore
+    // 13. Chat rooms and messages
+    const chatRooms = await safeQuery('chatRooms', async () => {
+        const chatRoomsSnapshot = await firestore
+            .collection('chatRooms')
+            .where('participants', 'array-contains', userId)
+            .get();
+
+        const rooms = [];
+        for (const roomDoc of chatRoomsSnapshot.docs) {
+            // Get messages without ordering to avoid index requirement
+            const messagesSnapshot = await firestore
                 .collection('chatRooms')
-                .where('participants', 'array-contains', userId)
+                .doc(roomDoc.id)
+                .collection('messages')
+                .where('senderId', '==', userId)
+                .limit(1000)
                 .get();
 
-            exportData.chatRooms = [];
-            for (const roomDoc of chatRoomsSnapshot.docs) {
-                const messagesSnapshot = await firestore
-                    .collection('chatRooms')
-                    .doc(roomDoc.id)
-                    .collection('messages')
-                    .where('senderId', '==', userId)
-                    .orderBy('timestamp', 'desc')
-                    .limit(1000)
-                    .get();
-
-                exportData.chatRooms.push({
-                    roomId: roomDoc.id,
-                    roomData: roomDoc.data(),
-                    userMessages: messagesSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }))
-                });
-            }
-        } catch (chatError) {
-            logger.warn('Could not export chat data:', chatError);
-            exportData.chatRooms = [];
+            rooms.push({
+                roomId: roomDoc.id,
+                roomData: roomDoc.data(),
+                userMessages: messagesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }))
+            });
         }
+        return rooms;
+    });
+    exportData.chatRooms = chatRooms || [];
 
-        // Add metadata
-        exportData.metadata = {
-            totalPublicPosts: exportData.publicPosts?.length || 0,
-            totalAltPosts: exportData.altPosts?.length || 0,
-            totalComments: exportData.comments?.length || 0,
-            totalFollowing: exportData.following?.length || 0,
-            totalFollowers: exportData.followers?.length || 0,
-            totalAltConnections: exportData.altConnections?.length || 0,
-            totalSavedPosts: exportData.savedPosts?.length || 0,
-            totalHerdMemberships: exportData.herdMemberships?.length || 0,
-        };
+    // Add metadata
+    exportData.metadata = {
+        totalPublicPosts: exportData.publicPosts?.length || 0,
+        totalAltPosts: exportData.altPosts?.length || 0,
+        totalComments: exportData.comments?.length || 0,
+        totalFollowing: exportData.following?.length || 0,
+        totalFollowers: exportData.followers?.length || 0,
+        totalAltConnections: exportData.altConnections?.length || 0,
+        totalSavedPosts: exportData.savedPosts?.length || 0,
+        totalHerdMemberships: exportData.herdMemberships?.length || 0,
+        collectionErrors: exportData.errors.length,
+    };
 
-        return exportData;
-    } catch (error) {
-        logger.error('Error collecting user data:', error);
-        throw error;
+    // Log if there were any errors
+    if (exportData.errors.length > 0) {
+        logger.warn(`Data export for ${userId} completed with ${exportData.errors.length} collection errors:`, exportData.errors);
     }
+
+    return exportData;
 }
 
 /**
@@ -431,7 +534,7 @@ function sanitizePostData(postData) {
 }
 
 /**
- * Get data export status for a user
+ * Get data export status for a user, including download URL if ready
  */
 const getDataExportStatus = onCall({
     enforceAppCheck: false,
@@ -456,13 +559,59 @@ const getDataExportStatus = onCall({
         }
 
         const data = exportRequest.data();
-        return {
+        const result = {
             hasRequest: true,
             status: data.status,
             requestedAt: data.requestedAt?.toDate?.()?.toISOString() || null,
             completedAt: data.completedAt?.toDate?.()?.toISOString() || null,
             exportDocId: data.exportDocId || null,
         };
+
+        // If completed, get download info from the dataExports doc
+        if (data.status === 'completed' && data.exportDocId) {
+            const exportDoc = await firestore
+                .collection('dataExports')
+                .doc(data.exportDocId)
+                .get();
+
+            if (exportDoc.exists) {
+                const exportData = exportDoc.data();
+                const expiresAt = exportData.expiresAt?.toDate?.();
+                const isExpired = expiresAt && expiresAt < new Date();
+
+                result.storagePath = exportData.storagePath || null;
+                result.downloaded = exportData.downloaded || false;
+                result.downloadedAt = exportData.downloadedAt?.toDate?.()?.toISOString() || null;
+                result.fileSizeBytes = exportData.fileSizeBytes || null;
+                result.expiresAt = expiresAt?.toISOString() || null;
+                result.isExpired = isExpired;
+
+                // Generate a signed download URL if not expired
+                if (!isExpired && exportData.storagePath) {
+                    try {
+                        const file = bucket.file(exportData.storagePath);
+                        const [exists] = await file.exists();
+
+                        if (exists) {
+                            const [signedUrl] = await file.getSignedUrl({
+                                action: 'read',
+                                // URL valid for 1 hour
+                                expires: Date.now() + 60 * 60 * 1000,
+                            });
+                            result.downloadUrl = signedUrl;
+                        } else {
+                            result.isExpired = true;
+                            result.downloadUrl = null;
+                        }
+                    } catch (urlError) {
+                        logger.warn('Failed to generate signed URL:', urlError.message);
+                        result.downloadUrl = null;
+                    }
+                }
+            }
+        }
+
+        return result;
     } catch (error) {
         logger.error('Error getting data export status:', error);
         throw new HttpsError('internal', 'Failed to get data export status');
@@ -550,9 +699,97 @@ const resetDataExportRequest = onCall({
     }
 });
 
+/**
+ * Scheduled cleanup function that runs daily to delete expired data exports.
+ * Removes exports that are past their 30-day expiration OR
+ * exports that were downloaded more than 7 days ago.
+ */
+const cleanupExpiredDataExports = onSchedule({
+    schedule: 'every 24 hours',
+    timeZone: 'America/New_York',
+    retryCount: 2,
+}, async (event) => {
+    const now = new Date();
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    try {
+        // Find all expired exports
+        const expiredSnapshot = await firestore
+            .collection('dataExports')
+            .where('expiresAt', '<', admin.firestore.Timestamp.fromDate(now))
+            .get();
+
+        // Also find exports downloaded more than 7 days ago
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const downloadedSnapshot = await firestore
+            .collection('dataExports')
+            .where('downloaded', '==', true)
+            .where('downloadedAt', '<', admin.firestore.Timestamp.fromDate(sevenDaysAgo))
+            .get();
+
+        // Combine unique docs
+        const docsToDelete = new Map();
+        for (const doc of expiredSnapshot.docs) {
+            docsToDelete.set(doc.id, doc);
+        }
+        for (const doc of downloadedSnapshot.docs) {
+            docsToDelete.set(doc.id, doc);
+        }
+
+        logger.info(`Found ${docsToDelete.size} data exports to clean up`);
+
+        for (const [docId, doc] of docsToDelete) {
+            try {
+                const data = doc.data();
+
+                // Delete the file from Storage
+                if (data.storagePath) {
+                    try {
+                        const file = bucket.file(data.storagePath);
+                        const [exists] = await file.exists();
+                        if (exists) {
+                            await file.delete();
+                            logger.info(`Deleted storage file: ${data.storagePath}`);
+                        }
+                    } catch (storageError) {
+                        logger.warn(`Failed to delete storage file ${data.storagePath}:`, storageError.message);
+                    }
+                }
+
+                // Delete the Firestore metadata doc
+                await firestore.collection('dataExports').doc(docId).delete();
+
+                // Also clean up the request doc if it exists
+                if (data.userId) {
+                    const requestDoc = await firestore
+                        .collection('dataExportRequests')
+                        .doc(data.userId)
+                        .get();
+
+                    if (requestDoc.exists &&
+                        requestDoc.data().exportDocId === docId) {
+                        await firestore.collection('dataExportRequests').doc(data.userId).delete();
+                    }
+                }
+
+                deletedCount++;
+            } catch (err) {
+                logger.error(`Error cleaning up export ${docId}:`, err.message);
+                errorCount++;
+            }
+        }
+
+        logger.info(`Cleanup complete. Deleted: ${deletedCount}, Errors: ${errorCount}`);
+    } catch (error) {
+        logger.error('Error in data export cleanup:', error);
+    }
+});
+
 module.exports = {
     requestDataExport,
     processDataExportRequest,
     getDataExportStatus,
     resetDataExportRequest,
+    cleanupExpiredDataExports,
 };

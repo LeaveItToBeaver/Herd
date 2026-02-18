@@ -13,6 +13,7 @@ import 'package:herdapp/features/user/auth/view/screens/email_verification_scree
 import 'package:herdapp/features/ui/customization/view/screens/ui_customization_screen.dart';
 import 'package:herdapp/features/community/herds/view/screens/herd_settings_screen.dart';
 import 'package:herdapp/features/user/settings/notifications/view/screens/notification_settings_screen.dart';
+import 'package:herdapp/features/user/settings/view/screens/data_export_screen.dart';
 
 import '../../features/user/auth/view/screens/reset_password_screen.dart';
 import '../../features/social/floating_buttons/views/widgets/global_overlay_manager.dart';
@@ -274,6 +275,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'settings',
         builder: (context, state) {
           return SettingsScreen();
+        },
+      ),
+
+      // Data Export Route (deep link from notifications)
+      GoRoute(
+        path: '/settings/data-export',
+        name: 'dataExport',
+        builder: (context, state) {
+          return const DataExportScreen();
         },
       ),
 
