@@ -4,12 +4,17 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
 const { admin, firestore } = require('./admin_init');
 
+const { v4: uuidv4 } = require('uuid');
+
 const storage = admin.storage();
 const bucket = storage.bucket();
 
 /**
  * Upload export data as a JSON file to Firebase Storage.
- * Returns the storage file path.
+ * Returns an object with { storagePath, downloadUrl }.
+ *
+ * Uses a Firebase download token embedded in file metadata so the URL
+ * works without IAM signBlob permissions (unlike getSignedUrl).
  */
 async function uploadExportToStorage(userId, exportData) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -17,6 +22,7 @@ async function uploadExportToStorage(userId, exportData) {
     const file = bucket.file(filePath);
 
     const jsonString = JSON.stringify(exportData, null, 2);
+    const downloadToken = uuidv4();
 
     await file.save(jsonString, {
         metadata: {
@@ -24,14 +30,19 @@ async function uploadExportToStorage(userId, exportData) {
             metadata: {
                 userId: userId,
                 exportedAt: new Date().toISOString(),
-                // Store expiration date in custom metadata for cleanup
                 expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                firebaseStorageDownloadTokens: downloadToken,
             },
         },
     });
 
+    // Build a Firebase Storage download URL using the token
+    const bucketName = bucket.name;
+    const encodedPath = encodeURIComponent(filePath);
+    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${downloadToken}`;
+
     logger.info(`Uploaded data export for user ${userId} to ${filePath} (${(jsonString.length / 1024).toFixed(1)} KB)`);
-    return filePath;
+    return { storagePath: filePath, downloadUrl };
 }
 
 /**
@@ -91,7 +102,9 @@ const requestDataExport = onCall({
             const exportData = await collectUserData(userId);
 
             // Upload JSON to Firebase Storage
-            const storagePath = await uploadExportToStorage(userId, exportData);
+            const uploadResult = await uploadExportToStorage(userId, exportData);
+            const storagePath = uploadResult.storagePath;
+            const downloadUrl = uploadResult.downloadUrl;
 
             // Calculate expiration date (30 days from now)
             const expiresAt = admin.firestore.Timestamp.fromDate(
@@ -104,6 +117,7 @@ const requestDataExport = onCall({
                 email: userEmail,
                 exportedAt: admin.firestore.FieldValue.serverTimestamp(),
                 storagePath: storagePath,
+                downloadUrl: downloadUrl,
                 expiresAt: expiresAt,
                 downloaded: false,
                 downloadedAt: null,
@@ -586,25 +600,38 @@ const getDataExportStatus = onCall({
                 result.expiresAt = expiresAt?.toISOString() || null;
                 result.isExpired = isExpired;
 
-                // Generate a signed download URL if not expired
-                if (!isExpired && exportData.storagePath) {
+                // Return the stored download URL if not expired
+                if (!isExpired && exportData.downloadUrl) {
+                    result.downloadUrl = exportData.downloadUrl;
+                } else if (!isExpired && exportData.storagePath) {
+                    // Fallback: get or create a download token on the file
                     try {
                         const file = bucket.file(exportData.storagePath);
-                        const [exists] = await file.exists();
+                        const [metadata] = await file.getMetadata();
+                        let token = metadata.metadata?.firebaseStorageDownloadTokens;
 
-                        if (exists) {
-                            const [signedUrl] = await file.getSignedUrl({
-                                action: 'read',
-                                // URL valid for 1 hour
-                                expires: Date.now() + 60 * 60 * 1000,
+                        // If the file has no download token, generate one and set it
+                        if (!token) {
+                            token = uuidv4();
+                            await file.setMetadata({
+                                metadata: {
+                                    firebaseStorageDownloadTokens: token,
+                                },
                             });
-                            result.downloadUrl = signedUrl;
-                        } else {
-                            result.isExpired = true;
-                            result.downloadUrl = null;
+                            logger.info(`Generated new download token for ${exportData.storagePath}`);
                         }
+
+                        const bucketName = bucket.name;
+                        const encodedPath = encodeURIComponent(exportData.storagePath);
+                        const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`;
+                        result.downloadUrl = downloadUrl;
+
+                        // Persist the URL so future calls don't need the fallback
+                        await firestore.collection('dataExports').doc(data.exportDocId).update({
+                            downloadUrl: downloadUrl,
+                        });
                     } catch (urlError) {
-                        logger.warn('Failed to generate signed URL:', urlError.message);
+                        logger.warn('Failed to build download URL:', urlError.message);
                         result.downloadUrl = null;
                     }
                 }

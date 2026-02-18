@@ -349,7 +349,7 @@ class _DataExportScreenState extends ConsumerState<DataExportScreen> {
                     theme,
                     icon: Icons.timer,
                     label: 'Expires',
-                    value: _formatDate(expiresAt),
+                    value: _formatDate(expiresAt, isFutureDate: true),
                   ),
                 if (downloaded)
                   _buildDetailRow(
@@ -387,6 +387,26 @@ class _DataExportScreenState extends ConsumerState<DataExportScreen> {
                     'The download link is valid for 1 hour. Refresh this page if it expires.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ] else if (!isExpired && downloadUrl == null) ...[
+                  // Download URL not available — prompt refresh
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.invalidate(dataExportStatusProvider(userId)),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Load Download Link'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'The download link could not be generated. Tap above to try again.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: Colors.orange,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -694,12 +714,23 @@ class _DataExportScreenState extends ConsumerState<DataExportScreen> {
 
   // --- Formatters ---
 
-  String _formatDate(String isoDate) {
+  String _formatDate(String isoDate, {bool isFutureDate = false}) {
     try {
       final date = DateTime.parse(isoDate);
       final now = DateTime.now();
-      final diff = now.difference(date);
 
+      if (isFutureDate || date.isAfter(now)) {
+        // Future date — show "in X days/hours"
+        final diff = date.difference(now);
+        if (diff.inDays > 1) return 'in ${diff.inDays} days';
+        if (diff.inDays == 1) return 'tomorrow';
+        if (diff.inHours >= 1) return 'in ${diff.inHours}h';
+        if (diff.inMinutes >= 1) return 'in ${diff.inMinutes}m';
+        return 'soon';
+      }
+
+      // Past date — show "X ago"
+      final diff = now.difference(date);
       if (diff.inMinutes < 1) return 'Just now';
       if (diff.inHours < 1) return '${diff.inMinutes}m ago';
       if (diff.inDays < 1) return '${diff.inHours}h ago';
