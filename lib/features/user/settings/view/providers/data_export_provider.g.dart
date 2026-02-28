@@ -73,7 +73,7 @@ final class DataExportStatusProvider extends $FunctionalProvider<
   }
 }
 
-String _$dataExportStatusHash() => r'3ce74347531a6e5490e6cde76e045b1c66510fff';
+String _$dataExportStatusHash() => r'faf3619d84018888f91b3330772824f194b1f240';
 
 /// Provider that fetches data export status from the cloud function.
 /// Returns a map with status, downloadUrl, fileSizeBytes, expiresAt, etc.
