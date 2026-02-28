@@ -4,7 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i6;
-import 'dart:io' as _i13;
+import 'dart:io' as _i12;
 import 'dart:typed_data' as _i8;
 
 import 'package:cloud_firestore/cloud_firestore.dart' as _i9;
@@ -17,7 +17,7 @@ import 'package:herdapp/features/social/chat_messaging/data/models/chat/chat_mod
 import 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart'
     as _i15;
 import 'package:herdapp/features/social/feed/providers/feed_type_provider.dart'
-    as _i12;
+    as _i13;
 import 'package:herdapp/features/user/user_profile/data/models/alt_connection_request_model.dart'
     as _i14;
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart'
@@ -40,7 +40,6 @@ import 'package:mockito/src/dummies.dart' as _i7;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
-// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeSimplePublicKey_0 extends _i1.SmartFake
     implements _i2.SimplePublicKey {
@@ -287,24 +286,92 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
       ) as _i6.Future<_i11.UserModel?>);
 
   @override
-  String capitalize(String? s) => (super.noSuchMethod(
+  _i6.Future<void> updateUser(
+    String? userId,
+    Map<String, dynamic>? data,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
-          #capitalize,
-          [s],
+          #updateUser,
+          [
+            userId,
+            data,
+          ],
         ),
-        returnValue: _i7.dummyValue<String>(
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> deleteUser(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteUser,
+          [userId],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Stream<_i11.UserModel?> streamUser(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #streamUser,
+          [userId],
+        ),
+        returnValue: _i6.Stream<_i11.UserModel?>.empty(),
+      ) as _i6.Stream<_i11.UserModel?>);
+
+  @override
+  _i6.Future<String> uploadImage({
+    required String? userId,
+    required _i12.File? file,
+    required String? type,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #uploadImage,
+          [],
+          {
+            #userId: userId,
+            #file: file,
+            #type: type,
+          },
+        ),
+        returnValue: _i6.Future<String>.value(_i7.dummyValue<String>(
           this,
           Invocation.method(
-            #capitalize,
-            [s],
+            #uploadImage,
+            [],
+            {
+              #userId: userId,
+              #file: file,
+              #type: type,
+            },
           ),
+        )),
+      ) as _i6.Future<String>);
+
+  @override
+  _i6.Future<void> incrementUserPoints(
+    String? userId,
+    int? points,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #incrementUserPoints,
+          [
+            userId,
+            points,
+          ],
         ),
-      ) as String);
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
 
   @override
   _i6.Future<List<_i11.UserModel>> searchUsers(
     String? query, {
-    _i12.FeedType? profileType = _i12.FeedType.public,
+    _i13.FeedType? profileType = _i13.FeedType.public,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -328,7 +395,7 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
   @override
   _i6.Future<List<_i11.UserModel>> searchByUsername(
     String? username, {
-    _i12.FeedType? profileType = _i12.FeedType.public,
+    _i13.FeedType? profileType = _i13.FeedType.public,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -367,63 +434,6 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
         ),
         returnValue: _i6.Future<_i11.UserModel?>.value(),
       ) as _i6.Future<_i11.UserModel?>);
-
-  @override
-  _i6.Future<void> updateUser(
-    String? userId,
-    Map<String, dynamic>? data,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateUser,
-          [
-            userId,
-            data,
-          ],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
-
-  @override
-  _i6.Future<String> uploadImage({
-    required String? userId,
-    required _i13.File? file,
-    required String? type,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #uploadImage,
-          [],
-          {
-            #userId: userId,
-            #file: file,
-            #type: type,
-          },
-        ),
-        returnValue: _i6.Future<String>.value(_i7.dummyValue<String>(
-          this,
-          Invocation.method(
-            #uploadImage,
-            [],
-            {
-              #userId: userId,
-              #file: file,
-              #type: type,
-            },
-          ),
-        )),
-      ) as _i6.Future<String>);
-
-  @override
-  _i6.Future<void> deleteUser(String? userId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteUser,
-          [userId],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
 
   @override
   _i6.Future<void> followUser(
@@ -496,15 +506,6 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
       ) as _i6.Stream<List<_i11.UserModel>>);
 
   @override
-  _i6.Stream<_i11.UserModel?> streamUser(String? userId) => (super.noSuchMethod(
-        Invocation.method(
-          #streamUser,
-          [userId],
-        ),
-        returnValue: _i6.Stream<_i11.UserModel?>.empty(),
-      ) as _i6.Stream<_i11.UserModel?>);
-
-  @override
   _i6.Future<int?> getFollowerCount(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #getFollowerCount,
@@ -523,26 +524,9 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
       ) as _i6.Future<int?>);
 
   @override
-  _i6.Future<void> incrementUserPoints(
-    String? userId,
-    int? points,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #incrementUserPoints,
-          [
-            userId,
-            points,
-          ],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
-
-  @override
   _i6.Future<String> uploadAltImage({
     required String? userId,
-    required _i13.File? file,
+    required _i12.File? file,
     required String? type,
   }) =>
       (super.noSuchMethod(
@@ -880,14 +864,15 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
       ) as _i6.Future<int?>);
 
   @override
-  _i6.Future<void> requestDataExport(String? userId) => (super.noSuchMethod(
+  _i6.Future<Map<String, dynamic>> requestDataExport(String? userId) =>
+      (super.noSuchMethod(
         Invocation.method(
           #requestDataExport,
           [userId],
         ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
 
   @override
   _i6.Future<bool> hasPendingDataExport(String? userId) => (super.noSuchMethod(
@@ -897,6 +882,28 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
         ),
         returnValue: _i6.Future<bool>.value(false),
       ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<Map<String, dynamic>> getDataExportStatus(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getDataExportStatus,
+          [userId],
+        ),
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
+
+  @override
+  _i6.Future<Map<String, dynamic>> resetDataExportRequest(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #resetDataExportRequest,
+          [userId],
+        ),
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
 
   @override
   _i6.Future<Map<String, dynamic>> getUserExportData(String? userId) =>

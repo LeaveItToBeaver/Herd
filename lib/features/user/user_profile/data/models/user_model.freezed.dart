@@ -30,7 +30,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   List<String> get followingList;
   List<String> get blockedUsers;
   Map<String, dynamic> get herdAndRole;
-  String? get role; // Role in the application, e.g., 'admin', 'member'
+  String? get role;
   String? get altUserUID;
   String? get bio;
   String? get profileImageURL;
@@ -38,15 +38,14 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   bool get acceptedLegal;
   bool get isVerified;
   bool get isPrivateAccount;
-  String get fcmToken; // Firebase Cloud Messaging token
+  String get fcmToken;
   Map<String, dynamic> get preferences;
   Map<String, dynamic> get notifications;
   List<String> get savedPosts;
-  bool get isNSFW; // Not Safe For Work flag
-  bool get allowNSFW; // Not Safe For Work flag
-  bool get blurNSFW; // Blur NSFW content
-  bool get showHerdPostsInAltFeed; // Blur NSFW content'
-// Location data
+  bool get isNSFW;
+  bool get allowNSFW;
+  bool get blurNSFW;
+  bool get showHerdPostsInAltFeed; // Location
   String? get country;
   String? get city;
   String? get timezone; // Activity metrics
@@ -74,7 +73,7 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   DateTime? get altUpdatedAt;
   DateTime? get dateOfBirth;
   List<String> get altConnections;
-  bool get altIsPrivateAccount; // Community fields
+  bool get altIsPrivateAccount; // Community
   List<String> get groups;
   List<String> get moderatedGroups;
   List<String> get altGroups;
@@ -85,22 +84,20 @@ mixin _$UserModel implements DiagnosticableTreeMixin {
   int get altReportCount; // Account status
   bool get isActive;
   bool get altIsActive;
-  String get accountStatus; // active, suspended, restricted, etc.
-  String get altAccountStatus; // User categories and interests
+  String get accountStatus;
+  String get altAccountStatus; // Interests
   List<String> get interests;
   List<String> get altInterests; // Content engagement preferences
   Map<String, dynamic> get contentPreferences;
   Map<String, dynamic> get altContentPreferences; // Account security
   bool get twoFactorEnabled;
   DateTime? get lastPasswordChange;
-  List<Map<String, dynamic>>
-      get loginHistory; // Monetization and premium features
+  List<Map<String, dynamic>> get loginHistory; // Monetization / premium
   bool get isPremium;
   DateTime? get premiumUntil;
   int get walletBalance; // Pinned posts (max 5 each)
-  List<String> get pinnedPosts; // Public profile pinned posts
-  List<String> get altPinnedPosts; // Alt profile pinned posts
-// Account deletion
+  List<String> get pinnedPosts;
+  List<String> get altPinnedPosts; // Account deletion
   DateTime? get markedForDeleteAt;
 
   /// Create a copy of UserModel
@@ -1833,7 +1830,6 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
 
   @override
   final String? role;
-// Role in the application, e.g., 'admin', 'member'
   @override
   final String? altUserUID;
   @override
@@ -1854,9 +1850,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final String fcmToken;
-// Firebase Cloud Messaging token
   final Map<String, dynamic> _preferences;
-// Firebase Cloud Messaging token
   @override
   @JsonKey()
   Map<String, dynamic> get preferences {
@@ -1886,20 +1880,16 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool isNSFW;
-// Not Safe For Work flag
   @override
   @JsonKey()
   final bool allowNSFW;
-// Not Safe For Work flag
   @override
   @JsonKey()
   final bool blurNSFW;
-// Blur NSFW content
   @override
   @JsonKey()
   final bool showHerdPostsInAltFeed;
-// Blur NSFW content'
-// Location data
+// Location
   @override
   final String? country;
   @override
@@ -2013,9 +2003,9 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final bool altIsPrivateAccount;
-// Community fields
+// Community
   final List<String> _groups;
-// Community fields
+// Community
   @override
   @JsonKey()
   List<String> get groups {
@@ -2075,13 +2065,12 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   final String accountStatus;
-// active, suspended, restricted, etc.
   @override
   @JsonKey()
   final String altAccountStatus;
-// User categories and interests
+// Interests
   final List<String> _interests;
-// User categories and interests
+// Interests
   @override
   @JsonKey()
   List<String> get interests {
@@ -2136,7 +2125,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_loginHistory);
   }
 
-// Monetization and premium features
+// Monetization / premium
   @override
   @JsonKey()
   final bool isPremium;
@@ -2156,9 +2145,7 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_pinnedPosts);
   }
 
-// Public profile pinned posts
   final List<String> _altPinnedPosts;
-// Public profile pinned posts
   @override
   @JsonKey()
   List<String> get altPinnedPosts {
@@ -2167,7 +2154,6 @@ class _UserModel extends UserModel with DiagnosticableTreeMixin {
     return EqualUnmodifiableListView(_altPinnedPosts);
   }
 
-// Alt profile pinned posts
 // Account deletion
   @override
   final DateTime? markedForDeleteAt;

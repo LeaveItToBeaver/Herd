@@ -1,13 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:herdapp/features/user/user_profile/data/models/firestore_parse_helpers.dart';
+
+// Re-export extensions so existing importers of user_model.dart
+// automatically get all the helper getters/methods.
+export 'package:herdapp/features/user/user_profile/data/extensions/user_profile_extensions.dart';
+export 'package:herdapp/features/user/user_profile/data/extensions/alt_profile_extensions.dart';
+export 'package:herdapp/features/user/user_profile/data/extensions/account_status_extensions.dart';
 
 part 'user_model.freezed.dart';
-part 'user_model.g.dart'; // For JSON serialization
+part 'user_model.g.dart';
 
+/// The core user model that maps 1:1 with the `users/{userId}` Firestore
+/// document.
+///
+/// All fields live here because they share a single document. Business-logic
+/// helpers are split into focused extensions:
+///
+/// - [UserProfileExtensions] – profile completeness, activity, engagement
+/// - [AltProfileExtensions] – alt profile helpers, privacy toggles
+/// - [AccountStatusExtensions] – deletion lifecycle, premium status
 @freezed
 abstract class UserModel with _$UserModel {
-  const UserModel._(); // Add this to allow custom methods within the class
+  const UserModel._();
 
   const factory UserModel({
     required String id,
@@ -26,7 +42,7 @@ abstract class UserModel with _$UserModel {
     @Default([]) List<String> followingList,
     @Default([]) List<String> blockedUsers,
     @Default({}) Map<String, dynamic> herdAndRole,
-    String? role, // Role in the application, e.g., 'admin', 'member'
+    String? role,
     String? altUserUID,
     String? bio,
     String? profileImageURL,
@@ -34,16 +50,16 @@ abstract class UserModel with _$UserModel {
     @Default(false) bool acceptedLegal,
     @Default(false) bool isVerified,
     @Default(false) bool isPrivateAccount,
-    @Default("") String fcmToken, // Firebase Cloud Messaging token
+    @Default("") String fcmToken,
     @Default({}) Map<String, dynamic> preferences,
     @Default({}) Map<String, dynamic> notifications,
     @Default([]) List<String> savedPosts,
-    @Default(false) bool isNSFW, // Not Safe For Work flag
-    @Default(false) bool allowNSFW, // Not Safe For Work flag
-    @Default(false) bool blurNSFW, // Blur NSFW content
-    @Default(true) bool showHerdPostsInAltFeed, // Blur NSFW content'
+    @Default(false) bool isNSFW,
+    @Default(false) bool allowNSFW,
+    @Default(false) bool blurNSFW,
+    @Default(true) bool showHerdPostsInAltFeed,
 
-    // Location data
+    // Location
     String? country,
     String? city,
     String? timezone,
@@ -77,7 +93,7 @@ abstract class UserModel with _$UserModel {
     @Default([]) List<String> altConnections,
     @Default(false) bool altIsPrivateAccount,
 
-    // Community fields
+    // Community
     @Default([]) List<String> groups,
     @Default([]) List<String> moderatedGroups,
     @Default([]) List<String> altGroups,
@@ -92,11 +108,10 @@ abstract class UserModel with _$UserModel {
     // Account status
     @Default(true) bool isActive,
     @Default(true) bool altIsActive,
-    @Default("active")
-    String accountStatus, // active, suspended, restricted, etc.
+    @Default("active") String accountStatus,
     @Default("active") String altAccountStatus,
 
-    // User categories and interests
+    // Interests
     @Default([]) List<String> interests,
     @Default([]) List<String> altInterests,
 
@@ -109,20 +124,23 @@ abstract class UserModel with _$UserModel {
     DateTime? lastPasswordChange,
     @Default([]) List<Map<String, dynamic>> loginHistory,
 
-    // Monetization and premium features
+    // Monetization / premium
     @Default(false) bool isPremium,
     DateTime? premiumUntil,
     @Default(0) int walletBalance,
 
     // Pinned posts (max 5 each)
-    @Default([]) List<String> pinnedPosts, // Public profile pinned posts
-    @Default([]) List<String> altPinnedPosts, // Alt profile pinned posts
+    @Default([]) List<String> pinnedPosts,
+    @Default([]) List<String> altPinnedPosts,
 
     // Account deletion
-    DateTime? markedForDeleteAt, // When account was marked for deletion
+    DateTime? markedForDeleteAt,
   }) = _UserModel;
 
-  // Factory constructor to create a UserModel from Firebase User
+  // ---------------------------------------------------------------------------
+  // Factory constructors
+  // ---------------------------------------------------------------------------
+
   factory UserModel.fromFirebaseUser(
     String uid,
     String? email,
@@ -146,7 +164,6 @@ abstract class UserModel with _$UserModel {
     );
   }
 
-  // Factory constructor to convert from Firestore snapshot
   factory UserModel.fromMap(String id, Map<String, dynamic> map) {
     return UserModel(
       id: id,
@@ -154,16 +171,16 @@ abstract class UserModel with _$UserModel {
       lastName: map['lastName'] ?? '',
       username: map['username'] ?? '',
       email: map['email'] ?? '',
-      createdAt: _parseDateTime(map['createdAt']),
-      updatedAt: _parseDateTime(map['updatedAt']),
-      dateOfBirth: _parseDateTime(map['dateOfBirth']),
+      createdAt: FirestoreParseHelpers.parseDateTime(map['createdAt']),
+      updatedAt: FirestoreParseHelpers.parseDateTime(map['updatedAt']),
+      dateOfBirth: FirestoreParseHelpers.parseDateTime(map['dateOfBirth']),
       followers: map['followers'] ?? 0,
       following: map['following'] ?? 0,
       friends: map['friends'] ?? 0,
-      friendsList: _parseStringList(map['friendsList']),
-      followersList: _parseStringList(map['followersList']),
-      followingList: _parseStringList(map['followingList']),
-      blockedUsers: _parseStringList(map['blockedUsers']),
+      friendsList: FirestoreParseHelpers.parseStringList(map['friendsList']),
+      followersList: FirestoreParseHelpers.parseStringList(map['followersList']),
+      followingList: FirestoreParseHelpers.parseStringList(map['followingList']),
+      blockedUsers: FirestoreParseHelpers.parseStringList(map['blockedUsers']),
       herdAndRole: map['herdAndRole'] ?? {},
       role: map['role'] ?? '',
       altUserUID: map['altUserUID'],
@@ -177,7 +194,7 @@ abstract class UserModel with _$UserModel {
       fcmToken: map['fcmToken'] ?? '',
       preferences: map['preferences'] ?? {},
       notifications: map['notifications'] ?? {},
-      savedPosts: _parseStringList(map['savedPosts']),
+      savedPosts: FirestoreParseHelpers.parseStringList(map['savedPosts']),
       isNSFW: map['isNSFW'] ?? false,
       allowNSFW: map['allowNSFW'] ?? false,
       blurNSFW: map['blurNSFW'] ?? false,
@@ -188,7 +205,7 @@ abstract class UserModel with _$UserModel {
       totalPosts: map['totalPosts'] ?? 0,
       totalComments: map['totalComments'] ?? 0,
       totalLikes: map['totalLikes'] ?? 0,
-      lastActive: _parseDateTime(map['lastActive']),
+      lastActive: FirestoreParseHelpers.parseDateTime(map['lastActive']),
       altUsername: map['altUsername'],
       altBio: map['altBio'],
       altProfileImageURL: map['altProfileImageURL'],
@@ -197,22 +214,30 @@ abstract class UserModel with _$UserModel {
       altFollowing: map['altFollowing'] ?? 0,
       altFriends: map['altFriends'] ?? 0,
       altUserPoints: map['altUserPoints'] ?? 0,
-      altFriendsList: _parseStringList(map['altFriendsList']),
-      altFollowersList: _parseStringList(map['altFollowersList']),
-      altFollowingList: _parseStringList(map['altFollowingList']),
-      altBlockedUsers: _parseStringList(map['altBlockedUsers']),
+      altFriendsList:
+          FirestoreParseHelpers.parseStringList(map['altFriendsList']),
+      altFollowersList:
+          FirestoreParseHelpers.parseStringList(map['altFollowersList']),
+      altFollowingList:
+          FirestoreParseHelpers.parseStringList(map['altFollowingList']),
+      altBlockedUsers:
+          FirestoreParseHelpers.parseStringList(map['altBlockedUsers']),
       altTotalPosts: map['altTotalPosts'] ?? 0,
       altTotalComments: map['altTotalComments'] ?? 0,
       altTotalLikes: map['altTotalLikes'] ?? 0,
-      altSavedPosts: _parseStringList(map['altSavedPosts']),
-      altCreatedAt: _parseDateTime(map['altCreatedAt']),
-      altUpdatedAt: _parseDateTime(map['altUpdatedAt']),
-      altConnections: _parseStringList(map['altConnections']),
+      altSavedPosts:
+          FirestoreParseHelpers.parseStringList(map['altSavedPosts']),
+      altCreatedAt: FirestoreParseHelpers.parseDateTime(map['altCreatedAt']),
+      altUpdatedAt: FirestoreParseHelpers.parseDateTime(map['altUpdatedAt']),
+      altConnections:
+          FirestoreParseHelpers.parseStringList(map['altConnections']),
       altIsPrivateAccount: map['altIsPrivateAccount'] ?? false,
-      groups: _parseStringList(map['groups']),
-      moderatedGroups: _parseStringList(map['moderatedGroups']),
-      altGroups: _parseStringList(map['altGroups']),
-      altModeratedGroups: _parseStringList(map['altModeratedGroups']),
+      groups: FirestoreParseHelpers.parseStringList(map['groups']),
+      moderatedGroups:
+          FirestoreParseHelpers.parseStringList(map['moderatedGroups']),
+      altGroups: FirestoreParseHelpers.parseStringList(map['altGroups']),
+      altModeratedGroups:
+          FirestoreParseHelpers.parseStringList(map['altModeratedGroups']),
       trustScore: map['trustScore'] ?? 0,
       altTrustScore: map['altTrustScore'] ?? 0,
       reportCount: map['reportCount'] ?? 0,
@@ -221,56 +246,29 @@ abstract class UserModel with _$UserModel {
       altIsActive: map['altIsActive'] ?? true,
       accountStatus: map['accountStatus'] ?? 'active',
       altAccountStatus: map['altAccountStatus'] ?? 'active',
-      interests: _parseStringList(map['interests']),
-      altInterests: _parseStringList(map['altInterests']),
+      interests: FirestoreParseHelpers.parseStringList(map['interests']),
+      altInterests: FirestoreParseHelpers.parseStringList(map['altInterests']),
       contentPreferences: map['contentPreferences'] ?? {},
       altContentPreferences: map['altContentPreferences'] ?? {},
       twoFactorEnabled: map['twoFactorEnabled'] ?? false,
-      lastPasswordChange: _parseDateTime(map['lastPasswordChange']),
-      loginHistory: _parseMapList(map['loginHistory']),
+      lastPasswordChange:
+          FirestoreParseHelpers.parseDateTime(map['lastPasswordChange']),
+      loginHistory: FirestoreParseHelpers.parseMapList(map['loginHistory']),
       isPremium: map['isPremium'] ?? false,
-      premiumUntil: _parseDateTime(map['premiumUntil']),
+      premiumUntil: FirestoreParseHelpers.parseDateTime(map['premiumUntil']),
       walletBalance: map['walletBalance'] ?? 0,
-      pinnedPosts: _parseStringList(map['pinnedPosts']),
-      altPinnedPosts: _parseStringList(map['altPinnedPosts']),
-      markedForDeleteAt: _parseDateTime(map['markedForDeleteAt']),
+      pinnedPosts: FirestoreParseHelpers.parseStringList(map['pinnedPosts']),
+      altPinnedPosts:
+          FirestoreParseHelpers.parseStringList(map['altPinnedPosts']),
+      markedForDeleteAt:
+          FirestoreParseHelpers.parseDateTime(map['markedForDeleteAt']),
     );
   }
 
-  // Helper for parsing DateTime values from Firestore
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value == null) return null;
-    if (value is Timestamp) {
-      return value.toDate();
-    } else if (value is String) {
-      return DateTime.tryParse(value);
-    }
-    return null;
-  }
+  // ---------------------------------------------------------------------------
+  // Serialization
+  // ---------------------------------------------------------------------------
 
-  // Helper for parsing string lists from Firestore
-  static List<String> _parseStringList(dynamic value) {
-    if (value == null) return [];
-    if (value is List) {
-      return value.map((item) => item.toString()).toList();
-    }
-    return [];
-  }
-
-  // Helper for parsing list of maps from Firestore
-  static List<Map<String, dynamic>> _parseMapList(dynamic value) {
-    if (value == null) return [];
-    if (value is List) {
-      return value
-          .map((item) => item is Map
-              ? Map<String, dynamic>.from(item)
-              : <String, dynamic>{})
-          .toList();
-    }
-    return [];
-  }
-
-  // Convert to Firestore Map
   Map<String, dynamic> toMap() {
     return {
       'firstName': firstName,
@@ -371,183 +369,9 @@ abstract class UserModel with _$UserModel {
     };
   }
 
-  // Get full name
-  String get fullName => '$firstName $lastName'.trim();
-
-  // Check if user is premium
-  bool get hasPremium =>
-      isPremium &&
-      (premiumUntil == null || premiumUntil!.isAfter(DateTime.now()));
-
-  // Get user status
-  bool get isActiveUser => isActive && accountStatus == 'active';
-
-  // Get alt user status
-  bool get isActiveAltUser => altIsActive && altAccountStatus == 'active';
-
-  // Method to create alt account
-  UserModel createAltAccount(String altId) {
-    final result = copyWith(
-      altUserUID: altId,
-      altCreatedAt: DateTime.now(),
-      altUpdatedAt: DateTime.now(),
-    );
-    return result;
-  }
-
-// Method to toggle account privacy - with type casting
-  UserModel togglePrivacy({bool? forAltAccount = false}) {
-    if (forAltAccount == true) {
-      return copyWith(altIsPrivateAccount: !altIsPrivateAccount);
-    }
-    return copyWith(isPrivateAccount: !isPrivateAccount);
-  }
-
-  // Method to link public and alt accounts
-  static Future<void> linkAccounts(
-      String publicUserId, String altUserId) async {
-    final batch = FirebaseFirestore.instance.batch();
-
-    final publicRef =
-        FirebaseFirestore.instance.collection('users').doc(publicUserId);
-    final altRef =
-        FirebaseFirestore.instance.collection('users').doc(altUserId);
-
-    batch.update(publicRef, {'altUserUID': altUserId});
-    batch.update(altRef, {'altUserUID': publicUserId});
-
-    await batch.commit();
-  }
-
-  // Pinned posts helper methods
-  bool canPinMorePosts({bool isAlt = false}) {
-    final currentPinned = isAlt ? altPinnedPosts : pinnedPosts;
-    return currentPinned.length < 5; // Max 5 pinned posts
-  }
-
-  bool isPostPinned(String postId, {bool isAlt = false}) {
-    final currentPinned = isAlt ? altPinnedPosts : pinnedPosts;
-    return currentPinned.contains(postId);
-  }
-
-  // JSON serialization
   factory UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
 
   @override
   Map<String, dynamic> toJson() => toMap();
-
-  // Add a method to determine if a user can be safely deleted
-  bool get canBeDeleted {
-    // Check for related data that would prevent deletion
-    bool hasContent = totalPosts > 0 || totalComments > 0;
-    bool hasAltContent = altTotalPosts > 0 || altTotalComments > 0;
-    bool isGroupModerator =
-        moderatedGroups.isNotEmpty || altModeratedGroups.isNotEmpty;
-
-    return !hasContent && !hasAltContent && !isGroupModerator;
-  }
-
-  // Determine if the user needs to complete their profile
-  bool get isProfileComplete {
-    if (firstName.isEmpty || lastName.isEmpty) return false;
-    if (bio == null || bio!.isEmpty) return false;
-    if (profileImageURL == null) return false;
-    return true;
-  }
-
-  // Determine if alt profile is complete
-  bool get isAltProfileComplete {
-    if (altUsername == null || altUsername!.isEmpty) return false;
-    if (altProfileImageURL == null) return false;
-    return true;
-  }
-
-  // Calculate activity level (1-10) based on engagement
-  int get activityLevel {
-    final now = DateTime.now();
-    final lastActiveDate = lastActive ?? updatedAt ?? createdAt;
-    if (lastActiveDate == null) return 1;
-
-    // Calculate days since last activity
-    final daysSinceActive = now.difference(lastActiveDate).inDays;
-
-    // Calculate activity score based on content and recency
-    int baseScore = 0;
-
-    // Content score (max 5 points)
-    final contentScore =
-        ((totalPosts + totalComments) / 10).clamp(0, 5).floor();
-    baseScore += contentScore;
-
-    // Recency score (max 5 points)
-    int recencyScore = 5;
-    if (daysSinceActive > 1) recencyScore = 4;
-    if (daysSinceActive > 7) recencyScore = 3;
-    if (daysSinceActive > 30) recencyScore = 2;
-    if (daysSinceActive > 90) recencyScore = 1;
-    if (daysSinceActive > 180) recencyScore = 0;
-
-    baseScore += recencyScore;
-
-    // Ensure range is 1-10
-    return baseScore.clamp(1, 10);
-  }
-
-  // Determine user engagement type based on behavior
-  String get engagementType {
-    // Calculate ratios to determine user behavior
-    final commentRatio = totalComments > 0
-        ? totalComments / (totalPosts > 0 ? totalPosts : 1)
-        : 0;
-    final likeRatio =
-        totalLikes > 0 ? totalLikes / (totalPosts + totalComments) : 0;
-
-    if (totalPosts > 50 && commentRatio < 1) {
-      return 'Creator'; // Posts a lot, comments less
-    } else if (commentRatio > 5) {
-      return 'Commenter'; // Comments much more than posts
-    } else if (likeRatio > 10 && totalPosts < 10) {
-      return 'Observer'; // Mostly likes, rarely posts
-    } else if (followersList.length > followingList.length * 2) {
-      return 'Influencer'; // Has many more followers than following
-    } else {
-      return 'Balanced'; // Balanced engagement
-    }
-  }
-
-  // Method to get a map of incomplete profile fields for onboarding
-  Map<String, String> getIncompleteFields() {
-    final Map<String, String> incomplete = {};
-
-    if (firstName.isEmpty) incomplete['firstName'] = 'First name is required';
-    if (lastName.isEmpty) incomplete['lastName'] = 'Last name is required';
-    if (bio == null || bio!.isEmpty) incomplete['bio'] = 'Add a short bio';
-    if (profileImageURL == null) {
-      incomplete['profileImage'] = 'Add a profile picture';
-    }
-    if (interests.isEmpty) {
-      incomplete['interests'] = 'Add at least one interest';
-    }
-
-    return incomplete;
-  }
-
-  // Check if account is marked for deletion
-  bool get isMarkedForDeletion => markedForDeleteAt != null;
-
-  // Get days remaining until permanent deletion (assuming 30-day retention)
-  int? get daysUntilDeletion {
-    if (markedForDeleteAt == null) return null;
-    final deletionDate = markedForDeleteAt!.add(const Duration(days: 30));
-    final now = DateTime.now();
-    if (deletionDate.isBefore(now)) return 0;
-    return deletionDate.difference(now).inDays;
-  }
-
-  // Get the permanent deletion date
-  DateTime? get permanentDeletionDate {
-    if (markedForDeleteAt == null) return null;
-    return markedForDeleteAt!.add(const Duration(days: 30));
-  }
 }
