@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/services/exception_logging_service.dart';
 import 'package:herdapp/features/social/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/user/user_profile/data/models/alt_connection_request_model.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
@@ -15,6 +17,7 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 class UserRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final ExceptionLoggerService _logger = ExceptionLoggerService();
 
   UserRepository(this._firestore);
 
@@ -252,8 +255,21 @@ class UserRepository {
       return snapshot.docs
           .map((doc) => UserModel.fromMap(doc.id, doc.data()))
           .toList();
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error searching by username: $e');
+      try {
+        _logger
+            .logException(
+          errorMessage: e.toString(),
+          stackTrace: stack.toString(),
+        )
+            .catchError((loggingError) {
+          debugPrint('Error logging exception: $loggingError');
+          return null;
+        });
+      } catch (loggingError) {
+        debugPrint('Error logging exception: $loggingError');
+      }
       return [];
     }
   }
@@ -533,6 +549,14 @@ class UserRepository {
       });
     } catch (e) {
       debugPrint('Error requesting alt connection: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'requestAltConnection',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'targetUserId': targetUserId},
+      );
       rethrow;
     }
   }
@@ -575,6 +599,14 @@ class UserRepository {
           .update({'altFriends': FieldValue.increment(1)});
     } catch (e) {
       debugPrint('Error accepting alt connection: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'acceptAltConnection',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'requesterId': requesterId},
+      );
       rethrow;
     }
   }
@@ -590,6 +622,14 @@ class UserRepository {
           .update({'status': 'rejected'});
     } catch (e) {
       debugPrint('Error rejecting alt connection: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'rejectAltConnection',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'requesterId': requesterId},
+      );
       rethrow;
     }
   }
@@ -622,6 +662,14 @@ class UserRepository {
       return doc.exists;
     } catch (e) {
       debugPrint('Error checking alt connection request: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'hasAltConnectionRequest',
+        route: 'UserRepository',
+        userId: requesterId,
+        errorDetails: {'targetUserId': targetUserId},
+      );
       return false;
     }
   }
@@ -639,6 +687,14 @@ class UserRepository {
       return doc.exists;
     } catch (e) {
       debugPrint('Error checking alt connection: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'areAltlyConnected',
+        route: 'UserRepository',
+        userId: userId1,
+        errorDetails: {'otherUserId': userId2},
+      );
       return false;
     }
   }
@@ -665,6 +721,13 @@ class UserRepository {
       return snapshot.count ?? 0;
     } catch (e) {
       debugPrint('Error getting alt connection count: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getAltConnectionCount',
+        route: 'UserRepository',
+        userId: userId,
+      );
       return 0;
     }
   }
@@ -784,6 +847,14 @@ class UserRepository {
           isAlt: isAlt, isPinned: true, userId: userId);
     } catch (e) {
       debugPrint('Error pinning post to profile: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'pinPostToProfile',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'postId': postId, 'isAlt': isAlt},
+      );
       rethrow;
     }
   }
@@ -821,6 +892,18 @@ class UserRepository {
       await collection.doc(postId).update(updateData);
     } catch (e) {
       debugPrint('Error updating post pin status: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: '_updatePostPinStatus',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {
+          'postId': postId,
+          'isAlt': isAlt,
+          'isPinned': isPinned,
+        },
+      );
       // Don't rethrow here as this is a secondary update
     }
   }
@@ -856,6 +939,14 @@ class UserRepository {
           isAlt: isAlt, isPinned: false, userId: userId);
     } catch (e) {
       debugPrint('Error unpinning post from profile: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'unpinPostFromProfile',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'postId': postId, 'isAlt': isAlt},
+      );
       rethrow;
     }
   }
@@ -870,6 +961,14 @@ class UserRepository {
       return isAlt ? user.altPinnedPosts : user.pinnedPosts;
     } catch (e) {
       debugPrint('Error getting pinned posts: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getPinnedPosts',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'isAlt': isAlt},
+      );
       return [];
     }
   }
@@ -882,6 +981,14 @@ class UserRepository {
       return pinnedPosts.contains(postId);
     } catch (e) {
       debugPrint('Error checking if post is pinned: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'isPostPinnedToProfile',
+        route: 'UserRepository',
+        userId: userId,
+        errorDetails: {'postId': postId, 'isAlt': isAlt},
+      );
       return false;
     }
   }
@@ -900,6 +1007,13 @@ class UserRepository {
       });
     } catch (e) {
       debugPrint('Error marking account for deletion: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'markAccountForDeletion',
+        route: 'UserRepository',
+        userId: userId,
+      );
       rethrow;
     }
   }
@@ -916,6 +1030,13 @@ class UserRepository {
       });
     } catch (e) {
       debugPrint('Error canceling account deletion: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'cancelAccountDeletion',
+        route: 'UserRepository',
+        userId: userId,
+      );
       rethrow;
     }
   }
@@ -927,6 +1048,13 @@ class UserRepository {
       return user?.isMarkedForDeletion ?? false;
     } catch (e) {
       debugPrint('Error checking account deletion status: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'isAccountMarkedForDeletion',
+        route: 'UserRepository',
+        userId: userId,
+      );
       return false;
     }
   }
@@ -938,6 +1066,13 @@ class UserRepository {
       return user?.permanentDeletionDate;
     } catch (e) {
       debugPrint('Error getting account deletion date: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getAccountDeletionDate',
+        route: 'UserRepository',
+        userId: userId,
+      );
       return null;
     }
   }
@@ -949,23 +1084,60 @@ class UserRepository {
       return user?.daysUntilDeletion;
     } catch (e) {
       debugPrint('Error getting days until deletion: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getDaysUntilPermanentDeletion',
+        route: 'UserRepository',
+        userId: userId,
+      );
       return null;
     }
   }
 
-  /// Request data export for user
-  Future<void> requestDataExport(String userId) async {
+  /// Request data export for user via Cloud Function
+  /// Returns a map with 'success' boolean and 'message' string
+  Future<Map<String, dynamic>> requestDataExport(String userId) async {
     try {
-      // Create a data export request document
-      await _firestore.collection('dataExportRequests').doc(userId).set({
-        'userId': userId,
-        'requestedAt': FieldValue.serverTimestamp(),
-        'status': 'pending',
-        'exportType': 'full_account_data',
-      });
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('requestDataExport');
+
+      final result = await callable.call();
+      final data = result.data as Map<String, dynamic>;
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Request submitted',
+        'status': data['status'],
+        'requestedAt': data['requestedAt'],
+      };
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+          'Firebase Functions error requesting data export: ${e.code} - ${e.message}');
+      _logger.logException(
+        errorMessage: '${e.code}: ${e.message}',
+        stackTrace: StackTrace.current.toString(),
+        action: 'requestDataExport',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': e.message ?? 'Failed to submit data export request',
+      };
     } catch (e) {
       debugPrint('Error requesting data export: $e');
-      rethrow;
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'requestDataExport',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred. Please try again later.',
+      };
     }
   }
 
@@ -981,7 +1153,109 @@ class UserRepository {
       return data['status'] == 'pending' || data['status'] == 'processing';
     } catch (e) {
       debugPrint('Error checking data export status: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'hasPendingDataExport',
+        route: 'UserRepository',
+        userId: userId,
+      );
       return false;
+    }
+  }
+
+  /// Get detailed data export status via Cloud Function
+  Future<Map<String, dynamic>> getDataExportStatus(String userId) async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('getDataExportStatus');
+
+      final result = await callable.call();
+      final data = result.data as Map<String, dynamic>;
+
+      return {
+        'hasRequest': data['hasRequest'] ?? false,
+        'status': data['status'],
+        'requestedAt': data['requestedAt'],
+        'completedAt': data['completedAt'],
+        'exportDocId': data['exportDocId'],
+        'downloadUrl': data['downloadUrl'],
+        'fileSizeBytes': data['fileSizeBytes'],
+        'expiresAt': data['expiresAt'],
+        'isExpired': data['isExpired'] ?? false,
+        'downloaded': data['downloaded'] ?? false,
+        'downloadedAt': data['downloadedAt'],
+      };
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+          'Firebase Functions error getting data export status: ${e.code} - ${e.message}');
+      _logger.logException(
+        errorMessage: '${e.code}: ${e.message}',
+        stackTrace: StackTrace.current.toString(),
+        action: 'getDataExportStatus',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'hasRequest': false,
+        'error': e.message,
+      };
+    } catch (e) {
+      debugPrint('Error getting data export status: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getDataExportStatus',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'hasRequest': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Reset a stuck data export request
+  Future<Map<String, dynamic>> resetDataExportRequest(String userId) async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('resetDataExportRequest');
+
+      final result = await callable.call();
+      final data = result.data as Map<String, dynamic>;
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Request reset',
+      };
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(
+          'Firebase Functions error resetting data export: ${e.code} - ${e.message}');
+      _logger.logException(
+        errorMessage: '${e.code}: ${e.message}',
+        stackTrace: StackTrace.current.toString(),
+        action: 'resetDataExportRequest',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': e.message ?? 'Failed to reset data export request',
+      };
+    } catch (e) {
+      debugPrint('Error resetting data export request: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'resetDataExportRequest',
+        route: 'UserRepository',
+        userId: userId,
+      );
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred.',
+      };
     }
   }
 
@@ -1005,9 +1279,24 @@ class UserRepository {
       // - saved posts
       // - etc.
 
+      // Collect data from other collections as needed
+      // For example:
+      // final postsSnapshot = await _firestore
+      //     .collection('posts')
+      //     .where('authorId', isEqualTo: userId)
+      //     .get();
+      // exportData['posts'] = postsSnapshot.docs.map((doc) => doc.data()).toList();
+
       return exportData;
     } catch (e) {
       debugPrint('Error getting user export data: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getUserExportData',
+        route: 'UserRepository',
+        userId: userId,
+      );
       rethrow;
     }
   }
@@ -1084,7 +1373,13 @@ class UserRepository {
       await batch.commit();
     } catch (e) {
       debugPrint('Error permanently deleting account: $e');
-      rethrow;
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'permanentlyDeleteAccount',
+        route: 'UserRepository',
+        userId: userId,
+      );
     }
   }
 
@@ -1102,6 +1397,12 @@ class UserRepository {
       return snapshot.docs.map((doc) => doc.id).toList();
     } catch (e) {
       debugPrint('Error getting accounts ready for deletion: $e');
+      _logger.logException(
+        errorMessage: e.toString(),
+        stackTrace: StackTrace.current.toString(),
+        action: 'getAccountsReadyForDeletion',
+        route: 'UserRepository',
+      );
       return [];
     }
   }

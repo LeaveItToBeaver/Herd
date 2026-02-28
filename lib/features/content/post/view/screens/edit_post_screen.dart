@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
-import 'package:herdapp/features/content/create_post/create_post_controller.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/content/rich_text_editing/utils/mention_embed_builder.dart';
 import 'package:herdapp/features/content/rich_text_editing/utils/mention_extractor.dart';
@@ -377,7 +376,7 @@ class _EditPostScreenState extends ConsumerState<EditPostScreen> {
       final mentionIds =
           MentionExtractor.extractMentionIds(_contentController.document);
 
-      await ref.read(postControllerProvider.notifier).updatePost(
+      await ref.read(postRepositoryProvider).updatePost(
             postId: widget.post.id,
             userId: userId,
             title: _titleController.text,

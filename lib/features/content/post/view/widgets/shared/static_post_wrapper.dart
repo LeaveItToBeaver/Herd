@@ -21,6 +21,8 @@ class _StaticPostWrapperState extends State<StaticPostWrapper>
   @override
   bool get wantKeepAlive => true;
 
+  String? _cachedPostId;
+
   // Cache the original MediaQuery data when first built
   MediaQueryData? _cachedMediaQuery;
   ThemeData? _cachedTheme;
@@ -29,6 +31,16 @@ class _StaticPostWrapperState extends State<StaticPostWrapper>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
+    // If the wrapper is being reused for a different post, reset caches.
+    // This is critical when lists are resorted/rebuilt and Flutter decides to
+    // reuse existing element/state instances.
+    if (_cachedPostId != widget.postId) {
+      _cachedPostId = widget.postId;
+      _cachedMediaQuery = null;
+      _cachedTheme = null;
+      _cachedChild = null;
+    }
 
     // Only cache on first build or when the post ID changes
     if (_cachedMediaQuery == null ||

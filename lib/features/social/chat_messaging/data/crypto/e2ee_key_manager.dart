@@ -17,7 +17,7 @@ class E2EEKeyManager {
   /// Initialize E2EE keys for a user during app startup
   Future<void> initializeUserKeys(String userId) async {
     try {
-      debugPrint('🔐 Starting E2EE key initialization for user: $userId');
+      debugPrint('Starting E2EE key initialization for user: $userId');
 
       // Step 1: Generate or load existing key from device
       final userKey = await _generateOrLoadUserKey();
@@ -99,7 +99,7 @@ class E2EEKeyManager {
     final existingKey = await _cryptoService.exportPublicIdentityKeyBase64();
 
     if (existingKey.isNotEmpty) {
-      debugPrint('📱 Found existing user key on device');
+      debugPrint('Found existing user key on device');
       return existingKey;
     } else {
       debugPrint('🆕 Generating new user key');

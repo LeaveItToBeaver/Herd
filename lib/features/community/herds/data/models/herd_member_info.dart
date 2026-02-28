@@ -1,3 +1,5 @@
+import 'package:herdapp/features/community/moderation/data/models/herd_role.dart';
+
 class HerdMemberInfo {
   final String userId;
   final String username;
@@ -7,6 +9,7 @@ class HerdMemberInfo {
   final bool isVerified;
   final DateTime? joinedAt;
   final bool isModerator;
+  final HerdRole role;
   final int userPoints;
   final int altUserPoints;
   final bool isActive;
@@ -22,6 +25,7 @@ class HerdMemberInfo {
     required this.isVerified,
     this.joinedAt,
     required this.isModerator,
+    this.role = HerdRole.member,
     required this.userPoints,
     required this.altUserPoints,
     required this.isActive,
@@ -41,4 +45,6 @@ class HerdMemberInfo {
 
   // Helper getter to get the preferred user points (alt if available, otherwise regular)
   int get displayUserPoints => altUserPoints > 0 ? altUserPoints : userPoints;
+
+  bool get hasModeratorPrivileges => role.hasAtLeast(HerdRole.moderator);
 }

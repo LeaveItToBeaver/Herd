@@ -4,16 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/content/drafts/data/models/draft_post_model.dart';
 import 'package:herdapp/features/content/drafts/data/repositories/draft_repository.dart';
-
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../create_post/create_post_controller.dart';
 
-// Repository provider
-final draftRepositoryProvider = Provider<DraftRepository>((ref) {
-  return DraftRepository(FirebaseFirestore.instance);
-});
+part 'draft_provider.g.dart';
 
-// User drafts provider - stream of all drafts for current user
-final userDraftsProvider = StreamProvider<List<DraftPostModel>>((ref) {
+// Draft repository
+@riverpod
+DraftRepository draftRepository(Ref ref) {
+  return DraftRepository(FirebaseFirestore.instance);
+}
+
+@riverpod
+Stream<List<DraftPostModel>> userDrafts(Ref ref) {
   final user = ref.watch(authProvider);
   final repository = ref.watch(draftRepositoryProvider);
 
@@ -22,11 +25,10 @@ final userDraftsProvider = StreamProvider<List<DraftPostModel>>((ref) {
   }
 
   return repository.streamUserDrafts(user.uid);
-});
+}
 
-// Single draft provider
-final draftProvider =
-    FutureProvider.family<DraftPostModel?, String>((ref, draftId) async {
+@riverpod
+Future<DraftPostModel?> draft(Ref ref, String draftId) async {
   final user = ref.watch(authProvider);
   final repository = ref.watch(draftRepositoryProvider);
 
@@ -35,17 +37,15 @@ final draftProvider =
   }
 
   return repository.getDraft(user.uid, draftId);
-});
+}
 
-// Draft controller for CRUD operations
-class DraftController extends StateNotifier<AsyncValue<void>> {
-  final DraftRepository _repository;
-  final Ref _ref;
+@riverpod
+class DraftController extends _$DraftController {
+  @override
+  AsyncValue<void> build() {
+    return const AsyncValue.data(null);
+  }
 
-  DraftController(this._repository, this._ref)
-      : super(const AsyncValue.data(null));
-
-  // Save a draft
   Future<String> saveDraft({
     required String authorId,
     String? draftId,
@@ -67,15 +67,18 @@ class DraftController extends StateNotifier<AsyncValue<void>> {
         herdId: herdId,
         herdName: herdName,
         updatedAt: DateTime.now(),
-        createdAt:
-            draftId == null ? DateTime.now() : null, // Only set for new drafts
+        createdAt: draftId == null ? DateTime.now() : null,
       );
 
-      final savedDraftId = await _repository.saveDraft(draft);
+      final repository = ref.read(draftRepositoryProvider);
+      final savedDraftId = await repository.saveDraft(draft);
+
+      if (!ref.mounted) return '';
 
       state = const AsyncValue.data(null);
       return savedDraftId;
     } catch (e, stackTrace) {
+      if (!ref.mounted) rethrow;
       state = AsyncValue.error(e, stackTrace);
       rethrow;
     }
@@ -86,28 +89,33 @@ class DraftController extends StateNotifier<AsyncValue<void>> {
     try {
       state = const AsyncValue.loading();
 
-      await _repository.deleteDraft(userId, draftId);
+      final repository = ref.read(draftRepositoryProvider);
+      await repository.deleteDraft(userId, draftId);
+
+      if (!ref.mounted) return;
 
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
+      if (!ref.mounted) rethrow;
       state = AsyncValue.error(e, stackTrace);
       rethrow;
     }
   }
 
-  // Convert draft to post
   Future<String> publishDraft(String userId, String draftId) async {
     try {
       state = const AsyncValue.loading();
 
-      // Get the draft
-      final draft = await _repository.getDraft(userId, draftId);
+      final repository = ref.read(draftRepositoryProvider);
+      final draft = await repository.getDraft(userId, draftId);
+
+      if (!ref.mounted) return '';
+
       if (draft == null) {
         throw Exception('Draft not found');
       }
 
-      // Create a post from the draft
-      final postController = _ref.read(postControllerProvider.notifier);
+      final postController = ref.read(createPostControllerProvider.notifier);
       final postId = await postController.createPost(
         userId: draft.authorId,
         title: draft.title ?? '',
@@ -118,27 +126,24 @@ class DraftController extends StateNotifier<AsyncValue<void>> {
         herdName: draft.herdName ?? '',
       );
 
-      // Delete the draft
-      await _repository.deleteDraft(userId, draftId);
+      if (!ref.mounted) return '';
+
+      await repository.deleteDraft(userId, draftId);
+
+      if (!ref.mounted) return '';
 
       state = const AsyncValue.data(null);
       return postId;
     } catch (e, stackTrace) {
+      if (!ref.mounted) rethrow;
       state = AsyncValue.error(e, stackTrace);
       rethrow;
     }
   }
 }
 
-// Draft controller provider
-final draftControllerProvider =
-    StateNotifierProvider<DraftController, AsyncValue<void>>((ref) {
-  final repository = ref.watch(draftRepositoryProvider);
-  return DraftController(repository, ref);
-});
-
-// Number of drafts provider
-final draftCountProvider = StreamProvider<int>((ref) {
+@riverpod
+Stream<int> draftCount(Ref ref) {
   final user = ref.watch(authProvider);
   final repository = ref.watch(draftRepositoryProvider);
 
@@ -147,4 +152,4 @@ final draftCountProvider = StreamProvider<int>((ref) {
   }
 
   return repository.streamUserDrafts(user.uid).map((drafts) => drafts.length);
-});
+}

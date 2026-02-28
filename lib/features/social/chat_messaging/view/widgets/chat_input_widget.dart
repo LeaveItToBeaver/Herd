@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat/notifiers/messages_notifier.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/message/message_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/message_input/notifiers/message_input_notifier.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/chat_messaging/data/models/message/message_model.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_type.dart';
 import 'package:herdapp/features/social/chat_messaging/data/enums/message_status.dart';
-import 'package:herdapp/features/user_management/view/providers/user_block_providers.dart';
+import 'package:herdapp/features/user/user_management/view/providers/user_block_providers.dart';
 
 class ChatInputWidget extends ConsumerStatefulWidget {
   final String chatId;

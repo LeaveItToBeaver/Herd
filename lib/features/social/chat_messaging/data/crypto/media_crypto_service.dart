@@ -20,7 +20,7 @@ class MediaCryptoService {
     required SecretKey mediaKey,
   }) async {
     try {
-      debugPrint('🔐 Starting media encryption for: ${mediaFile.path}');
+      debugPrint('Starting media encryption for: ${mediaFile.path}');
 
       final fileBytes = await mediaFile.readAsBytes();
       final fileName = path.basename(mediaFile.path);

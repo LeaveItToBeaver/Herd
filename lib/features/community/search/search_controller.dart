@@ -1,33 +1,25 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/community/herds/data/models/herd_model.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
 
-final searchControllerProvider =
-    StateNotifierProvider<SearchController, SearchState>((ref) {
-  final userRepository = ref.watch(userRepositoryProvider);
-  final herdRepository = ref.watch(herdRepositoryProvider);
-  final feedType = ref.watch(currentFeedProvider);
-  return SearchController(
-    userRepository: userRepository,
-    herdRepository: herdRepository,
-    feedType: feedType,
-  );
-});
+part 'search_controller.g.dart';
 
-class SearchController extends StateNotifier<SearchState> {
-  final UserRepository _userRepository;
-  final HerdRepository _herdRepository;
-  final FeedType _feedType;
+@riverpod
+class Search extends _$Search {
+  late UserRepository _userRepository;
+  late HerdRepository _herdRepository;
+  late FeedType _feedType;
 
-  SearchController({
-    required UserRepository userRepository,
-    required HerdRepository herdRepository,
-    required FeedType feedType,
-  })  : _userRepository = userRepository,
-        _herdRepository = herdRepository,
-        _feedType = feedType,
-        super(SearchState.initial());
+  @override
+  SearchState build() {
+    _userRepository = ref.watch(userRepositoryProvider);
+    _herdRepository = ref.watch(herdRepositoryProvider);
+    _feedType = ref.watch(currentFeedProvider);
+    return SearchState.initial();
+  }
 
   Future<void> searchUsers(String query) async {
     if (query.isEmpty) {
@@ -40,12 +32,17 @@ class SearchController extends StateNotifier<SearchState> {
     try {
       final users =
           await _userRepository.searchUsers(query, profileType: _feedType);
+
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         users: users,
         status: SearchStatus.loaded,
         type: SearchType.users,
       );
     } catch (err) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         status: SearchStatus.error,
       );
@@ -63,12 +60,17 @@ class SearchController extends StateNotifier<SearchState> {
     try {
       final users = await _userRepository.searchUsers(query,
           profileType: FeedType.public);
+
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         publicUsers: users,
         status: SearchStatus.loaded,
         type: SearchType.publicUsers,
       );
     } catch (err) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         status: SearchStatus.error,
       );
@@ -86,12 +88,17 @@ class SearchController extends StateNotifier<SearchState> {
     try {
       final users =
           await _userRepository.searchUsers(query, profileType: FeedType.alt);
+
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         altUsers: users,
         status: SearchStatus.loaded,
         type: SearchType.altUsers,
       );
     } catch (err) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         status: SearchStatus.error,
       );
@@ -108,12 +115,17 @@ class SearchController extends StateNotifier<SearchState> {
 
     try {
       final herds = await _herdRepository.searchHerds(query);
+
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         herds: herds,
         status: SearchStatus.loaded,
         type: SearchType.herds,
       );
     } catch (err) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         status: SearchStatus.error,
       );
@@ -133,11 +145,17 @@ class SearchController extends StateNotifier<SearchState> {
       final List<UserModel> publicUsersResult = await _userRepository
           .searchUsers(query, profileType: FeedType.public);
 
+      if (!ref.mounted) return;
+
       final List<UserModel> altUsersResult =
           await _userRepository.searchUsers(query, profileType: FeedType.alt);
 
+      if (!ref.mounted) return;
+
       final List<HerdModel> herdsResult =
           await _herdRepository.searchHerds(query);
+
+      if (!ref.mounted) return;
 
       // Update state with all results
       state = state.copyWith(
@@ -148,6 +166,8 @@ class SearchController extends StateNotifier<SearchState> {
         type: SearchType.all,
       );
     } catch (err) {
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         status: SearchStatus.error,
       );

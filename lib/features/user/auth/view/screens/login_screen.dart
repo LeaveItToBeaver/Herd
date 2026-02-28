@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/utils/validators.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../widgets/app_logo.dart';
 import '../widgets/custom_textfield.dart';
+
+part 'login_screen.g.dart';
 
 // State class to manage form errors and loading state
 class LoginFormState {
@@ -34,8 +37,31 @@ class LoginFormState {
 }
 
 // Provider for form state
-final loginFormProvider =
-    StateProvider<LoginFormState>((ref) => LoginFormState());
+@riverpod
+class LoginForm extends _$LoginForm {
+  @override
+  LoginFormState build() => LoginFormState();
+
+  void setLoading(bool isLoading) {
+    state = state.copyWith(isLoading: isLoading);
+  }
+
+  void setEmailError(String? error) {
+    state = LoginFormState(emailError: error);
+  }
+
+  void setPasswordError(String? error) {
+    state = LoginFormState(passwordError: error);
+  }
+
+  void reset() {
+    state = LoginFormState();
+  }
+
+  void setState(LoginFormState newState) {
+    state = newState;
+  }
+}
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -72,43 +98,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Reset form state and set loading
     if (_isMounted) {
-      ref.read(loginFormProvider.notifier).state =
-          LoginFormState(isLoading: true);
+      ref
+          .read(loginFormProvider.notifier)
+          .setState(LoginFormState(isLoading: true));
     }
 
     // Validate inputs
     if (email.isEmpty) {
       if (_isMounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          emailError: 'Email is required',
-        );
+        ref.read(loginFormProvider.notifier).setEmailError('Email is required');
       }
       return;
     }
 
     if (!Validators.isValidEmail(email)) {
       if (_isMounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          emailError: 'Please enter a valid email',
-        );
+        ref
+            .read(loginFormProvider.notifier)
+            .setEmailError('Please enter a valid email');
       }
       return;
     }
 
     if (password.isEmpty) {
       if (_isMounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          passwordError: 'Password is required',
-        );
+        ref
+            .read(loginFormProvider.notifier)
+            .setPasswordError('Password is required');
       }
       return;
     }
 
     if (password.length < 6) {
       if (_isMounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          passwordError: 'Password must be at least 6 characters',
-        );
+        ref
+            .read(loginFormProvider.notifier)
+            .setPasswordError('Password must be at least 6 characters');
       }
       return;
     }
@@ -128,9 +153,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context.go('/profile');
         }
       } else if (mounted && _isMounted) {
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          emailError: 'Login failed. Please try again.',
-        );
+        ref
+            .read(loginFormProvider.notifier)
+            .setEmailError('Login failed. Please try again.');
       }
     } on FirebaseAuthException catch (e) {
       if (!_isMounted) return;
@@ -174,10 +199,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         bool isPasswordError =
             e.code == 'wrong-password' || e.code == 'invalid-credential';
 
-        ref.read(loginFormProvider.notifier).state = LoginFormState(
-          emailError: isEmailError ? errorMessage : null,
-          passwordError: isPasswordError ? errorMessage : null,
-        );
+        ref.read(loginFormProvider.notifier).setState(LoginFormState(
+              emailError: isEmailError ? errorMessage : null,
+              passwordError: isPasswordError ? errorMessage : null,
+            ));
       }
 
       // Show error in snackbar

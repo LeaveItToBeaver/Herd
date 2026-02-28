@@ -1,0 +1,148 @@
+    // =====================================================================
+    //  Herds (Communities)
+    // =====================================================================
+
+    match /herds/{herdId} {
+      allow read: if true;
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.creatorId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['name','description','creatorId']);
+
+      // Simplified update rule with explicit conditions
+      allow update: if (
+        // Allow the one-time ID update after creation
+        (!('id' in resource.data.keys()) &&
+        request.auth != null &&
+        request.auth.uid == resource.data.creatorId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['id']))
+        ||
+        // Allow owner to transfer ownership (update creatorId)
+        (isHerdOwner(herdId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['creatorId', 'updatedAt']))
+        ||
+        // Allow admins to update bannedUserIds with updatedAt timestamp
+        (isHerdAdmin(herdId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['bannedUserIds', 'updatedAt']))
+        ||
+        // Allow admins to update just bannedUserIds
+        (isHerdAdmin(herdId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['bannedUserIds']))
+        ||
+        // Allow admins to update moderatorIds
+        (isHerdAdmin(herdId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['moderatorIds', 'updatedAt']))
+        ||
+        // Allow admins to update pinnedPosts
+        (isHerdAdmin(herdId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['pinnedPosts', 'updatedAt']))
+        ||
+        // Allow general admin updates to allowed fields
+        (isHerdAdmin(herdId) &&
+        request.resource.data.creatorId == resource.data.creatorId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['description','rules','faq','profileImageURL','coverImageURL',
+                    'interests','customization','pinnedPosts','moderatorIds',
+                    'bannedUserIds','moderationLog','updatedAt','isPrivate']))
+        ||
+        // Allow counter updates by any authenticated user
+        (isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['memberCount','postCount']))
+      );
+
+      allow delete: if isHerdCreator(herdId);
+    }
+
+    match /herdMembers/{herdId} {
+      allow read: if isAuthenticated();
+      allow write: if isHerdAdmin(herdId);
+
+      match /members/{userId} {
+        allow read: if isAuthenticated();
+
+        // Allow users to join (create their own member doc with 'member' role)
+        allow create: if isOwner(userId) &&
+                         request.resource.data.role == 'member';
+
+        // Allow users to update their own non-role fields
+        allow update: if isOwner(userId) &&
+                         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'promotedBy', 'roleChangedAt']);
+
+        // Allow moderators to update member docs (role changes, restrictions, etc.)
+        // But with role hierarchy validation:
+        // - Can't promote/demote users to/from roles equal or higher than their own
+        // - Owner can do anything
+        allow update: if isHerdModerator(herdId) && (
+          // Owners can change any role
+          hasRole(herdId, 'owner') ||
+          // Admins can promote to moderator, demote from moderator, but not touch admin/owner
+          (hasRole(herdId, 'admin') &&
+           resource.data.role in ['member', 'moderator'] &&
+           request.resource.data.role in ['member', 'moderator']) ||
+          // Moderators can only update non-role fields (restrictions, notes, etc.)
+          (hasRole(herdId, 'moderator') &&
+           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+        );
+
+        // Allow users to delete their own membership (leave herd)
+        // Handle both new role system and legacy isModerator field
+        // Prevent owners from leaving (they must transfer ownership first)
+        allow delete: if isOwner(userId) && (
+          // New system: check role field
+          (!('role' in resource.data.keys()) || resource.data.role != 'owner')
+        );
+
+        // Allow moderators to remove members (delete)
+        // But only if target has lower role
+        allow delete: if isHerdModerator(herdId) && (
+          hasRole(herdId, 'owner') ||
+          (hasRole(herdId, 'admin') && resource.data.role in ['member', 'moderator']) ||
+          (hasRole(herdId, 'moderator') && resource.data.role == 'member')
+        );
+      }
+    }
+
+    match /userHerds/{userId}/following/{herdId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+      // Allow moderators to remove users from herds
+      allow delete: if isHerdAdmin(herdId);
+    }
+
+    // =====================================================================
+    //  Herd Join Requests (for private herds)
+    // =====================================================================
+
+    match /herdJoinRequests/{herdId} {
+      allow read: if isHerdAdmin(herdId);
+
+      match /requests/{userId} {
+        // Users can read their own join request
+        allow read: if isOwner(userId) || isHerdAdmin(herdId);
+
+        // Users can create their own join request
+        allow create: if isOwner(userId) &&
+                         request.resource.data.status == 'pending';
+
+        // Users can resubmit after rejection (update rejected → pending)
+        allow update: if isOwner(userId) &&
+                         resource.data.status == 'rejected' &&
+                         request.resource.data.status == 'pending';
+
+        // Users can delete/cancel their own pending request
+        allow delete: if isOwner(userId) && resource.data.status == 'pending';
+
+        // Admins can update request status (approve/reject)
+        allow update: if isHerdAdmin(herdId);
+
+        // Admins can delete requests (cleanup after approval/rejection)
+        allow delete: if isHerdAdmin(herdId);
+      }
+    }

@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herdapp/features/community/moderation/view/screens/pinned_post_management_screen.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
+import 'package:herdapp/features/community/herds/view/providers/state/herd_feed_state.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
+import 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 import 'package:herdapp/features/content/post/view/widgets/pinned_posts/pinned_post_widget.dart';
 import 'package:herdapp/features/content/post/view/widgets/post_widget.dart';
 import 'package:herdapp/features/ui/navigation/view/widgets/BottomNavPadding.dart';
-import '../providers/herd_providers.dart';
-import '../providers/state/herd_feed_state.dart';
 
 class PostsTabHerdView extends ConsumerWidget {
   final List<PostModel> posts;
@@ -29,9 +29,7 @@ class PostsTabHerdView extends ConsumerWidget {
       // Empty state with a scrollable list for refresh indicator
       return RefreshIndicator(
         onRefresh: () async {
-          await ref
-              .read(herdFeedControllerProvider(herdId).notifier)
-              .refreshFeed();
+          await ref.read(herdFeedProvider(herdId).notifier).refreshFeed();
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -78,18 +76,14 @@ class PostsTabHerdView extends ConsumerWidget {
                 print('Loading more posts from HERD TAB VIEW');
               }
 
-              ref
-                  .read(herdFeedControllerProvider(herdId).notifier)
-                  .loadMorePosts();
+              ref.read(herdFeedProvider(herdId).notifier).loadMorePosts();
             }
           }
           return false;
         },
         child: RefreshIndicator(
           onRefresh: () async {
-            await ref
-                .read(herdFeedControllerProvider(herdId).notifier)
-                .refreshFeed();
+            await ref.read(herdFeedProvider(herdId).notifier).refreshFeed();
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),

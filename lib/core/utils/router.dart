@@ -4,13 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/screens.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_media_model.dart';
 import 'package:herdapp/features/content/post/view/screens/edit_post_screen.dart';
 import 'package:herdapp/features/content/post/view/screens/fullscreen_gallery_screen.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat/e2ee_chat_provider.dart';
 import 'package:herdapp/features/user/auth/view/screens/email_verification_screen.dart';
 import 'package:herdapp/features/ui/customization/view/screens/ui_customization_screen.dart';
 import 'package:herdapp/features/community/herds/view/screens/herd_settings_screen.dart';
 import 'package:herdapp/features/user/settings/notifications/view/screens/notification_settings_screen.dart';
+import 'package:herdapp/features/user/settings/view/screens/data_export_screen.dart';
 
 import '../../features/user/auth/view/screens/reset_password_screen.dart';
 import '../../features/social/floating_buttons/views/widgets/global_overlay_manager.dart';
@@ -275,6 +278,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Data Export Route (deep link from notifications)
+      GoRoute(
+        path: '/settings/data-export',
+        name: 'dataExport',
+        builder: (context, state) {
+          return const DataExportScreen();
+        },
+      ),
+
       GoRoute(
         path: '/customization',
         name: 'customization',
@@ -395,7 +407,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           if (herdId == null) {
             // Force reset the current herd provider
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref.read(currentHerdIdProvider.notifier).state = null;
+              ref.read(currentHerdIdProvider.notifier).clear();
             });
           }
 
@@ -436,7 +448,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // Use the appropriate provider based on whether it's an alt post
                 final postAsync = ref.watch(
                   isAlt
-                      ? postProviderWithPrivacy(
+                      ? postWithPrivacyProvider(
                           PostParams(id: postId, isAlt: true))
                       : postProvider(postId),
                 );
@@ -696,7 +708,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // Use the appropriate provider based on whether it's an alt post
                 final postAsync = ref.watch(
                   isAlt
-                      ? postProviderWithPrivacy(
+                      ? postWithPrivacyProvider(
                           PostParams(id: postId, isAlt: true))
                       : postProvider(postId),
                 );

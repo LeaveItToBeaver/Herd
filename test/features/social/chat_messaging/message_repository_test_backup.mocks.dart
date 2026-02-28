@@ -40,6 +40,7 @@ import 'package:mockito/src/dummies.dart' as _i7;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
+// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeSimplePublicKey_0 extends _i1.SmartFake
     implements _i2.SimplePublicKey {
@@ -879,14 +880,15 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
       ) as _i6.Future<int?>);
 
   @override
-  _i6.Future<void> requestDataExport(String? userId) => (super.noSuchMethod(
+  _i6.Future<Map<String, dynamic>> requestDataExport(String? userId) =>
+      (super.noSuchMethod(
         Invocation.method(
           #requestDataExport,
           [userId],
         ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
 
   @override
   _i6.Future<bool> hasPendingDataExport(String? userId) => (super.noSuchMethod(
@@ -896,6 +898,28 @@ class MockUserRepository extends _i1.Mock implements _i10.UserRepository {
         ),
         returnValue: _i6.Future<bool>.value(false),
       ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<Map<String, dynamic>> getDataExportStatus(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getDataExportStatus,
+          [userId],
+        ),
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
+
+  @override
+  _i6.Future<Map<String, dynamic>> resetDataExportRequest(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #resetDataExportRequest,
+          [userId],
+        ),
+        returnValue:
+            _i6.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i6.Future<Map<String, dynamic>>);
 
   @override
   _i6.Future<Map<String, dynamic>> getUserExportData(String? userId) =>

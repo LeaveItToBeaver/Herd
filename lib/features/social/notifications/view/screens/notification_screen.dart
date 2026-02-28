@@ -22,24 +22,25 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   @override
   void initState() {
     super.initState();
-    // Load notifications when screen is opened (with auto-read)
+    // Clear local push notification badges when opening this screen.
+    // The provider itself handles fetching notifications on creation.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshNotifications();
+      _clearLocalNotifications();
     });
   }
 
-  void _refreshNotifications() async {
+  void _clearLocalNotifications() async {
+    try {
+      final notificationService = ref.read(notificationServiceProvider);
+      await notificationService.clearAllNotifications();
+    } catch (e) {
+      debugPrint('Could not clear local notifications: $e');
+    }
+  }
+
+  void _refreshNotifications() {
     final currentUser = ref.read(authProvider);
     if (currentUser != null) {
-      // Clear local notifications and badge when opening notifications screen
-      try {
-        final notificationService = ref.read(notificationServiceProvider);
-        await notificationService.clearAllNotifications();
-      } catch (e) {
-        debugPrint('Could not clear local notifications: $e');
-      }
-
-      // Load and mark notifications as read
       ref
           .read(notificationProvider(currentUser.uid).notifier)
           .refreshNotifications(markAsRead: true);

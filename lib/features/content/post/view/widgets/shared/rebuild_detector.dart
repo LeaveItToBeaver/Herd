@@ -23,8 +23,8 @@ class RebuildDetector extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final theme = Theme.of(context);
 
-    debugPrint(' 📱 MediaQuery - viewInsets: ${mediaQuery.viewInsets}');
-    debugPrint(' 📱 MediaQuery - size: ${mediaQuery.size}');
+    debugPrint(' MediaQuery - viewInsets: ${mediaQuery.viewInsets}');
+    debugPrint(' MediaQuery - size: ${mediaQuery.size}');
     debugPrint(' Theme brightness: ${theme.brightness}');
 
     return child;

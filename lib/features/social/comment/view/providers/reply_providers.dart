@@ -3,28 +3,30 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:herdapp/features/social/comment/data/models/comment_model.dart';
+import 'package:herdapp/features/social/comment/data/repositories/comment_repository.dart';
 
-import '../../data/models/comment_model.dart';
-import '../../data/repositories/comment_repository.dart';
 import 'state/reply_state.dart';
 
-// Provider to store all replies for a post
-final repliesProvider =
-    StateNotifierProvider.family<RepliesNotifier, ReplyState, String>(
-        (ref, postId) {
-  final repository = ref.watch(commentRepositoryProvider);
-  return RepliesNotifier(repository, postId);
-});
+part 'reply_providers.g.dart';
 
-class RepliesNotifier extends StateNotifier<ReplyState> {
-  final CommentRepository _repository;
-  final String _postId;
+// Provider to store all replies for a post
+@riverpod
+class Replies extends _$Replies {
+  late final String _postId;
+  late final CommentRepository _repository;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  RepliesNotifier(this._repository, this._postId)
-      : super(ReplyState.initial()) {
+  @override
+  ReplyState build(String postId) {
+    _postId = postId;
+    _repository = ref.watch(commentRepositoryProvider);
+
     // Load initial replies
     loadReplies();
+
+    return ReplyState.initial();
   }
 
   Future<void> loadReplies() async {
@@ -45,6 +47,9 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
           .map((doc) => CommentModel.fromFirestore(doc))
           .toList();
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         replies: replies,
         isLoading: false,
@@ -52,6 +57,9 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
         lastDocument: replies.isNotEmpty ? querySnapshot.docs.last : null,
       );
     } catch (e) {
+      // Check if still mounted before updating error state
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -79,6 +87,9 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
           .map((doc) => CommentModel.fromFirestore(doc))
           .toList();
 
+      // Check if still mounted after async operation
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         replies: [...state.replies, ...replies],
         isLoading: false,
@@ -87,6 +98,9 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
             replies.isNotEmpty ? querySnapshot.docs.last : state.lastDocument,
       );
     } catch (e) {
+      // Check if still mounted before updating error state
+      if (!ref.mounted) return;
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -105,7 +119,7 @@ class RepliesNotifier extends StateNotifier<ReplyState> {
     String? authorAltProfileImage,
     bool isAltPost = false,
     File? mediaFile,
-    required WidgetRef ref,
+    required WidgetRef widgetRef,
   }) async {
     try {
       final reply = await _repository.createComment(

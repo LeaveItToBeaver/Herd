@@ -475,15 +475,29 @@ class _PostListWidgetState extends ConsumerState<PostListWidget> {
                 widget.emptyActionLabel != null) ...[
               const SizedBox(height: 24),
               Center(
-                child: ElevatedButton.icon(
+                child: FilledButton(
                   onPressed: widget.onEmptyAction,
-                  icon: const Icon(Icons.add),
-                  label: Text(widget.emptyActionLabel!),
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.emptyActionLabel!,
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          inherit: false,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

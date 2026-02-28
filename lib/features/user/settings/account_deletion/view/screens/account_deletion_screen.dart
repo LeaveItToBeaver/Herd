@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/features/user/settings/view/screens/data_export_screen.dart';
 
 class AccountDeletionScreen extends ConsumerStatefulWidget {
   const AccountDeletionScreen({super.key});
 
   @override
-  ConsumerState<AccountDeletionScreen> createState() => _AccountDeletionScreenState();
+  ConsumerState<AccountDeletionScreen> createState() =>
+      _AccountDeletionScreenState();
 }
 
 class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
@@ -18,7 +20,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentUser = ref.watch(authProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Delete Account'),
@@ -48,9 +50,9 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Information section
             Card(
               child: Padding(
@@ -65,43 +67,40 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
                     _buildInfoItem(
                       icon: Icons.schedule,
                       title: '30-Day Retention Period',
-                      description: 'Your account will be marked for deletion but your data will be held for 30 days. During this time, you can contact support to restore your account.',
+                      description:
+                          'Your account will be marked for deletion but your data will be held for 30 days. During this time, you can contact support to restore your account.',
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     _buildInfoItem(
                       icon: Icons.delete_forever,
                       title: 'Permanent Deletion',
-                      description: 'After 30 days, all your data including posts, comments, messages, and profile information will be permanently deleted and cannot be recovered.',
+                      description:
+                          'After 30 days, all your data including posts, comments, messages, and profile information will be permanently deleted and cannot be recovered.',
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     _buildInfoItem(
                       icon: Icons.group_off,
                       title: 'Account Deactivation',
-                      description: 'Your profile will immediately become inaccessible to other users. Your posts and comments will be hidden from public view.',
+                      description:
+                          'Your profile will immediately become inaccessible to other users. Your posts and comments will be hidden from public view.',
                     ),
-                    
                     const SizedBox(height: 16),
-                    
                     _buildInfoItem(
                       icon: Icons.download,
                       title: 'Data Download',
-                      description: 'We recommend downloading your data before proceeding with deletion. This includes your posts, comments, profile information, and other account data.',
+                      description:
+                          'We recommend downloading your data before proceeding with deletion. This includes your posts, comments, profile information, and other account data.',
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Data download section
             Card(
               child: Padding(
@@ -121,19 +120,21 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 16),
-                    
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _isDownloading ? null : _downloadUserData,
-                        icon: _isDownloading 
+                        icon: _isDownloading
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.download),
-                        label: Text(_isDownloading ? 'Preparing Download...' : 'Download My Data'),
+                        label: Text(_isDownloading
+                            ? 'Preparing Download...'
+                            : 'Download My Data'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -143,9 +144,9 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Deletion section
             Card(
               color: Colors.red.shade50,
@@ -176,22 +177,26 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 16),
-                    
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: (_isDeleting || currentUser == null) ? null : _showDeleteConfirmation,
-                        icon: _isDeleting 
+                        onPressed: (_isDeleting || currentUser == null)
+                            ? null
+                            : _showDeleteConfirmation,
+                        icon: _isDeleting
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
                             : const Icon(Icons.delete_forever),
-                        label: Text(_isDeleting ? 'Deleting Account...' : 'Delete My Account'),
+                        label: Text(_isDeleting
+                            ? 'Deleting Account...'
+                            : 'Delete My Account'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
@@ -203,7 +208,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
           ],
         ),
@@ -217,7 +222,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
     required String description,
   }) {
     final theme = Theme.of(context);
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -250,57 +255,12 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
   }
 
   Future<void> _downloadUserData() async {
-    setState(() {
-      _isDownloading = true;
-    });
-
-    try {
-      final currentUser = ref.read(authProvider);
-      if (currentUser == null) return;
-
-      final userRepository = ref.read(userRepositoryProvider);
-      
-      // Check if there's already a pending request
-      final hasPending = await userRepository.hasPendingDataExport(currentUser.uid);
-      if (hasPending) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You already have a pending data export request. Please wait for it to complete.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Request data export
-      await userRepository.requestDataExport(currentUser.uid);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data download request submitted. You\'ll receive an email when it\'s ready.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error requesting data download: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isDownloading = false;
-        });
-      }
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DataExportScreen(),
+      ),
+    );
   }
 
   Future<void> _showDeleteConfirmation() async {
@@ -345,7 +305,7 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
       if (currentUser == null) return;
 
       final userRepository = ref.read(userRepositoryProvider);
-      
+
       // Mark account for deletion using repository method
       await userRepository.markAccountForDeletion(currentUser.uid);
 
@@ -353,7 +313,8 @@ class _AccountDeletionScreenState extends ConsumerState<AccountDeletionScreen> {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Account marked for deletion. You have 30 days to contact support if you change your mind.'),
+            content: Text(
+                'Account marked for deletion. You have 30 days to contact support if you change your mind.'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 5),
           ),

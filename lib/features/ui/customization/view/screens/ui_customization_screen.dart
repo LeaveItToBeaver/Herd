@@ -35,7 +35,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
 
   @override
   Widget build(BuildContext context) {
-    final customizationAsync = ref.watch(uiCustomizationProvider);
+    final customizationAsync = ref.watch(uICustomizationProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -111,7 +111,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
                       key: const Key('retry_button'),
                       onPressed: () {
                         // Retry loading
-                        ref.invalidate(uiCustomizationProvider);
+                        ref.invalidate(uICustomizationProvider);
                       },
                       child: const Text('Retry'),
                     ),
@@ -168,7 +168,7 @@ class _UICustomizationScreenState extends ConsumerState<UICustomizationScreen>
   }
 
   void _applyPreset(String presetId) {
-    ref.read(uiCustomizationProvider.notifier).applyPreset(presetId);
+    ref.read(uICustomizationProvider.notifier).applyPreset(presetId);
   }
 
   void _showPreview() {

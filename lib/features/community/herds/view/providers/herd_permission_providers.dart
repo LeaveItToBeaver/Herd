@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 
 import 'herd_repository_provider.dart';
 
+part 'herd_permission_providers.g.dart';
+
 /// Provider to check if the current user is a member of a specific herd
-final isHerdMemberProvider =
-    FutureProvider.family<bool, String>((ref, herdId) async {
+@riverpod
+Future<bool> isHerdMember(Ref ref, String herdId) async {
   final user = ref.watch(authProvider);
   final herdRepository = ref.watch(herdRepositoryProvider);
 
   if (user == null) return false;
 
   return herdRepository.isHerdMember(herdId, user.uid);
-});
+}
 
 /// Provider to check if the current user is a moderator of a specific herd
-final isHerdModeratorProvider =
-    FutureProvider.family<bool, String>((ref, herdId) async {
+@riverpod
+Future<bool> isHerdModerator(Ref ref, String herdId) async {
   final user = ref.watch(authProvider);
   final herdRepository = ref.watch(herdRepositoryProvider);
 
   if (user == null) return false;
 
   return herdRepository.isHerdModerator(herdId, user.uid);
-});
+}
 
 /// Provider to check if user is eligible to create herds
-final canCreateHerdProvider = FutureProvider.autoDispose((ref) async {
+@riverpod
+Future<bool> canCreateHerd(Ref ref) async {
   debugPrint("⚡ canCreateHerdProvider executing");
   final user = ref.watch(authProvider);
   debugPrint("⚡ User ID: ${user?.uid}");
@@ -50,4 +53,4 @@ final canCreateHerdProvider = FutureProvider.autoDispose((ref) async {
 
   // If not exempt, check regular eligibility criteria
   return herdRepository.checkUserEligibility(user.uid);
-});
+}

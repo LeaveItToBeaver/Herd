@@ -1,8 +1,18 @@
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../core/utils/enums/bottom_nav_item.dart';
 
+part 'bottom_nav_bar_provider.g.dart';
+
 // Provider to manage the current BottomNavItem
-final bottomNavProvider = StateProvider<BottomNavItem>((ref) {
-  return BottomNavItem.publicFeed; // Default to the feed tab
-});
+@riverpod
+class BottomNav extends _$BottomNav {
+  @override
+  BottomNavItem build() {
+    return BottomNavItem.publicFeed; // Default to the feed tab
+  }
+
+  void setCurrentTab(BottomNavItem item) {
+    state = item;
+  }
+}

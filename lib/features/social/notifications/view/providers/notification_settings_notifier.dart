@@ -1,46 +1,45 @@
-// lib/features/notifications/view/providers/notification_settings_notifier.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/features/social/notifications/data/models/notification_model.dart'; // Required for NotificationType
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:herdapp/core/barrels/providers.dart';
+import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_settings_model.dart';
-import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
 
-class NotificationSettingsNotifier
-    extends StateNotifier<AsyncValue<NotificationSettingsModel?>> {
-  final NotificationRepository _repository;
-  final String _userId;
+part 'notification_settings_notifier.g.dart';
 
-  NotificationSettingsNotifier(this._repository, this._userId)
-      : super(const AsyncValue.loading()) {
-    loadSettings();
+@riverpod
+class NotificationSettings extends _$NotificationSettings {
+  @override
+  AsyncValue<NotificationSettingsModel?> build(String userID) {
+    Future.microtask(() => loadSettings());
+    return const AsyncValue.loading();
   }
 
   Future<void> loadSettings() async {
     state = const AsyncValue.loading();
     try {
-      final settings = await _repository.getOrCreateSettings(_userId);
+      final settings = await ref
+          .read(notificationRepositoryProvider)
+          .getOrCreateSettings(userID);
       state = AsyncValue.data(settings);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
     }
   }
 
-  // Existing updateSettings method - keep as is
   Future<void> updateSettings(NotificationSettingsModel newSettings) async {
     try {
-      await _repository.updateSettings(newSettings);
+      await ref
+          .read(notificationRepositoryProvider)
+          .updateSettings(newSettings);
       state = AsyncValue.data(newSettings);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
-      // Consider re-loading settings on error to ensure UI consistency
-      // loadSettings();
     }
   }
 
-  // --- Add Missing Methods ---
-
   Future<void> togglePushNotifications(bool isEnabled) async {
     final currentSettings = state.value;
-    if (currentSettings == null) return; // Should not happen if loaded
+    if (currentSettings == null) return;
 
     final newSettings =
         currentSettings.copyWith(pushNotificationsEnabled: isEnabled);
@@ -69,8 +68,7 @@ class NotificationSettingsNotifier
       case NotificationType.commentReply:
         newSettings = currentSettings.copyWith(replyNotifications: isEnabled);
         break;
-      case NotificationType
-            .connectionRequest: // Assuming this covers connectionAccepted as well for the toggle
+      case NotificationType.connectionRequest:
       case NotificationType.connectionAccepted:
         newSettings =
             currentSettings.copyWith(connectionNotifications: isEnabled);
@@ -80,7 +78,7 @@ class NotificationSettingsNotifier
             currentSettings.copyWith(milestoneNotifications: isEnabled);
         break;
       default:
-        return; // Or throw an error for unhandled type
+        return;
     }
     await updateSettings(newSettings);
   }

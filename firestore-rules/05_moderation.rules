@@ -1,0 +1,75 @@
+    // =====================================================================
+    //  Herd Moderation
+    // =====================================================================
+
+    // Reports collection - users can create reports, only mods can read/update them
+    match /reports/{reportId} {
+      // Users can create reports
+      allow create: if isAuthenticated() &&
+                       request.resource.data.reportedBy == request.auth.uid;
+
+      // Only moderators of the herd can read reports
+      allow read: if isAuthenticated() && (
+        request.resource.data.keys().hasAny(['herdId']) &&
+        isHerdModerator(request.resource.data.herdId)
+      );
+
+      // Only moderators can update reports (change status, add notes)
+      allow update: if isAuthenticated() && (
+        resource.data.keys().hasAny(['herdId']) &&
+        isHerdModerator(resource.data.herdId) &&
+        // Can't change who reported it
+        request.resource.data.reportedBy == resource.data.reportedBy
+      );
+
+      // Reports should never be deleted, only marked as resolved
+      allow delete: if false;
+    }
+
+    // Herd-specific report queue for faster mod dashboard loading
+    match /herds/{herdId}/reports/{reportId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isHerdModerator(herdId);
+      allow delete: if false;
+    }
+
+    // Herd bans: allow listing for authed users (no cross-doc checks in list),
+    // enforce admin checks on per-document reads/writes.
+    match /herdBans/{herdId} {
+      // List requests cannot depend on other documents; keep broad and gate per-doc reads
+      allow list: if isAuthenticated();
+      // Reading the parent doc (rare) still requires moderator access
+      allow read: if isAuthenticated() && isHerdModerator(herdId);
+
+      match /banned/{userId} {
+        // Allow queries to run, but actual docs will be filtered by the read rule below
+        allow list: if isAuthenticated();
+        // Per-document read requires moderator access
+        allow read: if isAuthenticated() && isHerdModerator(herdId);
+        // Writes require moderator access
+        allow create, update, delete: if isAuthenticated() && isHerdModerator(herdId);
+      }
+    }
+
+    match /moderationLogs/{herdId} {
+      // Allow listing, but enforce per-doc reads below
+      allow list: if isAuthenticated();
+      allow read: if isAuthenticated() && isHerdModerator(herdId);
+
+      match /actions/{actionId} {
+        allow list: if isAuthenticated();
+        // Allow moderators to read and write moderation logs
+        allow read, create, update: if isAuthenticated() && isHerdModerator(herdId);
+      }
+    }
+
+    // Herd suspensions: allow moderators to suspend and manage suspensions
+    match /herdSuspensions/{herdId} {
+      allow list: if isAuthenticated();
+      allow read: if isHerdModerator(herdId);
+
+      match /suspended/{userId} {
+        allow list: if isAuthenticated();
+        allow read, create, update: if isHerdModerator(herdId);
+      }
+    }

@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "build:rules": "node firestore-rules/build.js",
+    "deploy:rules": "npm run build:rules && firebase deploy --only firestore:rules",
+    "deploy:functions": "npm run build:rules && firebase deploy --only functions",
+    "deploy:all": "npm run build:rules && firebase deploy --only functions,firestore:rules"
+  },
   "dependencies": {
     "firebase-admin": "^13.2.0",
     "firebase-functions": "^6.3.2"

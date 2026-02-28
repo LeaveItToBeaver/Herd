@@ -1,5 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'chat_bubble_toggle_provider.g.dart';
 
 /// Provider to track if chat bubbles are enabled/disabled
-/// Default is true (enabled)
-final chatBubblesEnabledProvider = StateProvider<bool>((ref) => false);
+@riverpod
+class ChatBubblesEnabled extends _$ChatBubblesEnabled {
+  @override
+  bool build() => false;
+}

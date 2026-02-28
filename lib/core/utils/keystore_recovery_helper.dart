@@ -112,7 +112,7 @@ class KeystoreRecoveryHelper {
       await prefs.remove(_lastSuccessfulAuthKey);
       await prefs.remove(_keystoreCorruptionDetectedKey);
       await prefs.remove(_authSessionRestoredKey);
-      debugPrint('🧹 Cleared all stored auth state');
+      debugPrint('Cleared all stored auth state');
     } catch (e) {
       debugPrint('Failed to clear auth state: $e');
     }

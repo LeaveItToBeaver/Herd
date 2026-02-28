@@ -1,3 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-final isDraggingProvider = StateProvider<bool>((ref) => false);
+part 'drag_state_provider.g.dart';
+
+@riverpod
+class IsDragging extends _$IsDragging {
+  @override
+  bool build() => false;
+}

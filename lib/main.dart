@@ -8,9 +8,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
 import 'package:herdapp/core/themes/app_colors.dart';
 import 'package:herdapp/core/utils/router.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_auto_init/e2ee_auto_init_provider.dart';
 import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
 import 'features/ui/customization/view/providers/ui_customization_provider.dart';
-import 'features/social/chat_messaging/view/providers/e2ee_auto_init_provider.dart';
 import 'package:herdapp/core/services/app_check_service.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -25,8 +25,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  debugPrint('🔔 Background message received: ${message.messageId}');
-  debugPrint('📱 Message data: ${message.data}');
+  debugPrint('Background message received: ${message.messageId}');
+  debugPrint('Message data: ${message.data}');
 }
 
 void main() async {
@@ -95,7 +95,7 @@ void main() async {
 //       sound: true,
 //     );
 //     debugPrint(
-//         '🔔 Firebase Messaging permission status: ${settings.authorizationStatus}');
+//         'Firebase Messaging permission status: ${settings.authorizationStatus}');
 //   } catch (e) {
 //     debugPrint('Firebase App Check setup error: $e');
 //     // Continue without App Check in case of errors
@@ -110,7 +110,7 @@ class MyApp extends ConsumerWidget {
     final goRouter = ref.watch(goRouterProvider);
 
     final customTheme = ref.watch(currentThemeProvider);
-    final customizationAsync = ref.watch(uiCustomizationProvider);
+    final customizationAsync = ref.watch(uICustomizationProvider);
 
     // Initialize E2EE keys when user is authenticated
     ref.watch(e2eeAutoInitProvider);

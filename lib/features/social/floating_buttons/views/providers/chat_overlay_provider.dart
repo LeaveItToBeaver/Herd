@@ -1,7 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-// Provider to track if the chat overlay is open
-final chatOverlayOpenProvider = StateProvider<bool>((ref) => false);
-
-// Provider to track which bubble triggered the chat
-final chatTriggeredByBubbleProvider = StateProvider<String?>((ref) => null);
+// This file is deprecated - providers have been consolidated in overlay_providers.dart
+// Re-export from overlay_providers for backward compatibility
+export 'overlay_providers.dart';

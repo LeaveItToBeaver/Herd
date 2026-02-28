@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:herdapp/features/community/herds/data/models/herd_member_info.dart';
 import 'package:herdapp/features/community/herds/data/models/banned_user_info.dart';
+import 'package:herdapp/features/community/herds/data/models/herd_member_info.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
+import 'package:herdapp/features/community/moderation/data/models/herd_role.dart';
 
 import '../../../../../core/utils/hot_algorithm.dart';
 import '../models/herd_model.dart';
@@ -58,11 +59,14 @@ class HerdRepository {
       await herdMembers(herdId).doc(userId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': true,
+        'role': HerdRole.owner.name,
+        'roleChangedAt': FieldValue.serverTimestamp(),
       });
 
       await userHerds(userId).doc(herdId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': true,
+        'role': HerdRole.owner.name,
       });
 
       await _herds.doc(herdId).update({
@@ -152,11 +156,13 @@ class HerdRepository {
       await herdMembers(herdId).doc(userId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': false,
+        'role': HerdRole.member.name,
       });
 
       await userHerds(userId).doc(herdId).set({
         'joinedAt': FieldValue.serverTimestamp(),
         'isModerator': false,
+        'role': HerdRole.member.name,
         'name': herd.name,
       });
 
@@ -180,6 +186,12 @@ class HerdRepository {
         throw Exception(
             'Creators cannot leave their herds. Transfer ownership or delete the herd instead.');
       }
+
+      // Debug: Check member data before deleting
+      final memberDoc = await herdMembers(herdId).doc(userId).get();
+      debugPrint('=== LEAVE HERD DEBUG ===');
+      debugPrint('Member doc exists: ${memberDoc.exists}');
+      debugPrint('Member data: ${memberDoc.data()}');
 
       await herdMembers(herdId).doc(userId).delete();
 
@@ -221,8 +233,13 @@ class HerdRepository {
       final doc = await herdMembers(herdId).doc(userId).get();
       if (!doc.exists) return false;
 
-      return doc.data()?['isModerator'] == true ||
-          herd.moderatorIds.contains(userId);
+      final data = doc.data() ?? {};
+      final role = parseHerdRole(data);
+      if (role.hasAtLeast(HerdRole.moderator)) {
+        return true;
+      }
+
+      return data['isModerator'] == true || herd.moderatorIds.contains(userId);
     } catch (e, stackTrace) {
       logError('isHerdModerator', e, stackTrace);
       return false;
@@ -481,6 +498,7 @@ class HerdRepository {
 
           if (userDoc.exists) {
             final user = UserModel.fromMap(userDoc.id, userDoc.data()!);
+            final role = parseHerdRole(memberData);
 
             membersInfo.add(HerdMemberInfo(
               userId: user.id,
@@ -490,7 +508,9 @@ class HerdRepository {
               altProfileImageURL: user.altProfileImageURL,
               isVerified: user.isVerified,
               joinedAt: _parseDateTime(memberData['joinedAt']),
-              isModerator: memberData['isModerator'] ?? false,
+              isModerator: memberData['isModerator'] ??
+                  role.hasAtLeast(HerdRole.moderator),
+              role: role,
               userPoints: user.userPoints,
               altUserPoints: user.altUserPoints,
               isActive: user.isActive,
@@ -555,10 +575,14 @@ class HerdRepository {
 
       await herdMembers(herdId).doc(userId).update({
         'isModerator': true,
+        'role': HerdRole.moderator.name,
+        'roleChangedAt': FieldValue.serverTimestamp(),
+        'promotedBy': currentUserId,
       });
 
       await userHerds(userId).doc(herdId).update({
         'isModerator': true,
+        'role': HerdRole.moderator.name,
       });
     } catch (e, stackTrace) {
       logError('addModerator', e, stackTrace);
@@ -588,10 +612,13 @@ class HerdRepository {
 
       await herdMembers(herdId).doc(userId).update({
         'isModerator': false,
+        'role': HerdRole.member.name,
+        'roleChangedAt': FieldValue.serverTimestamp(),
       });
 
       await userHerds(userId).doc(herdId).update({
         'isModerator': false,
+        'role': HerdRole.member.name,
       });
     } catch (e, stackTrace) {
       logError('removeModerator', e, stackTrace);
@@ -771,15 +798,39 @@ class HerdRepository {
 
   Future<void> _createJoinRequest(String herdId, String userId) async {
     try {
+      // Check if request already exists
+      final requestDoc = await _firestore
+          .collection('herdJoinRequests')
+          .doc(herdId)
+          .collection('requests')
+          .doc(userId)
+          .get();
+
+      if (requestDoc.exists) {
+        final data = requestDoc.data();
+        final status = data?['status'] as String?;
+
+        if (status == 'pending') {
+          debugPrint('Join request already pending for herd $herdId');
+          return; // Already have a pending request
+        } else if (status == 'rejected') {
+          // Allow resubmitting after rejection
+          debugPrint('Resubmitting rejected join request for herd $herdId');
+        }
+      }
+
       await _firestore
           .collection('herdJoinRequests')
           .doc(herdId)
           .collection('requests')
           .doc(userId)
           .set({
+        'userId': userId,
         'requestedAt': FieldValue.serverTimestamp(),
         'status': 'pending',
       });
+
+      debugPrint('Join request created successfully for herd $herdId');
     } catch (e, stackTrace) {
       debugPrint('_createJoinRequest error: $e\nStack: $stackTrace');
       rethrow;

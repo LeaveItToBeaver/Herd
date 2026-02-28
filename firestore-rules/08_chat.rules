@@ -1,0 +1,77 @@
+    //=====================================================================
+    // Chat & Messaging
+    //=====================================================================
+
+    match /userChats/{userId}/chats/{chatId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isAuthenticated() && (
+        isOwner(userId) ||
+        // Allow creation for direct chats where user is a participant
+        (chatId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$') &&
+         (chatId.split('_')[0] == userId || chatId.split('_')[1] == userId) &&
+         (chatId.split('_')[0] == request.auth.uid || chatId.split('_')[1] == request.auth.uid))
+      );
+
+      allow update: if isAuthenticated() && (
+        isOwner(userId) ||
+        // Allow updates for direct chats by participants
+        (chatId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$') &&
+         (chatId.split('_')[0] == userId || chatId.split('_')[1] == userId) &&
+         (chatId.split('_')[0] == request.auth.uid || chatId.split('_')[1] == request.auth.uid))
+      );
+
+      allow delete: if isOwner(userId);
+    }
+
+    // Messages with soft delete support
+    match /chatMessages/{chatId}/messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        // For direct chats, check if user is participant
+        chatId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$') &&
+        (chatId.split('_')[0] == request.auth.uid || chatId.split('_')[1] == request.auth.uid)
+      );
+
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.senderId &&
+        request.resource.data.keys().hasAll(['senderId','timestamp']) &&
+        // For direct chats, check if user is participant
+        (chatId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$') &&
+         (chatId.split('_')[0] == request.auth.uid || chatId.split('_')[1] == request.auth.uid)) &&
+        // Check that users can interact (not blocking each other)
+        canUsersInteract(chatId.split('_')[0], chatId.split('_')[1]) &&
+        (
+          // Encrypted variant
+          (request.resource.data.ciphertext is string &&
+           request.resource.data.nonce is string &&
+           request.resource.data.mac is string &&
+           request.resource.data.alg is string &&
+           request.resource.data.v is int) ||
+          // Plaintext fallback variant
+          (request.resource.data.content is string)
+        );
+
+      // Single update rule with all allowed operations
+      allow update: if isAuthenticated() &&
+        request.auth.uid == resource.data.senderId &&
+        // Ensure user is still a participant in the chat
+        (chatId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$') &&
+         (chatId.split('_')[0] == request.auth.uid || chatId.split('_')[1] == request.auth.uid)) &&
+        (
+          // Allow editing content
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['content', 'ciphertext', 'nonce', 'mac', 'editedAt', 'isEdited']) ||
+          // Allow soft deletion
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['isDeleted', 'deletedAt', 'deletedBy']) ||
+          // Allow both editing and soft deletion in one operation
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['content', 'ciphertext', 'nonce', 'mac', 'editedAt', 'isEdited', 'isDeleted', 'deletedAt', 'deletedBy'])
+        );
+
+      // Keep hard delete option (optional)
+      allow delete: if isAuthenticated() &&
+        request.auth.uid == resource.data.senderId &&
+        (chatId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$') &&
+         (chatId.split('_')[0] == request.auth.uid || chatId.split('_')[1] == request.auth.uid));
+    }

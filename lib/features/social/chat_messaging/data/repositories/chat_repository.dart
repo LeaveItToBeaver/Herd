@@ -248,7 +248,7 @@ class ChatRepository {
         .snapshots()
         .map((snapshot) {
       debugPrint(
-          '📱 Found ${snapshot.docs.length} chat documents for user: $userId');
+          'Found ${snapshot.docs.length} chat documents for user: $userId');
 
       final chatModels = snapshot.docs.map((doc) {
         final data = doc.data();

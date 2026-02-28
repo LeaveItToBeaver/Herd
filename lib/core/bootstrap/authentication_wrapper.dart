@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_settings_model.dart';
 import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
-import 'package:herdapp/features/social/notifications/view/providers/notification_provider.dart';
+import 'package:herdapp/features/social/notifications/view/providers/notification_settings_notifier.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/social/notifications/utils/notification_service.dart'; // Add this import
 // Import intl for date formatting if not already done elsewhere globally

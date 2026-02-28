@@ -2,68 +2,79 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/core/bootstrap/app_bootstraps.dart';
+import 'package:herdapp/core/providers/exception_logger_provider.dart';
+import 'package:herdapp/core/services/exception_logging_service.dart';
+import 'package:herdapp/core/utils/keystore_recovery_helper.dart';
+import 'package:herdapp/features/social/chat_messaging/data/cache/message_cache_service.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat_pagination/chat_pagination_notifier.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat_state/chat_state_notifier.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../core/providers/exception_logger_provider.dart';
-import '../../../../../core/services/exception_logging_service.dart';
-import '../../../../../core/utils/keystore_recovery_helper.dart';
-import '../../../../social/chat_messaging/data/cache/message_cache_service.dart';
-import '../../../../social/chat_messaging/view/providers/chat_provider.dart';
-import '../../../../social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
-import '../../../../social/floating_buttons/providers/chat_animation_provider.dart';
-import '../../../../../core/bootstrap/app_bootstraps.dart';
+part 'auth_provider.g.dart';
 
-class AuthNotifier extends StateNotifier<User?> {
-  final FirebaseAuth _auth;
-  final ExceptionLoggerService _logger;
-  final Ref _ref;
+@Riverpod(keepAlive: true)
+class Auth extends _$Auth {
+  late final FirebaseAuth _auth;
+  late final ExceptionLoggerService _logger;
   StreamSubscription<User?>? _authStateSubscription;
   bool _initialEventReceived = false;
   DateTime? _firstEventTime;
 
   bool get isInitialEventReceived => _initialEventReceived;
 
-  AuthNotifier(this._auth, this._logger, this._ref) : super(_auth.currentUser) {
-    debugPrint('🔐 AuthNotifier constructed. Initial currentUser: '
-        '${_auth.currentUser?.uid ?? 'null'}');
+  @override
+  User? build() {
+    _auth = FirebaseAuth.instance;
+    _logger = ref.watch(exceptionLoggerProvider);
+
+    final currentUser = _auth.currentUser;
+    debugPrint('AuthNotifier constructed. Initial currentUser: '
+        '${currentUser?.uid ?? 'null'}');
 
     // Check Firebase Auth persistence settings and keystore health
     _checkAuthPersistence();
 
     _authStateSubscription = _auth.authStateChanges().listen((user) {
-      if (mounted) {
-        if (!_initialEventReceived) {
-          _initialEventReceived = true;
-          _firstEventTime = DateTime.now();
-          debugPrint(
-              '🔐 First auth event received. user=${user?.uid ?? 'null'}');
-          debugPrint(
-              '🔐 Auth persistence check - emailVerified: ${user?.emailVerified}');
+      if (!_initialEventReceived) {
+        _initialEventReceived = true;
+        _firstEventTime = DateTime.now();
+        debugPrint('First auth event received. user=${user?.uid ?? 'null'}');
+        debugPrint(
+            'Auth persistence check - emailVerified: ${user?.emailVerified}');
 
-          // Mark readiness flag so UI can proceed
-          _ref.read(_authReadyFlagProvider.notifier).state = true;
+        // Mark readiness flag so UI can proceed
+        ref.read(authReadyProvider.notifier).markReady();
 
-          // Handle keystore recovery logic
-          _handleAuthStateRestoration(user);
-        }
-        if (state?.uid != user?.uid) {
-          debugPrint(
-              'Auth state change: ${state?.uid ?? 'null'} -> ${user?.uid ?? 'null'}');
-          if (user != null) {
-            debugPrint(
-                'User details - email: ${user.email}, verified: ${user.emailVerified}');
-          }
-        }
-        state = user;
+        // Handle keystore recovery logic
+        _handleAuthStateRestoration(user);
       }
+      if (state?.uid != user?.uid) {
+        debugPrint(
+            'Auth state change: ${state?.uid ?? 'null'} -> ${user?.uid ?? 'null'}');
+        if (user != null) {
+          debugPrint(
+              'User details - email: ${user.email}, verified: ${user.emailVerified}');
+        }
+      }
+      state = user;
     }, onError: (err, stack) {
       debugPrint('Auth stream error: $err');
       // Still mark as ready even if there's an error - don't block the UI
       if (!_initialEventReceived) {
         _initialEventReceived = true;
-        _ref.read(_authReadyFlagProvider.notifier).state = true;
+        ref.read(authReadyProvider.notifier).markReady();
       }
     });
+
+    // Dispose callback
+    ref.onDispose(() {
+      _authStateSubscription?.cancel();
+    });
+
+    return currentUser;
   }
 
   /// Handle auth state restoration and keystore corruption detection
@@ -135,11 +146,11 @@ class AuthNotifier extends StateNotifier<User?> {
       final isCorrupted =
           await KeystoreRecoveryHelper.detectKeystoreCorruption();
       if (isCorrupted) {
-        debugPrint('� Keystore corruption detected during auth check');
+        debugPrint('🚨 Keystore corruption detected during auth check');
         await KeystoreRecoveryHelper.logKeystoreCorruptionDetails();
       } else {
         debugPrint(
-            '� No stored Firebase Auth user found, no keystore corruption detected');
+            '✅ No stored Firebase Auth user found, no keystore corruption detected');
       }
     } catch (e) {
       debugPrint('Error checking for keystore issues: $e');
@@ -158,17 +169,11 @@ class AuthNotifier extends StateNotifier<User?> {
     // 3. Optionally try to reset the keystore if possible
   }
 
-  @override
-  void dispose() {
-    _authStateSubscription?.cancel();
-    super.dispose();
-  }
-
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
   Future<UserCredential> signIn(String email, String password) async {
     try {
-      debugPrint('🔐 Attempting sign in for: $email');
+      debugPrint('Attempting sign in for: $email');
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -225,6 +230,8 @@ class AuthNotifier extends StateNotifier<User?> {
         email: email,
         password: password,
       );
+
+      if (!ref.mounted) return userCredential;
       state = userCredential.user;
       return userCredential;
     } on FirebaseAuthException catch (e, stack) {
@@ -253,26 +260,30 @@ class AuthNotifier extends StateNotifier<User?> {
       debugPrint('Starting logout process...');
 
       // 1. Clear chat message caches
-      final messageCache = _ref.read(messageCacheServiceProvider);
+      final messageCache = ref.read(messageCacheServiceProvider);
       await messageCache.clearAllCaches();
 
+      if (!ref.mounted) return;
+
       // 2. Reset chat providers state
-      _ref.invalidate(chatStateProvider);
-      _ref.invalidate(chatPaginationProvider);
+      ref.invalidate(chatStateProvider);
+      ref.invalidate(chatPaginationProvider);
 
       // 3. Reset chat bubbles and animation state
-      _ref.invalidate(chatBubblesEnabledProvider);
-      _ref.invalidate(chatClosingAnimationProvider);
-      _ref.invalidate(herdClosingAnimationProvider);
-      _ref.invalidate(bubbleAnimationCallbackProvider);
-      _ref.invalidate(explosionRevealProvider);
+      ref.invalidate(chatBubblesEnabledProvider);
+      ref.invalidate(chatClosingAnimationProvider);
+      ref.invalidate(herdClosingAnimationProvider);
+      ref.invalidate(bubbleAnimationCallbackProvider);
+      ref.invalidate(explosionRevealProvider);
 
       // 4. Clean up notifications
-      final bootstrap = _ref.read(AppBootstrap.appBootstrapProvider);
+      final bootstrap = ref.read(AppBootstrap.appBootstrapProvider);
       bootstrap.resetNotifications();
 
       // 5. Sign out from Firebase Auth
       await _auth.signOut();
+
+      if (!ref.mounted) return;
       state = null;
 
       debugPrint('Logout completed successfully');
@@ -280,7 +291,9 @@ class AuthNotifier extends StateNotifier<User?> {
       debugPrint('Error during logout: $e');
       // Still try to sign out even if cleanup fails
       await _auth.signOut();
-      state = null;
+      if (ref.mounted) {
+        state = null;
+      }
       rethrow;
     }
   }
@@ -319,18 +332,19 @@ class AuthNotifier extends StateNotifier<User?> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, User?>((ref) {
-  final exceptionLogger = ref.watch(exceptionLoggerProvider);
-  return AuthNotifier(FirebaseAuth.instance, exceptionLogger, ref);
-});
 // Internal readiness flag provider (state updated once first auth event arrives)
-final _authReadyFlagProvider = StateProvider<bool>((_) => false);
+@riverpod
+class AuthReady extends _$AuthReady {
+  @override
+  bool build() => false;
 
-/// Public provider exposing readiness
-final authReadyProvider =
-    Provider<bool>((ref) => ref.watch(_authReadyFlagProvider));
+  void markReady() {
+    state = true;
+  }
+}
 
-final authStateChangesProvider = StreamProvider<User?>((ref) {
+@riverpod
+Stream<User?> authStateChanges(Ref ref) {
   final authNotifier = ref.watch(authProvider.notifier);
   return authNotifier.authStateChanges();
-});
+}

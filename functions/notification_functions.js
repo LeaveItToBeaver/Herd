@@ -119,7 +119,7 @@ module.exports = function (admin) {
      */
     async function sendPushNotification(userId, title, body, data) {
         try {
-            logger.log(`🔔 Sending push notification to user ${userId}: ${title}`);
+            logger.log(`Sending push notification to user ${userId}: ${title}`);
 
             // Get user's FCM token
             const userSnapshot = await firestore.collection('users').doc(userId).get();
@@ -245,7 +245,7 @@ module.exports = function (admin) {
             logger.log(` Successfully sent notification: ${response}`);
 
             // Log the message structure for debugging
-            logger.log(`📱 Message structure: ${JSON.stringify(message, null, 2)}`);
+            logger.log(`Message structure: ${JSON.stringify(message, null, 2)}`);
 
         } catch (error) {
             logger.error(`Error sending notification: ${error}`);
@@ -718,7 +718,7 @@ module.exports = function (admin) {
                 const followerId = event.params.followerId;
                 const followedId = event.params.followedId;
 
-                console.log(`🔔 === FOLLOW NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`=== FOLLOW NOTIFICATION TRIGGER FIRED ===`);
                 console.log(`📋 Follower: ${followerId}, Followed: ${followedId}`);
                 console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
 
@@ -738,7 +738,7 @@ module.exports = function (admin) {
             const postId = event.params.postId;
 
             if (postData.isAlt === true) {
-                logger.log(`⏭️ Skipping alt post notification for ${postId}`);
+                logger.log(`Skipping alt post notification for ${postId}`);
                 return;
             }
 
@@ -789,7 +789,7 @@ module.exports = function (admin) {
             async (event) => {
                 const postId = event.params.postId;
                 const likerId = event.params.userId;
-                console.log(`🔔 === LIKE NOTIFICATION TRIGGER FIRED ===`);
+                console.log(`=== LIKE NOTIFICATION TRIGGER FIRED ===`);
                 console.log(`📋 Post: ${postId}, Liker: ${likerId}`);
                 console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
 
@@ -812,7 +812,7 @@ module.exports = function (admin) {
                 const authorId = postData.authorId;
 
                 if (likerId === authorId) {
-                    logger.log(`⏭️ Skipping self-like for post ${postId}`);
+                    logger.log(`Skipping self-like for post ${postId}`);
                     return;
                 }
 
@@ -1051,11 +1051,11 @@ module.exports = function (admin) {
                     .get();
 
                 if (oldNotificationsSnapshot.empty) {
-                    logger.log('🧹 No old notifications to clean up');
+                    logger.log('No old notifications to clean up');
                     return;
                 }
 
-                logger.log(`🧹 Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
+                logger.log(`Cleaning up ${oldNotificationsSnapshot.size} old notifications`);
 
                 const batch = firestore.batch();
                 oldNotificationsSnapshot.docs.forEach(doc => {

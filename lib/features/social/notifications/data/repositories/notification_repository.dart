@@ -35,23 +35,8 @@ class NotificationRepository {
     bool markAsRead = true, // Auto-mark as read by default
   }) async {
     try {
-      debugPrint('🔔 ========== STARTING getNotifications ==========');
-      debugPrint('🔔 Parameters received:');
-      debugPrint('  - limit: $limit');
-      debugPrint('  - markAsRead: $markAsRead');
-      debugPrint('  - onlyUnread: $onlyUnread');
-      debugPrint('  - filterType: $filterType');
-      debugPrint('  - lastNotificationId: $lastNotificationId');
-
-      // Test Firebase Functions connection
-      debugPrint('🔧 Testing Firebase Functions connection...');
-      debugPrint('  - Functions instance: $_functions');
-      debugPrint('  - App name: ${_functions.app.name}');
-
       final callable = _functions.httpsCallable('getNotifications');
-      debugPrint('Created callable for: getNotifications');
 
-      // Prepare call parameters
       final callParams = {
         'limit': limit,
         'lastNotificationId': lastNotificationId,
@@ -60,37 +45,14 @@ class NotificationRepository {
         'markAsRead': markAsRead,
       };
 
-      debugPrint('📤 Calling cloud function with parameters:');
-      callParams.forEach((key, value) {
-        debugPrint('  - $key: $value (${value.runtimeType})');
-      });
-
-      // Make the call
-      debugPrint('📞 Making cloud function call...');
       final result = await callable.call(callParams);
-      debugPrint('Cloud function call completed successfully');
-
-      // Analyze the response
-      debugPrint('📥 ========== ANALYZING RESPONSE ==========');
-      debugPrint('  - Result type: ${result.runtimeType}');
-      debugPrint('  - Result.data type: ${result.data.runtimeType}');
-      debugPrint('  - Result.data: ${result.data}');
 
       final data = result.data as Map<String, dynamic>;
-      debugPrint('📊 Response data structure:');
-      data.forEach((key, value) {
-        debugPrint(
-            '  - $key: ${value.runtimeType} = ${value is List ? '(List with ${value.length} items)' : value.toString().substring(0, value.toString().length > 100 ? 100 : value.toString().length)}');
-      });
 
-      // Check for notifications array
       final rawNotifications = data['notifications'];
-      debugPrint('🔍 ========== PROCESSING NOTIFICATIONS ==========');
-      debugPrint(
-          '  - Raw notifications type: ${rawNotifications.runtimeType}');
 
-      if (rawNotifications == null) {
-        debugPrint('ERROR: notifications field is null!');
+      if (rawNotifications == null || rawNotifications is! List) {
+        debugPrint('getNotifications: no notifications in response');
         return {
           'notifications': <NotificationModel>[],
           'unreadCount': data['unreadCount'] ?? 0,
@@ -99,91 +61,32 @@ class NotificationRepository {
         };
       }
 
-      if (rawNotifications is! List) {
-        debugPrint(
-            'ERROR: notifications is not a List! Type: ${rawNotifications.runtimeType}');
-        return {
-          'notifications': <NotificationModel>[],
-          'unreadCount': data['unreadCount'] ?? 0,
-          'hasMore': data['hasMore'] ?? false,
-          'lastNotificationId': data['lastNotificationId'],
-        };
-      }
-
-      final notificationsList = rawNotifications;
-      debugPrint(
-          '📝 Processing ${notificationsList.length} raw notification items:');
-
-      // Process each notification with detailed logging
       final notificationList = <NotificationModel>[];
 
-      for (int i = 0; i < notificationsList.length; i++) {
-        final rawNotification = notificationsList[i];
-        debugPrint('========== PROCESSING NOTIFICATION $i ==========');
-        debugPrint('  - Raw type: ${rawNotification.runtimeType}');
-        debugPrint(
-            '  - Raw data: ${rawNotification.toString().substring(0, rawNotification.toString().length > 200 ? 200 : rawNotification.toString().length)}...');
-
+      for (int i = 0; i < rawNotifications.length; i++) {
         try {
-          final parsed = _parseNotificationFromCloudFunction(rawNotification);
+          final parsed =
+              _parseNotificationFromCloudFunction(rawNotifications[i]);
           if (parsed != null) {
             notificationList.add(parsed);
-            debugPrint('  Successfully parsed notification $i: ${parsed.id}');
-          } else {
-            debugPrint('  Failed to parse notification $i (returned null)');
           }
-        } catch (parseError, stackTrace) {
-          debugPrint('  Exception parsing notification $i: $parseError');
-          debugPrint('  📋 Stack trace: $stackTrace');
+        } catch (parseError) {
+          debugPrint('Failed to parse notification $i: $parseError');
         }
       }
 
-      debugPrint('📊 ========== FINAL RESULTS ==========');
-      debugPrint('  - Raw notifications count: ${notificationsList.length}');
-      debugPrint('  - Successfully parsed count: ${notificationList.length}');
       debugPrint(
-          '  - Failed to parse count: ${notificationsList.length - notificationList.length}');
-      debugPrint('  - Unread count: ${data['unreadCount']}');
-      debugPrint('  - Has more: ${data['hasMore']}');
-      debugPrint('  - Last notification ID: ${data['lastNotificationId']}');
+          'getNotifications: fetched ${notificationList.length}/${rawNotifications.length}, '
+          'unread: ${data['unreadCount']}, hasMore: ${data['hasMore']}');
 
-      if (notificationList.isNotEmpty) {
-        debugPrint(
-            '  - First notification: ${notificationList.first.id} (${notificationList.first.type})');
-        debugPrint(
-            '  - Last notification: ${notificationList.last.id} (${notificationList.last.type})');
-      }
-
-      final resultMap = {
+      return {
         'notifications': notificationList,
         'unreadCount': data['unreadCount'] ?? 0,
         'hasMore': data['hasMore'] ?? false,
         'lastNotificationId': data['lastNotificationId'],
       };
-
-      debugPrint('========== RETURNING RESULT ==========');
-      debugPrint('  - Result map keys: ${resultMap.keys.toList()}');
-      debugPrint('  - Returning ${notificationList.length} notifications');
-
-      return resultMap;
-    } catch (e, stackTrace) {
-      debugPrint('========== ERROR IN getNotifications ==========');
-      debugPrint('  - Error type: ${e.runtimeType}');
-      debugPrint('  - Error message: $e');
-      debugPrint('  - Stack trace: $stackTrace');
-
-      // Log additional context for specific error types
-      if (e.toString().contains('PERMISSION_DENIED')) {
-        debugPrint(
-            '🔐 PERMISSION ERROR: Check Firebase rules and authentication');
-      } else if (e.toString().contains('UNAUTHENTICATED')) {
-        debugPrint('🔒 AUTH ERROR: User might not be properly authenticated');
-      } else if (e.toString().contains('INTERNAL')) {
-        debugPrint('🔧 INTERNAL ERROR: Check cloud function logs');
-      } else if (e.toString().contains('NOT_FOUND')) {
-        debugPrint('🔍 NOT FOUND: Cloud function might not be deployed');
-      }
-
+    } catch (e) {
+      debugPrint('Error in getNotifications: $e');
       rethrow;
     }
   }
@@ -191,7 +94,7 @@ class NotificationRepository {
   /// Get unread count using cloud function
   Future<int> getUnreadCount() async {
     try {
-      debugPrint('🔔 Getting unread count via cloud function');
+      debugPrint('Getting unread count via cloud function');
 
       final callable = _functions.httpsCallable('getUnreadNotificationCount');
       final result = await callable.call();
@@ -210,7 +113,7 @@ class NotificationRepository {
   Future<Map<String, dynamic>> markAsRead(
       {List<String>? notificationIds}) async {
     try {
-      debugPrint('🔔 Marking notifications as read via cloud function');
+      debugPrint('Marking notifications as read via cloud function');
 
       final callable = _functions.httpsCallable('markNotificationsAsRead');
       final result = await callable.call({
@@ -229,7 +132,7 @@ class NotificationRepository {
 
   Future<String> getUserFCMToken() async {
     try {
-      debugPrint('🔔 Getting FCM token via cloud function');
+      debugPrint('Getting FCM token via cloud function');
 
       final token = await _messaging.getToken();
       if (token == null) {
@@ -248,7 +151,7 @@ class NotificationRepository {
   /// Update FCM token using cloud function
   Future<void> updateFCMToken(String token) async {
     try {
-      debugPrint('🔔 Updating FCM token via cloud function');
+      debugPrint('Updating FCM token via cloud function');
 
       final callable = _functions.httpsCallable('updateFCMToken');
       await callable.call({'fcmToken': token});
@@ -267,11 +170,11 @@ class NotificationRepository {
 
       // First check if we can get the token locally
       final token = await _messaging.getToken();
-      debugPrint('📱 Current FCM token: ${token?.substring(0, 20)}...');
+      debugPrint('Current FCM token: ${token?.substring(0, 20)}...');
 
       // Check notification permissions
       final settings = await _messaging.getNotificationSettings();
-      debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
+      debugPrint('Notification permission: ${settings.authorizationStatus}');
 
       // Call the debug cloud function
       final callable = _functions.httpsCallable('debugFCMToken');
@@ -315,11 +218,9 @@ class NotificationRepository {
         // Handle any other Map type
         notificationData = Map<String, dynamic>.from(data);
       } else {
-        debugPrint('Unexpected data type: ${data.runtimeType}');
+        debugPrint('Unexpected notification data type: ${data.runtimeType}');
         return null;
       }
-
-      debugPrint('📝 Parsing notification data: ${notificationData.keys}');
 
       return NotificationModel(
         id: notificationData['id']?.toString() ?? '',
@@ -458,23 +359,23 @@ class NotificationRepository {
       debugPrint(' ===== FCM INITIALIZATION START =====');
 
       // Request permissions
-      debugPrint('🔐 Requesting FCM permissions...');
+      debugPrint('Requesting FCM permissions...');
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      debugPrint('🔐 Permission result: ${settings.authorizationStatus}');
+      debugPrint('Permission result: ${settings.authorizationStatus}');
       if (settings.authorizationStatus != AuthorizationStatus.authorized) {
         debugPrint('Notification permissions not granted');
         return null;
       }
 
       // Get FCM token
-      debugPrint('📱 Getting FCM token...');
+      debugPrint('Getting FCM token...');
       final token = await _messaging.getToken();
-      debugPrint('📱 FCM Token obtained: ${token?.substring(0, 20)}...');
+      debugPrint('FCM Token obtained: ${token?.substring(0, 20)}...');
 
       if (token != null) {
         // Update token via cloud function
@@ -517,8 +418,7 @@ class NotificationRepository {
   }) {
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint(
-          '📱 Foreground message received: ${message.notification?.title}');
+      debugPrint('Foreground message received: ${message.notification?.title}');
 
       final data = {
         'title': message.notification?.title ?? '',
@@ -531,8 +431,7 @@ class NotificationRepository {
 
     // Handle message taps when app is in background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint(
-          '📱 Message tapped (background): ${message.notification?.title}');
+      debugPrint('Message tapped (background): ${message.notification?.title}');
 
       final data = {
         'title': message.notification?.title ?? '',
@@ -548,7 +447,7 @@ class NotificationRepository {
         .getInitialMessage()
         .then((RemoteMessage? message) {
       if (message != null) {
-        debugPrint('📱 Initial message: ${message.notification?.title}');
+        debugPrint('Initial message: ${message.notification?.title}');
 
         final data = {
           'title': message.notification?.title ?? '',
@@ -568,7 +467,7 @@ class NotificationRepository {
 
       // Get current token
       final token = await _messaging.getToken();
-      debugPrint('📱 Current FCM token: ${token?.substring(0, 20)}...');
+      debugPrint('Current FCM token: ${token?.substring(0, 20)}...');
 
       if (token == null) {
         debugPrint('No FCM token found');
@@ -577,7 +476,7 @@ class NotificationRepository {
 
       // Check notification permissions
       final settings = await _messaging.getNotificationSettings();
-      debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
+      debugPrint('Notification permission: ${settings.authorizationStatus}');
 
       try {
         await updateFCMToken(token);
@@ -632,7 +531,7 @@ class NotificationRepository {
         .limit(50) // Reasonable limit for real-time updates
         .snapshots()
         .map((snapshot) {
-      debugPrint('📱 Stream update: ${snapshot.docs.length} notifications');
+      debugPrint('Stream update: ${snapshot.docs.length} notifications');
 
       final notifications = <NotificationModel>[];
       for (final doc in snapshot.docs) {

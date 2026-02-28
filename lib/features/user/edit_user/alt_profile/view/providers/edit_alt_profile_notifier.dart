@@ -1,20 +1,22 @@
 import 'dart:io';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/user/edit_user/alt_profile/view/providers/state/edit_alt_profile_state.dart';
 
 import '../../../../user_profile/data/models/user_model.dart';
 import '../../../../user_profile/data/repositories/user_repository.dart';
 
-class EditAltProfileNotifier extends StateNotifier<EditAltProfileState> {
-  final UserRepository userRepository;
-  final UserModel user;
+part 'edit_alt_profile_notifier.g.dart';
 
-  EditAltProfileNotifier({required this.userRepository, required this.user})
-      : super(EditAltProfileState(
-          username: user.username,
-          bio: user.altBio ?? '',
-        ));
+@riverpod
+class EditAltProfile extends _$EditAltProfile {
+  @override
+  EditAltProfileState build(UserModel user) {
+    return EditAltProfileState(
+      username: user.username,
+      bio: user.altBio ?? '',
+    );
+  }
 
   void usernameChanged(String value) {
     state = state.copyWith(username: value);
@@ -32,11 +34,12 @@ class EditAltProfileNotifier extends StateNotifier<EditAltProfileState> {
     state = state.copyWith(profileImage: file);
   }
 
-  Future<void> submit() async {
+  Future<void> submit(UserModel user) async {
     if (state.isSubmitting) return;
 
     state = state.copyWith(isSubmitting: true, errorMessage: null);
     try {
+      final userRepository = ref.read(userRepositoryProvider);
       final Map<String, dynamic> updatedData = {
         // Username is shared between profiles, so this stays the same
         'username': state.username,
@@ -50,6 +53,7 @@ class EditAltProfileNotifier extends StateNotifier<EditAltProfileState> {
           file: state.coverImage!,
           type: 'alt_cover',
         );
+        if (!ref.mounted) return;
         updatedData['altCoverImageURL'] = coverImageUrl;
       }
 
@@ -59,22 +63,17 @@ class EditAltProfileNotifier extends StateNotifier<EditAltProfileState> {
           file: state.profileImage!,
           type: 'alt_profile',
         );
+        if (!ref.mounted) return;
         updatedData['altProfileImageURL'] = profileImageUrl;
       }
 
       await userRepository.updateAltProfile(user.id, updatedData);
+      if (!ref.mounted) return;
       state = state.copyWith(isSubmitting: false);
     } catch (error) {
+      if (!ref.mounted) return;
       state =
           state.copyWith(isSubmitting: false, errorMessage: error.toString());
     }
   }
 }
-
-final editAltProfileProvider = StateNotifierProvider.family<
-    EditAltProfileNotifier, EditAltProfileState, UserModel>(
-  (ref, user) {
-    final userRepository = ref.watch(userRepositoryProvider);
-    return EditAltProfileNotifier(userRepository: userRepository, user: user);
-  },
-);

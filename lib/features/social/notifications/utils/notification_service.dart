@@ -79,7 +79,7 @@ class NotificationService {
 
       // Test 3: Check permissions
       final permissionsEnabled = await areNotificationsEnabled();
-      debugPrint('🔐 Notifications enabled: $permissionsEnabled');
+      debugPrint('Notifications enabled: $permissionsEnabled');
 
       return {
         'repositoryTest': repoResult,
@@ -144,7 +144,7 @@ class NotificationService {
     Function(Map<String, dynamic>)? onForegroundMessage,
   }) async {
     try {
-      debugPrint('🔔 Initializing notification service...');
+      debugPrint('Initializing notification service...');
 
       // Step 1: Set up local notifications
       await _setupLocalNotifications(onNotificationTap);
@@ -231,7 +231,7 @@ class NotificationService {
     Map<String, dynamic> messageData,
     Function(Map<String, dynamic>)? onForegroundMessage,
   ) {
-    debugPrint('📱 Handling foreground message: ${messageData['title']}');
+    debugPrint('Handling foreground message: ${messageData['title']}');
 
     // Call custom handler if provided
     onForegroundMessage?.call(messageData);
@@ -422,7 +422,7 @@ class NotificationService {
     try {
       // This will be handled by FCM automatically when sending notifications
       // with the proper badge count in the APNS payload
-      debugPrint('📱 Badge count should be: $unreadCount');
+      debugPrint('Badge count should be: $unreadCount');
     } catch (e) {
       debugPrint('Error updating badge count: $e');
     }
@@ -463,7 +463,7 @@ class NotificationService {
   /// Request notification permissions
   Future<bool> requestPermissions() async {
     try {
-      debugPrint('🔔 Requesting notification permissions...');
+      debugPrint('Requesting notification permissions...');
 
       // Request FCM permissions
       final settings = await FirebaseMessaging.instance.requestPermission(
@@ -508,7 +508,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 /// Background message handler - must be top-level function
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('📱 Background message received: ${message.messageId}');
+  debugPrint('Background message received: ${message.messageId}');
   debugPrint('Title: ${message.notification?.title}');
   debugPrint('Body: ${message.notification?.body}');
   debugPrint('Data: ${message.data}');

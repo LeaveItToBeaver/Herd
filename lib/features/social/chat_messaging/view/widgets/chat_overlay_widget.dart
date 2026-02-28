@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/chat/chat_provider.dart';
+import 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat/e2ee_chat_provider.dart';
 
 class ChatOverlayWidget extends ConsumerStatefulWidget {
   final String bubbleId;
@@ -40,7 +42,7 @@ class _ChatOverlayWidgetState extends ConsumerState<ChatOverlayWidget> {
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get the draggable painter color from customization
-    final customization = ref.watch(uiCustomizationProvider).value;
+    final customization = ref.watch(uICustomizationProvider).value;
     final appTheme = customization?.appTheme;
     final painterColor =
         appTheme?.getSurfaceColor() ?? Theme.of(context).colorScheme.surface;

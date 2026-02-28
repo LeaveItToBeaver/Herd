@@ -42,7 +42,7 @@ class BottomNavRouteObserver extends RouteObserver<ModalRoute<void>> {
         // Only update if the bottom nav item is different from current state
         final currentItem = ref.read(bottomNavProvider);
         if (currentItem != bottomNavItem) {
-          ref.read(bottomNavProvider.notifier).state = bottomNavItem;
+          ref.read(bottomNavProvider.notifier).setCurrentTab(bottomNavItem);
         }
       }
     }

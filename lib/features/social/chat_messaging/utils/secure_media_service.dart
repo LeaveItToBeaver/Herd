@@ -171,7 +171,7 @@ class SecureMediaService {
       for (final file in files) {
         try {
           await file.delete();
-          debugPrint('🧹 Cleaned up temp file: ${file.path}');
+          debugPrint('Cleaned up temp file: ${file.path}');
         } catch (e) {
           debugPrint('Failed to delete temp file ${file.path}: $e');
         }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 
 enum HeaderDisplayMode {
@@ -70,10 +71,7 @@ class _UserHeader extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.all(
-        displayMode == HeaderDisplayMode.pinned 
-          ? 4 
-          : (isCompact ? 8 : 12)
-      ),
+          displayMode == HeaderDisplayMode.pinned ? 4 : (isCompact ? 8 : 12)),
       child: userAsync.when(
         loading: () => _buildLoadingState(isCompact),
         error: (_, __) => _buildErrorState(isCompact),
@@ -279,11 +277,9 @@ class _HerdHeader extends ConsumerWidget {
       children: [
         // Herd info
         Padding(
-          padding: EdgeInsets.all(
-            displayMode == HeaderDisplayMode.pinned 
-              ? 4 
-              : (isCompact ? 8 : 12)
-          ),
+          padding: EdgeInsets.all(displayMode == HeaderDisplayMode.pinned
+              ? 4
+              : (isCompact ? 8 : 12)),
           child: herdAsync.when(
             loading: () => _buildLoadingState(isCompact),
             error: (_, __) => const Text('Unknown herd'),
@@ -334,12 +330,12 @@ class _HerdHeader extends ConsumerWidget {
         // Author info
         Padding(
           padding: EdgeInsets.only(
-            left: displayMode == HeaderDisplayMode.pinned 
-              ? 8 
-              : (isCompact ? 16 : 20),
-            bottom: displayMode == HeaderDisplayMode.pinned 
-              ? 4 
-              : (isCompact ? 8 : 12),
+            left: displayMode == HeaderDisplayMode.pinned
+                ? 8
+                : (isCompact ? 16 : 20),
+            bottom: displayMode == HeaderDisplayMode.pinned
+                ? 4
+                : (isCompact ? 8 : 12),
           ),
           child: userAsync.when(
             loading: () => _buildAuthorLoadingState(),

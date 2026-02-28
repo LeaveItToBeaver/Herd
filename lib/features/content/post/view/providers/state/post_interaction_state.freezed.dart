@@ -21,7 +21,8 @@ mixin _$PostInteractionState implements DiagnosticableTreeMixin {
   bool get isLoading; // Loading state
   String? get error; // Error message
   bool get isLiked; // Whether user has liked
-  bool get isDisliked;
+  bool get isDisliked; // Whether user has disliked
+  bool get isInitialized;
 
   /// Create a copy of PostInteractionState
   /// with the given fields replaced by the non-null parameter values.
@@ -42,7 +43,8 @@ mixin _$PostInteractionState implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isLiked', isLiked))
-      ..add(DiagnosticsProperty('isDisliked', isDisliked));
+      ..add(DiagnosticsProperty('isDisliked', isDisliked))
+      ..add(DiagnosticsProperty('isInitialized', isInitialized));
   }
 
   @override
@@ -63,16 +65,27 @@ mixin _$PostInteractionState implements DiagnosticableTreeMixin {
             (identical(other.error, error) || other.error == error) &&
             (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
             (identical(other.isDisliked, isDisliked) ||
-                other.isDisliked == isDisliked));
+                other.isDisliked == isDisliked) &&
+            (identical(other.isInitialized, isInitialized) ||
+                other.isInitialized == isInitialized));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, totalLikes, totalRawLikes,
-      totalComments, totalRawDislikes, isLoading, error, isLiked, isDisliked);
+  int get hashCode => Object.hash(
+      runtimeType,
+      totalLikes,
+      totalRawLikes,
+      totalComments,
+      totalRawDislikes,
+      isLoading,
+      error,
+      isLiked,
+      isDisliked,
+      isInitialized);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked)';
+    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked, isInitialized: $isInitialized)';
   }
 }
 
@@ -90,7 +103,8 @@ abstract mixin class $PostInteractionStateCopyWith<$Res> {
       bool isLoading,
       String? error,
       bool isLiked,
-      bool isDisliked});
+      bool isDisliked,
+      bool isInitialized});
 }
 
 /// @nodoc
@@ -114,6 +128,7 @@ class _$PostInteractionStateCopyWithImpl<$Res>
     Object? error = freezed,
     Object? isLiked = null,
     Object? isDisliked = null,
+    Object? isInitialized = null,
   }) {
     return _then(_self.copyWith(
       totalLikes: null == totalLikes
@@ -147,6 +162,10 @@ class _$PostInteractionStateCopyWithImpl<$Res>
       isDisliked: null == isDisliked
           ? _self.isDisliked
           : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isInitialized: null == isInitialized
+          ? _self.isInitialized
+          : isInitialized // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -253,7 +272,8 @@ extension PostInteractionStatePatterns on PostInteractionState {
             bool isLoading,
             String? error,
             bool isLiked,
-            bool isDisliked)?
+            bool isDisliked,
+            bool isInitialized)?
         $default, {
     required TResult orElse(),
   }) {
@@ -268,7 +288,8 @@ extension PostInteractionStatePatterns on PostInteractionState {
             _that.isLoading,
             _that.error,
             _that.isLiked,
-            _that.isDisliked);
+            _that.isDisliked,
+            _that.isInitialized);
       case _:
         return orElse();
     }
@@ -297,7 +318,8 @@ extension PostInteractionStatePatterns on PostInteractionState {
             bool isLoading,
             String? error,
             bool isLiked,
-            bool isDisliked)
+            bool isDisliked,
+            bool isInitialized)
         $default,
   ) {
     final _that = this;
@@ -311,7 +333,8 @@ extension PostInteractionStatePatterns on PostInteractionState {
             _that.isLoading,
             _that.error,
             _that.isLiked,
-            _that.isDisliked);
+            _that.isDisliked,
+            _that.isInitialized);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -339,7 +362,8 @@ extension PostInteractionStatePatterns on PostInteractionState {
             bool isLoading,
             String? error,
             bool isLiked,
-            bool isDisliked)?
+            bool isDisliked,
+            bool isInitialized)?
         $default,
   ) {
     final _that = this;
@@ -353,7 +377,8 @@ extension PostInteractionStatePatterns on PostInteractionState {
             _that.isLoading,
             _that.error,
             _that.isLiked,
-            _that.isDisliked);
+            _that.isDisliked,
+            _that.isInitialized);
       case _:
         return null;
     }
@@ -373,7 +398,8 @@ class _PostInteractionState
       this.isLoading = false,
       this.error,
       this.isLiked = false,
-      this.isDisliked = false});
+      this.isDisliked = false,
+      this.isInitialized = false});
 
   @override
   @JsonKey()
@@ -405,6 +431,10 @@ class _PostInteractionState
   @override
   @JsonKey()
   final bool isDisliked;
+// Whether user has disliked
+  @override
+  @JsonKey()
+  final bool isInitialized;
 
   /// Create a copy of PostInteractionState
   /// with the given fields replaced by the non-null parameter values.
@@ -426,7 +456,8 @@ class _PostInteractionState
       ..add(DiagnosticsProperty('isLoading', isLoading))
       ..add(DiagnosticsProperty('error', error))
       ..add(DiagnosticsProperty('isLiked', isLiked))
-      ..add(DiagnosticsProperty('isDisliked', isDisliked));
+      ..add(DiagnosticsProperty('isDisliked', isDisliked))
+      ..add(DiagnosticsProperty('isInitialized', isInitialized));
   }
 
   @override
@@ -447,16 +478,27 @@ class _PostInteractionState
             (identical(other.error, error) || other.error == error) &&
             (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
             (identical(other.isDisliked, isDisliked) ||
-                other.isDisliked == isDisliked));
+                other.isDisliked == isDisliked) &&
+            (identical(other.isInitialized, isInitialized) ||
+                other.isInitialized == isInitialized));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, totalLikes, totalRawLikes,
-      totalComments, totalRawDislikes, isLoading, error, isLiked, isDisliked);
+  int get hashCode => Object.hash(
+      runtimeType,
+      totalLikes,
+      totalRawLikes,
+      totalComments,
+      totalRawDislikes,
+      isLoading,
+      error,
+      isLiked,
+      isDisliked,
+      isInitialized);
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked)';
+    return 'PostInteractionState(totalLikes: $totalLikes, totalRawLikes: $totalRawLikes, totalComments: $totalComments, totalRawDislikes: $totalRawDislikes, isLoading: $isLoading, error: $error, isLiked: $isLiked, isDisliked: $isDisliked, isInitialized: $isInitialized)';
   }
 }
 
@@ -476,7 +518,8 @@ abstract mixin class _$PostInteractionStateCopyWith<$Res>
       bool isLoading,
       String? error,
       bool isLiked,
-      bool isDisliked});
+      bool isDisliked,
+      bool isInitialized});
 }
 
 /// @nodoc
@@ -500,6 +543,7 @@ class __$PostInteractionStateCopyWithImpl<$Res>
     Object? error = freezed,
     Object? isLiked = null,
     Object? isDisliked = null,
+    Object? isInitialized = null,
   }) {
     return _then(_PostInteractionState(
       totalLikes: null == totalLikes
@@ -533,6 +577,10 @@ class __$PostInteractionStateCopyWithImpl<$Res>
       isDisliked: null == isDisliked
           ? _self.isDisliked
           : isDisliked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isInitialized: null == isInitialized
+          ? _self.isInitialized
+          : isInitialized // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }

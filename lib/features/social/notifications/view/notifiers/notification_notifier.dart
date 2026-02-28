@@ -1,16 +1,18 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
 import '../providers/state/notification_state.dart';
 
-class NotificationNotifier extends StateNotifier<NotificationState> {
+class NotificationNotifier {
   final NotificationRepository _repository;
   final String _userId;
+  NotificationState _state = NotificationState.initial();
 
-  NotificationNotifier(this._repository, this._userId)
-      : super(NotificationState.initial()) {
-    debugPrint('🔔 NotificationNotifier initialized for user: $_userId');
+  NotificationState get state => _state;
+  set state(NotificationState newState) => _state = newState;
+
+  NotificationNotifier(this._repository, this._userId) {
+    debugPrint('NotificationNotifier initialized for user: $_userId');
     refreshNotifications();
   }
 
@@ -70,7 +72,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> loadMoreNotifications({bool markAsRead = false}) async {
     if (state.isLoading || !state.hasMore || state.lastNotificationId == null) {
       debugPrint(
-          '⏭️ Skipping load more: isLoading=${state.isLoading}, hasMore=${state.hasMore}');
+          'Skipping load more: isLoading=${state.isLoading}, hasMore=${state.hasMore}');
       return;
     }
 

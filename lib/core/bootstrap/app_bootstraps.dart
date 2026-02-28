@@ -28,11 +28,11 @@ class AppBootstrap {
   Future<void> initializeNotifications(String userId, WidgetRef ref) async {
     try {
       if (_notificationsInitialized && _currentUserId == userId) {
-        debugPrint('🔔 Notifications already initialized for user: $userId');
+        debugPrint('Notifications already initialized for user: $userId');
         return;
       }
 
-      debugPrint('🔔 Initializing notifications for user: $userId');
+      debugPrint('Initializing notifications for user: $userId');
       _currentUserId = userId;
 
       final notificationService = ref.read(notificationServiceProvider);
@@ -60,7 +60,7 @@ class AppBootstrap {
   /// Handle foreground notification messages
   void _handleForegroundMessage(Map<String, dynamic> data, WidgetRef ref) {
     try {
-      debugPrint('📱 Foreground notification received: ${data['title']}');
+      debugPrint('Foreground notification received: ${data['title']}');
 
       // You can show a custom in-app notification here if needed
       // For example, show a snackbar or custom notification widget
@@ -76,7 +76,7 @@ class AppBootstrap {
   Future<void> cleanupNotifications(WidgetRef ref) async {
     try {
       if (_notificationsInitialized) {
-        debugPrint('🧹 Cleaning up notifications');
+        debugPrint('Cleaning up notifications');
 
         final notificationService = ref.read(notificationServiceProvider);
         await notificationService.clearAllNotifications();
@@ -223,12 +223,12 @@ class AppBootstrap {
 
       // Test if notifications are enabled
       final enabled = await notificationService.areNotificationsEnabled();
-      debugPrint('📱 Notifications enabled: $enabled');
+      debugPrint('Notifications enabled: $enabled');
 
       if (!enabled) {
         // Try to request permissions
         final granted = await notificationService.requestPermissions();
-        debugPrint('🔔 Permission request result: $granted');
+        debugPrint('Permission request result: $granted');
       }
 
       // Show test notification
@@ -393,7 +393,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
                     CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
                     Text(
-                      'Initializing app...',
+                      'Loading app...',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,

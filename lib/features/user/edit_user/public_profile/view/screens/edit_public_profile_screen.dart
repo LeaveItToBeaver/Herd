@@ -60,7 +60,7 @@ class _PublicProfileEditScreenState
             .lastNameChanged(_lastNameController.text);
         await ref
             .read(editPublicProfileProvider(widget.user).notifier)
-            .submit();
+            .submit(widget.user);
         if (mounted) {
           if (ref.read(editPublicProfileProvider(widget.user)).errorMessage ==
                   null &&
@@ -394,7 +394,7 @@ class _PublicProfileEditScreenState
                                             .read(editPublicProfileProvider(
                                                     widget.user)
                                                 .notifier)
-                                            .submit();
+                                            .submit(widget.user);
 
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context)

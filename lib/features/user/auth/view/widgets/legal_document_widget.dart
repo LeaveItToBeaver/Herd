@@ -19,14 +19,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'legal_document_widget.g.dart';
 
 // Provider to track acceptance status of legal documents
-final legalAcceptanceProvider = StateProvider<Map<String, bool>>((ref) {
-  return {
-    'terms': false,
-    'privacy': false,
-  };
-});
+@riverpod
+class LegalAcceptance extends _$LegalAcceptance {
+  @override
+  Map<String, bool> build() {
+    return {
+      'terms': false,
+      'privacy': false,
+    };
+  }
+
+  void accept(String key) {
+    state = {...state, key: true};
+  }
+
+  void setAcceptance(String key, bool value) {
+    state = {...state, key: value};
+  }
+
+  void reset() {
+    state = {
+      'terms': false,
+      'privacy': false,
+    };
+  }
+}
 
 class LegalDocumentWidget extends ConsumerWidget {
   final String title;
@@ -148,11 +170,9 @@ class LegalDocumentWidget extends ConsumerWidget {
                     onChanged: (value) {
                       // Only allow manual checking, not automatic
                       if (value != null) {
-                        final currentAcceptance =
-                            Map<String, bool>.from(acceptance);
-                        currentAcceptance[acceptanceKey] = value;
-                        ref.read(legalAcceptanceProvider.notifier).state =
-                            currentAcceptance;
+                        ref
+                            .read(legalAcceptanceProvider.notifier)
+                            .setAcceptance(acceptanceKey, value);
                       }
                     },
                   ),
@@ -189,7 +209,6 @@ class LegalDocumentWidget extends ConsumerWidget {
   // Show full document dialog
   void _showFullDocument(BuildContext context, WidgetRef ref) async {
     final theme = Theme.of(context);
-    final acceptance = ref.read(legalAcceptanceProvider);
     final String content = await _loadAsset(assetPath);
 
     if (!context.mounted) return;
@@ -248,11 +267,9 @@ class LegalDocumentWidget extends ConsumerWidget {
                     const SizedBox(width: 16),
                     FilledButton(
                       onPressed: () {
-                        final currentAcceptance =
-                            Map<String, bool>.from(acceptance);
-                        currentAcceptance[acceptanceKey] = true;
-                        ref.read(legalAcceptanceProvider.notifier).state =
-                            currentAcceptance;
+                        ref
+                            .read(legalAcceptanceProvider.notifier)
+                            .accept(acceptanceKey);
                         Navigator.pop(context);
                       },
                       child: const Text('Accept'),
@@ -403,7 +420,6 @@ class LegalDocumentsSection extends ConsumerWidget {
   void _showMarkdownDialog(BuildContext context, WidgetRef ref, String title,
       String assetPath, String acceptanceKey) async {
     final theme = Theme.of(context);
-    final acceptance = ref.read(legalAcceptanceProvider);
     final String content = await rootBundle.loadString(assetPath);
 
     if (!context.mounted) return;
@@ -462,11 +478,9 @@ class LegalDocumentsSection extends ConsumerWidget {
                     const SizedBox(width: 16),
                     FilledButton(
                       onPressed: () {
-                        final currentAcceptance =
-                            Map<String, bool>.from(acceptance);
-                        currentAcceptance[acceptanceKey] = true;
-                        ref.read(legalAcceptanceProvider.notifier).state =
-                            currentAcceptance;
+                        ref
+                            .read(legalAcceptanceProvider.notifier)
+                            .accept(acceptanceKey);
                         Navigator.pop(context);
                       },
                       child: const Text('Accept'),

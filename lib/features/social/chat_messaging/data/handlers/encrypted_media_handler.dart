@@ -34,7 +34,7 @@ class EncryptedMediaMessageHandler {
     Function(double)? onUploadProgress,
   }) async {
     try {
-      debugPrint('📱 Starting encrypted media message send');
+      debugPrint('Starting encrypted media message send');
 
       if (participants.length != 2) {
         throw Exception('Encrypted media currently only supports direct chats');
@@ -59,7 +59,7 @@ class EncryptedMediaMessageHandler {
           final msg = e.message ?? '';
           if (msg.contains('BAD_DECRYPT')) {
             debugPrint(
-                '🔐 BAD_DECRYPT during media derivation (attempt ${attempt + 1}) – regenerating identity keys');
+                'BAD_DECRYPT during media derivation (attempt ${attempt + 1}) – regenerating identity keys');
             try {
               await _cryptoService.deleteStoredKeys();
               await _cryptoService.ensureKeyPairExists();

@@ -12,7 +12,7 @@ export 'package:herdapp/features/user/auth/data/repositories/auth_repository.dar
 export 'package:herdapp/features/user/user_profile/view/providers/alt_connection_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/current_user_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/image_loading_provider.dart';
-export 'package:herdapp/features/user/user_profile/view/providers/profile_controller_provider.dart';
+export 'package:herdapp/features/user/user_profile/profile_controller.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/profile_customization_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/profile_navigation_provider.dart';
 export 'package:herdapp/features/user/user_profile/view/providers/user_provider.dart';
@@ -29,7 +29,7 @@ export 'package:herdapp/features/user/edit_user/public_profile/view/providers/ed
 
 //Post Providers
 export 'package:herdapp/features/content/post/view/providers/post_provider.dart';
-export 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
+//export 'package:herdapp/features/content/post/view/providers/pinned_post_provider.dart';
 export 'package:herdapp/features/content/post/view/providers/state/post_interaction_notifier.dart';
 export 'package:herdapp/features/content/post/view/providers/state/post_interaction_state.dart';
 export 'package:herdapp/features/content/post/view/providers/state/post_state.dart';
@@ -45,6 +45,10 @@ export 'package:herdapp/features/content/drafts/data/repositories/draft_reposito
 
 //Comment Providers
 export 'package:herdapp/features/social/comment/view/providers/comment_providers.dart';
+export 'package:herdapp/features/social/comment/view/providers/comment_interaction_provider.dart';
+export 'package:herdapp/features/social/comment/view/providers/comment_sort_provider.dart';
+export 'package:herdapp/features/social/comment/view/providers/comment_thread_provider.dart';
+export 'package:herdapp/features/social/comment/view/providers/expanded_comments_provider.dart';
 export 'package:herdapp/features/social/comment/view/providers/reply_providers.dart';
 export 'package:herdapp/features/social/comment/view/providers/state/comment_state.dart';
 export 'package:herdapp/features/social/comment/view/providers/state/reply_state.dart';
@@ -70,6 +74,8 @@ export 'package:herdapp/features/social/notifications/data/repositories/notifica
 export 'package:herdapp/features/social/mentions/view/providers/mentions_provider.dart';
 
 //Floating Button and Navigation Providers
+export 'package:herdapp/features/social/floating_buttons/providers/chat_animation_provider.dart';
+export 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 export 'package:herdapp/features/social/floating_buttons/views/providers/navigation_provider.dart';
 export 'package:herdapp/features/social/floating_buttons/views/providers/navigation_service_provider.dart';
 export 'package:herdapp/features/ui/navigation/view/providers/bottom_nav_bar_provider.dart';
@@ -78,15 +84,13 @@ export 'package:herdapp/features/ui/navigation/view/providers/bottom_nav_bar_pro
 export 'package:herdapp/features/community/search/search_controller.dart';
 export 'package:herdapp/features/community/search/view/providers/state/search_state.dart';
 
-//Herd Providers
-export 'package:herdapp/features/community/herds/view/providers/herd_data_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_feed_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_moderation_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_permission_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
-export 'package:herdapp/features/community/herds/view/providers/herd_repository_provider.dart';
-export 'package:herdapp/features/community/herds/view/providers/state/herd_feed_state.dart';
-export 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
+// //Herd Providers
+// export 'package:herdapp/features/community/herds/view/providers/herd_feed_providers.dart';
+// export 'package:herdapp/features/community/herds/view/providers/herd_moderation_providers.dart';
+// export 'package:herdapp/features/community/herds/view/providers/herd_permission_providers.dart';
+// export 'package:herdapp/features/community/herds/view/providers/herd_repository_provider.dart';
+// export 'package:herdapp/features/community/herds/view/providers/state/herd_feed_state.dart';
+// export 'package:herdapp/features/community/herds/data/repositories/herd_repository.dart';
 
 //Moderation Providers
 export 'package:herdapp/features/community/moderation/view/providers/moderation_providers.dart';
@@ -102,12 +106,15 @@ export 'package:herdapp/features/ui/customization/data/repositories/ui_customiza
 export 'package:herdapp/features/social/floating_buttons/views/providers/drag_state_provider.dart';
 
 //Chat Messaging Providers
-export 'package:herdapp/features/social/chat_messaging/view/providers/active_chat_provider.dart';
-export 'package:herdapp/features/social/chat_messaging/view/providers/chat_provider.dart';
-export 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_chat_provider.dart';
+
 export 'package:herdapp/features/social/chat_messaging/view/providers/state/chat_state.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_messaging_providers.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/chat_repository.dart';
 export 'package:herdapp/features/social/chat_messaging/data/repositories/message_repository.dart';
 
 export 'package:herdapp/features/social/floating_buttons/views/providers/overlay_providers.dart';
+
+//User Management Providers
+//export 'package:herdapp/features/user/user_management/view/providers/user_block_providers.dart';
+export 'package:herdapp/features/user/user_management/data/models/user_block_model.dart';
+export 'package:herdapp/features/user/user_management/data/repositories/user_block_repository.dart';

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/user/user_profile/utils/async_user_value_extension.dart';
-import 'package:herdapp/features/social/floating_buttons/providers/chat_bubble_toggle_provider.dart';
 
 class PublicFeedScreen extends ConsumerStatefulWidget {
   const PublicFeedScreen({super.key});
@@ -15,6 +14,11 @@ class PublicFeedScreen extends ConsumerStatefulWidget {
 
 class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
   final ScrollController _scrollController = ScrollController();
+
+  /// Avoid re-initializing interaction state for the same list repeatedly.
+  Set<String> _initializedInteractionPostIds = {};
+
+  bool _feedListenerAttached = false;
 
   @override
   void didChangeDependencies() {
@@ -27,18 +31,25 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     if (!mounted) return;
 
     Future.microtask(() {
-      final state = ref.read(publicFeedControllerProvider);
+      final controllerState = ref.read(publicFeedStateProvider);
       final currentUserAsync = ref.read(currentUserProvider);
       final userId = currentUserAsync.userId;
 
-      if (userId == null || state.posts.isEmpty) return;
+      if (userId == null || controllerState.posts.isEmpty) return;
+
+      final nextIds = controllerState.posts.map((p) => p.id).toSet();
+      if (nextIds.length == _initializedInteractionPostIds.length &&
+          nextIds.containsAll(_initializedInteractionPostIds)) {
+        return;
+      }
+      _initializedInteractionPostIds = nextIds;
 
       // Initialize all posts, not just estimated visible ones
-      for (int i = 0; i < state.posts.length; i++) {
-        final post = state.posts[i];
+      for (int i = 0; i < controllerState.posts.length; i++) {
+        final post = controllerState.posts[i];
         ref
-            .read(postInteractionsWithPrivacyProvider(
-                    PostParams(id: post.id, isAlt: post.isAlt))
+            .read(postInteractionsWithPrivacyProvider(PostParams(
+                    id: post.id, isAlt: post.isAlt, herdId: post.herdId))
                 .notifier)
             .initializeState(userId);
       }
@@ -53,11 +64,10 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
       if (!mounted) return;
 
       final currentUser = ref.read(authProvider);
-      ref.read(publicFeedControllerProvider.notifier).loadInitialPosts(
+      ref.read(publicFeedStateProvider.notifier).loadInitialPosts(
             overrideUserId: currentUser?.uid,
           );
     });
-    _refreshVisiblePostInteractions();
   }
 
   @override
@@ -69,9 +79,28 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final publicFeedState = ref.watch(publicFeedControllerProvider);
-    final isChatEnabled = ref.watch(chatBubblesEnabledProvider);
-    final isOverlayActive = ref.watch(activeOverlayTypeProvider) != null;
+    if (!_feedListenerAttached) {
+      _feedListenerAttached = true;
+
+      // Initialize interaction providers whenever the post list changes.
+      // This catches: initial load, refresh, and sort changes.
+      ref.listen<PublicFeedState>(publicFeedStateProvider, (prev, next) {
+        if (!mounted) return;
+
+        final prevIds = (prev?.posts ?? const []).map((p) => p.id).toSet();
+        final nextIds = next.posts.map((p) => p.id).toSet();
+        if (prevIds.length == nextIds.length && prevIds.containsAll(nextIds)) {
+          return;
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _refreshVisiblePostInteractions();
+        });
+      });
+    }
+
+    final publicFeedState = ref.watch(publicFeedStateProvider);
 
     return PopScope(
       canPop: false, // Disable swipe to close
@@ -83,7 +112,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
-                ref.read(publicFeedControllerProvider.notifier).refreshFeed();
+                ref.read(publicFeedStateProvider.notifier).refreshFeed();
               },
             ),
             IconButton(
@@ -103,7 +132,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
               currentSort: publicFeedState.sortType,
               onSortChanged: (newSortType) {
                 ref
-                    .read(publicFeedControllerProvider.notifier)
+                    .read(publicFeedStateProvider.notifier)
                     .changeSortType(newSortType);
               },
               isLoading: publicFeedState.isLoading,
@@ -113,100 +142,81 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // Main content with animated padding
-                  AnimatedPadding(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
-                    child: publicFeedState.isLoading &&
-                            publicFeedState.posts.isEmpty
-                        ? _buildLoadingWidget()
-                        : publicFeedState.error != null
-                            ? _buildErrorWidget(context, publicFeedState.error!,
-                                () {
-                                ref
-                                    .read(publicFeedControllerProvider.notifier)
-                                    .refreshFeed();
-                              })
-                            : PostListWidget(
-                                scrollController: _scrollController,
-                                posts: publicFeedState.posts,
-                                isLoading: publicFeedState.isLoading &&
-                                    publicFeedState.posts.isEmpty,
-                                hasError: publicFeedState.error != null,
-                                errorMessage: publicFeedState.error?.toString(),
-                                hasMorePosts: publicFeedState.hasMorePosts,
-                                onRefresh: () => ref
-                                    .read(publicFeedControllerProvider.notifier)
-                                    .refreshFeed(),
-                                onLoadMore: () => ref
-                                    .read(publicFeedControllerProvider.notifier)
-                                    .loadMorePosts(),
-                                type: PostListType.feed,
-                                emptyMessage:
-                                    'No posts in your public feed yet',
-                                emptyActionLabel: 'Find users to follow',
-                                onEmptyAction: () {
-                                  context.pushNamed('search');
-                                },
-                                isRefreshing: publicFeedState.isRefreshing,
-                              ),
+                  // Main content - pass content to animation wrapper which handles padding
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isChatEnabled =
+                          ref.watch(chatBubblesEnabledProvider);
+                      return _PaddingAnimationWrapper(
+                        isChatEnabled: isChatEnabled,
+                        child: _buildContentWidget(publicFeedState),
+                      );
+                    },
                   ),
 
                   // Side bubbles overlay - only show if chat is enabled
-                  if (isChatEnabled)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom:
-                          0, // Full height - overlay will manage its own layout
-                      child: MediaQuery.removePadding(
-                        context: context,
-                        removeBottom: true,
-                        child: Builder(
-                          builder: (context) {
-                            // Complete keyboard isolation - preserve original screen size and remove insets
-                            final originalMediaQuery = MediaQuery.of(context);
-                            final keyboardFreeMediaQuery =
-                                originalMediaQuery.copyWith(
-                              size: Size(
-                                originalMediaQuery.size.width,
-                                originalMediaQuery.size.height +
-                                    originalMediaQuery.viewInsets.bottom,
-                              ),
-                              viewInsets: EdgeInsets.zero,
-                              viewPadding:
-                                  originalMediaQuery.viewPadding.copyWith(
-                                bottom: originalMediaQuery.viewPadding.bottom,
-                              ),
-                            );
-
-                            return MediaQuery(
-                              data: keyboardFreeMediaQuery,
-                              child: SafeArea(
-                                top: true,
-                                left: false,
-                                right: false,
-                                bottom:
-                                    false, // Don't apply SafeArea to bottom since we're handling it
-                                child: SideBubblesOverlay(
-                                  showProfileBtn:
-                                      false, // We'll use floating buttons from shell instead
-                                  showSearchBtn:
-                                      false, // We'll use floating buttons from shell instead
-                                  showNotificationsBtn:
-                                      false, // We'll use floating buttons from shell instead
-                                  showChatToggle:
-                                      false, // Chat toggle handled by shell's GlobalOverlayManager
-                                  showHerdBubbles:
-                                      false, // Public feed doesn't show herd bubbles
+                  // Wrapped in Consumer to isolate provider watches
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isChatEnabled =
+                          ref.watch(chatBubblesEnabledProvider);
+                      if (!isChatEnabled) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom:
+                            0, // Full height - overlay will manage its own layout
+                        child: MediaQuery.removePadding(
+                          context: context,
+                          removeBottom: true,
+                          child: Builder(
+                            builder: (context) {
+                              // Complete keyboard isolation - preserve original screen size and remove insets
+                              final originalMediaQuery = MediaQuery.of(context);
+                              final keyboardFreeMediaQuery =
+                                  originalMediaQuery.copyWith(
+                                size: Size(
+                                  originalMediaQuery.size.width,
+                                  originalMediaQuery.size.height +
+                                      originalMediaQuery.viewInsets.bottom,
                                 ),
-                              ),
-                            );
-                          },
+                                viewInsets: EdgeInsets.zero,
+                                viewPadding:
+                                    originalMediaQuery.viewPadding.copyWith(
+                                  bottom: originalMediaQuery.viewPadding.bottom,
+                                ),
+                              );
+
+                              return MediaQuery(
+                                data: keyboardFreeMediaQuery,
+                                child: SafeArea(
+                                  top: true,
+                                  left: false,
+                                  right: false,
+                                  bottom:
+                                      false, // Don't apply SafeArea to bottom since we're handling it
+                                  child: SideBubblesOverlay(
+                                    showProfileBtn:
+                                        false, // We'll use floating buttons from shell instead
+                                    showSearchBtn:
+                                        false, // We'll use floating buttons from shell instead
+                                    showNotificationsBtn:
+                                        false, // We'll use floating buttons from shell instead
+                                    showChatToggle:
+                                        false, // Chat toggle handled by shell's GlobalOverlayManager
+                                    showHerdBubbles:
+                                        false, // Public feed doesn't show herd bubbles
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
 
                   // Note: Floating buttons are now handled by the shell's GlobalOverlayManager
                   // This prevents double-rendering of buttons
@@ -219,10 +229,36 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     ); // Close PopScope
   }
 
-// Add a loading widget that's scrollable
+  Widget _buildContentWidget(PublicFeedState publicFeedState) {
+    return publicFeedState.isLoading && publicFeedState.posts.isEmpty
+        ? _buildLoadingWidget()
+        : publicFeedState.error != null
+            ? _buildErrorWidget(context, publicFeedState.error!)
+            : PostListWidget(
+                scrollController: _scrollController,
+                posts: publicFeedState.posts,
+                isLoading:
+                    publicFeedState.isLoading && publicFeedState.posts.isEmpty,
+                hasError: publicFeedState.error != null,
+                errorMessage: publicFeedState.error?.toString(),
+                hasMorePosts: publicFeedState.hasMorePosts,
+                onRefresh: () =>
+                    ref.read(publicFeedStateProvider.notifier).refreshFeed(),
+                onLoadMore: () =>
+                    ref.read(publicFeedStateProvider.notifier).loadMorePosts(),
+                type: PostListType.feed,
+                emptyMessage: 'No posts in your public feed yet',
+                emptyActionLabel: 'Find users to follow',
+                onEmptyAction: () {
+                  context.pushNamed('search');
+                },
+                isRefreshing: publicFeedState.isRefreshing,
+              );
+  }
+
   Widget _buildLoadingWidget() {
     return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       children: const [
         SizedBox(height: 100),
         Center(child: CircularProgressIndicator()),
@@ -231,9 +267,7 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
     );
   }
 
-// Update error widget to be scrollable
-  Widget _buildErrorWidget(
-      BuildContext context, Object error, VoidCallback onRetry) {
+  Widget _buildErrorWidget(BuildContext context, Object error) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
@@ -262,7 +296,9 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: onRetry,
+                  onPressed: () {
+                    ref.read(publicFeedStateProvider.notifier).refreshFeed();
+                  },
                   child: const Text('Try Again'),
                 ),
               ],
@@ -363,6 +399,28 @@ class _PublicFeedScreenState extends ConsumerState<PublicFeedScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Wraps only the padding animation to prevent child rebuilds on animation frames.
+/// The child is passed as a parameter to remain stable during animation.
+class _PaddingAnimationWrapper extends StatelessWidget {
+  final bool isChatEnabled;
+  final Widget child;
+
+  const _PaddingAnimationWrapper({
+    required this.isChatEnabled,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      padding: EdgeInsets.only(right: isChatEnabled ? 60 : 0),
+      child: child,
     );
   }
 }

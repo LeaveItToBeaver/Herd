@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/utils/enums/bottom_nav_item.dart';
 
+import '../../../../community/herds/view/providers/herd_providers.dart';
+
 class BottomNavOverlay extends ConsumerWidget {
   final FeedType? currentFeedType;
 
@@ -19,7 +21,7 @@ class BottomNavOverlay extends ConsumerWidget {
     final currentItem = ref.watch(bottomNavProvider);
     final feedType = currentFeedType ?? ref.watch(currentFeedProvider);
     final currentHerdId = ref.watch(currentHerdIdProvider);
-    final customization = ref.watch(uiCustomizationProvider).value;
+    final customization = ref.watch(uICustomizationProvider).value;
     final isHerdMember = currentHerdId != null
         ? ref.watch(isHerdMemberProvider(currentHerdId)).value ?? false
         : false;

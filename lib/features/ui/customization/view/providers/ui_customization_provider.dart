@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart' hide ButtonStyle;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/ui/customization/data/models/ui_customization_model.dart';
+import 'package:herdapp/features/ui/customization/data/repositories/ui_customization_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'ui_customization_provider.g.dart';
 
 Color _hexToColor(String hex) {
   final buffer = StringBuffer();
@@ -11,168 +14,187 @@ Color _hexToColor(String hex) {
 }
 
 // Stream provider for real-time UI customization updates
-final uiCustomizationStreamProvider =
-    StreamProvider<UICustomizationModel?>((ref) {
+@riverpod
+Stream<UICustomizationModel?> uiCustomizationStream(Ref ref) {
   final auth = ref.watch(authProvider);
   if (auth == null) return Stream.value(null);
 
   final repository = ref.watch(uiCustomizationRepositoryProvider);
   return repository.streamUserCustomization(auth.uid);
-});
+}
 
 // State notifier for managing UI customization
-class UICustomizationNotifier
-    extends StateNotifier<AsyncValue<UICustomizationModel?>> {
-  final UICustomizationRepository _repository;
-  final String? _userId;
-  final Ref _ref;
-  bool _disposed = false;
-
-  UICustomizationNotifier(this._repository, this._userId, this._ref)
-      : super(const AsyncValue.loading()) {
-    if (_userId != null) {
-      _loadCustomization();
-    } else {
-      if (!_disposed) {
-        state = const AsyncValue.data(null);
-      }
-    }
-  }
-
+@riverpod
+class UICustomization extends _$UICustomization {
   @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
+  Future<UICustomizationModel?> build() async {
+    final auth = ref.watch(authProvider);
+    if (auth == null) return null;
 
-  Future<void> _loadCustomization() async {
-    if (_disposed) return;
-
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      if (_userId == null) {
-        if (!_disposed) {
-          state = const AsyncValue.data(null);
-        }
-        return;
-      }
-
-      final customization = await _repository.getUserCustomization(_userId);
-      if (!_disposed) {
-        state = AsyncValue.data(customization);
-      }
-    } catch (e, stack) {
-      if (!_disposed) {
-        state = AsyncValue.error(e, stack);
-      }
+      final customization = await repository.getUserCustomization(auth.uid);
+      return customization;
+    } catch (e) {
+      // Log error but return null instead of throwing
+      debugPrint('Error loading UI customization: $e');
+      return null;
     }
   }
 
   // Update app theme
   Future<void> updateAppTheme(AppThemeSettings theme) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(appTheme: theme));
+    }
+
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.updateCustomization(_userId, {
+      await repository.updateCustomization(auth.uid, {
         'appTheme': theme.toJson(),
       });
-
-      // Refresh state
-      await _loadCustomization();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating app theme: $e');
+      // On error, reload from source to get accurate state
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
   // Update profile customization
   Future<void> updateProfileCustomization(
       ProfileCustomization customization) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(
+          current.copyWith(profileCustomization: customization));
+    }
+
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.updateCustomization(_userId, {
+      await repository.updateCustomization(auth.uid, {
         'profileCustomization': customization.toJson(),
       });
-
-      // Refresh state
-      await _loadCustomization();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating profile customization: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
   // Update component styles
   Future<void> updateComponentStyles(ComponentStyles styles) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(componentStyles: styles));
+    }
+
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.updateCustomization(_userId, {
+      await repository.updateCustomization(auth.uid, {
         'componentStyles': styles.toJson(),
       });
-
-      // Refresh state
-      await _loadCustomization();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating component styles: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
   // Update layout preferences
   Future<void> updateLayoutPreferences(LayoutPreferences preferences) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(layoutPreferences: preferences));
+    }
+
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.updateCustomization(_userId, {
+      await repository.updateCustomization(auth.uid, {
         'layoutPreferences': preferences.toJson(),
       });
-
-      // Refresh state
-      await _loadCustomization();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating layout preferences: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
   // Update typography settings
   Future<void> updateTypography(TypographySettings typography) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(typography: typography));
+    }
+
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.updateCustomization(_userId, {
+      await repository.updateCustomization(auth.uid, {
         'typography': typography.toJson(),
       });
-
-      // Refresh state
-      await _loadCustomization();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating typography: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
   // Update animation settings
   Future<void> updateAnimationSettings(AnimationSettings animations) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    // Optimistically update local state first
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(animationSettings: animations));
+    }
+
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.updateCustomization(_userId, {
+      await repository.updateCustomization(auth.uid, {
         'animationSettings': animations.toJson(),
       });
-
-      // Refresh state
-      await _loadCustomization();
+      // Don't invalidate - keep the optimistic state
     } catch (e) {
       debugPrint('Error updating animation settings: $e');
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
   // Apply preset theme
   Future<void> applyPreset(String presetId) async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.applyPresetTheme(_userId, presetId);
+      await repository.applyPresetTheme(auth.uid, presetId);
 
+      if (!ref.mounted) return;
       // Refresh state
-      await _loadCustomization();
+      ref.invalidateSelf();
     } catch (e) {
       debugPrint('Error applying preset: $e');
     }
@@ -180,13 +202,16 @@ class UICustomizationNotifier
 
   // Reset to defaults
   Future<void> resetToDefaults() async {
-    if (_disposed || _userId == null) return;
+    final auth = ref.read(authProvider);
+    if (auth == null) return;
 
+    final repository = ref.read(uiCustomizationRepositoryProvider);
     try {
-      await _repository.resetToDefault(_userId);
+      await repository.resetToDefault(auth.uid);
 
+      if (!ref.mounted) return;
       // Refresh state
-      await _loadCustomization();
+      ref.invalidateSelf();
     } catch (e) {
       debugPrint('Error resetting to defaults: $e');
     }
@@ -194,13 +219,12 @@ class UICustomizationNotifier
 
   // Quick color update (for real-time color picker)
   void updateColorInstant(String colorKey, Color color) {
-    if (_disposed) return;
-
     final current = state.value;
     if (current == null) return;
 
     // Create a copy with the updated color
-    final hexColor = '#${color.toARGB32().toRadixString(16).substring(2)}';
+    final hexColor =
+        '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
     final updatedTheme = current.appTheme.copyWith(
       primaryColor:
           colorKey == 'primary' ? hexColor : current.appTheme.primaryColor,
@@ -214,35 +238,22 @@ class UICustomizationNotifier
       textColor: colorKey == 'text' ? hexColor : current.appTheme.textColor,
     );
 
-    if (!_disposed) {
-      state = AsyncValue.data(current.copyWith(appTheme: updatedTheme));
-    }
+    state = AsyncValue.data(current.copyWith(appTheme: updatedTheme));
   }
 
   // Commit color changes to Firebase
   Future<void> commitColorChanges() async {
-    if (_disposed) return;
-
     final current = state.value;
-    if (current == null || _userId == null) return;
+    if (current == null) return;
 
     await updateAppTheme(current.appTheme);
   }
 }
 
-// Main provider for UI customization
-final uiCustomizationProvider = StateNotifierProvider<UICustomizationNotifier,
-    AsyncValue<UICustomizationModel?>>((ref) {
-  // Remove autoDispose
-  final auth = ref.watch(authProvider);
-  final repository = ref.watch(uiCustomizationRepositoryProvider);
-
-  return UICustomizationNotifier(repository, auth?.uid, ref);
-});
-
 // Computed provider for current theme data
-final currentThemeProvider = Provider<ThemeData>((ref) {
-  final customization = ref.watch(uiCustomizationProvider).value;
+@riverpod
+ThemeData currentTheme(Ref ref) {
+  final customization = ref.watch(uICustomizationProvider).value;
 
   if (customization == null) {
     return ThemeData(
@@ -331,7 +342,7 @@ final currentThemeProvider = Provider<ThemeData>((ref) {
       ),
     ),
   );
-});
+}
 
 // Helper function to determine contrasting color
 Color _getOnColor(Color color) {

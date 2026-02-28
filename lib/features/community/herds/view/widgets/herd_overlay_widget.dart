@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/data/models/herd_model.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 
 class HerdOverlayWidget extends ConsumerStatefulWidget {
   final String herdId;
@@ -33,10 +34,8 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
     // Initialize the herd feed
     Future.microtask(() {
       if (mounted) {
-        ref.read(currentHerdIdProvider.notifier).state = widget.herdId;
-        ref
-            .read(herdFeedControllerProvider(widget.herdId).notifier)
-            .loadInitialPosts();
+        ref.read(currentHerdIdProvider.notifier).set(widget.herdId);
+        ref.read(herdFeedProvider(widget.herdId).notifier).loadInitialPosts();
       }
     });
   }
@@ -55,7 +54,7 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get theme colors
-    final customization = ref.watch(uiCustomizationProvider).value;
+    final customization = ref.watch(uICustomizationProvider).value;
     final appTheme = customization?.appTheme;
     final painterColor =
         appTheme?.getSurfaceColor() ?? Theme.of(context).colorScheme.surface;
@@ -262,7 +261,7 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
   }
 
   Widget _buildPostsTab(HerdModel herd) {
-    final herdFeedState = ref.watch(herdFeedControllerProvider(widget.herdId));
+    final herdFeedState = ref.watch(herdFeedProvider(widget.herdId));
 
     if (herdFeedState.isLoading && herdFeedState.posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -299,9 +298,8 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
     }
 
     return RefreshIndicator(
-      onRefresh: () => ref
-          .read(herdFeedControllerProvider(widget.herdId).notifier)
-          .refreshFeed(),
+      onRefresh: () =>
+          ref.read(herdFeedProvider(widget.herdId).notifier).refreshFeed(),
       child: ListView.builder(
         controller: _scrollController,
         itemCount:
@@ -309,9 +307,7 @@ class _HerdOverlayWidgetState extends ConsumerState<HerdOverlayWidget>
         itemBuilder: (context, index) {
           if (index == herdFeedState.posts.length) {
             // Load more trigger
-            ref
-                .read(herdFeedControllerProvider(widget.herdId).notifier)
-                .loadMorePosts();
+            ref.read(herdFeedProvider(widget.herdId).notifier).loadMorePosts();
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(16.0),

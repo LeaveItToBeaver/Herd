@@ -1,0 +1,117 @@
+    // =====================================================================
+    //  Helper Functions
+    // =====================================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getDoc(path) {
+        return get(/databases/$(database)/documents/$(path));
+    }
+
+    // =====================================================================
+    //  Role-Based Access Control (RBAC) Functions
+    // =====================================================================
+
+    // Check if user is the herd creator by checking the herd document
+    function isCreatorOf(herdId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/herds/$(herdId)) &&
+             get(/databases/$(database)/documents/herds/$(herdId)).data.creatorId == request.auth.uid;
+    }
+
+    // Get the member document for current user in a herd
+    function getMemberDoc(herdId) {
+      return get(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid));
+    }
+
+    // Check if member doc exists
+    function memberDocExists(herdId) {
+      return exists(/databases/$(database)/documents/herdMembers/$(herdId)/members/$(request.auth.uid));
+    }
+
+    function getUserRole(herdId) {
+        // First: if user is herd creator, they're always owner
+        // Second: check role field on member doc
+        // Third: fall back to legacy isModerator field
+        // Default: member
+        return !isAuthenticated() ? 'member' :
+               isCreatorOf(herdId) ? 'owner' :
+               !memberDocExists(herdId) ? 'member' :
+               getMemberDoc(herdId).data.get('role', null) != null ? getMemberDoc(herdId).data.role :
+               getMemberDoc(herdId).data.get('isModerator', false) == true ? 'moderator' :
+               'member';
+    }
+
+    function hasRole(herdId, role) {
+        // Check if user has a specific role
+        return getUserRole(herdId) == role;
+    }
+
+    function hasMinimumRole(herdId, minimumRole) {
+        // Check if user has at least the specified role level
+        // Role hierarchy: member < moderator < admin < owner
+        let userRole = getUserRole(herdId);
+
+        return (minimumRole == 'member' && (userRole == 'member' || userRole == 'moderator' || userRole == 'admin' || userRole == 'owner')) ||
+               (minimumRole == 'moderator' && (userRole == 'moderator' || userRole == 'admin' || userRole == 'owner')) ||
+               (minimumRole == 'admin' && (userRole == 'admin' || userRole == 'owner')) ||
+               (minimumRole == 'owner' && userRole == 'owner');
+    }
+
+    function isHerdCreator(herdId) {
+        // Check if user is the creator (owner role)
+        // Also handles race condition during creation
+        return isAuthenticated() && (
+          // Check role-based ownership
+          hasRole(herdId, 'owner') ||
+          // Check legacy creatorId (for backwards compatibility during migration)
+          (exists(/databases/$(database)/documents/herds/$(herdId)) &&
+           getDoc('herds/' + herdId).data.creatorId == request.auth.uid) ||
+          // Check incoming data during creation
+          (resource != null && request.resource != null &&
+           request.resource.data.creatorId == request.auth.uid)
+        );
+    }
+
+    function isHerdModerator(herdId) {
+        // Check if user has at least moderator role
+        return isAuthenticated() && hasMinimumRole(herdId, 'moderator');
+    }
+
+    function isHerdAdmin(herdId) {
+        // Check if user has at least admin role
+        return isAuthenticated() && hasMinimumRole(herdId, 'admin');
+    }
+
+    function isHerdOwner(herdId) {
+        // Check if user is the herd owner
+        return isAuthenticated() && hasRole(herdId, 'owner');
+    }
+
+    function generateDirectChatId(uid1, uid2) {
+      return uid1 < uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1;
+    }
+
+    function chatExists(chatId) {
+      return exists(/databases/$(database)/documents/chats/$(chatId));
+    }
+
+    function wouldBeParticipant(chatData) {
+      return isAuthenticated() && chatData.participants.hasAny([request.auth.uid]);
+    }
+
+    // Check if user1 has blocked user2
+    function isUserBlocked(user1Id, user2Id) {
+      return exists(/databases/$(database)/documents/userBlocks/$(user1Id)/usersBlocked/$(user2Id));
+    }
+
+    // Check if users can interact (neither blocks the other)
+    function canUsersInteract(user1Id, user2Id) {
+      return !isUserBlocked(user1Id, user2Id) && !isUserBlocked(user2Id, user1Id);
+    }

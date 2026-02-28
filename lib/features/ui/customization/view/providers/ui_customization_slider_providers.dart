@@ -26,8 +26,8 @@ import 'package:herdapp/features/ui/customization/view/providers/ui_customizatio
 final fontScaleSliderProvider = createOptimisticSliderProvider<double>(
   name: 'fontScaleSlider',
   persistFunction: (value, ref) async {
-    final uiNotifier = ref.read(uiCustomizationProvider.notifier);
-    final currentCustomization = ref.read(uiCustomizationProvider).value;
+    final uiNotifier = ref.read(uICustomizationProvider.notifier);
+    final currentCustomization = ref.read(uICustomizationProvider).value;
 
     if (currentCustomization == null) return;
     final updatedTypo = currentCustomization.typography.copyWith(
@@ -42,8 +42,8 @@ final fontScaleSliderProvider = createOptimisticSliderProvider<double>(
 final shadowIntensitySliderProvider = createOptimisticSliderProvider<double>(
   name: 'shadowIntensitySlider',
   persistFunction: (value, ref) async {
-    final uiNotifier = ref.read(uiCustomizationProvider.notifier);
-    final currentCustomization = ref.read(uiCustomizationProvider).value;
+    final uiNotifier = ref.read(uICustomizationProvider.notifier);
+    final currentCustomization = ref.read(uICustomizationProvider).value;
 
     if (currentCustomization == null) return;
     final updatedStyles = currentCustomization.appTheme.copyWith(
@@ -58,8 +58,8 @@ final shadowIntensitySliderProvider = createOptimisticSliderProvider<double>(
 final cardRadiusSliderProvider = createOptimisticSliderProvider<double>(
   name: 'cardRadiusSlider',
   persistFunction: (value, ref) async {
-    final uiNotifier = ref.read(uiCustomizationProvider.notifier);
-    final currentCustomization = ref.read(uiCustomizationProvider).value;
+    final uiNotifier = ref.read(uICustomizationProvider.notifier);
+    final currentCustomization = ref.read(uICustomizationProvider).value;
 
     if (currentCustomization == null) return;
     final updatedStyles = currentCustomization.componentStyles.copyWith(
@@ -74,8 +74,8 @@ final cardRadiusSliderProvider = createOptimisticSliderProvider<double>(
 final gridColumnsSliderProvider = createOptimisticSliderProvider<int>(
   name: 'gridColumnsSlider',
   persistFunction: (value, ref) async {
-    final uiNotifier = ref.read(uiCustomizationProvider.notifier);
-    final currentCustomization = ref.read(uiCustomizationProvider).value;
+    final uiNotifier = ref.read(uICustomizationProvider.notifier);
+    final currentCustomization = ref.read(uICustomizationProvider).value;
 
     if (currentCustomization == null) return;
     final updatedPrefs = currentCustomization.layoutPreferences.copyWith(
@@ -90,8 +90,8 @@ final gridColumnsSliderProvider = createOptimisticSliderProvider<int>(
 final buttonShapeSliderProvider = createOptimisticSliderProvider<double>(
   name: 'buttonShapeSlider',
   persistFunction: (value, ref) async {
-    final uiNotifier = ref.read(uiCustomizationProvider.notifier);
-    final currentCustomization = ref.read(uiCustomizationProvider).value;
+    final uiNotifier = ref.read(uICustomizationProvider.notifier);
+    final currentCustomization = ref.read(uICustomizationProvider).value;
 
     if (currentCustomization == null) return;
     final updatedStyles = currentCustomization.componentStyles.copyWith(

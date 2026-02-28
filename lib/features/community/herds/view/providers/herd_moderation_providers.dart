@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../data/models/banned_user_info.dart';
 import 'herd_repository_provider.dart';
 
+part 'herd_moderation_providers.g.dart';
+
 /// Provider for banned users in a herd
-final bannedUsersProvider =
-    FutureProvider.family<List<BannedUserInfo>, String>((ref, herdId) async {
+@riverpod
+Future<List<BannedUserInfo>> bannedUsers(Ref ref, String herdId) async {
   try {
     final herdRepository = ref.read(herdRepositoryProvider);
     return await herdRepository.getBannedUsers(herdId);
@@ -24,4 +26,4 @@ final bannedUsersProvider =
     debugPrint('Error in bannedUsersProvider: $e');
     rethrow;
   }
-});
+}

@@ -1,10 +1,13 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 
+part 'pinned_post_provider.g.dart';
+
 // Provider for user's pinned posts (public profile)
-final userPinnedPostsProvider =
-    FutureProvider.family<List<PostModel>, String>((ref, userId) async {
+@riverpod
+Future<List<PostModel>> userPinnedPosts(Ref ref, String userId) async {
   final userRepository = ref.watch(userRepositoryProvider);
   final postRepository = ref.watch(postRepositoryProvider);
 
@@ -40,11 +43,11 @@ final userPinnedPostsProvider =
   } catch (e) {
     throw Exception('Failed to load pinned posts: $e');
   }
-});
+}
 
 // Provider for user's alt pinned posts
-final userAltPinnedPostsProvider =
-    FutureProvider.family<List<PostModel>, String>((ref, userId) async {
+@riverpod
+Future<List<PostModel>> userAltPinnedPosts(Ref ref, String userId) async {
   final userRepository = ref.watch(userRepositoryProvider);
   final postRepository = ref.watch(postRepositoryProvider);
 
@@ -80,11 +83,11 @@ final userAltPinnedPostsProvider =
   } catch (e) {
     throw Exception('Failed to load alt pinned posts: $e');
   }
-});
+}
 
 // Provider for herd's pinned posts
-final herdPinnedPostsProvider =
-    FutureProvider.family<List<PostModel>, String>((ref, herdId) async {
+@riverpod
+Future<List<PostModel>> herdPinnedPosts(Ref ref, String herdId) async {
   final herdRepository = ref.watch(herdRepositoryProvider);
 
   try {
@@ -92,38 +95,36 @@ final herdPinnedPostsProvider =
   } catch (e) {
     throw Exception('Failed to load herd pinned posts: $e');
   }
-});
+}
 
 // Provider to check if a post is pinned to user profile
-final isPostPinnedToProfileProvider =
-    FutureProvider.family<bool, ({String userId, String postId, bool isAlt})>(
-        (ref, params) async {
+@riverpod
+Future<bool> isPostPinnedToProfile(
+    Ref ref, String userId, String postId, bool isAlt) async {
   final userRepository = ref.watch(userRepositoryProvider);
 
   try {
     return await userRepository.isPostPinnedToProfile(
-      params.userId,
-      params.postId,
-      isAlt: params.isAlt,
+      userId,
+      postId,
+      isAlt: isAlt,
     );
   } catch (e) {
     return false;
   }
-});
+}
 
 // Provider to check if a post is pinned to herd
-final isPostPinnedToHerdProvider =
-    FutureProvider.family<bool, ({String herdId, String postId})>(
-        (ref, params) async {
+@riverpod
+Future<bool> isPostPinnedToHerd(Ref ref, String herdId, String postId) async {
   final herdRepository = ref.watch(herdRepositoryProvider);
 
   try {
-    return await herdRepository.isPostPinnedToHerd(
-        params.herdId, params.postId);
+    return await herdRepository.isPostPinnedToHerd(herdId, postId);
   } catch (e) {
     return false;
   }
-});
+}
 
 // Controller for managing pin/unpin actions
 class PinnedPostsController {
@@ -141,13 +142,12 @@ class PinnedPostsController {
 
       // Invalidate relevant providers to refresh UI
       if (isAlt) {
-        ref.invalidate(userAltPinnedPostsProvider(userId));
+        ref.invalidate(userAltPinnedPostsProvider);
       } else {
-        ref.invalidate(userPinnedPostsProvider(userId));
+        ref.invalidate(userPinnedPostsProvider);
       }
 
-      ref.invalidate(isPostPinnedToProfileProvider(
-          (userId: userId, postId: postId, isAlt: isAlt)));
+      ref.invalidate(isPostPinnedToProfileProvider);
     } catch (e) {
       rethrow;
     }
@@ -163,13 +163,12 @@ class PinnedPostsController {
 
       // Invalidate relevant providers to refresh UI
       if (isAlt) {
-        ref.invalidate(userAltPinnedPostsProvider(userId));
+        ref.invalidate(userAltPinnedPostsProvider);
       } else {
-        ref.invalidate(userPinnedPostsProvider(userId));
+        ref.invalidate(userPinnedPostsProvider);
       }
 
-      ref.invalidate(isPostPinnedToProfileProvider(
-          (userId: userId, postId: postId, isAlt: isAlt)));
+      ref.invalidate(isPostPinnedToProfileProvider);
     } catch (e) {
       rethrow;
     }
@@ -183,9 +182,8 @@ class PinnedPostsController {
       await herdRepository.pinPostToHerd(herdId, postId, userId);
 
       // Invalidate relevant providers to refresh UI
-      ref.invalidate(herdPinnedPostsProvider(herdId));
-      ref.invalidate(
-          isPostPinnedToHerdProvider((herdId: herdId, postId: postId)));
+      ref.invalidate(herdPinnedPostsProvider);
+      ref.invalidate(isPostPinnedToHerdProvider);
     } catch (e) {
       rethrow;
     }
@@ -200,9 +198,8 @@ class PinnedPostsController {
       await herdRepository.unpinPostFromHerd(herdId, postId, userId);
 
       // Invalidate relevant providers to refresh UI
-      ref.invalidate(herdPinnedPostsProvider(herdId));
-      ref.invalidate(
-          isPostPinnedToHerdProvider((herdId: herdId, postId: postId)));
+      ref.invalidate(herdPinnedPostsProvider);
+      ref.invalidate(isPostPinnedToHerdProvider);
     } catch (e) {
       rethrow;
     }
@@ -210,6 +207,7 @@ class PinnedPostsController {
 }
 
 // Provider for the controller
-final pinnedPostsControllerProvider = Provider<PinnedPostsController>((ref) {
+@riverpod
+PinnedPostsController pinnedPostsController(Ref ref) {
   return PinnedPostsController(ref);
-});
+}

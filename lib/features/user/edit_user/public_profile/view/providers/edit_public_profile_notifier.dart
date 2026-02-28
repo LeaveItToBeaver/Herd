@@ -1,21 +1,23 @@
 import 'dart:io';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/features/user/edit_user/public_profile/view/providers/state/edit_public_profile_state.dart';
 
 import '../../../../user_profile/data/models/user_model.dart';
 import '../../../../user_profile/data/repositories/user_repository.dart';
 
-class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
-  final UserRepository userRepository;
-  final UserModel user;
+part 'edit_public_profile_notifier.g.dart';
 
-  EditPublicProfileNotifier({required this.userRepository, required this.user})
-      : super(EditPublicProfileState(
-          firstName: user.firstName,
-          lastName: user.lastName,
-          bio: user.bio ?? '',
-        ));
+@riverpod
+class EditPublicProfile extends _$EditPublicProfile {
+  @override
+  EditPublicProfileState build(UserModel user) {
+    return EditPublicProfileState(
+      firstName: user.firstName,
+      lastName: user.lastName,
+      bio: user.bio ?? '',
+    );
+  }
 
   void firstNameChanged(String value) {
     state = state.copyWith(firstName: value);
@@ -37,11 +39,12 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
     state = state.copyWith(profileImage: file);
   }
 
-  Future<void> submit() async {
+  Future<void> submit(UserModel user) async {
     if (state.isSubmitting) return;
 
     state = state.copyWith(isSubmitting: true, errorMessage: null);
     try {
+      final userRepository = ref.read(userRepositoryProvider);
       final Map<String, dynamic> updatedData = {
         'firstName': state.firstName,
         'lastName': state.lastName,
@@ -55,6 +58,7 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
           file: state.coverImage!,
           type: 'cover', // Public profile cover image
         );
+        if (!ref.mounted) return;
         updatedData['coverImageURL'] = coverImageUrl;
       }
 
@@ -64,23 +68,17 @@ class EditPublicProfileNotifier extends StateNotifier<EditPublicProfileState> {
           file: state.profileImage!,
           type: 'profile', // Public profile image
         );
+        if (!ref.mounted) return;
         updatedData['profileImageURL'] = profileImageUrl;
       }
 
       await userRepository.updateUser(user.id, updatedData);
+      if (!ref.mounted) return;
       state = state.copyWith(isSubmitting: false, isSuccess: true);
     } catch (error) {
+      if (!ref.mounted) return;
       state =
           state.copyWith(isSubmitting: false, errorMessage: error.toString());
     }
   }
 }
-
-final editPublicProfileProvider = StateNotifierProvider.family<
-    EditPublicProfileNotifier, EditPublicProfileState, UserModel>(
-  (ref, user) {
-    final userRepository = ref.watch(userRepositoryProvider);
-    return EditPublicProfileNotifier(
-        userRepository: userRepository, user: user);
-  },
-);

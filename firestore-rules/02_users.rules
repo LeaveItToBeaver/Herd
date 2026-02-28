@@ -1,0 +1,23 @@
+    // =====================================================================
+    //  User Profile & Settings
+    // =====================================================================
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create, delete: if isOwner(userId);
+      allow update: if isOwner(userId) ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['followers', 'following', 'userPoints', 'acceptedLegal', 'fcmToken']);
+    }
+
+    match /notificationSettings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /customUI/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /drafts/{userId}/{draftPosts}/{draftId} {
+        allow read, write: if isOwner(userId);
+    }

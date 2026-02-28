@@ -42,7 +42,7 @@ class ChatCryptoService {
         // Logging recovery (not gated; rare critical event)
         // ignore: avoid_print
         print(
-            '🔐 Identity key corruption detected (BAD_DECRYPT). Regenerating keys.');
+            'Identity key corruption detected (BAD_DECRYPT). Regenerating keys.');
         // fall through to regeneration below
       } else {
         rethrow; // unrelated platform exception

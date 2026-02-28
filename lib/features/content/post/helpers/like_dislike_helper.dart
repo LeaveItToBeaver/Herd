@@ -27,7 +27,7 @@ class LikeDislikeHelper {
 
       ref
           .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: postId, isAlt: isAlt))
+                  PostParams(id: postId, isAlt: isAlt, herdId: herdId))
               .notifier)
           .likePost(userId, isAlt: isAlt, feedType: feedType, herdId: herdId);
     } else {
@@ -60,7 +60,7 @@ class LikeDislikeHelper {
 
       ref
           .read(postInteractionsWithPrivacyProvider(
-                  PostParams(id: postId, isAlt: isAlt))
+                  PostParams(id: postId, isAlt: isAlt, herdId: herdId))
               .notifier)
           .dislikePost(userId,
               isAlt: isAlt, feedType: feedType, herdId: herdId);
@@ -81,7 +81,7 @@ class LikeDislikeHelper {
     String? herdId,
   }) {
     final interactionState = ref.watch(postInteractionsWithPrivacyProvider(
-        PostParams(id: postId, isAlt: isAlt)));
+        PostParams(id: postId, isAlt: isAlt, herdId: herdId)));
 
     // Always use the state-provided totalLikes value
     final displayLikes = interactionState.totalLikes;

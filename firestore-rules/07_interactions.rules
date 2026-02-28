@@ -1,0 +1,47 @@
+    // =====================================================================
+    // Interactions (Comments, Likes, Dislikes)
+    // =====================================================================
+
+    match /comments/{postId}/postComments/{commentId} {
+      allow read, list: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isAuthenticated() && resource.data.authorId == request.auth.uid) ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['likeCount', 'dislikeCount', 'replyCount', 'hotnessScore', 'content', 'mediaUrl']);
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /commentLikes/{commentId}/users/{userId} {
+        allow read, write, delete: if isOwner(userId);
+        allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /commentDislikes/{commentId}/users/{userId} {
+        allow read, write, delete: if isOwner(userId);
+        allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /comments/{postId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /likes/{postId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+
+      match /userInteractions/{userId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId);
+      }
+    }
+
+    match /dislikes/{postId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+
+      match /userInteractions/{userId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId);
+      }
+    }

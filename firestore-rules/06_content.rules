@@ -1,0 +1,53 @@
+    // =====================================================================
+    //  Posts & Content
+    // =====================================================================
+
+    function canUpdatePostEngagement() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['likeCount', 'dislikeCount', 'commentCount', 'hotScore']);
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isAuthenticated() && resource.data.authorId == request.auth.uid) || canUpdatePostEngagement();
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /herdPosts/{herdId}/posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isAuthenticated() && resource.data.authorId == request.auth.uid) ||
+                       canUpdatePostEngagement() ||
+                       // Allow moderators to update posts for moderation purposes
+                       (isHerdAdmin(herdId) &&
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['isRemoved', 'removedBy', 'removedAt', 'removalReason',
+                                  'isPinnedToHerd', 'pinnedAt', 'isPinnedToProfile']));
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /altPosts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isAuthenticated() && resource.data.authorId == request.auth.uid) || canUpdatePostEngagement();
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    // =====================================================================
+    //  User Feeds
+    // =====================================================================
+
+    match /userFeeds/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /feed/{postId} {
+        allow read, write: if isOwner(userId);
+        allow delete: if isOwner(userId) ||
+                      (isAuthenticated() && resource.data.authorId == request.auth.uid);
+      }
+    }
+
+    match /feeds/{userId}/{document=**} {
+      allow read, write: if false;
+    }

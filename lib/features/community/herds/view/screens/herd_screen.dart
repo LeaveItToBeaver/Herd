@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/core/barrels/widgets.dart';
 import 'package:herdapp/features/community/herds/data/models/herd_model.dart';
+import 'package:herdapp/features/community/herds/view/providers/herd_providers.dart';
 
 class HerdScreen extends ConsumerStatefulWidget {
   final String herdId;
@@ -28,11 +29,9 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
     // Use a small delay to ensure widget is fully mounted before setting state
     Future.microtask(() {
       if (mounted) {
-        ref.read(currentHerdIdProvider.notifier).state = widget.herdId;
+        ref.read(currentHerdIdProvider.notifier).set(widget.herdId);
         // Initialize the feed controller here
-        ref
-            .read(herdFeedControllerProvider(widget.herdId).notifier)
-            .loadInitialPosts();
+        ref.read(herdFeedProvider(widget.herdId).notifier).loadInitialPosts();
       }
     });
   }
@@ -66,7 +65,7 @@ class _HerdScreenState extends ConsumerState<HerdScreen>
     //final isCurrentUserMember = ref.watch(isHerdMemberProvider(widget.herdId));
     final isCurrentUserModerator =
         ref.watch(isHerdModeratorProvider(widget.herdId));
-    final herdFeedState = ref.watch(herdFeedControllerProvider(widget.herdId));
+    final herdFeedState = ref.watch(herdFeedProvider(widget.herdId));
     final isMember = memberAv.maybeWhen(data: (m) => m, orElse: () => false);
 
     return Scaffold(
