@@ -1,24 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_settings_model.dart';
-import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
 
-class NotificationSettingsNotifier {
-  final NotificationRepository _repository;
-  final String _userId;
-  AsyncValue<NotificationSettingsModel?> _state = const AsyncValue.loading();
+part 'notification_settings_notifier.g.dart';
 
-  AsyncValue<NotificationSettingsModel?> get state => _state;
-  set state(AsyncValue<NotificationSettingsModel?> newState) => _state = newState;
-
-  NotificationSettingsNotifier(this._repository, this._userId) {
-    loadSettings();
+@riverpod
+class NotificationSettings extends _$NotificationSettings {
+  @override
+  AsyncValue<NotificationSettingsModel?> build(String userID) {
+    Future.microtask(() => loadSettings());
+    return const AsyncValue.loading();
   }
 
   Future<void> loadSettings() async {
     state = const AsyncValue.loading();
     try {
-      final settings = await _repository.getOrCreateSettings(_userId);
+      final settings = await ref
+          .read(notificationRepositoryProvider)
+          .getOrCreateSettings(userID);
       state = AsyncValue.data(settings);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
@@ -27,7 +28,9 @@ class NotificationSettingsNotifier {
 
   Future<void> updateSettings(NotificationSettingsModel newSettings) async {
     try {
-      await _repository.updateSettings(newSettings);
+      await ref
+          .read(notificationRepositoryProvider)
+          .updateSettings(newSettings);
       state = AsyncValue.data(newSettings);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
@@ -60,8 +63,7 @@ class NotificationSettingsNotifier {
         newSettings = currentSettings.copyWith(likeNotifications: isEnabled);
         break;
       case NotificationType.comment:
-        newSettings =
-            currentSettings.copyWith(commentNotifications: isEnabled);
+        newSettings = currentSettings.copyWith(commentNotifications: isEnabled);
         break;
       case NotificationType.commentReply:
         newSettings = currentSettings.copyWith(replyNotifications: isEnabled);

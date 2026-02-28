@@ -8,18 +8,18 @@ part of 'notification_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider for the notification notifier with userId parameter
+/// Class-based notifier for notifications with proper Riverpod state management.
+/// Setting [state] automatically triggers UI rebuilds.
 
-@ProviderFor(notification)
+@ProviderFor(Notification)
 const notificationProvider = NotificationFamily._();
 
-/// Provider for the notification notifier with userId parameter
-
-final class NotificationProvider extends $FunctionalProvider<
-    NotificationNotifier,
-    NotificationNotifier,
-    NotificationNotifier> with $Provider<NotificationNotifier> {
-  /// Provider for the notification notifier with userId parameter
+/// Class-based notifier for notifications with proper Riverpod state management.
+/// Setting [state] automatically triggers UI rebuilds.
+final class NotificationProvider
+    extends $NotifierProvider<Notification, NotificationState> {
+  /// Class-based notifier for notifications with proper Riverpod state management.
+  /// Setting [state] automatically triggers UI rebuilds.
   const NotificationProvider._(
       {required NotificationFamily super.from, required String super.argument})
       : super(
@@ -42,24 +42,13 @@ final class NotificationProvider extends $FunctionalProvider<
 
   @$internal
   @override
-  $ProviderElement<NotificationNotifier> $createElement(
-          $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  NotificationNotifier create(Ref ref) {
-    final argument = this.argument as String;
-    return notification(
-      ref,
-      argument,
-    );
-  }
+  Notification create() => Notification();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(NotificationNotifier value) {
+  Override overrideWithValue(NotificationState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<NotificationNotifier>(value),
+      providerOverride: $SyncValueProvider<NotificationState>(value),
     );
   }
 
@@ -74,12 +63,15 @@ final class NotificationProvider extends $FunctionalProvider<
   }
 }
 
-String _$notificationHash() => r'45a85dad375117e5926587e59ed70add8d7461f7';
+String _$notificationHash() => r'4609e3e3d458b831cfa48f32c51b4edc57f4ee8f';
 
-/// Provider for the notification notifier with userId parameter
+/// Class-based notifier for notifications with proper Riverpod state management.
+/// Setting [state] automatically triggers UI rebuilds.
 
 final class NotificationFamily extends $Family
-    with $FunctionalFamilyOverride<NotificationNotifier, String> {
+    with
+        $ClassFamilyOverride<Notification, NotificationState, NotificationState,
+            NotificationState, String> {
   const NotificationFamily._()
       : super(
           retry: null,
@@ -89,7 +81,8 @@ final class NotificationFamily extends $Family
           isAutoDispose: true,
         );
 
-  /// Provider for the notification notifier with userId parameter
+  /// Class-based notifier for notifications with proper Riverpod state management.
+  /// Setting [state] automatically triggers UI rebuilds.
 
   NotificationProvider call(
     String userId,
@@ -100,98 +93,30 @@ final class NotificationFamily extends $Family
   String toString() => r'notificationProvider';
 }
 
-/// Provider for notification settings with userId parameter
+/// Class-based notifier for notifications with proper Riverpod state management.
+/// Setting [state] automatically triggers UI rebuilds.
 
-@ProviderFor(notificationSettings)
-const notificationSettingsProvider = NotificationSettingsFamily._();
+abstract class _$Notification extends $Notifier<NotificationState> {
+  late final _$args = ref.$arg as String;
+  String get userId => _$args;
 
-/// Provider for notification settings with userId parameter
-
-final class NotificationSettingsProvider extends $FunctionalProvider<
-    NotificationSettingsNotifier,
-    NotificationSettingsNotifier,
-    NotificationSettingsNotifier> with $Provider<NotificationSettingsNotifier> {
-  /// Provider for notification settings with userId parameter
-  const NotificationSettingsProvider._(
-      {required NotificationSettingsFamily super.from,
-      required String super.argument})
-      : super(
-          retry: null,
-          name: r'notificationSettingsProvider',
-          isAutoDispose: true,
-          dependencies: null,
-          $allTransitiveDependencies: null,
-        );
-
-  @override
-  String debugGetCreateSourceHash() => _$notificationSettingsHash();
-
-  @override
-  String toString() {
-    return r'notificationSettingsProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $ProviderElement<NotificationSettingsNotifier> $createElement(
-          $ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  NotificationSettingsNotifier create(Ref ref) {
-    final argument = this.argument as String;
-    return notificationSettings(
-      ref,
-      argument,
-    );
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(NotificationSettingsNotifier value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<NotificationSettingsNotifier>(value),
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is NotificationSettingsProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$notificationSettingsHash() =>
-    r'184899d0ca8eb95f368b5fdbd1dbb5a62682afe1';
-
-/// Provider for notification settings with userId parameter
-
-final class NotificationSettingsFamily extends $Family
-    with $FunctionalFamilyOverride<NotificationSettingsNotifier, String> {
-  const NotificationSettingsFamily._()
-      : super(
-          retry: null,
-          name: r'notificationSettingsProvider',
-          dependencies: null,
-          $allTransitiveDependencies: null,
-          isAutoDispose: true,
-        );
-
-  /// Provider for notification settings with userId parameter
-
-  NotificationSettingsProvider call(
+  NotificationState build(
     String userId,
-  ) =>
-      NotificationSettingsProvider._(argument: userId, from: this);
-
+  );
+  @$mustCallSuper
   @override
-  String toString() => r'notificationSettingsProvider';
+  void runBuild() {
+    final created = build(
+      _$args,
+    );
+    final ref = this.ref as $Ref<NotificationState, NotificationState>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<NotificationState, NotificationState>,
+        NotificationState,
+        Object?,
+        Object?>;
+    element.handleValue(ref, created);
+  }
 }
 
 /// Stream provider for real-time notifications
