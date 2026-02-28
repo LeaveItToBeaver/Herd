@@ -16,11 +16,22 @@ CacheManager herdFeedCacheManager(Ref ref) {
   return CacheManager();
 }
 
-/// Notifier for herd feed management
-@riverpod
+/// Notifier for herd feed management.
+/// keepAlive: true prevents Riverpod from disposing the state when the user
+/// navigates away from a herd, so returning to it within the staleness window
+/// shows cached posts instantly with no extra Firestore reads.
+@Riverpod(keepAlive: true)
 class HerdFeed extends _$HerdFeed {
   late String herdId;
   int get pageSize => 20;
+
+  DateTime? _lastFetchedAt;
+  static const Duration _stalenessThreshold = Duration(hours: 1);
+
+  bool get _hasValidCache =>
+      state.posts.isNotEmpty &&
+      _lastFetchedAt != null &&
+      DateTime.now().difference(_lastFetchedAt!) < _stalenessThreshold;
 
   @override
   HerdFeedState build(String arg) {
@@ -30,6 +41,14 @@ class HerdFeed extends _$HerdFeed {
 
   Future<void> loadInitialPosts() async {
     try {
+      // Return immediately if cache is still fresh — no Firestore read needed.
+      if (_hasValidCache) {
+        debugPrint(
+            'HerdFeed[$herdId]: using cached data (age: '
+            '${DateTime.now().difference(_lastFetchedAt!).inMinutes}m)');
+        return;
+      }
+
       if (state.isLoading) return;
 
       state = state.copyWith(isLoading: true, error: null);
@@ -42,6 +61,7 @@ class HerdFeed extends _$HerdFeed {
 
       if (!ref.mounted) return;
 
+      _lastFetchedAt = DateTime.now();
       state = state.copyWith(
         posts: posts,
         isLoading: false,
@@ -144,6 +164,7 @@ class HerdFeed extends _$HerdFeed {
       final currentUser = ref.read(authProvider);
       final userId = currentUser?.uid;
 
+      _lastFetchedAt = DateTime.now();
       state = state.copyWith(
         posts: posts,
         isRefreshing: false,

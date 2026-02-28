@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:herdapp/core/services/local_cache_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:herdapp/core/barrels/providers.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
@@ -138,10 +141,27 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
   }
 
   Future<void> loadInteractionStatus(String userId) async {
-    // Use ref.read since repository is stable and we're in a keepAlive provider
     final repository = ref.read(postRepositoryProvider);
 
     try {
+      // Check local cache first — skips 3 Firestore reads per post on
+      // repeated sessions (app restart, web refresh, tab switch).
+      final cached = LocalCacheService().getInteraction(_params.id);
+      if (cached != null) {
+        state = state.copyWith(
+          isLiked: cached['isLiked'] as bool? ?? false,
+          isDisliked: cached['isDisliked'] as bool? ?? false,
+          totalRawLikes: cached['likeCount'] as int? ?? 0,
+          totalRawDislikes: cached['dislikeCount'] as int? ?? 0,
+          totalLikes: (cached['likeCount'] as int? ?? 0) -
+              (cached['dislikeCount'] as int? ?? 0),
+          totalComments: cached['commentCount'] as int? ?? 0,
+          isLoading: false,
+          isInitialized: true,
+        );
+        return;
+      }
+
       state = state.copyWith(isLoading: true);
 
       final post =
@@ -159,13 +179,26 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
 
       if (!ref.mounted) return;
 
+      final likeCount = post?.likeCount ?? 0;
+      final dislikeCount = post?.dislikeCount ?? 0;
+      final commentCount = post?.commentCount ?? 0;
+
+      // Persist to local cache so the next session skips these reads.
+      await LocalCacheService().saveInteraction(_params.id, {
+        'isLiked': isLiked,
+        'isDisliked': isDisliked,
+        'likeCount': likeCount,
+        'dislikeCount': dislikeCount,
+        'commentCount': commentCount,
+      });
+
       state = state.copyWith(
         isLiked: isLiked,
         isDisliked: isDisliked,
-        totalRawLikes: post?.likeCount ?? 0,
-        totalRawDislikes: post?.dislikeCount ?? 0,
-        totalLikes: (post?.likeCount ?? 0) - (post?.dislikeCount ?? 0),
-        totalComments: post?.commentCount ?? 0,
+        totalRawLikes: likeCount,
+        totalRawDislikes: dislikeCount,
+        totalLikes: likeCount - dislikeCount,
+        totalComments: commentCount,
         isLoading: false,
         isInitialized: true,
       );
@@ -182,29 +215,36 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
 
   Future<void> likePost(String userId,
       {required bool isAlt, String? feedType, String? herdId}) async {
-    // Use ref.read since repository is stable and we're in a keepAlive provider
     final repository = ref.read(postRepositoryProvider);
 
+    final wasLiked = state.isLiked;
+    final wasDisliked = state.isDisliked;
+
+    final newLikeCount =
+        wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
+    final newDislikeCount =
+        wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes;
+
+    // Optimistic update
+    state = state.copyWith(
+      isLiked: !wasLiked,
+      isDisliked: false,
+      totalRawLikes: newLikeCount,
+      totalRawDislikes: newDislikeCount,
+      totalLikes: newLikeCount - newDislikeCount,
+    );
+
+    // Write-through to local cache so the next session reflects this action.
+    unawaited(LocalCacheService().saveInteraction(_params.id, {
+      'isLiked': !wasLiked,
+      'isDisliked': false,
+      'likeCount': newLikeCount,
+      'dislikeCount': newDislikeCount,
+      'commentCount': state.totalComments,
+    }));
+
     try {
-      final wasLiked = state.isLiked;
-      final wasDisliked = state.isDisliked;
-
-      // Update state optimistically
-      final newLikeCount =
-          wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes + 1;
-      final newDislikeCount =
-          wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes;
-
-      state = state.copyWith(
-        isLiked: !wasLiked,
-        isDisliked: false,
-        totalRawLikes: newLikeCount,
-        totalRawDislikes: newDislikeCount,
-        totalLikes: newLikeCount - newDislikeCount,
-      );
-
-      String effectiveFeedType = feedType ?? (isAlt ? 'alt' : 'public');
-
+      final effectiveFeedType = feedType ?? (isAlt ? 'alt' : 'public');
       await repository.likePost(
           postId: _params.id,
           userId: userId,
@@ -212,66 +252,85 @@ class PostInteractionsWithPrivacy extends _$PostInteractionsWithPrivacy {
           feedType: effectiveFeedType,
           herdId: herdId);
     } catch (e) {
-      final wasLiked = state.isLiked;
-      final wasDisliked = state.isDisliked;
-
-      final originalLikeCount =
+      // Revert optimistic update on failure
+      final revertLikeCount =
           wasLiked ? state.totalRawLikes + 1 : state.totalRawLikes - 1;
-      final originalDislikeCount =
+      final revertDislikeCount =
           wasDisliked ? state.totalRawDislikes + 1 : state.totalRawDislikes;
-
       state = state.copyWith(
         isLiked: wasLiked,
         isDisliked: wasDisliked,
-        totalRawLikes: originalLikeCount,
-        totalRawDislikes: originalDislikeCount,
-        totalLikes: originalLikeCount - originalDislikeCount,
+        totalRawLikes: revertLikeCount,
+        totalRawDislikes: revertDislikeCount,
+        totalLikes: revertLikeCount - revertDislikeCount,
         error: e.toString(),
       );
+      // Revert cache too
+      unawaited(LocalCacheService().saveInteraction(_params.id, {
+        'isLiked': wasLiked,
+        'isDisliked': wasDisliked,
+        'likeCount': revertLikeCount,
+        'dislikeCount': revertDislikeCount,
+        'commentCount': state.totalComments,
+      }));
     }
   }
 
   Future<void> dislikePost(String userId,
       {required bool isAlt, required String feedType, String? herdId}) async {
-    // Use ref.read since repository is stable and we're in a keepAlive provider
     final repository = ref.read(postRepositoryProvider);
 
+    final wasLiked = state.isLiked;
+    final wasDisliked = state.isDisliked;
+
+    final newLikeCount =
+        wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes;
+    final newDislikeCount =
+        wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes + 1;
+
+    // Optimistic update
+    state = state.copyWith(
+      isDisliked: !wasDisliked,
+      isLiked: false,
+      totalRawLikes: newLikeCount,
+      totalRawDislikes: newDislikeCount,
+      totalLikes: newLikeCount - newDislikeCount,
+    );
+
+    // Write-through to local cache
+    unawaited(LocalCacheService().saveInteraction(_params.id, {
+      'isLiked': false,
+      'isDisliked': !wasDisliked,
+      'likeCount': newLikeCount,
+      'dislikeCount': newDislikeCount,
+      'commentCount': state.totalComments,
+    }));
+
     try {
-      final wasLiked = state.isLiked;
-      final wasDisliked = state.isDisliked;
-
-      final newLikeCount =
-          wasLiked ? state.totalRawLikes - 1 : state.totalRawLikes;
-      final newDislikeCount =
-          wasDisliked ? state.totalRawDislikes - 1 : state.totalRawDislikes + 1;
-
-      state = state.copyWith(
-        isDisliked: !wasDisliked,
-        isLiked: false,
-        totalRawLikes: newLikeCount,
-        totalRawDislikes: newDislikeCount,
-        totalLikes: newLikeCount - newDislikeCount,
-      );
-
       await repository.dislikePost(
           postId: _params.id, userId: userId, isAlt: isAlt);
     } catch (e) {
-      final wasLiked = state.isLiked;
-      final wasDisliked = state.isDisliked;
-
-      final originalLikeCount =
+      // Revert optimistic update on failure
+      final revertLikeCount =
           wasLiked ? state.totalRawLikes + 1 : state.totalRawLikes;
-      final originalDislikeCount =
+      final revertDislikeCount =
           wasDisliked ? state.totalRawDislikes + 1 : state.totalRawDislikes - 1;
-
       state = state.copyWith(
         isLiked: wasLiked,
         isDisliked: wasDisliked,
-        totalRawLikes: originalLikeCount,
-        totalRawDislikes: originalDislikeCount,
-        totalLikes: originalLikeCount - originalDislikeCount,
+        totalRawLikes: revertLikeCount,
+        totalRawDislikes: revertDislikeCount,
+        totalLikes: revertLikeCount - revertDislikeCount,
         error: e.toString(),
       );
+      // Revert cache too
+      unawaited(LocalCacheService().saveInteraction(_params.id, {
+        'isLiked': wasLiked,
+        'isDisliked': wasDisliked,
+        'likeCount': revertLikeCount,
+        'dislikeCount': revertDislikeCount,
+        'commentCount': state.totalComments,
+      }));
     }
   }
 

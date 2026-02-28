@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
+import 'package:herdapp/core/services/local_cache_service.dart';
 import 'package:herdapp/core/themes/app_colors.dart';
 import 'package:herdapp/core/utils/router.dart';
 import 'package:herdapp/features/social/chat_messaging/view/providers/e2ee_auto_init/e2ee_auto_init_provider.dart';
@@ -41,17 +42,23 @@ void main() async {
     // This should automatically run the correct code for mobile or web.
     await setupPlatformSpecificFirebase();
 
-    // You can still have kIsWeb checks for things that don't need separate files.
+    // Initialize local Hive cache for all platforms (web uses IndexedDB,
+    // mobile uses files). Must happen before CacheManager.bootstrapCache().
+    await LocalCacheService.initialize();
+    debugPrint('LocalCacheService initialized');
+
+    // Bootstrap cache on all platforms now that LocalCacheService is ready.
+    unawaited(CacheManager.bootstrapCache());
+    debugPrint('Cache bootstrap started');
+
+    // Mobile-only services.
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
       debugPrint('Background message handler registered');
 
       unawaited(MobileAds.instance.initialize());
-      debugPrint(' Mobile ads initialization started');
-
-      unawaited(CacheManager.bootstrapCache());
-      debugPrint(' Cache bootstrap started');
+      debugPrint('Mobile ads initialization started');
     }
 
     debugPrint('Main initialization complete');

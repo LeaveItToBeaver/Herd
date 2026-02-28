@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:herdapp/core/services/cache_manager.dart';
+import 'package:herdapp/core/services/local_cache_service.dart';
 import 'package:herdapp/features/content/post/data/models/post_model.dart';
 
 /// Base repository for feed functionality
@@ -14,6 +16,11 @@ class FeedRepository {
   Map<String, dynamic>? _lastFunctionResponse;
   bool _isUpdatingFromServer = false;
   final _postUpdateController = StreamController<List<PostModel>>.broadcast();
+
+  // Throttle background server fetches to avoid redundant cloud function calls
+  // when cache is already fresh.
+  static const Duration _backgroundFetchThrottle = Duration(minutes: 5);
+  final Map<String, DateTime> _lastBackgroundFetch = {};
 
   Stream<List<PostModel>> get postUpdates => _postUpdateController.stream;
 
@@ -411,27 +418,51 @@ class FeedRepository {
     }
   }
 
-  /// Get trending posts using the cloud function
+  /// Get trending posts using the cloud function, with a 30-minute local cache.
   Future<List<PostModel>> getTrendingPosts({
     bool isAlt = false,
     int limit = 10,
   }) async {
     try {
-      // Using the proper Firebase Functions call pattern
+      final cacheKey = 'trending_${isAlt ? 'alt' : 'public'}';
+
+      // Return from local cache if still fresh (30-minute TTL)
+      final cachedJson =
+          LocalCacheService().getTrendingJson(cacheKey);
+      if (cachedJson != null) {
+        try {
+          final List<dynamic> data = jsonDecode(cachedJson) as List;
+          final posts = data
+              .map((d) => PostModel.fromMap(
+                  d['id'] as String, Map<String, dynamic>.from(d as Map)))
+              .toList();
+          debugPrint(
+              'Trending posts from cache: ${posts.length} items');
+          return posts;
+        } catch (_) {
+          // Cache corrupt, fall through to network fetch
+        }
+      }
+
+      // Fetch from cloud function
       final HttpsCallableResult result =
           await functions.httpsCallable('getTrendingPosts').call({
         'limit': limit,
         'postType': isAlt ? 'alt' : 'public',
       });
 
-      // Parse the result
       final List<dynamic> postsData = result.data['posts'] ?? [];
 
-      // Convert to PostModel objects
-      List<PostModel> posts = postsData
+      final List<PostModel> posts = postsData
           .map((data) =>
               PostModel.fromMap(data['id'], Map<String, dynamic>.from(data)))
           .toList();
+
+      // Cache the raw response data — it's already plain JSON-compatible
+      if (posts.isNotEmpty) {
+        await LocalCacheService().saveTrending(
+            cacheKey, jsonEncode(postsData));
+      }
 
       return posts;
     } catch (e, stackTrace) {
@@ -617,35 +648,36 @@ class FeedRepository {
       if (hybridLoad) {
         if (feedType == 'alt') {
           cachedPosts = await CacheManager().getFeed(userId, isAlt: true);
-          if (cachedPosts.isNotEmpty) {
-            debugPrint(
-                'Returning ${cachedPosts.length} cached posts immediately');
-
-            _fetchFromServerAndNotify(params, userId, feedType == 'alt');
-
-            return cachedPosts;
-          }
         } else if (feedType == 'public') {
           cachedPosts = await CacheManager().getFeed(userId, isAlt: false);
-          if (cachedPosts.isNotEmpty) {
-            debugPrint(
-                'Returning ${cachedPosts.length} cached posts immediately');
-
-            _fetchFromServerAndNotify(params, userId, feedType == 'alt');
-
-            return cachedPosts;
-          }
         } else if (feedType == 'herd') {
-          cachedPosts =
-              await CacheManager().getFeed(userId, isAlt: feedType == 'herd');
-          if (cachedPosts.isNotEmpty) {
+          cachedPosts = await CacheManager().getFeed(userId, isAlt: false);
+        }
+
+        if (cachedPosts.isNotEmpty) {
+          debugPrint(
+              'Returning ${cachedPosts.length} cached posts immediately');
+
+          // Only trigger a background refresh if enough time has elapsed
+          // since the last one for this feed, preventing redundant cloud
+          // function calls every time the user switches tabs.
+          final feedThrottleKey = '$userId:$feedType';
+          final lastFetch = _lastBackgroundFetch[feedThrottleKey];
+          final shouldRefresh = lastFetch == null ||
+              DateTime.now().difference(lastFetch) > _backgroundFetchThrottle;
+
+          if (shouldRefresh) {
+            _lastBackgroundFetch[feedThrottleKey] = DateTime.now();
+            _fetchFromServerAndNotify(params, userId, feedType == 'alt');
+          } else {
+            final age = lastFetch != null
+                ? DateTime.now().difference(lastFetch).inSeconds
+                : 0;
             debugPrint(
-                'Returning ${cachedPosts.length} cached posts immediately');
-
-            _fetchFromServerAndNotify(params, userId, feedType == 'herd');
-
-            return cachedPosts;
+                'Skipping background fetch for $feedType — refreshed ${age}s ago');
           }
+
+          return cachedPosts;
         }
       }
 
