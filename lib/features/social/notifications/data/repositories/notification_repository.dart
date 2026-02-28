@@ -35,23 +35,8 @@ class NotificationRepository {
     bool markAsRead = true, // Auto-mark as read by default
   }) async {
     try {
-      debugPrint('========== STARTING getNotifications ==========');
-      debugPrint('Parameters received:');
-      debugPrint('  - limit: $limit');
-      debugPrint('  - markAsRead: $markAsRead');
-      debugPrint('  - onlyUnread: $onlyUnread');
-      debugPrint('  - filterType: $filterType');
-      debugPrint('  - lastNotificationId: $lastNotificationId');
-
-      // Test Firebase Functions connection
-      debugPrint('🔧 Testing Firebase Functions connection...');
-      debugPrint('  - Functions instance: $_functions');
-      debugPrint('  - App name: ${_functions.app.name}');
-
       final callable = _functions.httpsCallable('getNotifications');
-      debugPrint('Created callable for: getNotifications');
 
-      // Prepare call parameters
       final callParams = {
         'limit': limit,
         'lastNotificationId': lastNotificationId,
@@ -60,36 +45,14 @@ class NotificationRepository {
         'markAsRead': markAsRead,
       };
 
-      debugPrint('📤 Calling cloud function with parameters:');
-      callParams.forEach((key, value) {
-        debugPrint('  - $key: $value (${value.runtimeType})');
-      });
-
-      // Make the call
-      debugPrint('📞 Making cloud function call...');
       final result = await callable.call(callParams);
-      debugPrint('Cloud function call completed successfully');
-
-      // Analyze the response
-      debugPrint('📥 ========== ANALYZING RESPONSE ==========');
-      debugPrint('  - Result type: ${result.runtimeType}');
-      debugPrint('  - Result.data type: ${result.data.runtimeType}');
-      debugPrint('  - Result.data: ${result.data}');
 
       final data = result.data as Map<String, dynamic>;
-      debugPrint('📊 Response data structure:');
-      data.forEach((key, value) {
-        debugPrint(
-            '  - $key: ${value.runtimeType} = ${value is List ? '(List with ${value.length} items)' : value.toString().substring(0, value.toString().length > 100 ? 100 : value.toString().length)}');
-      });
 
-      // Check for notifications array
       final rawNotifications = data['notifications'];
-      debugPrint('🔍 ========== PROCESSING NOTIFICATIONS ==========');
-      debugPrint('  - Raw notifications type: ${rawNotifications.runtimeType}');
 
-      if (rawNotifications == null) {
-        debugPrint('ERROR: notifications field is null!');
+      if (rawNotifications == null || rawNotifications is! List) {
+        debugPrint('getNotifications: no notifications in response');
         return {
           'notifications': <NotificationModel>[],
           'unreadCount': data['unreadCount'] ?? 0,
@@ -98,90 +61,32 @@ class NotificationRepository {
         };
       }
 
-      if (rawNotifications is! List) {
-        debugPrint(
-            'ERROR: notifications is not a List! Type: ${rawNotifications.runtimeType}');
-        return {
-          'notifications': <NotificationModel>[],
-          'unreadCount': data['unreadCount'] ?? 0,
-          'hasMore': data['hasMore'] ?? false,
-          'lastNotificationId': data['lastNotificationId'],
-        };
-      }
-
-      final notificationsList = rawNotifications;
-      debugPrint(
-          '📝 Processing ${notificationsList.length} raw notification items:');
-
-      // Process each notification with detailed logging
       final notificationList = <NotificationModel>[];
 
-      for (int i = 0; i < notificationsList.length; i++) {
-        final rawNotification = notificationsList[i];
-        debugPrint('========== PROCESSING NOTIFICATION $i ==========');
-        debugPrint('  - Raw type: ${rawNotification.runtimeType}');
-        debugPrint(
-            '  - Raw data: ${rawNotification.toString().substring(0, rawNotification.toString().length > 200 ? 200 : rawNotification.toString().length)}...');
-
+      for (int i = 0; i < rawNotifications.length; i++) {
         try {
-          final parsed = _parseNotificationFromCloudFunction(rawNotification);
+          final parsed =
+              _parseNotificationFromCloudFunction(rawNotifications[i]);
           if (parsed != null) {
             notificationList.add(parsed);
-            debugPrint('  Successfully parsed notification $i: ${parsed.id}');
-          } else {
-            debugPrint('  Failed to parse notification $i (returned null)');
           }
-        } catch (parseError, stackTrace) {
-          debugPrint('  Exception parsing notification $i: $parseError');
-          debugPrint('  📋 Stack trace: $stackTrace');
+        } catch (parseError) {
+          debugPrint('Failed to parse notification $i: $parseError');
         }
       }
 
-      debugPrint('📊 ========== FINAL RESULTS ==========');
-      debugPrint('  - Raw notifications count: ${notificationsList.length}');
-      debugPrint('  - Successfully parsed count: ${notificationList.length}');
       debugPrint(
-          '  - Failed to parse count: ${notificationsList.length - notificationList.length}');
-      debugPrint('  - Unread count: ${data['unreadCount']}');
-      debugPrint('  - Has more: ${data['hasMore']}');
-      debugPrint('  - Last notification ID: ${data['lastNotificationId']}');
+          'getNotifications: fetched ${notificationList.length}/${rawNotifications.length}, '
+          'unread: ${data['unreadCount']}, hasMore: ${data['hasMore']}');
 
-      if (notificationList.isNotEmpty) {
-        debugPrint(
-            '  - First notification: ${notificationList.first.id} (${notificationList.first.type})');
-        debugPrint(
-            '  - Last notification: ${notificationList.last.id} (${notificationList.last.type})');
-      }
-
-      final resultMap = {
+      return {
         'notifications': notificationList,
         'unreadCount': data['unreadCount'] ?? 0,
         'hasMore': data['hasMore'] ?? false,
         'lastNotificationId': data['lastNotificationId'],
       };
-
-      debugPrint('========== RETURNING RESULT ==========');
-      debugPrint('  - Result map keys: ${resultMap.keys.toList()}');
-      debugPrint('  - Returning ${notificationList.length} notifications');
-
-      return resultMap;
-    } catch (e, stackTrace) {
-      debugPrint('========== ERROR IN getNotifications ==========');
-      debugPrint('  - Error type: ${e.runtimeType}');
-      debugPrint('  - Error message: $e');
-      debugPrint('  - Stack trace: $stackTrace');
-
-      // Log additional context for specific error types
-      if (e.toString().contains('PERMISSION_DENIED')) {
-        debugPrint('PERMISSION ERROR: Check Firebase rules and authentication');
-      } else if (e.toString().contains('UNAUTHENTICATED')) {
-        debugPrint('🔒 AUTH ERROR: User might not be properly authenticated');
-      } else if (e.toString().contains('INTERNAL')) {
-        debugPrint('🔧 INTERNAL ERROR: Check cloud function logs');
-      } else if (e.toString().contains('NOT_FOUND')) {
-        debugPrint('🔍 NOT FOUND: Cloud function might not be deployed');
-      }
-
+    } catch (e) {
+      debugPrint('Error in getNotifications: $e');
       rethrow;
     }
   }
@@ -313,11 +218,9 @@ class NotificationRepository {
         // Handle any other Map type
         notificationData = Map<String, dynamic>.from(data);
       } else {
-        debugPrint('Unexpected data type: ${data.runtimeType}');
+        debugPrint('Unexpected notification data type: ${data.runtimeType}');
         return null;
       }
-
-      debugPrint('📝 Parsing notification data: ${notificationData.keys}');
 
       return NotificationModel(
         id: notificationData['id']?.toString() ?? '',

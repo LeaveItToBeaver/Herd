@@ -72,7 +72,7 @@ final class UICustomizationProvider
   UICustomization create() => UICustomization();
 }
 
-String _$uICustomizationHash() => r'36c674a2d59c046842fa16c5133ddc5941657880';
+String _$uICustomizationHash() => r'144f5a4e79e71d456128b397d89882f74d63bded';
 
 abstract class _$UICustomization extends $AsyncNotifier<UICustomizationModel?> {
   FutureOr<UICustomizationModel?> build();

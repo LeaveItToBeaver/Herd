@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_model.dart';
 import 'package:herdapp/features/social/notifications/data/models/notification_settings_model.dart';
 import 'package:herdapp/features/social/notifications/data/repositories/notification_repository.dart';
-import 'package:herdapp/features/social/notifications/view/providers/notification_provider.dart';
+import 'package:herdapp/features/social/notifications/view/providers/notification_settings_notifier.dart';
 import 'package:herdapp/features/user/auth/view/providers/auth_provider.dart';
 import 'package:herdapp/features/social/notifications/utils/notification_service.dart'; // Add this import
 // Import intl for date formatting if not already done elsewhere globally
@@ -35,9 +35,8 @@ class _NotificationSettingsScreenState
       );
     }
 
-    final settingsNotifier =
+    final settingsAsync =
         ref.watch(notificationSettingsProvider(currentUser.uid));
-    final settingsAsync = settingsNotifier.state;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +61,8 @@ class _NotificationSettingsScreenState
               ElevatedButton(
                 onPressed: () {
                   ref
-                      .read(notificationSettingsProvider(currentUser.uid))
+                      .read(notificationSettingsProvider(currentUser.uid)
+                          .notifier)
                       .loadSettings();
                 },
                 child: const Text('Retry'),
@@ -660,7 +660,7 @@ class _NotificationSettingsScreenState
 
     try {
       final settingsNotifier =
-          ref.read(notificationSettingsProvider(userId));
+          ref.read(notificationSettingsProvider(userId).notifier);
 
       switch (settingName) {
         case 'pushNotificationsEnabled':
@@ -712,7 +712,7 @@ class _NotificationSettingsScreenState
 
     try {
       await ref
-          .read(notificationSettingsProvider(userId))
+          .read(notificationSettingsProvider(userId).notifier)
           .setMuteUntil(dateTime);
     } finally {
       if (mounted) {

@@ -22,26 +22,27 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   @override
   void initState() {
     super.initState();
-    // Load notifications when screen is opened (with auto-read)
+    // Clear local push notification badges when opening this screen.
+    // The provider itself handles fetching notifications on creation.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshNotifications();
+      _clearLocalNotifications();
     });
   }
 
-  void _refreshNotifications() async {
+  void _clearLocalNotifications() async {
+    try {
+      final notificationService = ref.read(notificationServiceProvider);
+      await notificationService.clearAllNotifications();
+    } catch (e) {
+      debugPrint('Could not clear local notifications: $e');
+    }
+  }
+
+  void _refreshNotifications() {
     final currentUser = ref.read(authProvider);
     if (currentUser != null) {
-      // Clear local notifications and badge when opening notifications screen
-      try {
-        final notificationService = ref.read(notificationServiceProvider);
-        await notificationService.clearAllNotifications();
-      } catch (e) {
-        debugPrint('Could not clear local notifications: $e');
-      }
-
-      // Load and mark notifications as read
       ref
-          .read(notificationProvider(currentUser.uid))
+          .read(notificationProvider(currentUser.uid).notifier)
           .refreshNotifications(markAsRead: true);
     }
   }
@@ -55,7 +56,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
       try {
         await ref
-            .read(notificationProvider(currentUser.uid))
+            .read(notificationProvider(currentUser.uid).notifier)
             .markAllAsRead();
       } finally {
         if (mounted) {
@@ -101,15 +102,14 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       );
     }
 
-    final notifier = ref.watch(notificationProvider(currentUser.uid));
-    final notificationsState = notifier.state;
+    final notificationsState = ref.watch(notificationProvider(currentUser.uid));
     final unreadCount = notificationsState.unreadCount;
 
     // Show error if present
     if (notificationsState.error != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showErrorSnackBar(notificationsState.error!);
-        ref.read(notificationProvider(currentUser.uid)).clearError();
+        ref.read(notificationProvider(currentUser.uid).notifier).clearError();
       });
     }
 
@@ -133,7 +133,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               ref
-                  .read(notificationProvider(currentUser.uid))
+                  .read(notificationProvider(currentUser.uid).notifier)
                   .forceRefresh();
             },
             tooltip: 'Refresh',
@@ -150,7 +150,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       body: RefreshIndicator(
         onRefresh: () async {
           await ref
-              .read(notificationProvider(currentUser.uid))
+              .read(notificationProvider(currentUser.uid).notifier)
               .forceRefresh();
         },
         child: _buildNotificationList(notificationsState),
@@ -242,7 +242,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           final currentUser = ref.read(authProvider);
           if (currentUser != null) {
             ref
-                .read(notificationProvider(currentUser.uid))
+                .read(notificationProvider(currentUser.uid).notifier)
                 .loadMoreNotifications(
                     markAsRead: false); // Don't auto-mark pagination as read
           }
@@ -272,7 +272,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
               final currentUser = ref.read(authProvider);
               if (currentUser != null) {
                 ref
-                    .read(notificationProvider(currentUser.uid))
+                    .read(notificationProvider(currentUser.uid).notifier)
                     .markAsRead(notificationId);
               }
             },
