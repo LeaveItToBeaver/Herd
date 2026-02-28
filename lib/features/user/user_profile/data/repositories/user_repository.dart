@@ -1,486 +1,121 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herdapp/core/services/exception_logging_service.dart';
 import 'package:herdapp/features/social/feed/providers/feed_type_provider.dart';
 import 'package:herdapp/features/user/user_profile/data/models/alt_connection_request_model.dart';
 import 'package:herdapp/features/user/user_profile/data/models/user_model.dart';
+import 'package:herdapp/features/user/user_profile/data/repositories/account_management_repository.dart';
+import 'package:herdapp/features/user/user_profile/data/repositories/alt_profile_repository.dart';
+import 'package:herdapp/features/user/user_profile/data/repositories/pinned_post_repository.dart';
+import 'package:herdapp/features/user/user_profile/data/repositories/user_follow_repository.dart';
+import 'package:herdapp/features/user/user_profile/data/repositories/user_search_repository.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepository(FirebaseFirestore.instance);
 });
 
+/// Facade over the split user repositories.
+///
+/// Core CRUD lives here directly. Domain-specific operations are delegated to:
+/// - [UserSearchRepository] – user search & username lookup
+/// - [UserFollowRepository] – follow/unfollow & follower streams
+/// - [AltProfileRepository] – alt profile & alt connections
+/// - [PinnedPostRepository] – pinning/unpinning posts to profiles
+/// - [AccountManagementRepository] – account deletion & data export
+///
+/// New code should prefer injecting the focused repository directly.
+/// This class keeps backward compatibility so existing call-sites don't break.
 class UserRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  final ExceptionLoggerService _logger = ExceptionLoggerService();
 
-  UserRepository(this._firestore);
+  // Delegates
+  late final UserSearchRepository _search;
+  late final UserFollowRepository _follow;
+  late final AltProfileRepository _alt;
+  late final PinnedPostRepository _pinned;
+  late final AccountManagementRepository _account;
 
-  // Collection references
+  UserRepository(this._firestore) {
+    _search = UserSearchRepository(_firestore);
+    _follow = UserFollowRepository(_firestore);
+    _alt = AltProfileRepository(_firestore);
+    _pinned = PinnedPostRepository(_firestore);
+    _account = AccountManagementRepository(_firestore);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Core collection references
+  // ---------------------------------------------------------------------------
+
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
-  CollectionReference<Map<String, dynamic>> get _following =>
-      _firestore.collection('following');
-  CollectionReference<Map<String, dynamic>> get _followers =>
-      _firestore.collection('followers');
 
-  // Create new user
+  // ---------------------------------------------------------------------------
+  // Core CRUD
+  // ---------------------------------------------------------------------------
+
+  /// Create new user
   Future<void> createUser(String userId, UserModel user) async {
     await _users.doc(userId).set(user.toMap());
   }
 
-  // Get user by ID
+  /// Get user by ID
   Future<UserModel?> getUserById(String userId) async {
     final doc = await _users.doc(userId).get();
     if (!doc.exists) return null;
     return UserModel.fromMap(doc.id, doc.data()!);
   }
 
-  String capitalize(String s) {
-    if (s.isEmpty) return '';
-    return s[0].toUpperCase() + s.substring(1);
-  }
-
-  // Search users
-  Future<List<UserModel>> searchUsers(String query,
-      {FeedType profileType = FeedType.public}) async {
-    if (query.isEmpty) return [];
-
-    // Convert query to lowercase for more flexible search
-    final lowerQuery = query.toLowerCase();
-    final capitalizedQuery = query.isNotEmpty
-        ? query[0].toUpperCase() + query.substring(1).toLowerCase()
-        : "";
-
-    // Split query for potential full name search
-    final parts = query.trim().split(' ');
-    final isFullNameSearch = parts.length > 1;
-
-    final List<Future<QuerySnapshot<Map<String, dynamic>>>> searches = [];
-
-    if (profileType == FeedType.public) {
-      // For public feed, search first and last name
-      if (isFullNameSearch) {
-        // Full name search - combine first and last name conditions
-        final firstName = parts[0].toLowerCase();
-        final lastName = parts.sublist(1).join(' ').toLowerCase();
-
-        searches.add(_users
-            .where('firstName', isEqualTo: firstName)
-            .where('lastName', isEqualTo: lastName)
-            .limit(10)
-            .get());
-
-        // Also try capitalized versions
-        searches.add(_users
-            .where('firstName', isEqualTo: capitalize(firstName))
-            .where('lastName', isEqualTo: capitalize(lastName))
-            .limit(10)
-            .get());
-      } else {
-        // Single word search - check first name or last name
-        searches.addAll([
-          _users
-              .where('firstName', isGreaterThanOrEqualTo: lowerQuery)
-              .where('firstName', isLessThan: '$lowerQuery\uf8ff')
-              .limit(10)
-              .get(),
-          _users
-              .where('firstName', isGreaterThanOrEqualTo: capitalizedQuery)
-              .where('firstName', isLessThan: '$capitalizedQuery\uf8ff')
-              .limit(10)
-              .get(),
-          _users
-              .where('lastName', isGreaterThanOrEqualTo: lowerQuery)
-              .where('lastName', isLessThan: '$lowerQuery\uf8ff')
-              .limit(10)
-              .get(),
-          _users
-              .where('lastName', isGreaterThanOrEqualTo: capitalizedQuery)
-              .where('lastName', isLessThan: '$capitalizedQuery\uf8ff')
-              .limit(10)
-              .get(),
-        ]);
-      }
-    } else {
-      // For alt feed, only search username
-      searches.add(_users
-          .where('username', isGreaterThanOrEqualTo: lowerQuery)
-          .where('username', isLessThan: '$lowerQuery\uf8ff')
-          .limit(10)
-          .get());
-    }
-
-    // Execute searches and collect results
-    final results = await Future.wait(searches);
-    final uniqueDocsMap =
-        <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
-
-    for (var querySnapshot in results) {
-      for (var doc in querySnapshot.docs) {
-        if (!uniqueDocsMap.containsKey(doc.id)) {
-          uniqueDocsMap[doc.id] = doc;
-        }
-      }
-    }
-
-    // Convert to UserModels with appropriate filtering
-    List<UserModel> users = [];
-    for (var doc in uniqueDocsMap.values) {
-      final user = UserModel.fromMap(doc.id, doc.data());
-
-      // Filter based on feed type
-      if (profileType == FeedType.alt) {
-        if (user.username.isEmpty) continue;
-      } else {
-        if (user.firstName.isEmpty && user.lastName.isEmpty) continue;
-      }
-
-      users.add(user);
-    }
-
-    return users;
-  }
-
-  Future<List<UserModel>> searchAll(
-    String query,
-  ) async {
-    if (query.isEmpty) return [];
-
-    // Convert query to lowercase and capitalized for more flexible search
-    final lowerQuery = query.toLowerCase();
-    final capitalQuery = query.isNotEmpty
-        ? query[0].toUpperCase() + query.substring(1).toLowerCase()
-        : "";
-
-    // Determine which fields to search based on profile type
-    final List<Future<QuerySnapshot<Map<String, dynamic>>>> searches = [];
-
-    // Only search public profile fields for public feed
-    searches.addAll([
-      // Search by first name - lowercase
-      _users
-          .where('firstName', isGreaterThanOrEqualTo: lowerQuery)
-          .where('firstName', isLessThan: '$lowerQuery\uf8ff')
-          .limit(10)
-          .get(),
-
-      // Search by first name - capitalized
-      _users
-          .where('firstName', isGreaterThanOrEqualTo: capitalQuery)
-          .where('firstName', isLessThan: '$capitalQuery\uf8ff')
-          .limit(10)
-          .get(),
-
-      // Search by last name - lowercase
-      _users
-          .where('lastName', isGreaterThanOrEqualTo: lowerQuery)
-          .where('lastName', isLessThan: '$lowerQuery\uf8ff')
-          .limit(10)
-          .get(),
-
-      // Search by last name - capitalized
-      _users
-          .where('lastName', isGreaterThanOrEqualTo: capitalQuery)
-          .where('lastName', isLessThan: '$capitalQuery\uf8ff')
-          .limit(10)
-          .get(),
-    ]);
-    // Only search alt profile fields for alt feed
-    searches.addAll([
-      // Search by username ONLY
-      _users
-          .where('username', isGreaterThanOrEqualTo: lowerQuery)
-          .where('username', isLessThan: '$lowerQuery\uf8ff')
-          .limit(10)
-          .get(),
-
-      // Do NOT search by firstName/lastName/username for alt profiles to maintain anonymity
-    ]);
-
-    // Execute all searches in parallel
-    final results = await Future.wait(searches);
-
-    // Combine results and remove duplicates
-    final uniqueDocsMap =
-        <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
-
-    for (var querySnapshot in results) {
-      for (var doc in querySnapshot.docs) {
-        if (!uniqueDocsMap.containsKey(doc.id)) {
-          uniqueDocsMap[doc.id] = doc;
-        }
-      }
-    }
-
-    // Convert to UserModels but ensure profile type separation
-    List<UserModel> users = [];
-
-    for (var doc in uniqueDocsMap.values) {
-      final user = UserModel.fromMap(doc.id, doc.data());
-      users.add(user);
-    }
-
-    return users;
-  }
-
-  // Username-specific search that respects profile type
-  Future<List<UserModel>> searchByUsername(String username,
-      {FeedType profileType = FeedType.public}) async {
-    if (username.isEmpty) return [];
-
-    final lowerUsername = username.toLowerCase();
-
-    try {
-      QuerySnapshot<Map<String, dynamic>> snapshot;
-
-      // Use different field based on the feed type
-      if (profileType == FeedType.alt) {
-        snapshot = await _users
-            .where('username', isEqualTo: lowerUsername)
-            .limit(1)
-            .get();
-      } else {
-        snapshot = await _users
-            .where('username', isEqualTo: lowerUsername)
-            .limit(1)
-            .get();
-      }
-
-      return snapshot.docs
-          .map((doc) => UserModel.fromMap(doc.id, doc.data()))
-          .toList();
-    } catch (e, stack) {
-      debugPrint('Error searching by username: $e');
-      try {
-        _logger
-            .logException(
-          errorMessage: e.toString(),
-          stackTrace: stack.toString(),
-        )
-            .catchError((loggingError) {
-          debugPrint('Error logging exception: $loggingError');
-          return null;
-        });
-      } catch (loggingError) {
-        debugPrint('Error logging exception: $loggingError');
-      }
-      return [];
-    }
-  }
-
-  // Search for users by both first and last name combined (public only)
-  Future<List<UserModel>> searchByFullName(String query) async {
-    // This handles searching for "first last" combined pattern
-    // ONLY for public profiles - not applicable to alt profiles
-    if (query.isEmpty) return [];
-
-    final queryParts = query.trim().split(' ');
-    if (queryParts.length < 2) {
-      // Single word query should use the regular search
-      return searchUsers(query, profileType: FeedType.public);
-    }
-
-    // Get first name and last name parts for searching
-    final firstName = queryParts[0];
-    final lastName = queryParts.sublist(1).join(' ');
-
-    // Get all users that match firstName
-    final firstNameMatches =
-        await searchUsers(firstName, profileType: FeedType.public);
-
-    // Filter to those that also match lastName
-    final lowerLastName = lastName.toLowerCase();
-    return firstNameMatches
-        .where((user) => user.lastName.toLowerCase().contains(lowerLastName))
-        .toList();
-  }
-
-  // Username availability check
-  Future<bool> isUsernameAvailable(String username) async {
-    final QuerySnapshot result = await _users
-        .where('username', isEqualTo: username.toLowerCase())
-        .limit(1)
-        .get();
-
-    return result.docs.isEmpty;
-  }
-
-  // Get user by username
-  Future<UserModel?> getUserByUsername(String username) async {
-    final query = await _users
-        .where('username', isEqualTo: username.toLowerCase())
-        .limit(1)
-        .get();
-
-    if (query.docs.isEmpty) return null;
-    final doc = query.docs.first;
-    return UserModel.fromMap(doc.id, doc.data());
-  }
-
-  // Update user
+  /// Update user
   Future<void> updateUser(String userId, Map<String, dynamic> data) async {
-    // Existing code - this should be fine as it just updates the fields provided in the data map
     await _users.doc(userId).update({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<String> uploadImage({
-    required String userId,
-    required File file,
-    required String type,
-  }) async {
-    final ref = _storage.ref().child('users/$userId/$type');
-    final uploadTask = ref.putFile(file);
-
-    final snapshot = await uploadTask;
-    final downloadUrl = await snapshot.ref.getDownloadURL();
-    return downloadUrl;
-  }
-
-  // Delete user
+  /// Delete user (simple version – see also [permanentlyDeleteAccount])
   Future<void> deleteUser(String userId) async {
     final batch = _firestore.batch();
+    final following = _firestore.collection('following');
+    final followers = _firestore.collection('followers');
 
     // Delete the user document
     batch.delete(_users.doc(userId));
 
-    // Get the list of users that the deleted user was following
+    // Clean up following relationships
     final followingSnapshot =
-        await _following.doc(userId).collection('userFollowing').get();
+        await following.doc(userId).collection('userFollowing').get();
     for (final doc in followingSnapshot.docs) {
       final followedUserId = doc.id;
-      // Remove the deleted user from the `followers` list of the user they were following
-      batch.delete(_followers
+      batch.delete(followers
           .doc(followedUserId)
           .collection('userFollowers')
           .doc(userId));
-      // Decrement the followers count for that user
       batch.update(
           _users.doc(followedUserId), {'followers': FieldValue.increment(-1)});
-      // Delete the document in the deleted user's `following` subcollection
       batch.delete(doc.reference);
     }
 
-    // Get the list of users who were following the deleted user
+    // Clean up follower relationships
     final followersSnapshot =
-        await _followers.doc(userId).collection('userFollowers').get();
+        await followers.doc(userId).collection('userFollowers').get();
     for (final doc in followersSnapshot.docs) {
       final followerId = doc.id;
-      // Remove the deleted user from the `following` list of their follower
       batch.delete(
-          _following.doc(followerId).collection('userFollowing').doc(userId));
-      // Decrement the following count for that user
+          following.doc(followerId).collection('userFollowing').doc(userId));
       batch.update(
           _users.doc(followerId), {'following': FieldValue.increment(-1)});
-      // Delete the document in the deleted user's `followers` subcollection
       batch.delete(doc.reference);
     }
 
     await batch.commit();
   }
 
-  // Follow user
-  Future<void> followUser(String userId, String followUserId) async {
-    // Add followUser to user's following
-    await _following
-        .doc(userId)
-        .collection('userFollowing')
-        .doc(followUserId)
-        .set({
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Add user to followUser's followers
-    await _followers
-        .doc(followUserId)
-        .collection('userFollowers')
-        .doc(userId)
-        .set({
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Update follower/following counts
-    await _users.doc(userId).update({'following': FieldValue.increment(1)});
-    await _users
-        .doc(followUserId)
-        .update({'followers': FieldValue.increment(1)});
-  }
-
-  // Unfollow user
-  Future<void> unfollowUser(String userId, String unfollowUserId) async {
-    // Remove from following
-    await _following
-        .doc(userId)
-        .collection('userFollowing')
-        .doc(unfollowUserId)
-        .delete();
-
-    // Remove from followers
-    await _followers
-        .doc(unfollowUserId)
-        .collection('userFollowers')
-        .doc(userId)
-        .delete();
-
-    // Update follower/following counts
-    await _users.doc(userId).update({'following': FieldValue.increment(-1)});
-    await _users
-        .doc(unfollowUserId)
-        .update({'followers': FieldValue.increment(-1)});
-  }
-
-  // Check if following
-  Future<bool> isFollowing(String userId, String otherUserId) async {
-    final doc = await _following
-        .doc(userId)
-        .collection('userFollowing')
-        .doc(otherUserId)
-        .get();
-
-    return doc.exists;
-  }
-
-  // Get followers
-  Stream<List<UserModel>> getFollowers(String userId) {
-    return _followers
-        .doc(userId)
-        .collection('userFollowers')
-        .snapshots()
-        .asyncMap((snapshot) async {
-      List<UserModel> followers = [];
-      for (var doc in snapshot.docs) {
-        final user = await getUserById(doc.id);
-        if (user != null) followers.add(user);
-      }
-      return followers;
-    });
-  }
-
-  // Get following
-  Stream<List<UserModel>> getFollowing(String userId) {
-    return _following
-        .doc(userId)
-        .collection('userFollowing')
-        .snapshots()
-        .asyncMap((snapshot) async {
-      List<UserModel> following = [];
-      for (var doc in snapshot.docs) {
-        final user = await getUserById(doc.id);
-        if (user != null) following.add(user);
-      }
-      return following;
-    });
-  }
-
-  // Stream user changes
+  /// Stream user changes
   Stream<UserModel?> streamUser(String userId) {
     return _users.doc(userId).snapshots().map((doc) {
       if (!doc.exists) return null;
@@ -488,922 +123,183 @@ class UserRepository {
     });
   }
 
-  // Get follower count
-  Future<int?> getFollowerCount(String userId) async {
-    final snapshot =
-        await _followers.doc(userId).collection('userFollowers').count().get();
-
-    return snapshot.count;
+  /// Upload profile image
+  Future<String> uploadImage({
+    required String userId,
+    required File file,
+    required String type,
+  }) async {
+    final ref = _storage.ref().child('users/$userId/$type');
+    final uploadTask = ref.putFile(file);
+    final snapshot = await uploadTask;
+    final downloadUrl = await snapshot.ref.getDownloadURL();
+    return downloadUrl;
   }
 
-  // Get following count
-  Future<int?> getFollowingCount(String userId) async {
-    final snapshot =
-        await _following.doc(userId).collection('userFollowing').count().get();
-
-    return snapshot.count;
-  }
-
+  /// Increment user points
   Future<void> incrementUserPoints(String userId, int points) async {
     await _users
         .doc(userId)
         .update({'userPoints': FieldValue.increment(points)});
   }
 
-  // Alt user methods:
+  // ---------------------------------------------------------------------------
+  // Delegated: Search  (prefer injecting UserSearchRepository directly)
+  // ---------------------------------------------------------------------------
+
+  Future<List<UserModel>> searchUsers(String query,
+          {FeedType profileType = FeedType.public}) =>
+      _search.searchUsers(query, profileType: profileType);
+
+  Future<List<UserModel>> searchAll(String query) => _search.searchAll(query);
+
+  Future<List<UserModel>> searchByUsername(String username,
+          {FeedType profileType = FeedType.public}) =>
+      _search.searchByUsername(username, profileType: profileType);
+
+  Future<List<UserModel>> searchByFullName(String query) =>
+      _search.searchByFullName(query);
+
+  Future<bool> isUsernameAvailable(String username) =>
+      _search.isUsernameAvailable(username);
+
+  Future<UserModel?> getUserByUsername(String username) =>
+      _search.getUserByUsername(username);
+
+  // ---------------------------------------------------------------------------
+  // Delegated: Follow  (prefer injecting UserFollowRepository directly)
+  // ---------------------------------------------------------------------------
+
+  Future<void> followUser(String userId, String followUserId) =>
+      _follow.followUser(userId, followUserId);
+
+  Future<void> unfollowUser(String userId, String unfollowUserId) =>
+      _follow.unfollowUser(userId, unfollowUserId);
+
+  Future<bool> isFollowing(String userId, String otherUserId) =>
+      _follow.isFollowing(userId, otherUserId);
+
+  Stream<List<UserModel>> getFollowers(String userId) =>
+      _follow.getFollowers(userId);
+
+  Stream<List<UserModel>> getFollowing(String userId) =>
+      _follow.getFollowing(userId);
+
+  Future<int?> getFollowerCount(String userId) =>
+      _follow.getFollowerCount(userId);
+
+  Future<int?> getFollowingCount(String userId) =>
+      _follow.getFollowingCount(userId);
+
+  // ---------------------------------------------------------------------------
+  // Delegated: Alt Profile  (prefer injecting AltProfileRepository directly)
+  // ---------------------------------------------------------------------------
+
   Future<String> uploadAltImage({
     required String userId,
     required File file,
     required String type,
-  }) async {
-    final ref = _storage.ref().child('users/$userId/alt/$type');
-    final uploadTask = ref.putFile(file);
+  }) =>
+      _alt.uploadAltImage(userId: userId, file: file, type: type);
 
-    final snapshot = await uploadTask;
-    final downloadUrl = await snapshot.ref.getDownloadURL();
-    return downloadUrl;
-  }
+  Future<void> requestAltConnection(String userId, String targetUserId) =>
+      _alt.requestAltConnection(userId, targetUserId);
 
-  Future<void> requestAltConnection(String userId, String targetUserId) async {
-    try {
-      // Get requester information to include in the request
-      final requester = await getUserById(userId);
-      if (requester == null) {
-        throw Exception('Requester not found');
-      }
+  Future<void> acceptAltConnection(String userId, String requesterId) =>
+      _alt.acceptAltConnection(userId, requesterId);
 
-      // Create a connection request document
-      await _firestore
-          .collection('altConnectionRequests')
-          .doc(targetUserId)
-          .collection('requests')
-          .doc(userId)
-          .set({
-        'requesterId': userId,
-        'requesterName': '${requester.firstName} ${requester.lastName}'.trim(),
-        'requesterUsername': requester.username,
-        'requesterProfileImageURL':
-            requester.altProfileImageURL ?? requester.profileImageURL,
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'pending'
-      });
-    } catch (e) {
-      debugPrint('Error requesting alt connection: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'requestAltConnection',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'targetUserId': targetUserId},
-      );
-      rethrow;
-    }
-  }
+  Future<void> rejectAltConnection(String userId, String requesterId) =>
+      _alt.rejectAltConnection(userId, requesterId);
 
-  // Accept a alt connection request
-  Future<void> acceptAltConnection(String userId, String requesterId) async {
-    try {
-      // Add to alt connections (bidirectional)
-      await _firestore
-          .collection('altConnections')
-          .doc(userId)
-          .collection('userConnections')
-          .doc(requesterId)
-          .set({'timestamp': FieldValue.serverTimestamp()});
-
-      await _firestore
-          .collection('altConnections')
-          .doc(requesterId)
-          .collection('userConnections')
-          .doc(userId)
-          .set({'timestamp': FieldValue.serverTimestamp()});
-
-      // Update the request status
-      await _firestore
-          .collection('altConnectionRequests')
-          .doc(userId)
-          .collection('requests')
-          .doc(requesterId)
-          .update({'status': 'accepted'});
-
-      // Update connection counts for both users
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .update({'altFriends': FieldValue.increment(1)});
-
-      await _firestore
-          .collection('users')
-          .doc(requesterId)
-          .update({'altFriends': FieldValue.increment(1)});
-    } catch (e) {
-      debugPrint('Error accepting alt connection: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'acceptAltConnection',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'requesterId': requesterId},
-      );
-      rethrow;
-    }
-  }
-
-  // Reject a alt connection request
-  Future<void> rejectAltConnection(String userId, String requesterId) async {
-    try {
-      await _firestore
-          .collection('altConnectionRequests')
-          .doc(userId)
-          .collection('requests')
-          .doc(requesterId)
-          .update({'status': 'rejected'});
-    } catch (e) {
-      debugPrint('Error rejecting alt connection: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'rejectAltConnection',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'requesterId': requesterId},
-      );
-      rethrow;
-    }
-  }
-
-  // Get all pending alt connection requests for a user
   Stream<List<AltConnectionRequest>> getPendingConnectionRequests(
-      String userId) {
-    return _firestore
-        .collection('altConnectionRequests')
-        .doc(userId)
-        .collection('requests')
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return AltConnectionRequest.fromMap(doc.data());
-            }).toList());
-  }
+          String userId) =>
+      _alt.getPendingConnectionRequests(userId);
 
-  // Check if a alt connection request already exists
   Future<bool> hasAltConnectionRequest(
-      String requesterId, String targetUserId) async {
-    try {
-      final doc = await _firestore
-          .collection('altConnectionRequests')
-          .doc(targetUserId)
-          .collection('requests')
-          .doc(requesterId)
-          .get();
+          String requesterId, String targetUserId) =>
+      _alt.hasAltConnectionRequest(requesterId, targetUserId);
 
-      return doc.exists;
-    } catch (e) {
-      debugPrint('Error checking alt connection request: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'hasAltConnectionRequest',
-        route: 'UserRepository',
-        userId: requesterId,
-        errorDetails: {'targetUserId': targetUserId},
-      );
-      return false;
-    }
-  }
+  Future<bool> areAltlyConnected(String userId1, String userId2) =>
+      _alt.areAltlyConnected(userId1, userId2);
 
-  // Check if users are already altly connected
-  Future<bool> areAltlyConnected(String userId1, String userId2) async {
-    try {
-      final doc = await _firestore
-          .collection('altConnections')
-          .doc(userId1)
-          .collection('userConnections')
-          .doc(userId2)
-          .get();
+  Stream<List<String>> getAltConnectionIds(String userId) =>
+      _alt.getAltConnectionIds(userId);
 
-      return doc.exists;
-    } catch (e) {
-      debugPrint('Error checking alt connection: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'areAltlyConnected',
-        route: 'UserRepository',
-        userId: userId1,
-        errorDetails: {'otherUserId': userId2},
-      );
-      return false;
-    }
-  }
+  Future<int> getAltConnectionCount(String userId) =>
+      _alt.getAltConnectionCount(userId);
 
-  // Get all alt connections for a user
-  Stream<List<String>> getAltConnectionIds(String userId) {
-    return _firestore
-        .collection('altConnections')
-        .doc(userId)
-        .collection('userConnections')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
-  }
+  Future<bool> hasAltProfile(String userId) => _alt.hasAltProfile(userId);
 
-  Future<int> getAltConnectionCount(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('altConnections')
-          .doc(userId)
-          .collection('userConnections')
-          .count()
-          .get();
-
-      return snapshot.count ?? 0;
-    } catch (e) {
-      debugPrint('Error getting alt connection count: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getAltConnectionCount',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return 0;
-    }
-  }
-
-// Check if alt profile exists
-  Future<bool> hasAltProfile(String userId) async {
-    final doc = await _users.doc(userId).get();
-    if (!doc.exists) return false;
-
-    final data = doc.data()!;
-    return data['altBio'] != null ||
-        data['altProfileImageURL'] != null ||
-        data['altCoverImageURL'] != null;
-  }
-
-// Create or update alt profile
   Future<void> updateAltProfile(
-      String userId, Map<String, dynamic> altData) async {
-    final Map<String, dynamic> sanitizedData = {};
+          String userId, Map<String, dynamic> altData) =>
+      _alt.updateAltProfile(userId, altData);
 
-    // Explicitly handle known alt fields
-    if (altData.containsKey('altBio')) {
-      sanitizedData['altBio'] = altData['altBio'];
-    }
+  Future<void> addAltConnection(String userId, String connectionId) =>
+      _alt.addAltConnection(userId, connectionId);
 
-    if (altData.containsKey('altProfileImageURL')) {
-      sanitizedData['altProfileImageURL'] = altData['altProfileImageURL'];
-    }
+  Future<void> removeAltConnection(String userId, String connectionId) =>
+      _alt.removeAltConnection(userId, connectionId);
 
-    if (altData.containsKey('altCoverImageURL')) {
-      sanitizedData['altCoverImageURL'] = altData['altCoverImageURL'];
-    }
+  Future<bool> isAltlyConnected(String userId, String otherUserId) =>
+      _alt.isAltlyConnected(userId, otherUserId);
 
-    await _users.doc(userId).update({
-      ...altData,
-      'altUpdatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-// Add alt connection
-  Future<void> addAltConnection(String userId, String connectionId) async {
-    // Add to alt connections collection
-    await _firestore
-        .collection('altConnections')
-        .doc(userId)
-        .collection('userConnections')
-        .doc(connectionId)
-        .set({
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Update counts
-    await _users.doc(userId).update({'altFriends': FieldValue.increment(1)});
-  }
-
-// Remove alt connection
-  Future<void> removeAltConnection(String userId, String connectionId) async {
-    await _firestore
-        .collection('altConnections')
-        .doc(userId)
-        .collection('userConnections')
-        .doc(connectionId)
-        .delete();
-
-    // Update counts
-    await _users.doc(userId).update({'altFriends': FieldValue.increment(-1)});
-  }
-
-// Check if users are altly connected
-  Future<bool> isAltlyConnected(String userId, String otherUserId) async {
-    final doc = await _firestore
-        .collection('altConnections')
-        .doc(userId)
-        .collection('userConnections')
-        .doc(otherUserId)
-        .get();
-
-    return doc.exists;
-  }
+  // ---------------------------------------------------------------------------
+  // Delegated: Pinned Posts  (prefer injecting PinnedPostRepository directly)
+  // ---------------------------------------------------------------------------
 
   Future<void> pinPostToProfile(String userId, String postId,
-      {bool isAlt = false}) async {
-    try {
-      final user = await getUserById(userId);
-      if (user == null) {
-        throw Exception('User not found');
-      }
-
-      final currentPinnedPosts = isAlt ? user.altPinnedPosts : user.pinnedPosts;
-      if (currentPinnedPosts.contains(postId)) {
-        // Post is already pinned, do nothing
-        return;
-      }
-
-      if (currentPinnedPosts.contains(postId)) {
-        // If already pinned, remove it first
-        await _users.doc(userId).update({
-          isAlt ? 'altPinnedPosts' : 'pinnedPosts':
-              FieldValue.arrayRemove([postId]),
-        });
-      }
-
-      if (currentPinnedPosts.length >= 5) {
-        throw Exception('Maximum number of pinned posts reached (5)');
-      }
-
-      final updatePinned = [...currentPinnedPosts, postId];
-
-      final updatedPinned = isAlt
-          ? {'altPinnedPosts': updatePinned}
-          : {'pinnedPosts': updatePinned};
-
-      await updateUser(userId, updatedPinned);
-
-      // Update the post document to mark it as pinned
-      await _updatePostPinStatus(postId,
-          isAlt: isAlt, isPinned: true, userId: userId);
-    } catch (e) {
-      debugPrint('Error pinning post to profile: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'pinPostToProfile',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'postId': postId, 'isAlt': isAlt},
-      );
-      rethrow;
-    }
-  }
-
-  Future<void> _updatePostPinStatus(String postId,
-      {required bool isAlt,
-      required bool isPinned,
-      required String userId}) async {
-    try {
-      // Determine which collection to update
-      CollectionReference collection;
-      if (isAlt) {
-        collection = _firestore.collection('altPosts');
-      } else {
-        collection = _firestore.collection('posts');
-      }
-
-      // Update the post document
-      final updateData = <String, dynamic>{
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      if (isAlt) {
-        updateData['isPinnedToAltProfile'] = isPinned;
-      } else {
-        updateData['isPinnedToProfile'] = isPinned;
-      }
-
-      if (isPinned) {
-        updateData['pinnedAt'] = FieldValue.serverTimestamp();
-      } else {
-        updateData['pinnedAt'] = null;
-      }
-
-      await collection.doc(postId).update(updateData);
-    } catch (e) {
-      debugPrint('Error updating post pin status: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: '_updatePostPinStatus',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {
-          'postId': postId,
-          'isAlt': isAlt,
-          'isPinned': isPinned,
-        },
-      );
-      // Don't rethrow here as this is a secondary update
-    }
-  }
+          {bool isAlt = false}) =>
+      _pinned.pinPostToProfile(userId, postId, isAlt: isAlt);
 
   Future<void> unpinPostFromProfile(String userId, String postId,
-      {bool isAlt = false}) async {
-    try {
-      // Get current user data
-      final user = await getUserById(userId);
-      if (user == null) {
-        throw Exception('User not found');
-      }
+          {bool isAlt = false}) =>
+      _pinned.unpinPostFromProfile(userId, postId, isAlt: isAlt);
 
-      final currentPinned = isAlt ? user.altPinnedPosts : user.pinnedPosts;
-
-      // Check if post is actually pinned
-      if (!currentPinned.contains(postId)) {
-        throw Exception('Post is not pinned');
-      }
-
-      // Remove the post from pinned list
-      final updatedPinned = currentPinned.where((id) => id != postId).toList();
-
-      // Update user document
-      final updateData = isAlt
-          ? {'altPinnedPosts': updatedPinned}
-          : {'pinnedPosts': updatedPinned};
-
-      await updateUser(userId, updateData);
-
-      // Update the post document to mark it as unpinned
-      await _updatePostPinStatus(postId,
-          isAlt: isAlt, isPinned: false, userId: userId);
-    } catch (e) {
-      debugPrint('Error unpinning post from profile: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'unpinPostFromProfile',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'postId': postId, 'isAlt': isAlt},
-      );
-      rethrow;
-    }
-  }
-
-  /// Get pinned posts for a user profile
   Future<List<String>> getPinnedPosts(String userId,
-      {bool isAlt = false}) async {
-    try {
-      final user = await getUserById(userId);
-      if (user == null) return [];
+          {bool isAlt = false}) =>
+      _pinned.getPinnedPosts(userId, isAlt: isAlt);
 
-      return isAlt ? user.altPinnedPosts : user.pinnedPosts;
-    } catch (e) {
-      debugPrint('Error getting pinned posts: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getPinnedPosts',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'isAlt': isAlt},
-      );
-      return [];
-    }
-  }
-
-  /// Check if a post is pinned to a user's profile
   Future<bool> isPostPinnedToProfile(String userId, String postId,
-      {bool isAlt = false}) async {
-    try {
-      final pinnedPosts = await getPinnedPosts(userId, isAlt: isAlt);
-      return pinnedPosts.contains(postId);
-    } catch (e) {
-      debugPrint('Error checking if post is pinned: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'isPostPinnedToProfile',
-        route: 'UserRepository',
-        userId: userId,
-        errorDetails: {'postId': postId, 'isAlt': isAlt},
-      );
-      return false;
-    }
-  }
+          {bool isAlt = false}) =>
+      _pinned.isPostPinnedToProfile(userId, postId, isAlt: isAlt);
 
-  // Account deletion methods
+  // ---------------------------------------------------------------------------
+  // Delegated: Account Management  (prefer injecting AccountManagementRepository directly)
+  // ---------------------------------------------------------------------------
 
-  /// Mark user account for deletion
-  Future<void> markAccountForDeletion(String userId) async {
-    try {
-      await updateUser(userId, {
-        'markedForDeleteAt': FieldValue.serverTimestamp(),
-        'accountStatus': 'marked_for_deletion',
-        'altAccountStatus': 'marked_for_deletion',
-        'isActive': false,
-        'altIsActive': false,
-      });
-    } catch (e) {
-      debugPrint('Error marking account for deletion: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'markAccountForDeletion',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      rethrow;
-    }
-  }
+  Future<void> markAccountForDeletion(String userId) =>
+      _account.markAccountForDeletion(userId);
 
-  /// Cancel account deletion (restore account within 30-day period)
-  Future<void> cancelAccountDeletion(String userId) async {
-    try {
-      await updateUser(userId, {
-        'markedForDeleteAt': null,
-        'accountStatus': 'active',
-        'altAccountStatus': 'active',
-        'isActive': true,
-        'altIsActive': true,
-      });
-    } catch (e) {
-      debugPrint('Error canceling account deletion: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'cancelAccountDeletion',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      rethrow;
-    }
-  }
+  Future<void> cancelAccountDeletion(String userId) =>
+      _account.cancelAccountDeletion(userId);
 
-  /// Check if account is marked for deletion
-  Future<bool> isAccountMarkedForDeletion(String userId) async {
-    try {
-      final user = await getUserById(userId);
-      return user?.isMarkedForDeletion ?? false;
-    } catch (e) {
-      debugPrint('Error checking account deletion status: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'isAccountMarkedForDeletion',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return false;
-    }
-  }
+  Future<bool> isAccountMarkedForDeletion(String userId) =>
+      _account.isAccountMarkedForDeletion(userId);
 
-  /// Get deletion date for account (when it will be permanently deleted)
-  Future<DateTime?> getAccountDeletionDate(String userId) async {
-    try {
-      final user = await getUserById(userId);
-      return user?.permanentDeletionDate;
-    } catch (e) {
-      debugPrint('Error getting account deletion date: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getAccountDeletionDate',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return null;
-    }
-  }
+  Future<DateTime?> getAccountDeletionDate(String userId) =>
+      _account.getAccountDeletionDate(userId);
 
-  /// Get days remaining until permanent deletion
-  Future<int?> getDaysUntilPermanentDeletion(String userId) async {
-    try {
-      final user = await getUserById(userId);
-      return user?.daysUntilDeletion;
-    } catch (e) {
-      debugPrint('Error getting days until deletion: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getDaysUntilPermanentDeletion',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return null;
-    }
-  }
+  Future<int?> getDaysUntilPermanentDeletion(String userId) =>
+      _account.getDaysUntilPermanentDeletion(userId);
 
-  /// Request data export for user via Cloud Function
-  /// Returns a map with 'success' boolean and 'message' string
-  Future<Map<String, dynamic>> requestDataExport(String userId) async {
-    try {
-      final functions = FirebaseFunctions.instance;
-      final callable = functions.httpsCallable('requestDataExport');
+  Future<Map<String, dynamic>> requestDataExport(String userId) =>
+      _account.requestDataExport(userId);
 
-      final result = await callable.call();
-      final data = result.data as Map<String, dynamic>;
+  Future<bool> hasPendingDataExport(String userId) =>
+      _account.hasPendingDataExport(userId);
 
-      return {
-        'success': data['success'] ?? false,
-        'message': data['message'] ?? 'Request submitted',
-        'status': data['status'],
-        'requestedAt': data['requestedAt'],
-      };
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint(
-          'Firebase Functions error requesting data export: ${e.code} - ${e.message}');
-      _logger.logException(
-        errorMessage: '${e.code}: ${e.message}',
-        stackTrace: StackTrace.current.toString(),
-        action: 'requestDataExport',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return {
-        'success': false,
-        'message': e.message ?? 'Failed to submit data export request',
-      };
-    } catch (e) {
-      debugPrint('Error requesting data export: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'requestDataExport',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return {
-        'success': false,
-        'message': 'An unexpected error occurred. Please try again later.',
-      };
-    }
-  }
+  Future<Map<String, dynamic>> getDataExportStatus(String userId) =>
+      _account.getDataExportStatus(userId);
 
-  /// Check if user has a pending data export request
-  Future<bool> hasPendingDataExport(String userId) async {
-    try {
-      final doc =
-          await _firestore.collection('dataExportRequests').doc(userId).get();
+  Future<Map<String, dynamic>> resetDataExportRequest(String userId) =>
+      _account.resetDataExportRequest(userId);
 
-      if (!doc.exists) return false;
+  Future<Map<String, dynamic>> getUserExportData(String userId) =>
+      _account.getUserExportData(userId);
 
-      final data = doc.data()!;
-      return data['status'] == 'pending' || data['status'] == 'processing';
-    } catch (e) {
-      debugPrint('Error checking data export status: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'hasPendingDataExport',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return false;
-    }
-  }
+  Future<void> permanentlyDeleteAccount(String userId) =>
+      _account.permanentlyDeleteAccount(userId);
 
-  /// Get detailed data export status via Cloud Function
-  Future<Map<String, dynamic>> getDataExportStatus(String userId) async {
-    try {
-      final functions = FirebaseFunctions.instance;
-      final callable = functions.httpsCallable('getDataExportStatus');
-
-      final result = await callable.call();
-      final data = result.data as Map<String, dynamic>;
-
-      return {
-        'hasRequest': data['hasRequest'] ?? false,
-        'status': data['status'],
-        'requestedAt': data['requestedAt'],
-        'completedAt': data['completedAt'],
-        'exportDocId': data['exportDocId'],
-        'downloadUrl': data['downloadUrl'],
-        'fileSizeBytes': data['fileSizeBytes'],
-        'expiresAt': data['expiresAt'],
-        'isExpired': data['isExpired'] ?? false,
-        'downloaded': data['downloaded'] ?? false,
-        'downloadedAt': data['downloadedAt'],
-      };
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint(
-          'Firebase Functions error getting data export status: ${e.code} - ${e.message}');
-      _logger.logException(
-        errorMessage: '${e.code}: ${e.message}',
-        stackTrace: StackTrace.current.toString(),
-        action: 'getDataExportStatus',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return {
-        'hasRequest': false,
-        'error': e.message,
-      };
-    } catch (e) {
-      debugPrint('Error getting data export status: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getDataExportStatus',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return {
-        'hasRequest': false,
-        'error': e.toString(),
-      };
-    }
-  }
-
-  /// Reset a stuck data export request
-  Future<Map<String, dynamic>> resetDataExportRequest(String userId) async {
-    try {
-      final functions = FirebaseFunctions.instance;
-      final callable = functions.httpsCallable('resetDataExportRequest');
-
-      final result = await callable.call();
-      final data = result.data as Map<String, dynamic>;
-
-      return {
-        'success': data['success'] ?? false,
-        'message': data['message'] ?? 'Request reset',
-      };
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint(
-          'Firebase Functions error resetting data export: ${e.code} - ${e.message}');
-      _logger.logException(
-        errorMessage: '${e.code}: ${e.message}',
-        stackTrace: StackTrace.current.toString(),
-        action: 'resetDataExportRequest',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return {
-        'success': false,
-        'message': e.message ?? 'Failed to reset data export request',
-      };
-    } catch (e) {
-      debugPrint('Error resetting data export request: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'resetDataExportRequest',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      return {
-        'success': false,
-        'message': 'An unexpected error occurred.',
-      };
-    }
-  }
-
-  /// Get user's complete data for export (this would be used by admin/backend processes)
-  Future<Map<String, dynamic>> getUserExportData(String userId) async {
-    try {
-      final user = await getUserById(userId);
-      if (user == null) throw Exception('User not found');
-
-      // Collect all user data
-      final exportData = <String, dynamic>{
-        'profile': user.toJson(),
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-
-      // Note: In a real implementation, you would collect data from all relevant collections:
-      // - posts
-      // - comments
-      // - messages
-      // - connections
-      // - saved posts
-      // - etc.
-
-      // Collect data from other collections as needed
-      // For example:
-      // final postsSnapshot = await _firestore
-      //     .collection('posts')
-      //     .where('authorId', isEqualTo: userId)
-      //     .get();
-      // exportData['posts'] = postsSnapshot.docs.map((doc) => doc.data()).toList();
-
-      return exportData;
-    } catch (e) {
-      debugPrint('Error getting user export data: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getUserExportData',
-        route: 'UserRepository',
-        userId: userId,
-      );
-      rethrow;
-    }
-  }
-
-  /// Permanently delete user account and all associated data
-  /// This should only be called by automated cleanup processes after 30-day retention period
-  Future<void> permanentlyDeleteAccount(String userId) async {
-    try {
-      final batch = _firestore.batch();
-
-      // Delete user document
-      batch.delete(_users.doc(userId));
-
-      // Clean up following/followers relationships
-      final followingSnapshot =
-          await _following.doc(userId).collection('userFollowing').get();
-      for (final doc in followingSnapshot.docs) {
-        final followedUserId = doc.id;
-        batch.delete(_followers
-            .doc(followedUserId)
-            .collection('userFollowers')
-            .doc(userId));
-        batch.update(_users.doc(followedUserId),
-            {'followers': FieldValue.increment(-1)});
-        batch.delete(doc.reference);
-      }
-
-      final followersSnapshot =
-          await _followers.doc(userId).collection('userFollowers').get();
-      for (final doc in followersSnapshot.docs) {
-        final followerId = doc.id;
-        batch.delete(
-            _following.doc(followerId).collection('userFollowing').doc(userId));
-        batch.update(
-            _users.doc(followerId), {'following': FieldValue.increment(-1)});
-        batch.delete(doc.reference);
-      }
-
-      // Clean up alt connections
-      final altConnectionsSnapshot = await _firestore
-          .collection('altConnections')
-          .doc(userId)
-          .collection('userConnections')
-          .get();
-
-      for (final doc in altConnectionsSnapshot.docs) {
-        final connectionId = doc.id;
-        // Remove this user from other user's connections
-        batch.delete(_firestore
-            .collection('altConnections')
-            .doc(connectionId)
-            .collection('userConnections')
-            .doc(userId));
-        // Update connection count
-        batch.update(
-            _users.doc(connectionId), {'altFriends': FieldValue.increment(-1)});
-        // Delete this user's connection
-        batch.delete(doc.reference);
-      }
-
-      // Delete connection requests
-      batch.delete(_firestore.collection('altConnectionRequests').doc(userId));
-
-      // Delete data export requests
-      batch.delete(_firestore.collection('dataExportRequests').doc(userId));
-
-      // TODO: Also delete from other collections:
-      // - posts collection
-      // - comments collection
-      // - messages collection
-      // - notifications collection
-      // - any other user-related data
-
-      await batch.commit();
-    } catch (e) {
-      debugPrint('Error permanently deleting account: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'permanentlyDeleteAccount',
-        route: 'UserRepository',
-        userId: userId,
-      );
-    }
-  }
-
-  /// Get list of accounts marked for deletion past 30 days (for cleanup jobs)
-  Future<List<String>> getAccountsReadyForDeletion() async {
-    try {
-      final cutoffDate = DateTime.now().subtract(const Duration(days: 30));
-
-      final snapshot = await _users
-          .where('markedForDeleteAt',
-              isLessThan: Timestamp.fromDate(cutoffDate))
-          .where('accountStatus', isEqualTo: 'marked_for_deletion')
-          .get();
-
-      return snapshot.docs.map((doc) => doc.id).toList();
-    } catch (e) {
-      debugPrint('Error getting accounts ready for deletion: $e');
-      _logger.logException(
-        errorMessage: e.toString(),
-        stackTrace: StackTrace.current.toString(),
-        action: 'getAccountsReadyForDeletion',
-        route: 'UserRepository',
-      );
-      return [];
-    }
-  }
+  Future<List<String>> getAccountsReadyForDeletion() =>
+      _account.getAccountsReadyForDeletion();
 }

@@ -1,5 +1,3 @@
-// user_settings_state.dart
-
 class UserSettingsState {
   final bool allowNSFWContent;
   final bool blurNSFWContent;
