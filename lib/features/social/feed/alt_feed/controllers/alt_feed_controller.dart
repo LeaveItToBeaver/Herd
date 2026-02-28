@@ -18,7 +18,6 @@ class AltFeedController {
   final Ref ref;
   bool _showHerdPosts = true;
   bool _disposed = false;
-  StreamSubscription? _postUpdateSubscription;
 
   /// Maximum posts to keep in memory state.
   /// Posts beyond this are still cached to disk and can be reloaded.
@@ -32,10 +31,7 @@ class AltFeedController {
   bool get showHerdPosts => _showHerdPosts;
 
   AltFeedController(this.repository, this.userId, this.cacheManager, this.ref,
-      {this.pageSize = 15}) {
-    // Listen for post updates from repository
-    _postUpdateSubscription = repository.postUpdates.listen(_handlePostUpdates);
-  }
+      {this.pageSize = 15});
 
   /// Toggle whether to show herd posts in the alt feed
   void toggleHerdPostsFilter(bool show) {
@@ -45,7 +41,6 @@ class AltFeedController {
 
   void dispose() {
     _disposed = true;
-    _postUpdateSubscription?.cancel();
   }
 
   bool get _isActive => !_disposed;
@@ -118,38 +113,6 @@ class AltFeedController {
     }
 
     debugPrint('Interactions batch initialization complete');
-  }
-
-  void _handlePostUpdates(List<PostModel> updatedPosts) {
-    if (!_isActive) return;
-
-    // Only update if we have posts and we're not loading
-    if (updatedPosts.isEmpty || state.isLoading) return;
-
-    // We need to merge updated posts with existing ones
-    // by preserving posts that aren't in the update
-    //final existingPostIds = state.posts.map((p) => p.id).toSet();
-    final updatedPostIds = updatedPosts.map((p) => p.id).toSet();
-
-    // Keep posts that aren't in the update
-    final postsToKeep =
-        state.posts.where((p) => !updatedPostIds.contains(p.id)).toList();
-
-    // Create final list with updated posts first, then unchanged posts
-    final mergedPosts = [...updatedPosts, ...postsToKeep];
-
-    // Sort by hot score to maintain correct order
-    mergedPosts.sort((a, b) => (b.hotScore ?? 0).compareTo(a.hotScore ?? 0));
-
-    // Update state with merged posts
-    state = state.copyWith(
-      posts: mergedPosts,
-      isRefreshing: false,
-      hasMorePosts: repository.hasMorePosts,
-    );
-
-    debugPrint(
-        '✨ Updated feed with fresh data: ${updatedPosts.length} posts refreshed');
   }
 
   Future<void> loadInitialPosts(

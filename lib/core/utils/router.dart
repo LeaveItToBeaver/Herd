@@ -31,14 +31,9 @@ final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final user = ref.watch(authProvider);
-  final authReady = ref.watch(authReadyProvider);
-  final currentFeed = ref.watch(currentFeedProvider);
-  // Create a key for the navigator inside ShellRoute
   final rootNavigatorKey = GlobalKey<NavigatorState>();
-  final shellNavigatorKey = GlobalKey<NavigatorState>();
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     observers: [
       routeObserver,
@@ -331,62 +326,51 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Main Shell Route with Bottom Navigation Bar
-      ShellRoute(
-        navigatorKey: shellNavigatorKey,
-        builder: (context, state, child) {
-          return _TabScaffold(child: child);
+      // Main Shell Route with Bottom Navigation Bar.
+      // StatefulShellRoute.indexedStack keeps all branch widget trees alive in
+      // memory simultaneously — switching tabs no longer disposes image streams
+      // that are still loading.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return _TabScaffold(navigationShell: navigationShell);
         },
-        routes: [
-          GoRoute(
-            path: '/altFeed',
-            name: 'altFeed',
-            parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) {
-              // Set current feed to alt when viewing alt feed
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref.read(currentFeedProvider.notifier).state = FeedType.alt;
-              });
-              return const NoTransitionPage(
-                child: AltFeedScreen(),
-              );
-            },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/altFeed',
+                name: 'altFeed',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: AltFeedScreen()),
+              ),
+            ],
           ),
-
-          GoRoute(
-            path: '/publicFeed',
-            name: 'publicFeed',
-            parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) {
-              // Set current feed to public when viewing public feed
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref.read(currentFeedProvider.notifier).state = FeedType.public;
-              });
-              return const NoTransitionPage(
-                child: PublicFeedScreen(),
-              );
-            },
-          ),
-
-          // Context-aware profile navigation that redirects based on current feed type
-          GoRoute(
-            path: '/profile',
-            name: 'profile',
-            parentNavigatorKey: shellNavigatorKey,
-            redirect: (context, state) {
-              final userId = ref.read(authProvider)?.uid;
-              if (userId == null) return '/login';
-
-              // Determine which profile to show based on current feed
-              final feedType = ref.read(currentFeedProvider);
-              if (feedType == FeedType.alt) {
-                return '/altProfile/$userId';
-              } else {
-                return '/publicProfile/$userId';
-              }
-            },
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/publicFeed',
+                name: 'publicFeed',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: PublicFeedScreen()),
+              ),
+            ],
           ),
         ],
+      ),
+
+      // Profile: redirect-only route, outside the shell so it uses the root navigator.
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        parentNavigatorKey: rootNavigatorKey,
+        redirect: (context, state) {
+          final userId = ref.read(authProvider)?.uid;
+          if (userId == null) return '/login';
+          final feedType = ref.read(currentFeedProvider);
+          return feedType == FeedType.alt
+              ? '/altProfile/$userId'
+              : '/publicProfile/$userId';
+        },
       ),
 
       // Routes that appear OUTSIDE the shell (will have back button)
@@ -845,35 +829,53 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Re-evaluate redirects when auth state changes WITHOUT recreating the router.
+  // Using ref.listen instead of ref.watch prevents a new GoRouter instance from
+  // being created on every auth event, which would reset the entire nav stack.
+  ref.listen(authProvider, (_, __) => router.refresh());
+  ref.listen(authReadyProvider, (_, __) => router.refresh());
+  ref.onDispose(router.dispose);
+
+  return router;
 });
 
 class _TabScaffold extends ConsumerWidget {
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
-  const _TabScaffold({required this.child});
+  const _TabScaffold({required this.navigationShell});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Get current feed type to highlight the active tab
-    final feedType = ref.watch(currentFeedProvider);
+    // Derive feed type from the active branch: branch 0 = alt, branch 1 = public.
+    // This avoids watching currentFeedProvider here, which previously caused the
+    // GoRouter to rebuild the entire navigation stack on every tab switch.
+    final feedType =
+        navigationShell.currentIndex == 0 ? FeedType.alt : FeedType.public;
+
+    // Keep currentFeedProvider in sync so other routes (/create, /profile)
+    // know which feed mode the user is currently in.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        ref.read(currentFeedProvider.notifier).state = feedType;
+      }
+    });
 
     // Initialize E2EE for authenticated users (non-blocking)
     ref.watch(e2eeStatusProvider);
 
     return Scaffold(
-      resizeToAvoidBottomInset:
-          false, // Prevent scaffold from moving with keyboard
+      resizeToAvoidBottomInset: false,
       body: GlobalOverlayManager(
         showBottomNav: true,
         showSideBubbles: false,
-        showProfileBtn: true, // Enable profile button
-        showSearchBtn: true, // Enable search button
-        showNotificationsBtn: false, // Enable notifications button
+        showProfileBtn: true,
+        showSearchBtn: true,
+        showNotificationsBtn: false,
         showChatToggle: true,
-        showHerdBubbles:
-            feedType == FeedType.alt, // Show herd bubbles on alt feed
+        showHerdBubbles: feedType == FeedType.alt,
         currentFeedType: feedType,
-        child: child,
+        child: navigationShell,
       ),
     );
   }

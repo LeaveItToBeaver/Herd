@@ -300,10 +300,14 @@ class _CommentButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch for real-time comment count updates
+    // Read comment count from the keepAlive interactions provider instead of
+    // opening a per-post Firestore stream, which would create N stream
+    // subscriptions every time the feed is rebuilt.
     final commentCount = ref.watch(
-      postProvider(post.id).select(
-        (asyncValue) => asyncValue.value?.commentCount ?? post.commentCount,
+      postInteractionsWithPrivacyProvider(
+        PostParams(id: post.id, isAlt: post.isAlt, herdId: post.herdId),
+      ).select(
+        (state) => state.isInitialized ? state.totalComments : post.commentCount,
       ),
     );
 
