@@ -395,7 +395,7 @@ abstract class UserModel with _$UserModel {
     return result;
   }
 
-// Method to toggle account privacy - with type casting
+  // Method to toggle account privacy - with type casting
   UserModel togglePrivacy({bool? forAltAccount = false}) {
     if (forAltAccount == true) {
       return copyWith(altIsPrivateAccount: !altIsPrivateAccount);
