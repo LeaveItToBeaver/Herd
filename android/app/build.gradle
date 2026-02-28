@@ -19,8 +19,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.herdco.herdapp"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = Math.max(flutter.compileSdkVersion, 36)
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -38,8 +38,8 @@ android {
         applicationId = "com.herdco.herdapp"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdkVersion = flutter.minSdkVersion
-        targetSdk = 35
+        minSdkVersion = Math.max(flutter.minSdkVersion, 23)
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled true
